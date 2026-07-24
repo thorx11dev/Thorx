@@ -66,6 +66,10 @@ async function distributePool(
     message: `${label} — Your captain share: Rs.${captainShareD.toFixed(2)}`,
     type: "financial",
   });
+  try {
+    const { broadcastToUser } = await import("../realtime");
+    broadcastToUser(guild.captainId, 'guild.pool_credited', { guildId: guild.id, amount: captainShareD.toFixed(2), role: 'captain' });
+  } catch (_) { /* non-critical */ }
 
   let totalDistributedD = captainShareD;
 
@@ -102,6 +106,12 @@ async function distributePool(
         })
       )
     );
+    try {
+      const { broadcastToUser } = await import("../realtime");
+      memberShares.forEach(({ userId, shareD }) => {
+        broadcastToUser(userId, 'guild.pool_credited', { guildId: guild.id, amount: shareD.toFixed(2), role: 'member' });
+      });
+    } catch (_) { /* non-critical */ }
 
     totalDistributedD = memberShares.reduce(
       (acc, { shareD }) => acc.add(shareD),

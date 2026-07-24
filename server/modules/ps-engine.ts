@@ -184,7 +184,7 @@ export async function checkAndUpdateRankTier(userId: string, tx?: DbClient): Pro
 
   try {
     const { broadcastUserUpdated } = await import("../realtime");
-    broadcastUserUpdated(userId, "rank_tier_updated", { oldRank: user.userRankTier, newRank });
+    broadcastUserUpdated(userId, "rank_updated", { oldRank: user.userRankTier, newRank });
   } catch (e) {
     logger.error({ err: e, userId }, "[PSEngine] Failed to broadcast rank tier update — continuing.");
   }

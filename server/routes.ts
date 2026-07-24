@@ -4946,6 +4946,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Broadcast rank_updated when the rank actually changed, ps_updated otherwise.
       const eventType = user.rank !== userBefore?.rank ? 'rank_updated' : 'ps_updated';
       broadcastUserUpdated(req.params.userId, eventType, { delta, newPs: user.performanceScore, newRank: user.rank });
+      // Also fire the dedicated user.ps_updated event so the client PS notification handler triggers
+      broadcastToUser(req.params.userId, 'user.ps_updated', { delta, newPs: user.performanceScore });
       res.json({ user });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to adjust PS";
