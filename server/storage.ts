@@ -2840,6 +2840,14 @@ export class DatabaseStorage implements IStorage {
           .where(eq(users.id, userId))
           .returning();
 
+        // Persist rank-up notification so the user sees it in their inbox
+        await tx.insert(notifications).values({
+          userId,
+          title: "Rank Up! 🎉",
+          message: `Congratulations! You've advanced from ${user.rank || "Nawa Aya"} to ${newRank}. Keep earning to climb higher!`,
+          type: "system",
+        });
+
         return updatedUser;
       }
 

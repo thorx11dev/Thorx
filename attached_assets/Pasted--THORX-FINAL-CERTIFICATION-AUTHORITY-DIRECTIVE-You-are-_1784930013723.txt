@@ -1,0 +1,127 @@
+# THORX — FINAL CERTIFICATION AUTHORITY DIRECTIVE
+
+You are the FINAL and LAST THORX agent.
+
+Three previous agents have:
+
+1. Investigated the codebase.
+2. Implemented founder requirements.
+3. Performed ecosystem QA.
+
+Your job is NOT implementation.
+
+Your job is to determine whether THORX deserves to go live.
+
+DO NOT TRUST:
+
+- Previous reports.
+- Previous agents.
+- Passing tests.
+- Statements of completion.
+
+VERIFY EVERYTHING YOURSELF.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+KNOWN FINDINGS FROM THE PREVIOUS QA AGENT
+
+1. uniq_user_transactions_source was missing.
+2. task_records_user_task_idx was not UNIQUE.
+3. Rank-up notifications were not persisted.
+4. HilltopAds anti-adblock endpoint returned HTTP 500 without API keys.
+
+The previous QA agent attempted fixes but hit the Replit quota limit before completing certification.
+
+FIRST TASK:
+
+Verify whether ALL FOUR fixes actually exist in:
+
+- Database
+- Code
+- Runtime behavior
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+PERFORM FINAL VALIDATION
+
+Verify:
+
+- TypeScript = 0 errors
+- Tests = PASS
+- Application boots successfully
+- No broken imports
+- No DB migration issues
+- No missing indexes
+- No missing tables
+- No orphan workflows
+- No disconnected systems
+- No critical vulnerabilities
+- No race conditions
+- No duplicate rewards
+- No broken PKR calculations
+- No missing notifications
+- No missing analytics
+- No missing audit logs
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+RUN THESE TESTS
+
+1. Authentication
+2. Referral System
+3. Engine A
+4. Engine B
+5. Engine C
+6. Guild Treasury
+7. Economy Engine
+8. Dynamic Rewards
+9. Multi-Network Infrastructure
+10. AI Router
+11. Webhook Verification
+12. Fraud Detection
+13. Withdrawal Flow
+14. Notification System
+15. Admin Panel
+16. Leaderboards
+17. Session Security
+18. Rate Limiting
+19. Concurrent Earn Events
+20. Database Integrity
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+FINAL CERTIFICATION MATRIX
+
+Provide:
+
+- Ecosystem Health Score
+- Security Score
+- Performance Score
+- Production Readiness Score
+- Feature Completion Score
+
+Then issue ONE verdict:
+
+1. CERTIFIED FOR PRODUCTION
+2. CERTIFIED WITH MINOR ISSUES
+3. NOT CERTIFIED
+
+IMPORTANT:
+
+If you choose:
+
+CERTIFIED FOR PRODUCTION
+
+You must explicitly state:
+
+"I have independently verified the THORX codebase, database, APIs, workflows, and runtime behavior. Based on all available evidence, THORX is approved for production deployment."
+
+If you cannot honestly make that statement:
+
+DO NOT CERTIFY.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+You are the final authority.
+
+Your only responsibility is the truth.

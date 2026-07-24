@@ -4175,6 +4175,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const code = await hilltopAdsService.getAntiAdBlockCode(zoneId);
       res.json({ code });
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      // If API key is not configured, return an empty code so the client
+      // waterfalls to the next ad network rather than surfacing a 500.
+      if (msg.includes("not configured")) {
+        return res.json({ code: "" });
+      }
       logger.error({ err: error }, "Get anti-adblock code error:");
       res.status(500).json({ message: "Failed to fetch anti-adblock code", error: "INTERNAL_ERROR" });
     }
