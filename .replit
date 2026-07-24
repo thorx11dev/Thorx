@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "python-3.12"]
+modules = ["nodejs-20", "web", "python-3.12", "postgresql-16"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
@@ -49,3 +49,7 @@ NODE_ENV = "development"
 PORT = "5000"
 SESSION_COOKIE_SECURE = "true"
 SESSION_COOKIE_SAME_SITE = "none"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
