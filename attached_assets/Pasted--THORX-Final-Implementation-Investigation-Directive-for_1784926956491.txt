@@ -1,0 +1,535 @@
+# THORX — Final Implementation & Investigation Directive for Replit Agent
+
+## Purpose
+
+Yeh document THORX ke Replit Agent ke liye ek official implementation directive hai. Iska maqsad yeh ensure karna hai ke THORX ka har system bilkul waisa hi kaam kare jaisa founder expect karta hai.
+
+THORX sirf Pakistani users ke liye design kiya gaya hai. Isliye tamam systems, rewards, economy, fraud detection aur monetization ko Pakistan-centric approach ke saath implement aur optimize kiya jaye.
+
+---
+
+## Replit Agent Ke Liye Sabse Important Instruction
+
+Tumhein superficial review nahi karni.
+
+Tumhein:
+
+* Super-deep code investigation karni hai.
+* Line-by-line verification karni hai.
+* Har engine ka actual runtime behavior test karna hai.
+* Har API endpoint verify karna hai.
+* Har database write operation inspect karni hai.
+* Har transaction aur reward flow validate karna hai.
+* Har edge case test karna hai.
+* Har security loophole identify karna hai.
+* Har expectation mismatch detect karna hai.
+
+Agar koi issue mile:
+
+> Immediately identify karo, root cause samjho, fix implement karo, aur ensure karo ke fix existing ecosystem ko break na kare.
+
+---
+
+## Golden Rule
+
+THORX ka koi bhi feature "partially working" state mein accept nahi hoga.
+
+Har cheez:
+
+* Production-ready
+* Fully integrated
+* Secure
+* Scalable
+* Auditable
+* Maintainable
+* Million-dollar company standards ke mutabiq honi chahiye.
+
+---
+
+## Mandatory Investigation Areas
+
+### Engine A — Ads
+
+Verify:
+
+* `/api/ad-view`
+* `recordEarnEvent()`
+* Reward calculations
+* PKR balance updates
+* TX-Points
+* PS rewards
+* Streaks
+* Rank progression
+* Race condition protection
+* Rate limiting
+* Duplicate prevention
+
+Ensure:
+
+> Har successful ad completion ke baad user ko exactly wahi reward mile jo THORX economy define karti hai.
+
+---
+
+### Engine B — CPA Tasks
+
+Verify:
+
+* Task click flow
+* Task verification flow
+* Secret code validation
+* Timing validation
+* Rank gates
+* Reward split
+* Duplicate prevention
+
+Ensure:
+
+> Difficulty system implemented ho aur Easy, Medium, Hard aur Elite categories THORX progression ke mutabiq kaam karein.
+
+Expected:
+
+* Easy → All users
+* Medium → D+
+* Hard → C+
+* Elite → A+
+
+---
+
+### Engine C — Guild Economy
+
+Perform deep investigation on:
+
+* Weekly tasks
+* Weekly pools
+* Guild chat
+* GPS
+* Guild contributions
+* Pool distribution
+* Weekly resets
+
+Final Expected Behavior:
+
+### Target Complete
+
+Guild receives:
+
+1. Guild revenue pool.
+2. THORX Treasury Bonus.
+
+Example:
+
+```text
+Guild Pool = 50,000
+Treasury Bonus = 10,000
+
+Final = 60,000
+```
+
+### Target Miss
+
+Expected:
+
+```text
+Pool partially distributed.
+NO Treasury Bonus.
+```
+
+Important:
+
+> Treasury Bonus sirf successful guilds ko milna chahiye.
+
+Ensure:
+
+* No pool loss.
+* No unintended burn.
+* No unfair distributions.
+* No duplicate payouts.
+
+---
+
+### Referral Engine
+
+Final Expected Logic:
+
+```text
+Friend earns
+↓
+Referrer receives 1%
+
+Friend withdraws
+↓
+Referrer receives extra 5%
+```
+
+Requirements:
+
+* Fully auditable.
+* Lifetime tracking.
+* Fraud resistant.
+* Easily reportable.
+
+If required:
+
+* Add lifetime earning caps.
+* Add anti-abuse systems.
+
+---
+
+## HilltopAds & Monetization
+
+THORX must never depend on a single ad network.
+
+Implement:
+
+* HilltopAds
+* Monetag
+* Adsterra
+* PropellerAds
+* AdMaven
+
+Expected Architecture:
+
+```text
+User
+↓
+AI Router
+↓
+Best Network
+↓
+Ad Served
+↓
+Webhook Verification
+↓
+Fraud Checks
+↓
+recordEarnEvent()
+↓
+Reward
+```
+
+---
+
+## AI Ad Router
+
+THORX is Pakistan-only.
+
+Optimize for:
+
+* Pakistani CPM.
+* Pakistani fill rates.
+* Pakistani traffic quality.
+* Pakistani devices.
+* Pakistani ISP behavior.
+
+AI should decide:
+
+* Which network to use.
+* Which ad format to use.
+* Which reward multiplier to apply.
+
+Priority:
+
+```text
+Highest Revenue
++
+Highest Fill Rate
++
+Highest Completion Rate
+```
+
+---
+
+## Dynamic Economy System
+
+THORX economy must remain sustainable.
+
+Expected:
+
+### Revenue Low
+
+```text
+Rewards ↓
+```
+
+### Revenue High
+
+```text
+Rewards ↑
+```
+
+Examples:
+
+```text
+Revenue High:
+1.3x multiplier
+```
+
+```text
+Revenue Low:
+0.8x multiplier
+```
+
+Requirement:
+
+> THORX should never become financially unstable.
+
+---
+
+## Dynamic Reward System
+
+Replace static rewards.
+
+Expected:
+
+```text
+Actual Revenue
+↓
+User Share
+↓
+Rank Multiplier
+↓
+Final Reward
+```
+
+Example:
+
+* E Rank
+* D Rank
+* C Rank
+* B Rank
+* A Rank
+* S Rank
+
+Higher ranks should feel valuable.
+
+---
+
+## Webhook + Server Verification
+
+Client-side rewards must never be trusted.
+
+Required:
+
+* Webhooks
+* Server validation
+* Session validation
+* Device validation
+* Completion validation
+
+Verify:
+
+* IP
+* Session
+* Device
+* Time spent
+* User-Agent
+* Country
+
+Final Rule:
+
+> No verification = No reward.
+
+---
+
+## AI Fraud Detection
+
+Mandatory implementation.
+
+Detect:
+
+* VPN
+* Proxy
+* Emulator
+* Device farms
+* Multiple accounts
+* Auto-clickers
+* Bots
+* Macros
+* Suspicious activity
+
+Risk scoring:
+
+```text
+0-20     Safe
+21-50    Monitor
+51-80    Restrict
+81-100   Ban
+```
+
+Requirement:
+
+> Fraud prevention should operate silently and automatically.
+
+---
+
+## Guild Wars
+
+Implement future-ready architecture.
+
+Examples:
+
+```text
+Guild Alpha
+vs
+Guild Omega
+```
+
+Support:
+
+* Seasons
+* Rankings
+* Rewards
+* Badges
+* Hall of Fame
+
+Ensure:
+
+> Guild Wars can be enabled without major architectural changes.
+
+---
+
+## Treasury System
+
+Create THORX Treasury.
+
+Suggested:
+
+```text
+Platform Revenue
+↓
+Treasury Allocation
+↓
+Events
+Guild Bonuses
+Marketing
+Emergency Reserve
+```
+
+Treasury may be used for:
+
+* Guild bonuses.
+* Seasonal events.
+* Giveaways.
+* Community rewards.
+* Marketing campaigns.
+
+---
+
+## Pakistan-Centric Expectations
+
+THORX is not a global platform.
+
+Optimize for:
+
+* Pakistani users.
+* Pakistani payment behaviors.
+* Pakistani engagement patterns.
+* Pakistani earning expectations.
+* Pakistani internet conditions.
+
+Everything should feel:
+
+> Built in Pakistan, for Pakistan.
+
+---
+
+## Quality Expectations
+
+Every implementation must satisfy:
+
+* Security.
+* Performance.
+* Scalability.
+* Maintainability.
+* Transparency.
+* Authenticity.
+* Auditability.
+
+No:
+
+* Fake rewards.
+* Hidden calculations.
+* Placeholder implementations.
+* Half-complete integrations.
+* Hardcoded assumptions.
+
+---
+
+## Investigation Procedure
+
+For every feature:
+
+### Step 1
+
+Understand current implementation.
+
+### Step 2
+
+Compare with expected behavior.
+
+### Step 3
+
+Identify mismatches.
+
+### Step 4
+
+Fix issues.
+
+### Step 5
+
+Test.
+
+### Step 6
+
+Perform regression testing.
+
+### Step 7
+
+Document findings.
+
+### Step 8
+
+Verify production readiness.
+
+---
+
+## Clarification Rule
+
+If ANY ambiguity exists:
+
+* Stop assumptions.
+* Ask the founder directly.
+* Wait for clarification.
+* Proceed only after confirmation.
+
+Under no circumstances should the Replit Agent make business decisions independently.
+
+---
+
+## Final Directive
+
+THORX must operate exactly as expected.
+
+The goal is NOT to merely write code.
+
+The goal is to build:
+
+> A world-class, Pakistan-first, AI-powered digital economy ecosystem that meets million-dollar company standards in security, monetization, scalability, authenticity, and user experience.
+
+Every decision must prioritize:
+
+1. Perfection.
+2. Accuracy.
+3. Authenticity.
+4. Sustainability.
+5. Security.
+6. Performance.
+7. Founder expectations.
+
+If something is not perfect:
+
+> Investigate it. Fix it. Verify it. Integrate it.
+
+And if anything is unclear:
+
+> Ask the founder before proceeding.
