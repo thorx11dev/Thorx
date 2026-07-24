@@ -1,0 +1,490 @@
+# THORX — Implementation Checklist, Acceptance Criteria & Testing Matrix
+
+## Purpose
+
+Yeh document THORX Replit Agent ke liye mandatory execution framework hai.
+
+Koi bhi feature "Completed" tab tak mark nahi hoga jab tak:
+
+* Implementation complete na ho.
+* Testing complete na ho.
+* Acceptance criteria pass na ho.
+* Founder expectations match na karein.
+* Production readiness verify na ho.
+
+---
+
+# Completion Status Definitions
+
+| Status              | Meaning                    |
+| ------------------- | -------------------------- |
+| Not Started         | Kaam shuru nahi hua        |
+| In Progress         | Kaam chal raha hai         |
+| Under Investigation | Deep analysis ho rahi hai  |
+| Needs Clarification | Founder input required     |
+| Implemented         | Code likh diya gaya        |
+| Tested              | Testing complete           |
+| Accepted            | Founder expectations match |
+| Production Ready    | Deploy karne ke liye ready |
+
+---
+
+# ENGINE A — Ads
+
+## Checklist
+
+* [ ] `/api/ad-view` verified.
+* [ ] Reward calculations verified.
+* [ ] TX-Points verified.
+* [ ] PKR updates verified.
+* [ ] PS rewards verified.
+* [ ] Streaks verified.
+* [ ] Rank progression verified.
+* [ ] Duplicate protection verified.
+* [ ] Rate limiting verified.
+* [ ] Race protection verified.
+
+---
+
+## Acceptance Criteria
+
+Feature passes only if:
+
+1. User watches ad.
+2. Verification succeeds.
+3. Reward credited once.
+4. No duplicate credits.
+5. Balances update correctly.
+6. Logs created successfully.
+
+Expected:
+
+```text
+Watch Ad
+↓
+Verification
+↓
+recordEarnEvent
+↓
+Reward
+↓
+Balance Updated
+```
+
+---
+
+## Testing Matrix
+
+| Test                  | Expected Result |
+| --------------------- | --------------- |
+| Normal Ad             | Reward credited |
+| Duplicate Request     | Rejected        |
+| Rapid Requests        | Rate limited    |
+| Invalid Session       | Rejected        |
+| Transaction Failure   | Rollback        |
+| Simultaneous Requests | Single reward   |
+
+---
+
+# ENGINE B — CPA
+
+## Checklist
+
+* [ ] Difficulty system implemented.
+* [ ] Easy tasks available.
+* [ ] Medium tasks available.
+* [ ] Hard tasks available.
+* [ ] Elite tasks available.
+* [ ] Secret code validation verified.
+* [ ] Rank restrictions verified.
+* [ ] Duplicate prevention verified.
+
+---
+
+## Acceptance Criteria
+
+```text
+Easy
+↓
+Everyone
+
+Medium
+↓
+D+
+
+Hard
+↓
+C+
+
+Elite
+↓
+A+
+```
+
+---
+
+## Testing Matrix
+
+| Test             | Expected |
+| ---------------- | -------- |
+| Correct Code     | Success  |
+| Wrong Code       | Reject   |
+| Less than 10 sec | Reject   |
+| Duplicate Verify | Reject   |
+| Wrong Rank       | Reject   |
+
+---
+
+# ENGINE C — Guild Economy
+
+## Checklist
+
+* [ ] Weekly tasks verified.
+* [ ] Pool calculations verified.
+* [ ] GPS verified.
+* [ ] Guild chat verified.
+* [ ] Weekly reset verified.
+* [ ] Treasury bonus verified.
+* [ ] Partial distribution verified.
+
+---
+
+## Acceptance Criteria
+
+### Success Case
+
+```text
+Guild Pool
++
+Treasury Bonus
+=
+Final Reward
+```
+
+### Failure Case
+
+```text
+Target Miss
+↓
+Partial Distribution
+↓
+NO Treasury Bonus
+```
+
+---
+
+## Testing Matrix
+
+| Test              | Expected       |
+| ----------------- | -------------- |
+| Target Complete   | Bonus awarded  |
+| Target Miss       | Partial payout |
+| Double Completion | Rejected       |
+| Reset Job         | Successful     |
+| Guild Removal     | Access denied  |
+
+---
+
+# REFERRAL SYSTEM
+
+## Checklist
+
+* [ ] 1% earning share.
+* [ ] 5% withdrawal share.
+* [ ] Fraud protection.
+* [ ] Lifetime tracking.
+* [ ] Reporting support.
+
+---
+
+## Acceptance Criteria
+
+```text
+Friend Earns
+↓
+1%
+
+Friend Withdraws
+↓
+5%
+```
+
+---
+
+## Testing Matrix
+
+| Test               | Expected      |
+| ------------------ | ------------- |
+| Friend Earns       | Referrer paid |
+| Friend Withdraws   | Bonus paid    |
+| Self Referral      | Rejected      |
+| Duplicate Accounts | Flagged       |
+
+---
+
+# MULTI-NETWORK ADS
+
+## Checklist
+
+* [ ] HilltopAds.
+* [ ] Monetag.
+* [ ] Adsterra.
+* [ ] PropellerAds.
+* [ ] AdMaven.
+* [ ] AI Router.
+
+---
+
+## Acceptance Criteria
+
+```text
+AI
+↓
+Select Best Network
+↓
+Serve Ad
+```
+
+---
+
+## Testing Matrix
+
+| Test            | Expected          |
+| --------------- | ----------------- |
+| Hilltop Offline | Fallback works    |
+| Network Failure | Next network used |
+| Low Fill Rate   | Router switches   |
+| Revenue Drop    | Router adapts     |
+
+---
+
+# WEBHOOK VERIFICATION
+
+## Checklist
+
+* [ ] Webhooks.
+* [ ] Session validation.
+* [ ] Device validation.
+* [ ] Time validation.
+* [ ] Country validation.
+
+---
+
+## Acceptance Criteria
+
+> No webhook verification = No reward.
+
+---
+
+## Testing Matrix
+
+| Test            | Expected |
+| --------------- | -------- |
+| Valid Webhook   | Reward   |
+| Fake Webhook    | Reject   |
+| Replay Attack   | Reject   |
+| Invalid Session | Reject   |
+
+---
+
+# DYNAMIC REWARDS
+
+## Checklist
+
+* [ ] Revenue-based rewards.
+* [ ] Rank multipliers.
+* [ ] Economy controls.
+
+---
+
+## Acceptance Criteria
+
+```text
+Revenue
+↓
+User Share
+↓
+Rank Bonus
+↓
+Reward
+```
+
+---
+
+## Testing Matrix
+
+| Test             | Expected             |
+| ---------------- | -------------------- |
+| Revenue Increase | Rewards increase     |
+| Revenue Drop     | Rewards decrease     |
+| Rank Upgrade     | Multiplier increases |
+
+---
+
+# AI FRAUD DETECTION
+
+## Checklist
+
+* [ ] VPN detection.
+* [ ] Proxy detection.
+* [ ] Emulator detection.
+* [ ] Device farm detection.
+* [ ] Multi-account detection.
+* [ ] Bot detection.
+* [ ] Macro detection.
+
+---
+
+## Acceptance Criteria
+
+```text
+Risk Score
+
+0-20
+Safe
+
+21-50
+Monitor
+
+51-80
+Restrict
+
+81-100
+Ban
+```
+
+---
+
+## Testing Matrix
+
+| Test          | Expected |
+| ------------- | -------- |
+| VPN           | Flag     |
+| Emulator      | Flag     |
+| Bot           | Flag     |
+| Multi Account | Flag     |
+| Macro         | Flag     |
+
+---
+
+# GUILD WARS
+
+## Checklist
+
+* [ ] Architecture ready.
+* [ ] Seasonal support.
+* [ ] Rankings.
+* [ ] Hall of Fame.
+* [ ] Rewards.
+
+---
+
+## Acceptance Criteria
+
+```text
+Guild A
+vs
+Guild B
+```
+
+Winner receives:
+
+* Rewards.
+* Badge.
+* Ranking.
+* Recognition.
+
+---
+
+# TREASURY
+
+## Checklist
+
+* [ ] Treasury implemented.
+* [ ] Guild bonus support.
+* [ ] Event support.
+* [ ] Emergency reserve.
+
+---
+
+## Acceptance Criteria
+
+Treasury may fund:
+
+* Guild bonuses.
+* Seasonal events.
+* Giveaways.
+* Marketing.
+* Community rewards.
+
+---
+
+# PERFORMANCE REQUIREMENTS
+
+Every feature must satisfy:
+
+| Requirement    | Minimum              |
+| -------------- | -------------------- |
+| API Response   | < 300ms              |
+| DB Queries     | Optimized            |
+| Error Handling | Complete             |
+| Logging        | Enabled              |
+| Security       | Production Grade     |
+| Scalability    | Million+ Users Ready |
+
+---
+
+# FINAL SIGN-OFF TEMPLATE
+
+Every completed feature must include:
+
+### Feature Name
+
+---
+
+### Current Status
+
+---
+
+### Investigation Summary
+
+---
+
+### Changes Made
+
+---
+
+### Tests Performed
+
+---
+
+### Acceptance Criteria
+
+PASS / FAIL
+
+### Production Ready
+
+YES / NO
+
+### Founder Approval Required
+
+YES / NO
+
+---
+
+# FINAL RULE
+
+The Replit Agent must never assume.
+
+If something is unclear:
+
+1. Stop.
+2. Ask the founder.
+3. Receive clarification.
+4. Continue implementation.
+
+No feature shall be considered complete until:
+
+> Code + Testing + Acceptance Criteria + Founder Expectations + Production Readiness = PASS
+
+This document is mandatory for every THORX implementation moving forward.
