@@ -1,14 +1,16 @@
 /**
  * THORX Smart AI Ad Router (Rule-Based)
  *
- * Selects the best ad network based on real performance stats:
- *   score = (cpm × 0.5) + (fillRate × 0.3) + (completionRate × 0.2)
+ * Selects the best ad network based on real performance stats.
+ * Scoring formula (Q5 spec weights):
+ *   score = (revenue × 0.4) + (fillRate × 0.3) + (completionRate × 0.2) + (latency × 0.1)
  *
- * Pakistan-optimised: weights CPM highest since Pakistani CPM is the
- * primary revenue driver; fill rate second; completion rate third.
+ * Revenue:         40% — normalised CPM PKR (max ~10 PKR assumed)
+ * Fill Rate:       30% — % of ad requests filled
+ * Completion Rate: 20% — % of served ads completed
+ * Latency:         10% — inverted priority score (lower priority# = faster = higher score)
  *
- * Result is cached 5 minutes (configurable via ROUTER_CACHE_TTL_MS).
- * Falls back to AD_NETWORKS priority order if no stats available.
+ * Result is cached 5 minutes. Falls back to AD_NETWORKS priority order if no stats available.
  */
 
 import { db } from "../db";
@@ -92,12 +94,13 @@ export async function getAdRouterRecommendation(
       const fill = perf ? parseFloat(perf.avgFillRate ?? "0") : 0;
       const completion = perf ? parseFloat(perf.avgCompletionRate ?? "0") : 0;
 
-      // Pakistan-optimised score formula:
-      // CPM weight 0.5, Fill Rate 0.3, Completion Rate 0.2
-      // CPM normalised to a 0-100 scale assuming max CPM ~10 PKR
+      // Q5 spec weights: Revenue 40%, Fill Rate 30%, Completion Rate 20%, Latency 10%.
+      // CPM normalised to 0-100 assuming max CPM ~10 PKR.
+      // Latency proxied from priority: priority 1 → 100 pts, priority 10 → 10 pts (inverted scale).
       const cpmNorm = Math.min(100, (cpm / 10) * 100);
+      const latencyScore = Math.max(0, 110 - network.priority * 10); // lower priority# = faster
       const score =
-        cpmNorm * 0.5 + fill * 0.3 + completion * 0.2;
+        cpmNorm * 0.4 + fill * 0.3 + completion * 0.2 + latencyScore * 0.1;
 
       return {
         networkId: network.id,

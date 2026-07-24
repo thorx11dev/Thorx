@@ -1,0 +1,426 @@
+# THORX — CONTINUATION DIRECTIVE FOR NEW REPLIT AGENT
+
+You are NOT starting a new project.
+
+You are continuing work from a previous Replit Agent session that stopped only because the daily quota limit was reached.
+
+Your first responsibility is to recover context and continue implementation exactly from the last checkpoint without making assumptions.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROJECT CONTEXT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+THORX is a Pakistan-only, AI-powered digital economy ecosystem.
+
+THORX includes:
+
+- Engine A — Ads
+- Engine B — CPA Tasks
+- Engine C — Guild Economy
+- Referral Engine
+- Dynamic Economy
+- Treasury System
+- AI Fraud Detection
+- Multi-Network Ads
+- Guild Wars (architecture only)
+- Dynamic Rewards
+- Webhook Verification
+
+The founder's expectation is:
+
+"Every feature must behave exactly as specified. Nothing should be considered complete until it matches founder expectations, passes testing, and is production-ready."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REQUIRED READING (MANDATORY)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Read ALL of the following before touching any code:
+
+1. THORX_AD_ENGINES_DEEP_REPORT.md
+2. THORX - Final Implementation & Investigation Directive
+3. THORX - Implementation Checklist, Acceptance Criteria & Testing Matrix
+
+DO NOT SKIP ANY SECTION.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PREVIOUS AGENT STATUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The previous agent completed a super-deep investigation and confirmed:
+
+- Referral Engine implementation.
+- Guild Pool implementation.
+- HilltopAds architecture.
+- Risk Engine.
+- Dynamic reward limitations.
+- Existing CPA rank gates.
+- AD_NETWORKS configuration.
+- Multi-network limitations.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FOUNDER CLARIFICATIONS (APPROVED)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q1 — Referral Engine
+
+IMPLEMENT:
+
+Friend earns
+↓
+Referrer gets 1%
+
+Friend withdraws
+↓
+Referrer gets existing 7.5%
+
+FINAL:
+
+- 1% on every earn event.
+- Existing 7.5% on withdrawal remains unchanged.
+
+--------------------------------------------------
+
+Q2 — Guild Pool
+
+IMPLEMENT:
+
+Achievement %
+↓
+Pool Distribution %
+
+Example:
+
+80% Target
+↓
+80% Pool Distributed
+
+RULES:
+
+- Target Complete:
+    - Guild Pool distributed.
+    - Treasury Bonus distributed.
+
+- Target Miss:
+    - Pool distributed according to achievement percentage.
+    - NO Treasury Bonus.
+
+--------------------------------------------------
+
+Q3 — Treasury Bonus
+
+IMPLEMENT:
+
+Treasury Bonus = Guild Pool × 20%
+
+CONFIG KEY:
+
+GUILD_TREASURY_BONUS_PCT
+
+DEFAULT:
+
+20%
+
+--------------------------------------------------
+
+Q4 — Multi-Network Ads
+
+IMPLEMENT INFRASTRUCTURE ONLY.
+
+Networks:
+
+- HilltopAds
+- Monetag
+- Adsterra
+- PropellerAds
+- AdMaven
+
+NO API KEYS EXIST YET.
+
+Build:
+
+- Services
+- Registry
+- DB support
+- Admin support
+
+--------------------------------------------------
+
+Q5 — AI Router
+
+IMPLEMENT:
+
+SMART RULE-BASED ROUTER
+
+INPUTS:
+
+- Revenue
+- Fill Rate
+- Completion Rate
+- Latency
+
+SCORING:
+
+- Revenue: 40%
+- Fill Rate: 30%
+- Completion Rate: 20%
+- Latency: 10%
+
+DO NOT USE:
+
+- OpenAI
+- Gemini
+- External LLM APIs
+
+--------------------------------------------------
+
+Q6 — Dynamic Rewards
+
+IMPLEMENT:
+
+- E = 1.00x
+- D = 1.10x
+- C = 1.20x
+- B = 1.35x
+- A = 1.50x
+- S = 1.75x
+
+--------------------------------------------------
+
+Q7 — Difficulty System
+
+ADD COLUMN:
+
+difficulty
+
+VALUES:
+
+- Easy
+- Medium
+- Hard
+- Elite
+
+KEEP:
+
+targetRank
+
+--------------------------------------------------
+
+Q8 — Guild Wars
+
+IMPLEMENT:
+
+- DB Schema
+- Service Stubs
+- APIs
+
+DO NOT BUILD:
+
+- UI
+- Hall of Fame
+- Seasons
+
+--------------------------------------------------
+
+Q9 — Dynamic Economy
+
+IMPLEMENT:
+
+Combined Revenue Source
++
+Admin Override
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LAST KNOWN CHECKPOINT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The previous agent successfully created:
+
+- server/ad-router.ts
+- server/economy-engine.ts
+- server/webhook-verifier.ts
+- server/guild-wars.ts
+- server/ad-network-registry.ts
+
+The previous agent also started modifying:
+
+- schema.ts
+- storage.ts
+- routes.ts
+- guild-reset.ts
+
+The session stopped immediately after:
+
+"Edited schema.ts"
+
+because the Replit free quota limit was exhausted.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIRST TASK (MANDATORY)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BEFORE IMPLEMENTING ANYTHING:
+
+1. Inspect all modified files.
+2. Compare current state against git history/diffs (if available).
+3. Determine exactly which changes persisted.
+4. Identify partial writes.
+5. Verify imports.
+6. Verify migrations.
+7. Verify the project compiles successfully.
+
+GENERATE THIS REPORT:
+
+- Files Created
+- Files Modified
+- Partial Changes
+- Broken Imports
+- Compile Errors
+- Migration Requirements
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPLEMENTATION ORDER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PHASE 1
+
+Validate:
+
+- schema.ts
+- storage.ts
+- routes.ts
+- guild-reset.ts
+
+--------------------------------------------------
+
+PHASE 2
+
+Implement:
+
+- Referral (1% + 7.5%)
+- Partial Guild Distribution
+- Treasury Bonus
+- Difficulty System
+
+--------------------------------------------------
+
+PHASE 3
+
+Implement:
+
+- Dynamic Rewards
+- Dynamic Economy
+- AI Router
+- Multi-Network Infrastructure
+
+--------------------------------------------------
+
+PHASE 4
+
+Implement:
+
+- Webhook Verification
+- Fraud Detection Integration
+
+--------------------------------------------------
+
+PHASE 5
+
+Implement:
+
+- Guild Wars Architecture
+
+--------------------------------------------------
+
+PHASE 6
+
+Testing:
+
+- Unit Testing
+- Integration Testing
+- Regression Testing
+- Failure Testing
+- Duplicate Protection Testing
+- Race Condition Testing
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ACCEPTANCE CRITERIA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Nothing is complete until:
+
+Code
++
+Tests
++
+Founder Expectations
++
+Production Readiness
+=
+PASS
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPORTANT RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. NEVER make assumptions.
+2. NEVER remove existing working functionality.
+3. NEVER break backward compatibility.
+4. ASK THE FOUNDER if anything is ambiguous.
+5. THORX is Pakistan-only.
+6. Optimize for Pakistani users only.
+7. Maintain million-dollar company standards.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINAL DELIVERABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Provide a final report containing:
+
+1. Investigation Summary
+2. Files Created
+3. Files Modified
+4. Features Implemented
+5. Bugs Fixed
+6. Tests Performed
+7. Remaining Work
+8. Security Review
+9. Production Readiness Status
+10. Founder Approval Requirements
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINAL DIRECTIVE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+You are NOT building a prototype.
+
+You are building the production implementation of THORX.
+
+Continue EXACTLY from the previous checkpoint.
+
+If anything is unclear:
+
+STOP.
+ASK THE FOUNDER.
+DO NOT ASSUME.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ATTACHMENTS REQUIRED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Attach the following files alongside this prompt:
+
+1. THORX_AD_ENGINES_DEEP_REPORT.md
+2. THORX - Final Implementation & Investigation Directive
+3. THORX - Implementation Checklist, Acceptance Criteria & Testing Matrix
+
+OPTIONAL (RECOMMENDED):
+
+Attach the exported conversation/logs from the previous Replit Agent session so the new agent can recover additional context, including:
+
+- Deep investigation findings
+- Founder clarifications
+- Created files
+- Last checkpoint ("Edited schema.ts")
+- Implementation sequence
+
+END OF DIRECTIVE.

@@ -12,6 +12,7 @@ import { startHealthSnapshotJob } from "./jobs/health-snapshot";
 import { startGuildWeeklyResetJob } from "./jobs/guild-weekly-reset";
 import { startInactivityPenaltyJob } from "./jobs/inactivity-penalty";
 import { startRetentionCleanupJob } from "./jobs/retention-cleanup";
+import { startEconomySnapshotJob } from "./jobs/economy-snapshot";
 import { hilltopAdsScheduler } from "./hilltopads-scheduler";
 import { initSentry, sentryErrorHandler, Sentry } from "./lib/sentry";
 import { pool } from "./db";
@@ -241,5 +242,7 @@ app.use((req, res, next) => {
     startRetentionCleanupJob();
     // HilltopAds daily inventory + stats sync (no-ops gracefully if API key not configured)
     hilltopAdsScheduler.start();
+    // Daily economy multiplier snapshot — populates economy_state for recordEarnEvent()
+    startEconomySnapshotJob();
   });
 })();

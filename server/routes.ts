@@ -3892,23 +3892,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // THORX v3 (spec B.2, L.3): Engine B CPA tasks require C-Rank.
-      // Gate check is BEFORE the transaction so a failed rank check does not
-      // consume the task slot — spec invariant L.3: "E-Rank user → 403 RANK_GATE".
+      // Engine B rank gates — difficulty system (Q7) + CPA gate (spec B.2, L.3).
+      // Gate checks are BEFORE the transaction so a failed rank check does not
+      // consume the task slot — spec invariant L.3.
       const isCpaTask = task.taskCategory === 'cpa_offer' && task.grossPkrPerCompletion && new Decimal(task.grossPkrPerCompletion).gt(0);
 
-      if (isCpaTask) {
-        const user = await storage.getUserById(userId);
-        const RANK_ORDER = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
-        const userTierIdx = RANK_ORDER.indexOf(user?.userRankTier || "E-Rank");
-        if (userTierIdx < RANK_ORDER.indexOf("C-Rank")) {
-          return res.status(403).json({
-            error: "RANK_GATE",
-            requiredRank: "C-Rank",
-            currentRank: user?.userRankTier || "E-Rank",
-            message: "Engine B CPA offers require C-Rank or higher.",
-          });
-        }
+      // Fetch user once for all rank gate checks.
+      const taskUser = await storage.getUserById(userId);
+      const RANK_ORDER_VERIFY = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
+      const userTierIdx = RANK_ORDER_VERIFY.indexOf(taskUser?.userRankTier || "E-Rank");
+
+      // Q7: Difficulty-based rank gate (Easy=All, Medium=D+, Hard=C+, Elite=A+)
+      const DIFFICULTY_MIN_RANK: Record<string, string> = {
+        "Easy":   "E-Rank",
+        "Medium": "D-Rank",
+        "Hard":   "C-Rank",
+        "Elite":  "A-Rank",
+      };
+      const taskDifficulty = (task as any).difficulty || "Easy";
+      const diffRequiredRank = DIFFICULTY_MIN_RANK[taskDifficulty] ?? "E-Rank";
+      const diffRequiredIdx = RANK_ORDER_VERIFY.indexOf(diffRequiredRank);
+      if (userTierIdx < diffRequiredIdx) {
+        return res.status(403).json({
+          error: "RANK_GATE",
+          requiredRank: diffRequiredRank,
+          currentRank: taskUser?.userRankTier || "E-Rank",
+          message: `This ${taskDifficulty} task requires ${diffRequiredRank} or higher.`,
+        });
+      }
+
+      // Spec B.2, L.3: CPA offers also require C-Rank minimum regardless of difficulty label.
+      if (isCpaTask && userTierIdx < RANK_ORDER_VERIFY.indexOf("C-Rank")) {
+        return res.status(403).json({
+          error: "RANK_GATE",
+          requiredRank: "C-Rank",
+          currentRank: taskUser?.userRankTier || "E-Rank",
+          message: "Engine B CPA offers require C-Rank or higher.",
+        });
       }
 
       // ── Atomicity fix: wrap task completion + earn event in a single transaction.
@@ -5008,6 +5028,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ leaderboard });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch referral leaderboard" });
+    }
+  });
+
+  // ─── Admin: Ad Router ──────────────────────────────────────────────────────
+  app.get("/api/admin/ad-router/recommendation", requireTeamRole, async (req, res) => {
+    try {
+      const { getAdRouterRecommendation } = await import("./modules/ad-router");
+      const forceRefresh = req.query.refresh === "true";
+      const recommendation = await getAdRouterRecommendation(forceRefresh);
+      res.json(recommendation);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get ad router recommendation" });
+    }
+  });
+
+  app.post("/api/admin/ad-router/invalidate", requirePermission("MANAGE_SYSTEM"), async (req, res) => {
+    try {
+      const { invalidateRouterCache } = await import("./modules/ad-router");
+      invalidateRouterCache();
+      res.json({ success: true, message: "Ad router cache invalidated" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to invalidate cache" });
+    }
+  });
+
+  // ─── Admin: Economy Engine ──────────────────────────────────────────────────
+  app.get("/api/admin/economy/snapshot", requireTeamRole, async (req, res) => {
+    try {
+      const { getTodaySnapshot } = await import("./modules/economy-engine");
+      const snapshot = await getTodaySnapshot();
+      res.json(snapshot);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get economy snapshot" });
+    }
+  });
+
+  app.post("/api/admin/economy/refresh", requirePermission("MANAGE_SYSTEM"), async (req, res) => {
+    try {
+      const { invalidateEconomyCache, getTodaySnapshot } = await import("./modules/economy-engine");
+      invalidateEconomyCache();
+      const snapshot = await getTodaySnapshot();
+      res.json({ success: true, snapshot });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to refresh economy snapshot" });
+    }
+  });
+
+  // ─── Admin: Guild Wars ──────────────────────────────────────────────────────
+  app.get("/api/admin/guild-wars/seasons", requireTeamRole, async (req, res) => {
+    try {
+      const { listSeasons, getActiveSeason } = await import("./modules/guild-wars");
+      const [seasons, active] = await Promise.all([listSeasons(50), getActiveSeason()]);
+      res.json({ seasons, activeSeason: active });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch guild war seasons" });
+    }
+  });
+
+  app.post("/api/admin/guild-wars/seasons", requirePermission("MANAGE_SYSTEM"), adminActionRateLimiter, async (req, res) => {
+    try {
+      const parsed = z.object({
+        name: z.string().min(1).max(100),
+        startDate: z.string().datetime(),
+        endDate: z.string().datetime(),
+        prizePoolPkr: z.string().regex(/^\d+(\.\d{1,4})?$/),
+      }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
+      const { createSeason } = await import("./modules/guild-wars");
+      const season = await createSeason({
+        name: parsed.data.name,
+        startDate: new Date(parsed.data.startDate),
+        endDate: new Date(parsed.data.endDate),
+        prizePoolPkr: parsed.data.prizePoolPkr,
+      });
+      res.status(201).json({ season });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create guild war season" });
+    }
+  });
+
+  app.patch("/api/admin/guild-wars/seasons/:id/activate", requirePermission("MANAGE_SYSTEM"), adminActionRateLimiter, async (req, res) => {
+    try {
+      const { activateSeason } = await import("./modules/guild-wars");
+      const season = await activateSeason(req.params.id);
+      if (!season) return res.status(404).json({ message: "Season not found" });
+      res.json({ season });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to activate season" });
+    }
+  });
+
+  app.get("/api/admin/guild-wars/wars", requireTeamRole, async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { guildWars } = await import("@shared/schema");
+      const { desc } = await import("drizzle-orm");
+      const wars = await db.select().from(guildWars).orderBy(desc(guildWars.startDate)).limit(50);
+      res.json({ wars });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch guild wars" });
+    }
+  });
+
+  app.post("/api/admin/guild-wars/wars", requirePermission("MANAGE_SYSTEM"), adminActionRateLimiter, async (req, res) => {
+    try {
+      const parsed = z.object({
+        seasonId: z.string().min(1),
+        guild1Id: z.string().min(1),
+        guild2Id: z.string().min(1),
+        startDate: z.string().datetime(),
+        endDate: z.string().datetime(),
+        prizePoolPkr: z.string().regex(/^\d+(\.\d{1,4})?$/),
+      }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
+      const { createWar } = await import("./modules/guild-wars");
+      const war = await createWar({
+        seasonId: parsed.data.seasonId,
+        guild1Id: parsed.data.guild1Id,
+        guild2Id: parsed.data.guild2Id,
+        startDate: new Date(parsed.data.startDate),
+        endDate: new Date(parsed.data.endDate),
+        prizePoolPkr: parsed.data.prizePoolPkr,
+      });
+      res.status(201).json({ war });
+    } catch (error: any) {
+      const msg = error?.message?.includes("itself") ? error.message : "Failed to create war";
+      res.status(error?.message?.includes("itself") ? 400 : 500).json({ message: msg });
+    }
+  });
+
+  app.patch("/api/admin/guild-wars/wars/:id/resolve", requirePermission("MANAGE_SYSTEM"), adminActionRateLimiter, async (req, res) => {
+    try {
+      const { resolveWar } = await import("./modules/guild-wars");
+      const result = await resolveWar(req.params.id);
+      res.json(result);
+    } catch (error: any) {
+      const status = error?.message === "War not found" ? 404 : 500;
+      res.status(status).json({ message: error?.message || "Failed to resolve war" });
     }
   });
 

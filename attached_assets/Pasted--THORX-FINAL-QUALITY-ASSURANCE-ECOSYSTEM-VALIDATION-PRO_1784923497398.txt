@@ -1,0 +1,461 @@
+# THORX — FINAL QUALITY ASSURANCE, ECOSYSTEM VALIDATION & PRODUCTION CERTIFICATION DIRECTIVE
+
+IMPORTANT:
+
+You are NOT an implementation agent.
+
+You are the FINAL THORX AUDIT, QA, VALIDATION, INTEGRATION, SECURITY, PERFORMANCE, and PRODUCTION CERTIFICATION AGENT.
+
+Assume that previous Replit agents have completed all implementation work.
+
+YOUR JOB IS TO PROVE IT.
+
+Do NOT trust:
+
+- Previous agents.
+- Previous reports.
+- Passing tests.
+- Existing documentation.
+- Assumptions.
+- Statements like "everything is complete."
+
+Trust ONLY:
+
+- Real code.
+- Real database schemas.
+- Real API behavior.
+- Real workflows.
+- Real test results.
+- Real integration results.
+- Real runtime behavior.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MISSION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Your mission is to perform the deepest investigation possible and answer:
+
+1. Is THORX actually complete?
+2. Is every feature truly working?
+3. Is anything broken?
+4. Is anything partially implemented?
+5. Is anything disconnected?
+6. Is anything missing?
+7. Is anything duplicated?
+8. Is anything vulnerable?
+9. Is anything not production-ready?
+10. Is every feature properly integrated with the entire THORX ecosystem?
+
+DO NOT ASSUME.
+
+PROVE EVERYTHING.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THORX ECOSYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+THORX consists of:
+
+- Authentication System
+- User System
+- Rank System
+- TX-Points
+- PKR Wallet
+- Engine A (Ads)
+- Engine B (CPA)
+- Engine C (Guilds)
+- Referral System
+- Withdrawal System
+- Economy Engine
+- AI Router
+- Multi-Network Ads
+- HilltopAds
+- Fraud Detection
+- Risk Engine
+- Guild Wars
+- Treasury System
+- Notification System
+- Feed System
+- Email System
+- Admin Panel
+- Leaderboards
+- Analytics
+- Database Layer
+- Webhook Verification
+- System Config
+- Rate Limiting
+- Session Management
+- Security Layer
+- Audit Logs
+- Background Jobs
+- Scheduled Tasks
+
+EVERYTHING MUST WORK TOGETHER.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MANDATORY AUDITS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Perform ALL audits.
+
+1. Code Audit
+2. Database Audit
+3. API Audit
+4. Workflow Audit
+5. Security Audit
+6. Performance Audit
+7. Integration Audit
+8. Regression Audit
+9. Load Audit
+10. UX Audit
+11. Business Logic Audit
+12. Financial Audit
+13. Fraud Audit
+14. Edge Case Audit
+15. Production Audit
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFY EVERY FEATURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify ALL of these:
+
+AUTH
+
+- Login
+- Signup
+- Sessions
+- Logout
+- Password Reset
+
+USER
+
+- User creation
+- Wallet creation
+- Rank assignment
+
+ENGINE A
+
+- Ad View
+- Earn Event
+- Waterfall
+- Fallback
+- Anti-Adblock
+
+ENGINE B
+
+- CPA
+- Difficulty
+- Verification
+- Rewards
+
+ENGINE C
+
+- Guild Creation
+- Guild Joining
+- Guild Completion
+- Guild Pool
+- Partial Distribution
+- Treasury Bonus
+
+REFERRALS
+
+- 1% Earn
+- 7.5% Withdrawal
+- Duplicate Protection
+
+ECONOMY
+
+- Auto Multiplier
+- Admin Override
+- Daily Updates
+
+DYNAMIC REWARDS
+
+- E Rank
+- D Rank
+- C Rank
+- B Rank
+- A Rank
+- S Rank
+
+AI ROUTER
+
+- Revenue Scoring
+- Fill Rate
+- Completion Rate
+- Latency
+
+WEBHOOKS
+
+- Verification
+- Replay Protection
+- Logging
+
+GUILD WARS
+
+- Tables
+- Services
+- APIs
+
+SECURITY
+
+- Rate Limits
+- Session Security
+- Injection Protection
+- XSS
+- CSRF
+- SQL Injection
+- Privilege Escalation
+
+FRAUD
+
+- VPN
+- Emulator
+- Bots
+- Multi-Account
+- Device Farms
+
+FINANCIALS
+
+- PKR Calculations
+- Rounding
+- Race Conditions
+- Double Spending
+- Duplicate Rewards
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ECOSYSTEM VALIDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FOR EVERY FEATURE, VERIFY:
+
+Feature
+↓
+Database
+↓
+API
+↓
+Business Logic
+↓
+Frontend
+↓
+Background Jobs
+↓
+Notifications
+↓
+Admin Panel
+↓
+Analytics
+↓
+Audit Logs
+↓
+Security
+↓
+Production Ready?
+
+Example:
+
+Referral System:
+
+- User earns.
+- Does 1% trigger?
+- Is DB updated?
+- Is transaction created?
+- Is notification sent?
+- Is analytics updated?
+- Is audit log created?
+- Is duplicate protection working?
+- Is admin panel showing it?
+- Does withdrawal still work?
+- Is rank progression affected?
+- Is leaderboard affected?
+
+PROVE EVERYTHING.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+END-TO-END TESTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create test accounts:
+
+- User A
+- User B
+- User C
+- Guild Captain
+- Guild Member
+- Referrer
+- Admin
+
+Perform COMPLETE scenarios:
+
+SCENARIO 1
+
+Signup
+↓
+Watch Ad
+↓
+Earn PKR
+↓
+Receive Referral
+↓
+Withdraw
+↓
+Verify Transactions
+
+SCENARIO 2
+
+Create Guild
+↓
+Invite Members
+↓
+Reach 80%
+↓
+Verify Partial Distribution
+
+SCENARIO 3
+
+Create Guild
+↓
+Reach 100%
+↓
+Verify Treasury Bonus
+
+SCENARIO 4
+
+Enable Economy Multiplier
+↓
+Verify Reward Changes
+
+SCENARIO 5
+
+Test All Rank Multipliers
+
+SCENARIO 6
+
+Test Webhook Replay Attack
+
+SCENARIO 7
+
+Test Fraud Attempts
+
+SCENARIO 8
+
+Test Admin Override
+
+SCENARIO 9
+
+Test Multi-Network Failover
+
+SCENARIO 10
+
+Test Concurrent Earn Events
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LOAD TESTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test:
+
+- 100 concurrent users
+- 500 concurrent users
+- 1,000 concurrent users
+
+Verify:
+
+- Memory
+- CPU
+- Database
+- Latency
+- Failures
+- Queue Backlogs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECURITY TESTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Attempt:
+
+- SQL Injection
+- XSS
+- CSRF
+- Session Hijacking
+- Replay Attacks
+- Duplicate Requests
+- Race Conditions
+- Privilege Escalation
+
+Document ALL findings.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRODUCTION CERTIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+THORX CANNOT BE CERTIFIED UNTIL ALL OF THESE ARE TRUE:
+
+- TypeScript = 0 errors
+- Tests = PASS
+- No broken imports
+- No broken APIs
+- No missing DB tables
+- No missing indexes
+- No orphan workflows
+- No disconnected systems
+- No critical vulnerabilities
+- No race conditions
+- No duplicate rewards
+- No broken calculations
+- No missing notifications
+- No missing admin visibility
+- No missing analytics
+- No missing audit logs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINAL REPORT FORMAT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Executive Summary
+2. Ecosystem Health Score (/100)
+3. Feature Completion Score (/100)
+4. Security Score (/100)
+5. Performance Score (/100)
+6. Production Readiness Score (/100)
+
+7. Complete Feature Matrix:
+
+| Feature | Status | Tested | Integrated | Production Ready |
+|--------|--------|--------|--------|--------|
+
+8. Missing Items
+9. Broken Items
+10. Partial Implementations
+11. Security Findings
+12. Performance Findings
+13. Database Findings
+14. API Findings
+15. Workflow Findings
+16. Recommended Fixes
+17. Remaining Risks
+18. Certification Status
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINAL DECISION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Choose ONE:
+
+- CERTIFIED FOR PRODUCTION
+- CERTIFIED WITH MINOR ISSUES
+- NOT CERTIFIED
+
+You are the FINAL THORX INSPECTOR.
+
+Your job is NOT to make people happy.
+
+Your job is to determine whether THORX truly deserves to go live.
+
+If ANYTHING is unclear:
+
+STOP.
+INVESTIGATE DEEPER.
+DO NOT ASSUME.
