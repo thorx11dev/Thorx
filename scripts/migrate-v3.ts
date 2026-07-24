@@ -14,9 +14,6 @@
  */
 
 import { Pool } from "pg";
-import * as dotenv from "dotenv";
-
-dotenv.config();
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
@@ -59,6 +56,62 @@ const migrations: { label: string; sql: string }[] = [
   {
     label: "users: add identity",
     sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS identity varchar`,
+  },
+  {
+    label: "users: add verificationTokenExpiresAt",
+    sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_expires_at timestamp`,
+  },
+  {
+    label: "users: add avatar",
+    sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar text DEFAULT 'default'`,
+  },
+  {
+    label: "users: add rank",
+    sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS rank text DEFAULT 'Nawa Aya'`,
+  },
+  {
+    label: "users: add trust status fields",
+    sql: `
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS trust_status text,
+        ADD COLUMN IF NOT EXISTS trust_reason text`,
+  },
+  {
+    label: "users: add profile and verification fields",
+    sql: `
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS profile_picture text,
+        ADD COLUMN IF NOT EXISTS permissions jsonb DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS email_verified_at timestamp`,
+  },
+  {
+    label: "users: add guild profile fields",
+    sql: `
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS personal_rank text DEFAULT 'E',
+        ADD COLUMN IF NOT EXISTS guild_contribution_score integer DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS tx_points_balance integer DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS streak_days integer NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS last_streak_date date,
+        ADD COLUMN IF NOT EXISTS inactivity_penalty_at timestamp`,
+  },
+  {
+    label: "withdrawals: add referral fee accounting",
+    sql: `
+      ALTER TABLE withdrawals
+        ADD COLUMN IF NOT EXISTS thorx_fee_share numeric(10,2) DEFAULT '0.00',
+        ADD COLUMN IF NOT EXISTS referral_commission_paid numeric(10,2) DEFAULT '0.00'`,
+  },
+  {
+    label: "audit_logs: add current audit fields",
+    sql: `
+      ALTER TABLE audit_logs
+        ADD COLUMN IF NOT EXISTS admin_id varchar,
+        ADD COLUMN IF NOT EXISTS target_type text,
+        ADD COLUMN IF NOT EXISTS target_id varchar,
+        ADD COLUMN IF NOT EXISTS details jsonb DEFAULT '{}'::jsonb;
+      ALTER TABLE audit_logs
+        ALTER COLUMN entity_type SET DEFAULT 'system'`,
   },
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -319,19 +372,30 @@ const migrations: { label: string; sql: string }[] = [
   {
     label: "backfill: userRankTier from rank (Urdu → tier)",
     sql: `
-      UPDATE users SET user_rank_tier =
-        CASE rank
-          WHEN 'Nawa Aya'        THEN 'E-Rank'
-          WHEN 'Chota Don'       THEN 'D-Rank'
-          WHEN 'Bawa Ji'         THEN 'C-Rank'
-          WHEN 'Baja Ji'         THEN 'B-Rank'
-          WHEN 'Haji Sab'        THEN 'B-Rank'
-          WHEN 'Chacha Supreme'  THEN 'A-Rank'
-          WHEN 'Supreme Chacha'  THEN 'A-Rank'
-          WHEN 'Chacha Ji'       THEN 'S-Rank'
-          ELSE user_rank_tier
-        END
-      WHERE user_rank_tier = 'E-Rank' AND rank IS NOT NULL`,
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = 'users'
+            AND column_name = 'rank'
+        ) THEN
+          UPDATE users SET user_rank_tier =
+            CASE rank
+              WHEN 'Nawa Aya'        THEN 'E-Rank'
+              WHEN 'Chota Don'       THEN 'D-Rank'
+              WHEN 'Bawa Ji'         THEN 'C-Rank'
+              WHEN 'Baja Ji'         THEN 'B-Rank'
+              WHEN 'Haji Sab'        THEN 'B-Rank'
+              WHEN 'Chacha Supreme'  THEN 'A-Rank'
+              WHEN 'Supreme Chacha'  THEN 'A-Rank'
+              WHEN 'Chacha Ji'       THEN 'S-Rank'
+              ELSE user_rank_tier
+            END
+          WHERE user_rank_tier = 'E-Rank' AND rank IS NOT NULL;
+        END IF;
+      END $$`,
   },
 ];
 
