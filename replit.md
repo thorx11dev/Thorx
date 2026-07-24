@@ -225,6 +225,14 @@ THORX is a full-stack rewards platform (React + Vite SPA, Express API, PostgreSQ
 
 - 2026-07-24 (re-import + auth verification): `node_modules/.bin/tsx` was missing after import. Restored the declared dependencies, added the required `postgresql-16` module to `.replit`, and applied the existing Drizzle schema successfully. Restarted the `Start application` workflow; the landing page renders and `/api/health` reports a connected database. Founder account `thorx11dev@gmail.com` was provisioned as `Thorx X` with founder access, active/verified/trusted status, and an active team key with full permissions. Automated tests pass (46/46), TypeScript check passes, and live HTTPS regression passed for CSRF enforcement, registration, duplicate-email rejection, session persistence, logout invalidation, wrong-password rejection, regular-user team protection, founder login, founder admin/team access, and founder logout. The temporary QA account was deleted. HilltopAds inventory sync remains unavailable until its optional API key is configured; this does not block app startup or authentication.
 
+- 2026-07-24 (re-import, this session): `node_modules/.bin/tsx` missing after import. Steps taken:
+  1. `npm install` — all packages installed cleanly.
+  2. `npx drizzle-kit push --force` — schema applied with no conflicts ("Changes applied", 73 system_config keys seeded).
+  3. Restored `postgresql-16` to `.replit` modules (dropped by import auto-generation — required for drizzle-kit schema operations).
+  4. Workflow restarted; app running on port 5000 — landing page renders correctly (V1.0 ONLINE shown).
+  5. Founder account (Thorx X / thorx11dev@gmail.com, role: founder, permissions: `["all"]`) provisioned via `POST /api/bootstrap-founder` (201, "Founder account created successfully").
+  6. Auth verified: unauthenticated `/api/user` → 401, founder login → 200 (role: founder), `/api/admin/config` → 200, `/api/team/members` → 200. HilltopAds sync unavailable until `HILLTOPADS_API_KEY` secret is set (non-blocking).
+
 ## User preferences
 
 - Use Replit's built-in PostgreSQL (no external auth or storage providers)
