@@ -15,8 +15,16 @@ THORX is a full-stack rewards platform (React + Vite SPA, Express API, PostgreSQ
 ## Local / Replit development
 
 1. `npm install`
-2. `npm run db:push` when the schema changes
-3. `npm run dev` — serves on port 5000
+2. Press Run / use `npm run dev` — the startup bootstrap installs missing dependencies and initializes a fresh database automatically.
+3. `npm run db:push` is only needed for intentional schema changes.
+
+### Fast import behavior
+
+`npm run dev` runs `scripts/bootstrap-dev.mjs`. It skips dependency installation and
+schema push when they are already ready, handles the known empty `session` table
+conflict on a fresh import, and applies the critical ledger indexes idempotently.
+It never creates a founder account or runs the full authentication QA suite without
+an explicit request. See `IMPORT_SETUP.md` for the optional commands.
 
 ## Production build
 

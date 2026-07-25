@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "dev": "NODE_ENV=development node_modules/.bin/tsx watch server/index.ts",
+    "dev": "NODE_ENV=development node scripts/bootstrap-dev.mjs",
     "build": "NODE_OPTIONS=--max-old-space-size=4096 node_modules/.bin/vite build && node_modules/.bin/esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js",
     "build:client": "vite build",
     "build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js",
@@ -15,6 +15,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "setup:db": "bash scripts/setup-replit.sh",
+    "setup:founder": "node scripts/provision-founder.mjs",
+    "verify:auth": "npm test -- server/__tests__/auth.test.ts",
     "setup": "node scripts/auto-setup.js",
     "test": "vitest run",
     "test:watch": "vitest",
