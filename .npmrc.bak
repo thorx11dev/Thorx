@@ -1,4 +1,0 @@
-# @react-three/drei declares peer react@^19 while this app uses React 18.
-# package.json "overrides" fix `npm ci` on hosts that only copy package.json + lockfile (e.g. Railway Railpack).
-# This line still helps local `npm install` without touching the lockfile.
-legacy-peer-deps=true
