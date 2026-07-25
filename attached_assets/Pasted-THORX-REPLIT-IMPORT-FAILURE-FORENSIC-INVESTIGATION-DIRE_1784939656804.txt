@@ -1,0 +1,209 @@
+THORX — REPLIT IMPORT FAILURE FORENSIC INVESTIGATION DIRECTIVE
+
+IMPORTANT:
+
+For the past several months, THORX was imported from GitHub into Replit successfully with minimal quota usage and without any issues.
+
+However, during the last 2–3 GitHub imports, the following problem has appeared:
+
+- Repository import starts normally.
+- Replit Agent begins processing.
+- Quota is exhausted during or shortly after import.
+- Import never fully completes.
+- Development becomes impossible.
+
+This behavior is NEW and did NOT happen previously.
+
+YOUR JOB IS NOT TO CONTINUE DEVELOPMENT.
+
+YOUR JOB IS TO PERFORM A FORENSIC INVESTIGATION.
+
+==================================================
+OBJECTIVES
+==================================================
+
+Determine EXACTLY why THORX imports are now consuming excessive quota.
+
+You must identify:
+
+1. Repository size issues
+2. File count issues
+3. Large directories
+4. Large generated artifacts
+5. Large documentation files
+6. Markdown/audit report bloat
+7. Dependency graph complexity
+8. Build-time analysis costs
+9. Agent context generation costs
+10. Replit-specific limitations
+11. Token consumption sources
+12. Import workflow regressions
+13. Any recent architectural changes causing this
+
+==================================================
+MANDATORY INVESTIGATION
+==================================================
+
+PHASE 1 — REPOSITORY ANALYSIS
+
+Report:
+
+- Total repository size
+- Total file count
+- Largest 100 files
+- Largest directories
+- File type distribution
+- Markdown count
+- JSON count
+- SQL count
+- Test count
+- Documentation count
+
+==================================================
+
+PHASE 2 — IMPORT COST ANALYSIS
+
+Estimate:
+
+- Which files are most expensive for Agent analysis?
+- Which folders should never be imported?
+- Which files create massive context?
+- Which files are causing excessive token usage?
+
+Provide:
+
+HIGH COST
+MEDIUM COST
+LOW COST
+
+==================================================
+
+PHASE 3 — GITHUB HYGIENE
+
+Audit:
+
+- .gitignore
+- node_modules
+- dist
+- build
+- coverage
+- logs
+- screenshots
+- uploads
+- test artifacts
+- generated reports
+
+Determine whether ANY unnecessary files are currently tracked by Git.
+
+==================================================
+
+PHASE 4 — THORX COMPLEXITY ANALYSIS
+
+Determine:
+
+- How much THORX has grown since early imports.
+- Whether THORX has reached "large enterprise application" size.
+- Whether repository splitting is now recommended.
+
+Possible split options:
+
+- thorx-core
+- thorx-admin
+- thorx-docs
+- thorx-audits
+- thorx-infrastructure
+
+==================================================
+
+PHASE 5 — REPLIT AGENT ANALYSIS
+
+Investigate:
+
+- Does Replit Agent automatically scan the entire codebase?
+- Is it generating architectural summaries?
+- Is it building context for every file?
+- Is it analyzing historical audit reports?
+- Is it reading all markdown files?
+
+Determine whether Agent behavior has changed compared to previous imports.
+
+==================================================
+
+PHASE 6 — IMPORT OPTIMIZATION
+
+Produce:
+
+OPTION A:
+Minimal Import Strategy
+
+OPTION B:
+Repository Split Strategy
+
+OPTION C:
+Duplicate Existing Repl Strategy
+
+OPTION D:
+Sparse Checkout Strategy
+
+OPTION E:
+Shallow Clone Strategy
+
+OPTION F:
+Ignore Documentation Strategy
+
+==================================================
+
+PHASE 7 — SIMULATION
+
+Estimate quota usage for:
+
+- Current repository
+- Repository without docs
+- Repository without audits
+- Repository split into 2 repos
+- Repository split into 3 repos
+- Minimal production repo
+
+==================================================
+
+PHASE 8 — FINAL RECOMMENDATIONS
+
+Answer the following:
+
+1. Why did THORX import successfully before?
+2. Why is it failing now?
+3. What changed?
+4. Is the issue repository size?
+5. Is the issue Replit Agent behavior?
+6. Is the issue token consumption?
+7. Is the issue documentation bloat?
+8. What is the BEST permanent fix?
+
+==================================================
+FINAL DELIVERABLE
+==================================================
+
+Provide:
+
+1. Repository Health Score (/100)
+2. Import Efficiency Score (/100)
+3. Replit Compatibility Score (/100)
+4. Root Cause Analysis
+5. Permanent Solution
+6. Immediate Workaround
+7. Recommended Repository Structure
+8. Estimated Quota Savings
+
+DO NOT GUESS.
+
+PROVE EVERYTHING WITH:
+
+- File counts
+- Repository statistics
+- Git analysis
+- Runtime evidence
+- Import evidence
+
+FINAL QUESTION:
+
+"Why can THORX no longer be imported into Replit as efficiently as before, and what is the optimal long-term solution?"
