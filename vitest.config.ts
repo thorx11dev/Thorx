@@ -9,8 +9,9 @@ export default defineConfig({
     },
   },
   test: {
-    // Run test files inside server/__tests__/ or any *.test.ts / *.spec.ts
-    include: ["server/__tests__/**/*.test.ts", "**/*.test.ts", "**/*.spec.ts"],
+    // Run only THORX's test suites; broad globs also discover generated
+    // dependency tests under Replit's .cache/typescript tree.
+    include: ["server/__tests__/**/*.test.ts"],
     exclude: ["node_modules", "dist", "client"],
     environment: "node",
     // Force test-safe cookie settings: isReplit=true on Replit forces secure:true
