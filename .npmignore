@@ -1,0 +1,15 @@
+.git
+.local
+.agent
+.agents
+attached_assets
+docs
+screenshots
+uploads
+coverage
+test-results
+playwright-report
+*.log
+*.md
+!README.md
+!replit.md

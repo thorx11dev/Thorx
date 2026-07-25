@@ -50,3 +50,28 @@ tmp
 Thumbs.db
 *.swp
 *~
+
+# Generated test/build output
+build/
+coverage/
+screenshots/
+uploads/
+test-results/
+playwright-report/
+.vite/
+
+# Repository archive material — keep historical evidence in thorx-docs-audits
+attached_assets/
+.agent/
+.agents/
+AGENTS.md
+AUDIT_REPORT*.md
+THORX_*AUDIT*.md
+THORX_*REPORT*.md
+*_AUDIT*.md
+*_REPORT*.md
+*HANDOFF*.md
+*REMEDIATION*.md
+*INVESTIGATION*.md
+*FORENSIC*.md
+*PROMPT*.txt

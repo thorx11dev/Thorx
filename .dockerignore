@@ -1,0 +1,17 @@
+node_modules
+dist
+.git
+.local
+.agent
+.agents
+attached_assets
+coverage
+logs
+screenshots
+uploads
+test-results
+playwright-report
+*.log
+.env
+.env.*
+!.env.example
