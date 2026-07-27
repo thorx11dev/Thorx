@@ -4986,10 +4986,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/guild-wars/wars", requireTeamRole, async (req, res) => {
     try {
       const { db } = await import("./db");
-      const { guildWars } = await import("@shared/schema");
-      const { desc } = await import("drizzle-orm");
+      const { guildWars, guilds } = await import("@shared/schema");
+      const { desc, eq } = await import("drizzle-orm");
       const wars = await db.select().from(guildWars).orderBy(desc(guildWars.createdAt)).limit(50);
-      res.json({ wars });
+      const guildIds = Array.from(new Set(wars.flatMap(w => [w.challengerGuildId, w.challengedGuildId])));
+      const guildRows = guildIds.length
+        ? await db.select({ id: guilds.id, name: guilds.name }).from(guilds).where(or(...guildIds.map(id => eq(guilds.id, id))))
+        : [];
+      const guildNames = new Map(guildRows.map(g => [g.id, g.name]));
+      res.json({
+        wars: wars.map(w => ({
+          ...w,
+          challengerGuildName: guildNames.get(w.challengerGuildId) ?? null,
+          challengedGuildName: guildNames.get(w.challengedGuildId) ?? null,
+          winnerGuildName: w.winnerId ? guildNames.get(w.winnerId) ?? null : null,
+        })),
+      });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch guild wars" });
     }
@@ -5299,6 +5311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const opponents = allGuilds.filter(g =>
         g.id !== guildId &&
         g.status === "active" &&
+        g.targetDifficulty === myGuild.targetDifficulty &&
         !busyGuildIds.has(g.id)
       );
       res.json({ opponents });

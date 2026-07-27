@@ -77,8 +77,8 @@ export function CaptainPortal() {
 
   // DM messages — rely on WS push for real-time; poll only as fallback (Phase 15.7)
   const { data: dmMessages = [] } = useQuery<any[]>({
-    queryKey: ["/api/guilds", guildId, "dm", selectedDmMember],
-    queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/${guildId}/dm/${selectedDmMember}`); const d = await r.json(); return d.messages ?? []; },
+    queryKey: ["/api/guilds", guildId, "private-chat", selectedDmMember],
+    queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/${guildId}/private-chat/${selectedDmMember}`); const d = await r.json(); return d.messages ?? []; },
     enabled: !!guildId && !!selectedDmMember && tab === "dm",
     refetchInterval: 60000, // WS push handles real-time; poll every 60s as safety net
   });
@@ -137,13 +137,13 @@ export function CaptainPortal() {
 
   const sendDmMutation = useMutation({
     mutationFn: async (message: string) => {
-      const r = await apiRequest("POST", `/api/guilds/${guildId}/dm/${selectedDmMember}`, { message });
+      const r = await apiRequest("POST", `/api/guilds/${guildId}/private-chat/${selectedDmMember}`, { message });
       return r.json();
     },
     onMutate: async (message: string) => {
-      await queryClient.cancelQueries({ queryKey: ["/api/guilds", guildId, "dm", selectedDmMember] });
-      const prev = queryClient.getQueryData<any[]>(["/api/guilds", guildId, "dm", selectedDmMember]);
-      queryClient.setQueryData(["/api/guilds", guildId, "dm", selectedDmMember], (old: any[] = []) => [
+      await queryClient.cancelQueries({ queryKey: ["/api/guilds", guildId, "private-chat", selectedDmMember] });
+      const prev = queryClient.getQueryData<any[]>(["/api/guilds", guildId, "private-chat", selectedDmMember]);
+      queryClient.setQueryData(["/api/guilds", guildId, "private-chat", selectedDmMember], (old: any[] = []) => [
         ...old,
         { message, fromUserId: user?.id, createdAt: new Date().toISOString(), _optimistic: true },
       ]);
@@ -152,12 +152,12 @@ export function CaptainPortal() {
     },
     onError: (_err: any, _msg: string, context: any) => {
       if (context?.prev !== undefined) {
-        queryClient.setQueryData(["/api/guilds", guildId, "dm", selectedDmMember], context.prev);
+        queryClient.setQueryData(["/api/guilds", guildId, "private-chat", selectedDmMember], context.prev);
       }
       toast({ title: "Message not sent", description: "Could not deliver your message. Please try again.", variant: "destructive" });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "dm", selectedDmMember] });
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "private-chat", selectedDmMember] });
     },
   });
 

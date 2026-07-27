@@ -2278,27 +2278,40 @@ export default function UserPortal() {
 
                       {engineBPhase === "verify" && (
                         <div className="space-y-3">
-                          <p className="text-sm font-medium">Enter the secret code from the task page to verify completion:</p>
+                           <p className="text-sm font-medium">
+                             {engineBActiveTask.secretCode
+                               ? "Enter the secret code from the task page to verify completion:"
+                               : "This task has no secret code. Confirm when you are ready to finish:"}
+                           </p>
                           <div className="flex gap-2">
                             <Input
-                              placeholder="Enter secret code…"
+                               placeholder={engineBActiveTask.secretCode ? "Enter secret code…" : "No code required"}
                               value={engineBCode}
                               onChange={e => { setEngineBCode(e.target.value); setEngineBCodeError(""); }}
-                              className="font-mono uppercase tracking-widest"
-                              onKeyDown={e => { if (e.key === "Enter" && engineBCode.trim()) engineBVerifyMutation.mutate({ taskId: engineBActiveTask.id, code: engineBCode.trim() }); }}
+                               className="font-mono uppercase tracking-widest"
+                               disabled={!engineBActiveTask.secretCode}
+                               onKeyDown={e => {
+                                 const codeRequired = Boolean(engineBActiveTask.secretCode);
+                                 if (e.key === "Enter" && (!codeRequired || engineBCode.trim())) {
+                                   engineBVerifyMutation.mutate({ taskId: engineBActiveTask.id, code: engineBCode.trim() });
+                                 }
+                               }}
                             />
                             <Button
                               onClick={() => engineBVerifyMutation.mutate({ taskId: engineBActiveTask.id, code: engineBCode.trim() })}
-                              disabled={!engineBCode.trim() || engineBVerifyMutation.isPending}
+                               disabled={
+                                 (Boolean(engineBActiveTask.secretCode) && !engineBCode.trim()) ||
+                                 engineBVerifyMutation.isPending
+                               }
                               className="bg-primary text-black font-black shrink-0"
                             >
                               {engineBVerifyMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                             </Button>
                           </div>
                           {engineBCodeError && <p className="text-xs text-destructive">{engineBCodeError}</p>}
-                          {engineBActiveTask.secretCode === null && (
-                            <p className="text-xs text-muted-foreground">No code required for this task — leave blank and submit.</p>
-                          )}
+                           {!engineBActiveTask.secretCode && (
+                             <p className="text-xs text-muted-foreground">No code required — click the check button to submit.</p>
+                           )}
                         </div>
                       )}
 

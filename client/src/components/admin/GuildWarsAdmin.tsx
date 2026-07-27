@@ -253,9 +253,9 @@ export function GuildWarsAdmin() {
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-black text-sm">{w.challengerGuildId?.slice(0,8) ?? "Guild A"}</span>
+                       <span className="font-black text-sm">{w.challengerGuildName ?? w.challengerGuildId?.slice(0,8) ?? "Guild A"}</span>
                       <Zap size={12} className="text-amber-500" />
-                      <span className="font-black text-sm">{w.challengedGuildId?.slice(0,8) ?? "Guild B"}</span>
+                       <span className="font-black text-sm">{w.challengedGuildName ?? w.challengedGuildId?.slice(0,8) ?? "Guild B"}</span>
                       <Badge
                         variant="outline"
                         className={cn("text-[10px] font-black", STATUS_COLORS[w.status] ?? "bg-zinc-100 text-zinc-500")}
@@ -265,7 +265,7 @@ export function GuildWarsAdmin() {
                     </div>
                     <div className="text-xs text-zinc-400 mt-1">
                       {w.createdAt && `Created ${formatDistanceToNow(new Date(w.createdAt), { addSuffix: true })}`}
-                      {w.winnerId && ` · Winner: ${w.winnerId.slice(0,8)}`}
+                       {w.winnerId && ` · Winner: ${w.winnerGuildName ?? w.winnerId.slice(0,8)}`}
                     </div>
                   </div>
                   {w.status === "active" && (
