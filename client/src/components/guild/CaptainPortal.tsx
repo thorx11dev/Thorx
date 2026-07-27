@@ -661,28 +661,17 @@ export function CaptainPortal() {
               <div className="font-bold text-sm">Assistant Captain</div>
             </div>
             {guild.assistantCaptainId ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="text-xs text-zinc-600">
-                    Current: <strong>{active.find((m: any) => m.userId === guild.assistantCaptainId)?.firstName || "Member"}</strong>
-                  </div>
-                  <Button size="sm" variant="outline" className="h-6 text-xs text-red-600 border-red-200" onClick={() => {
-                    apiRequest("DELETE", `/api/guilds/${guildId}/assistant-captain`).then(() => {
-                      toast({ title: "Assistant Captain removed." });
-                      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId] });
-                    });
-                  }}>Remove</Button>
-                </div>
-                <div className="text-xs text-zinc-500">Permissions enabled (toggle in future update):</div>
-                <div className="flex flex-wrap gap-1">
-                  {(guild.assistantPermissions as string[] || []).map((p: string) => (
-                    <Badge key={p} variant="outline" className="text-[10px]">{p.replace(/_/g, " ")}</Badge>
-                  ))}
-                  {(guild.assistantPermissions as string[] || []).length === 0 && (
-                    <span className="text-xs text-zinc-400">No permissions enabled yet.</span>
-                  )}
-                </div>
-              </div>
+              <AssistantPermissionsEditor
+                guildId={guildId}
+                assistantName={active.find((m: any) => m.userId === guild.assistantCaptainId)?.firstName || "Assistant"}
+                currentPermissions={(guild.assistantPermissions as string[]) || []}
+                onRemove={() => {
+                  apiRequest("DELETE", `/api/guilds/${guildId}/assistant-captain`).then(() => {
+                    toast({ title: "Assistant Captain removed." });
+                    queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId] });
+                  });
+                }}
+              />
             ) : (
               <div className="space-y-2">
                 <p className="text-xs text-zinc-500">Appoint a trusted member as your assistant. They can help manage the guild based on permissions you grant.</p>
@@ -787,5 +776,119 @@ export function CaptainPortal() {
 
 // Re-export RANK_ORDER for use in conditionals
 const RANK_ORDER = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AssistantPermissionsEditor — toggle individual permissions for the assistant
+// ─────────────────────────────────────────────────────────────────────────────
+const ASSISTANT_PERMISSIONS: { key: string; label: string; description: string }[] = [
+  { key: "join_applications",  label: "Join Applications",  description: "Accept or reject member applications" },
+  { key: "guild_announcements",label: "Announcements",      description: "Post and delete guild announcements" },
+  { key: "guild_settings",     label: "Guild Settings",     description: "Update name, description, and banner" },
+  { key: "min_rank_required",  label: "Min Rank",           description: "Change minimum rank requirement" },
+  { key: "recruitment_toggle", label: "Recruitment",        description: "Open or close guild recruitment" },
+  { key: "member_capacity",    label: "Capacity",           description: "Change maximum member count" },
+  { key: "avatar_update",      label: "Avatar",             description: "Update guild avatar/photo" },
+  { key: "member_nudge",       label: "Nudge Members",      description: "Send reminder nudges to members" },
+  { key: "mvp_set",            label: "Set MVP",            description: "Designate the weekly MVP member" },
+  { key: "pinned_member",      label: "Pin Member",         description: "Pin a featured member to the profile" },
+  { key: "member_remove",      label: "Remove Members",     description: "Kick members from the guild" },
+];
+
+function AssistantPermissionsEditor({
+  guildId,
+  assistantName,
+  currentPermissions,
+  onRemove,
+}: {
+  guildId: string;
+  assistantName: string;
+  currentPermissions: string[];
+  onRemove: () => void;
+}) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [perms, setPerms] = useState<string[]>(currentPermissions);
+  const [dirty, setDirty] = useState(false);
+
+  const permsMutation = useMutation({
+    mutationFn: async (permissions: string[]) => {
+      const r = await apiRequest("PATCH", `/api/guilds/${guildId}/assistant-captain/permissions`, { permissions });
+      return r.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Permissions saved." });
+      setDirty(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId] });
+    },
+    onError: (err: any) => toast({ title: "Error", description: err?.message, variant: "destructive" }),
+  });
+
+  const toggle = (key: string) => {
+    setPerms(prev => {
+      const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key];
+      setDirty(true);
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="text-xs text-zinc-600">
+          Current: <strong>{assistantName}</strong>
+        </div>
+        <Button size="sm" variant="outline" className="h-6 text-xs text-red-600 border-red-200" onClick={onRemove}>
+          Remove
+        </Button>
+      </div>
+
+      <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Permissions</div>
+      <div className="grid grid-cols-1 gap-1.5">
+        {ASSISTANT_PERMISSIONS.map(p => {
+          const enabled = perms.includes(p.key);
+          return (
+            <button
+              key={p.key}
+              onClick={() => toggle(p.key)}
+              className={cn(
+                "flex items-center gap-3 w-full text-left px-3 py-2 rounded-lg border transition-colors text-xs",
+                enabled
+                  ? "border-violet-300 bg-violet-50 text-violet-800"
+                  : "border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50"
+              )}
+            >
+              <div className={cn(
+                "w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors",
+                enabled ? "bg-violet-600 border-violet-600" : "border-zinc-300"
+              )}>
+                {enabled && (
+                  <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold">{p.label}</div>
+                <div className="text-[10px] text-zinc-400">{p.description}</div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {dirty && (
+        <Button
+          size="sm"
+          className="w-full font-black text-xs"
+          disabled={permsMutation.isPending}
+          onClick={() => permsMutation.mutate(perms)}
+        >
+          {permsMutation.isPending ? <Loader2 size={12} className="animate-spin mr-1" /> : null}
+          Save Permissions
+        </Button>
+      )}
+    </div>
+  );
+}
 
 export default CaptainPortal;

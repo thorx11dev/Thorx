@@ -14,6 +14,7 @@ import {
   Settings,
   Vault,
   Activity,
+  Swords,
 } from "lucide-react";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ const adminSections = [
   { id: "payouts",      name: "PAYOUT QUEUE",  icon: Wallet        },
   { id: "users",        name: "USER CRM",      icon: Users         },
   { id: "guilds",       name: "GUILDS",        icon: Vault         },
+  { id: "guild-wars",   name: "GUILD WARS",    icon: Swords        },
   { id: "live-feed",    name: "LIVE FEED",     icon: Activity      },
   { id: "card-sandbox", name: "CARD SANDBOX",  icon: ShieldCheck   },
   { id: "ledger",       name: "LEDGER",        icon: ScrollText    },

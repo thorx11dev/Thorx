@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Users, Trophy, Clock, Lock, ChevronRight, Star, Shield, Plus, Loader2, ArrowLeft, Swords, Crown, Calendar } from "lucide-react";
+import { Search, Users, Trophy, Clock, Lock, ChevronRight, Star, Shield, Plus, Loader2, ArrowLeft, Swords, Crown, Calendar, PlusCircle, CheckCircle2, XCircle, Hourglass } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
@@ -50,6 +50,10 @@ function gpsTier(gps: number): string {
   return "E-Rank";
 }
 
+const RANK_ORDER_IDX: Record<string, number> = {
+  "E-Rank": 0, "D-Rank": 1, "C-Rank": 2, "B-Rank": 3, "A-Rank": 4, "S-Rank": 5,
+};
+
 export function GuildDiscoveryPanel() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -61,6 +65,37 @@ export function GuildDiscoveryPanel() {
   const [coverLetter, setCoverLetter] = useState("");
   const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
   const [viewingGuild, setViewingGuild] = useState<GuildDiscovery | null>(null);
+
+  // ── Guild Creation Request ────────────────────────────────────────────────
+  const [showCreationForm, setShowCreationForm] = useState(false);
+  const [creationForm, setCreationForm] = useState({ guildName: "", description: "", reason: "" });
+
+  const { data: myRequest } = useQuery<{ request: any | null }>({
+    queryKey: ["/api/guilds/my-creation-request"],
+    queryFn: async () => {
+      const r = await apiRequest("GET", "/api/guilds/my-creation-request");
+      return r.json();
+    },
+  });
+
+  const creationRequestMutation = useMutation({
+    mutationFn: async (data: typeof creationForm) => {
+      const r = await apiRequest("POST", "/api/guilds/creation-request", data);
+      return r.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Request Submitted!", description: "Admin will review your guild creation request." });
+      setShowCreationForm(false);
+      setCreationForm({ guildName: "", description: "", reason: "" });
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds/my-creation-request"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err?.message ?? "Failed to submit request.", variant: "destructive" });
+    },
+  });
+
+  const isBRankPlus = (RANK_ORDER_IDX[user?.userRankTier ?? "E-Rank"] ?? 0) >= RANK_ORDER_IDX["B-Rank"];
+  const pendingRequest = myRequest?.request;
 
   // Detail view — guild info + members (fetched on demand)
   const { data: guildDetail } = useQuery<any>({
@@ -369,10 +404,22 @@ export function GuildDiscoveryPanel() {
           ))}
         </div>
       ) : guilds.length === 0 ? (
-        <div className="text-center py-20">
-          <Shield className="mx-auto mb-3 text-zinc-300" size={40} />
-          <p className="text-zinc-800 text-sm font-semibold">No guilds available yet.</p>
-          <p className="text-zinc-500 text-xs mt-1">Reach B-Rank to create the first one.</p>
+        <div className="text-center py-16 space-y-3">
+          <Shield className="mx-auto text-zinc-300" size={40} />
+          <div>
+            <p className="text-zinc-800 text-sm font-semibold">No guilds available yet.</p>
+            <p className="text-zinc-500 text-xs mt-1">Be the first to build one.</p>
+          </div>
+          {isBRankPlus && !pendingRequest && (
+            <Button size="sm" onClick={() => setShowCreationForm(true)} className="mt-2">
+              <PlusCircle size={14} className="mr-1" /> Request Guild Creation
+            </Button>
+          )}
+          {pendingRequest && (
+            <div className="inline-flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+              <Hourglass size={12} /> Your guild creation request is pending admin review.
+            </div>
+          )}
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 text-zinc-400 text-sm">No guilds match your filters.</div>
@@ -473,6 +520,44 @@ export function GuildDiscoveryPanel() {
         </div>
       )}
 
+      {/* Guild Creation Request CTA — B-Rank+ users */}
+      {isBRankPlus && !pendingRequest && guilds.length > 0 && (
+        <div className="rounded-xl border border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-zinc-900 flex items-center justify-center shrink-0">
+            <PlusCircle size={16} className="text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-bold text-zinc-900">Want to start your own guild?</div>
+            <div className="text-xs text-zinc-500">B-Rank+ users can request admin approval to create a new guild.</div>
+          </div>
+          <Button size="sm" onClick={() => setShowCreationForm(true)} className="shrink-0 text-xs h-8">
+            Request
+          </Button>
+        </div>
+      )}
+
+      {/* Pending request status */}
+      {pendingRequest && (
+        <div className={cn(
+          "rounded-xl border p-3 flex items-start gap-2 text-xs",
+          pendingRequest.status === "pending" ? "bg-amber-50 border-amber-200 text-amber-700" :
+          pendingRequest.status === "approved" ? "bg-emerald-50 border-emerald-200 text-emerald-700" :
+          "bg-red-50 border-red-200 text-red-700"
+        )}>
+          {pendingRequest.status === "pending" && <Hourglass size={13} className="shrink-0 mt-0.5" />}
+          {pendingRequest.status === "approved" && <CheckCircle2 size={13} className="shrink-0 mt-0.5" />}
+          {pendingRequest.status === "rejected" && <XCircle size={13} className="shrink-0 mt-0.5" />}
+          <div>
+            <div className="font-semibold">
+              {pendingRequest.status === "pending" && `Guild request "${pendingRequest.guildName}" is pending admin review.`}
+              {pendingRequest.status === "approved" && `Guild "${pendingRequest.guildName}" approved! You are now its Captain.`}
+              {pendingRequest.status === "rejected" && `Guild request "${pendingRequest.guildName}" was rejected.`}
+            </div>
+            {pendingRequest.adminNote && <div className="mt-0.5 opacity-80">Note: {pendingRequest.adminNote}</div>}
+          </div>
+        </div>
+      )}
+
       {/* Application Modal */}
       {applyingTo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -513,6 +598,72 @@ export function GuildDiscoveryPanel() {
                 onClick={submitApplication}
               >
                 {applyMutation.isPending ? "Sending…" : "Submit Application"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guild Creation Request Modal */}
+      {showCreationForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-zinc-900 flex items-center justify-center">
+                <PlusCircle size={18} className="text-white" />
+              </div>
+              <div>
+                <div className="font-black text-base">Request Guild Creation</div>
+                <div className="text-xs text-zinc-500">Admin will review and approve your request.</div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-zinc-600 uppercase tracking-wider">Guild Name *</label>
+                <Input
+                  value={creationForm.guildName}
+                  onChange={e => setCreationForm(p => ({ ...p, guildName: e.target.value }))}
+                  placeholder="e.g. Iron Wolves"
+                  maxLength={60}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-zinc-600 uppercase tracking-wider">Short Description (optional)</label>
+                <Input
+                  value={creationForm.description}
+                  onChange={e => setCreationForm(p => ({ ...p, description: e.target.value }))}
+                  placeholder="What is your guild about?"
+                  maxLength={200}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-zinc-600 uppercase tracking-wider">Why do you want to create a guild? *</label>
+                <textarea
+                  value={creationForm.reason}
+                  onChange={e => setCreationForm(p => ({ ...p, reason: e.target.value }))}
+                  rows={4}
+                  maxLength={1000}
+                  placeholder="Explain your vision, how you'll lead your team, and why you're ready for this responsibility. (min 50 characters)"
+                  className="w-full border border-zinc-200 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-black"
+                />
+                <div className={cn("text-[11px] text-right", creationForm.reason.length < 50 ? "text-red-400" : "text-zinc-400")}>
+                  {creationForm.reason.length}/1000 {creationForm.reason.length < 50 ? `(min 50 — need ${50 - creationForm.reason.length} more)` : "✓"}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button variant="outline" className="flex-1" onClick={() => setShowCreationForm(false)}>Cancel</Button>
+              <Button
+                className="flex-1"
+                disabled={
+                  creationForm.guildName.trim().length < 3 ||
+                  creationForm.reason.trim().length < 50 ||
+                  creationRequestMutation.isPending
+                }
+                onClick={() => creationRequestMutation.mutate(creationForm)}
+              >
+                {creationRequestMutation.isPending ? <Loader2 size={14} className="animate-spin mr-1" /> : null}
+                Submit Request
               </Button>
             </div>
           </div>

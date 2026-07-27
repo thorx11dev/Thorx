@@ -5,8 +5,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Search, ShieldAlert, ShieldCheck, Snowflake, Play, RefreshCw, TrendingUp, Target, AlertTriangle, Crown, UserCog, Users2 } from "lucide-react";
+import { Search, ShieldAlert, ShieldCheck, Snowflake, Play, RefreshCw, TrendingUp, Target, AlertTriangle, Crown, UserCog, Users2, ClipboardList, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp } from "lucide-react";
 import { RankBadge } from "@/components/RankBadge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -42,6 +43,12 @@ export function GuildManager() {
   const [bulkTargets, setBulkTargets] = useState<Record<string, string>>({
     'E-Rank': '20000', 'D-Rank': '50000', 'C-Rank': '100000', 'B-Rank': '200000', 'A-Rank': '350000', 'S-Rank': '500000',
   });
+  // Guild Creation Requests
+  const [requestsOpen, setRequestsOpen] = useState(true);
+  const [requestStatusFilter, setRequestStatusFilter] = useState("pending");
+  const [decideDialogId, setDecideDialogId] = useState<string | null>(null);
+  const [decideAction, setDecideAction] = useState<"approve" | "reject">("approve");
+  const [adminNote, setAdminNote] = useState("");
 
   const { data, isLoading } = useQuery<{ guilds: AdminGuild[]; total: number }>({
     queryKey: ["/api/admin/guilds", search, statusFilter],
@@ -170,6 +177,35 @@ export function GuildManager() {
     onError: (err: any) => toast({ title: "Failed to run resolution", description: err?.message, variant: "destructive" }),
   });
 
+  // ── Guild Creation Requests ─────────────────────────────────────────────
+  const { data: creationRequestsData, isLoading: requestsLoading } = useQuery<{ requests: any[] }>({
+    queryKey: ["/api/admin/guild-creation-requests", requestStatusFilter],
+    queryFn: async () => {
+      const r = await apiRequest("GET", `/api/admin/guild-creation-requests?status=${requestStatusFilter}`);
+      return r.json();
+    },
+  });
+
+  const decideMutation = useMutation({
+    mutationFn: async ({ id, action, note }: { id: string; action: "approve" | "reject"; note: string }) => {
+      const r = await apiRequest("POST", `/api/admin/guild-creation-requests/${id}/decide`, {
+        action,
+        adminNote: note || undefined,
+      });
+      return r.json();
+    },
+    onSuccess: (_data, vars) => {
+      toast({ title: vars.action === "approve" ? "Guild approved!" : "Request rejected", description: vars.action === "approve" ? "Guild created and captain assigned." : "User notified." });
+      setDecideDialogId(null);
+      setAdminNote("");
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/guild-creation-requests"] });
+    },
+    onError: (err: any) => toast({ title: "Failed", description: err?.message, variant: "destructive" }),
+  });
+
+  const creationRequests = creationRequestsData?.requests ?? [];
+  const pendingCount = creationRequests.filter((r: any) => r.status === "pending").length;
+
   return (
     <div className="space-y-6 pb-24 w-full animate-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -186,6 +222,131 @@ export function GuildManager() {
           Run Weekly Resolution Now
         </Button>
       </div>
+
+      {/* ── GUILD CREATION REQUESTS ── */}
+      <div className="rounded-xl border-[1.5px] border-[#111] overflow-hidden">
+        <button
+          className="w-full flex items-center justify-between px-5 py-4 bg-white hover:bg-zinc-50 transition-colors"
+          onClick={() => setRequestsOpen(o => !o)}
+        >
+          <div className="flex items-center gap-2">
+            <ClipboardList size={16} className="text-zinc-600" />
+            <span className="font-black text-sm uppercase tracking-tight">Guild Creation Requests</span>
+            {requestStatusFilter === "pending" && pendingCount > 0 && (
+              <Badge className="bg-amber-500 text-white border-0 font-black text-[10px] px-2">{pendingCount} pending</Badge>
+            )}
+          </div>
+          {requestsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+
+        {requestsOpen && (
+          <div className="border-t border-[#111]/10 p-4 space-y-4 bg-zinc-50">
+            {/* Status filter */}
+            <div className="flex gap-2">
+              {["pending", "approved", "rejected", "all"].map(s => (
+                <button
+                  key={s}
+                  onClick={() => setRequestStatusFilter(s)}
+                  className={cn(
+                    "px-3 h-7 border-2 border-black font-black text-[10px] uppercase rounded-md transition-colors",
+                    requestStatusFilter === s ? "bg-black text-white" : "bg-white text-black"
+                  )}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+
+            {requestsLoading ? (
+              <div className="space-y-2">{[1,2].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}</div>
+            ) : creationRequests.length === 0 ? (
+              <div className="text-center py-8 text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                No {requestStatusFilter} requests
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {creationRequests.map((req: any) => (
+                  <div key={req.id} className="rounded-xl border border-zinc-200 bg-white p-4 space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-black text-sm">"{req.guildName}"</span>
+                          {req.status === "pending" && <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50 text-[10px] font-black"><Clock size={10} className="mr-1" />PENDING</Badge>}
+                          {req.status === "approved" && <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50 text-[10px] font-black"><CheckCircle2 size={10} className="mr-1" />APPROVED</Badge>}
+                          {req.status === "rejected" && <Badge variant="outline" className="text-red-500 border-red-200 bg-red-50 text-[10px] font-black"><XCircle size={10} className="mr-1" />REJECTED</Badge>}
+                        </div>
+                        <div className="text-xs text-zinc-500 mt-0.5">
+                          By: <strong>{req.userFirstName || ""} {req.userLastName || ""}</strong> ({req.userEmail}) · <span className="font-bold" style={{ color: req.userRankTier === "B-Rank" ? "#7c3aed" : req.userRankTier === "A-Rank" ? "#ea580c" : "#111" }}>{req.userRankTier}</span>
+                        </div>
+                        {req.description && <div className="text-xs text-zinc-400 mt-1 italic">"{req.description}"</div>}
+                        <div className="text-xs text-zinc-600 mt-1 line-clamp-2">{req.reason}</div>
+                        {req.adminNote && <div className="text-xs text-zinc-400 mt-1">Admin note: {req.adminNote}</div>}
+                      </div>
+                      {req.status === "pending" && (
+                        <div className="flex gap-1.5 shrink-0">
+                          <Button
+                            size="sm"
+                            className="h-8 text-[10px] font-black bg-emerald-600 hover:bg-emerald-700 text-white border-0"
+                            onClick={() => { setDecideDialogId(req.id); setDecideAction("approve"); setAdminNote(""); }}
+                          >
+                            <CheckCircle2 size={11} className="mr-1" /> Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-[10px] font-black border-red-400 text-red-600 hover:bg-red-50"
+                            onClick={() => { setDecideDialogId(req.id); setDecideAction("reject"); setAdminNote(""); }}
+                          >
+                            <XCircle size={11} className="mr-1" /> Reject
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Approve/Reject Dialog */}
+      <Dialog open={!!decideDialogId} onOpenChange={(open) => !open && setDecideDialogId(null)}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className={cn("font-black text-lg uppercase", decideAction === "approve" ? "text-emerald-700" : "text-red-600")}>
+              {decideAction === "approve" ? "✅ Approve Guild Request" : "❌ Reject Guild Request"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-zinc-500">
+              {decideAction === "approve"
+                ? "This will create the guild immediately and make the user its Captain."
+                : "The user will be notified that their request was rejected."}
+            </p>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Admin Note (optional)</Label>
+              <Input
+                placeholder={decideAction === "approve" ? "e.g. Welcome! Build something great." : "e.g. Guild name taken, please reapply."}
+                value={adminNote}
+                onChange={e => setAdminNote(e.target.value)}
+                className="border-2 border-black"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" className="border-2 border-black font-black text-xs" onClick={() => setDecideDialogId(null)}>Cancel</Button>
+            <Button
+              className={cn("font-black text-xs", decideAction === "approve" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700")}
+              disabled={decideMutation.isPending}
+              onClick={() => decideMutation.mutate({ id: decideDialogId!, action: decideAction, note: adminNote })}
+            >
+              {decideMutation.isPending ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : null}
+              Confirm {decideAction === "approve" ? "Approval" : "Rejection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex flex-col md:flex-row gap-3">
         <div className="flex items-center gap-2 flex-1">

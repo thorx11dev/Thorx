@@ -545,7 +545,7 @@ export function GuildMemberPanel() {
       )}
 
       {tab === "profile" && (
-        <GuildProfileWizard guildId={guildId} />
+        <GuildProfileWizard guildId={guildId} guildName={guild?.name ?? ""} />
       )}
     </div>
   );

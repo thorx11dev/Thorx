@@ -13,6 +13,7 @@ import { SystemSettingsManager } from "@/components/admin/SystemSettingsManager"
 import { LeaderboardInsights } from "@/components/admin/LeaderboardInsights";
 import { ReconciliationPanel } from "@/components/admin/ReconciliationPanel";
 import { GuildManager } from "@/components/admin/GuildManager";
+import { GuildWarsAdmin } from "@/components/admin/GuildWarsAdmin";
 import { LiveActivityFeed } from "@/components/admin/LiveActivityFeed";
 import { ThorxCardSandbox } from "@/components/admin/ThorxCardSandbox";
 import { LedgerValidator } from "@/components/admin/LedgerValidator";
@@ -122,6 +123,8 @@ export default function TeamPortal() {
         return <TeamKeysManager />;
       case "guilds":
         return <GuildManager />;
+      case "guild-wars":
+        return <GuildWarsAdmin />;
       case "settings":
         return <SystemSettingsManager />;
       case "finance":
@@ -152,6 +155,7 @@ export default function TeamPortal() {
       case "audit": return "Security Audit";
       case "team": return "Team Access";
       case "guilds":       return "Guild Manager";
+      case "guild-wars":   return "Guild Wars";
       case "live-feed":    return "Live Activity Feed";
       case "card-sandbox": return "Thorx Card Sandbox";
       case "ledger":       return "Ledger Validator";
