@@ -7,8 +7,8 @@ import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 import { pool, db } from "./db";
 import { initRealtime, broadcastUserUpdated, broadcastTeamRefresh, broadcastGuildMessage, broadcastGuildEvent, broadcastToUser, closeUserSockets } from "./realtime";
-import { insertRegistrationSchema, insertUserSchema, insertWithdrawalSchema, users, teamKeys, adViews, systemConfig, weeklyTasks, auditLogs, insertHilltopAdsConfigSchema, insertHilltopAdsZoneSchema, passwordResetTokens, insertEngineBTaskSchema, engineBRecords } from "@shared/schema";
-import { eq, sql, and, desc } from "drizzle-orm";
+import { insertRegistrationSchema, insertUserSchema, insertWithdrawalSchema, users, teamKeys, adViews, systemConfig, weeklyTasks, auditLogs, insertHilltopAdsConfigSchema, insertHilltopAdsZoneSchema, passwordResetTokens, insertEngineBTaskSchema, engineBRecords, guildCreationRequests, guildMembers, guildProfiles, guildWars, guilds, captainMessages } from "@shared/schema";
+import { eq, sql, and, desc, or } from "drizzle-orm";
 import { z } from "zod";
 import { validateEmailServer, validatePhoneServer, normalizePhoneNumber } from "./validation";
 import { hilltopAdsService } from "./hilltopads-service";
@@ -4988,7 +4988,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { db } = await import("./db");
       const { guildWars } = await import("@shared/schema");
       const { desc } = await import("drizzle-orm");
-      const wars = await db.select().from(guildWars).orderBy(desc(guildWars.startDate)).limit(50);
+      const wars = await db.select().from(guildWars).orderBy(desc(guildWars.createdAt)).limit(50);
       res.json({ wars });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch guild wars" });
@@ -5009,11 +5009,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { createWar } = await import("./modules/guild-wars");
       const war = await createWar({
         seasonId: parsed.data.seasonId,
-        guild1Id: parsed.data.guild1Id,
-        guild2Id: parsed.data.guild2Id,
-        startDate: new Date(parsed.data.startDate),
-        endDate: new Date(parsed.data.endDate),
-        prizePoolPkr: parsed.data.prizePoolPkr,
+        challengerGuildId: parsed.data.guild1Id,
+        challengedGuildId: parsed.data.guild2Id,
       });
       res.status(201).json({ war });
     } catch (error: any) {
@@ -5030,6 +5027,513 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       const status = error?.message === "War not found" ? 404 : 500;
       res.status(status).json({ message: error?.message || "Failed to resolve war" });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GUILD CREATION REQUESTS — Admin Approval Flow (Phase 4.2)
+  // B-Rank+ users submit requests; admin approves/rejects.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // User submits a guild creation request (replaces direct creation)
+  app.post("/api/guilds/creation-request", requireSessionAuth, guildInteractionRateLimiter, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req) as string;
+      const schema = z.object({
+        guildName: z.string().trim().min(3, "Guild name must be at least 3 characters.").max(60),
+        description: z.string().trim().max(500).optional(),
+        reason: z.string().trim().min(50, "Reason must be at least 50 characters.").max(1000),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input" });
+
+      const user = await storage.getUserById(userId);
+      const RANK_ORDER = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
+      if (RANK_ORDER.indexOf(user?.userRankTier || "E-Rank") < RANK_ORDER.indexOf("B-Rank")) {
+        return res.status(403).json({ message: "B-Rank or higher required to request guild creation.", error: "RANK_GATE" });
+      }
+
+      // Check if user already has a pending request
+      const existing = await db.select().from(guildCreationRequests)
+        .where(and(eq(guildCreationRequests.userId, userId), eq(guildCreationRequests.status, "pending")))
+        .limit(1);
+      if (existing[0]) return res.status(409).json({ message: "You already have a pending guild creation request." });
+
+      // Check if user is already in a guild
+      const membership = await storage.getUserGuildMembership(userId);
+      if (membership?.status === "active") return res.status(409).json({ message: "You are already a guild member." });
+
+      const [request] = await db.insert(guildCreationRequests)
+        .values({ userId, guildName: parsed.data.guildName, description: parsed.data.description, reason: parsed.data.reason })
+        .returning();
+      res.status(201).json({ request });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to submit guild creation request";
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  // User gets their own guild creation request status
+  app.get("/api/guilds/my-creation-request", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req) as string;
+      const [request] = await db.select().from(guildCreationRequests)
+        .where(eq(guildCreationRequests.userId, userId))
+        .orderBy(desc(guildCreationRequests.createdAt))
+        .limit(1);
+      res.json({ request: request ?? null });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch request" });
+    }
+  });
+
+  // Admin: list all guild creation requests
+  app.get("/api/admin/guild-creation-requests", requirePermission("MANAGE_SYSTEM"), async (req, res) => {
+    try {
+      const status = (req.query.status as string) || "pending";
+      const requests = await db.select({
+        id: guildCreationRequests.id,
+        userId: guildCreationRequests.userId,
+        guildName: guildCreationRequests.guildName,
+        description: guildCreationRequests.description,
+        reason: guildCreationRequests.reason,
+        status: guildCreationRequests.status,
+        adminNote: guildCreationRequests.adminNote,
+        reviewedAt: guildCreationRequests.reviewedAt,
+        createdAt: guildCreationRequests.createdAt,
+        createdGuildId: guildCreationRequests.createdGuildId,
+        userFirstName: users.firstName,
+        userLastName: users.lastName,
+        userEmail: users.email,
+        userRankTier: users.userRankTier,
+      })
+        .from(guildCreationRequests)
+        .leftJoin(users, eq(guildCreationRequests.userId, users.id))
+        .where(status === "all" ? sql`1=1` : eq(guildCreationRequests.status, status))
+        .orderBy(desc(guildCreationRequests.createdAt))
+        .limit(100);
+      res.json({ requests });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch guild creation requests" });
+    }
+  });
+
+  // Admin: approve or reject a guild creation request
+  app.post("/api/admin/guild-creation-requests/:id/decide", requirePermission("MANAGE_SYSTEM"), adminActionRateLimiter, async (req, res) => {
+    try {
+      const adminId = getThorxPrincipalId(req) as string;
+      const schema = z.object({
+        action: z.enum(["approve", "reject"]),
+        adminNote: z.string().max(500).optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input" });
+
+      const [request] = await db.select().from(guildCreationRequests)
+        .where(and(eq(guildCreationRequests.id, req.params.id), eq(guildCreationRequests.status, "pending")))
+        .limit(1);
+      if (!request) return res.status(404).json({ message: "Request not found or already decided" });
+
+      if (parsed.data.action === "approve") {
+        // Create the guild and make the user captain
+        const guild = await storage.createGuild({
+          name: request.guildName,
+          description: request.description ?? undefined,
+          captainId: request.userId,
+        });
+        await db.update(guildCreationRequests)
+          .set({ status: "approved", adminNote: parsed.data.adminNote, reviewedBy: adminId, reviewedAt: new Date(), createdGuildId: guild.id, updatedAt: new Date() })
+          .where(eq(guildCreationRequests.id, req.params.id));
+        // Notify the user
+        await storage.createNotification({
+          userId: request.userId,
+          title: "Guild Creation Approved! 🎉",
+          message: `Your guild "${request.guildName}" has been approved. You are now its Captain!`,
+          type: "info",
+        });
+        broadcastToUser(request.userId, 'guild.creation_approved', { guildId: guild.id, guildName: guild.name });
+        res.json({ success: true, guild });
+      } else {
+        await db.update(guildCreationRequests)
+          .set({ status: "rejected", adminNote: parsed.data.adminNote, reviewedBy: adminId, reviewedAt: new Date(), updatedAt: new Date() })
+          .where(eq(guildCreationRequests.id, req.params.id));
+        await storage.createNotification({
+          userId: request.userId,
+          title: "Guild Creation Request Rejected",
+          message: parsed.data.adminNote ? `Your guild creation request was rejected. Reason: ${parsed.data.adminNote}` : "Your guild creation request was not approved at this time.",
+          type: "info",
+        });
+        broadcastToUser(request.userId, 'guild.creation_rejected', { reason: parsed.data.adminNote });
+        res.json({ success: true });
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to decide request";
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GUILD WARS — User-Facing Routes (Phase 6)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Get current war status for a guild
+  app.get("/api/guilds/:id/war", requireSessionAuth, async (req, res) => {
+    try {
+      const { getGuildCurrentWar, getWarWithApprovals, getGuildBadges } = await import("./modules/guild-wars");
+      const guildId = req.params.id;
+      const [currentWar, badges] = await Promise.all([
+        getGuildCurrentWar(guildId),
+        getGuildBadges(guildId),
+      ]);
+      if (!currentWar) return res.json({ war: null, badges });
+
+      const approvals = await getWarWithApprovals(currentWar.id, guildId);
+
+      // Enrich with guild names
+      const [challengerGuild, challengedGuild] = await Promise.all([
+        storage.getGuildById(currentWar.challengerGuildId),
+        storage.getGuildById(currentWar.challengedGuildId),
+      ]);
+
+      res.json({
+        war: currentWar,
+        challengerGuild: challengerGuild ? { id: challengerGuild.id, name: challengerGuild.name, guildPerformanceScore: challengerGuild.guildPerformanceScore } : null,
+        challengedGuild: challengedGuild ? { id: challengedGuild.id, name: challengedGuild.name, guildPerformanceScore: challengedGuild.guildPerformanceScore } : null,
+        approvals: approvals.approvals,
+        totalActiveMembers: approvals.totalActiveMembers,
+        approvedCount: approvals.approvedCount,
+        badges,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch war status" });
+    }
+  });
+
+  // Captain initiates a challenge against another guild
+  app.post("/api/guilds/:id/war/challenge", requireSessionAuth, guildInteractionRateLimiter, async (req, res) => {
+    try {
+      const captainId = getThorxPrincipalId(req) as string;
+      const schema = z.object({ challengedGuildId: z.string().min(1) });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "challengedGuildId is required" });
+
+      const { initiateChallenge } = await import("./modules/guild-wars");
+      const war = await initiateChallenge({
+        challengerGuildId: req.params.id,
+        challengedGuildId: parsed.data.challengedGuildId,
+        captainId,
+      });
+
+      // Notify all challenger guild members to vote
+      broadcastGuildEvent(req.params.id, 'guild.war_challenge_initiated', { warId: war.id, challengedGuildId: parsed.data.challengedGuildId });
+      res.status(201).json({ war });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to initiate challenge";
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  // Member votes to approve or reject war participation
+  app.post("/api/guilds/:id/war/:warId/vote", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req) as string;
+      const schema = z.object({ approved: z.boolean() });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "approved (boolean) is required" });
+
+      const { voteOnWar } = await import("./modules/guild-wars");
+      const result = await voteOnWar({ warId: req.params.warId, userId, approved: parsed.data.approved });
+
+      if (result.cancelled) {
+        broadcastGuildEvent(req.params.id, 'guild.war_cancelled', { warId: req.params.warId });
+      } else if (result.allApproved) {
+        if (result.war.status === "active") {
+          // War is now active — notify both guilds
+          broadcastGuildEvent(result.war.challengerGuildId, 'guild.war_started', { warId: req.params.warId });
+          broadcastGuildEvent(result.war.challengedGuildId, 'guild.war_started', { warId: req.params.warId });
+        } else {
+          // Moved to pending_challenged_approval — notify challenged guild
+          broadcastGuildEvent(result.war.challengedGuildId, 'guild.war_challenge_received', { warId: req.params.warId, challengerGuildId: result.war.challengerGuildId });
+        }
+      }
+
+      res.json(result);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to vote on war";
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  // Captain cancels a pending war challenge
+  app.post("/api/guilds/:id/war/:warId/cancel", requireSessionAuth, async (req, res) => {
+    try {
+      const captainId = getThorxPrincipalId(req) as string;
+      const { cancelWar } = await import("./modules/guild-wars");
+      const war = await cancelWar(req.params.warId, captainId);
+      broadcastGuildEvent(req.params.id, 'guild.war_cancelled', { warId: req.params.warId });
+      broadcastGuildEvent(war.challengedGuildId, 'guild.war_cancelled', { warId: req.params.warId });
+      res.json({ war });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to cancel war";
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  // Get guilds available for challenge (same difficulty, no active war, not own guild)
+  app.get("/api/guilds/:id/war/eligible-opponents", requireSessionAuth, async (req, res) => {
+    try {
+      const guildId = req.params.id;
+      const myGuild = await storage.getGuildById(guildId);
+      if (!myGuild) return res.status(404).json({ message: "Guild not found" });
+
+      // Get active/pending war guild IDs to exclude
+      const activeWars = await db.select({
+        cId: guildWars.challengerGuildId,
+        dId: guildWars.challengedGuildId,
+      }).from(guildWars).where(
+        or(eq(guildWars.status, "active"), eq(guildWars.status, "pending_challenger_approval"), eq(guildWars.status, "pending_challenged_approval"))
+      );
+      const busyGuildIds = new Set(activeWars.flatMap(w => [w.cId, w.dId]));
+
+      const allGuilds = await storage.getGuildDiscoveryList();
+      const opponents = allGuilds.filter(g =>
+        g.id !== guildId &&
+        g.status === "active" &&
+        !busyGuildIds.has(g.id)
+      );
+      res.json({ opponents });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch eligible opponents" });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ASSISTANT CAPTAIN — Management Routes (Phase 4.8)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Set assistant captain
+  app.post("/api/guilds/:id/assistant-captain", requireSessionAuth, async (req, res) => {
+    try {
+      const captainId = getThorxPrincipalId(req) as string;
+      const schema = z.object({ memberId: z.string().min(1) });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "memberId is required" });
+
+      const guild = await storage.getGuildById(req.params.id);
+      if (!guild) return res.status(404).json({ message: "Guild not found" });
+      if (guild.captainId !== captainId) return res.status(403).json({ message: "Only captain can set assistant captain" });
+
+      // Verify the member is an active member of this guild
+      const [membership] = await db.select().from(guildMembers)
+        .where(and(eq(guildMembers.guildId, req.params.id), eq(guildMembers.userId, parsed.data.memberId), eq(guildMembers.status, "active")))
+        .limit(1);
+      if (!membership) return res.status(404).json({ message: "Member not found in guild" });
+      if (parsed.data.memberId === captainId) return res.status(400).json({ message: "Captain cannot set themselves as assistant" });
+
+      await db.update(guilds)
+        .set({ assistantCaptainId: parsed.data.memberId, updatedAt: new Date() })
+        .where(eq(guilds.id, req.params.id));
+
+      await storage.createNotification({
+        userId: parsed.data.memberId,
+        title: "⚔️ You are now Assistant Captain!",
+        message: `You have been appointed as Assistant Captain of ${guild.name}.`,
+        type: "info",
+      });
+      broadcastToUser(parsed.data.memberId, 'guild.assistant_captain_appointed', { guildId: req.params.id });
+      res.json({ success: true });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to set assistant captain";
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  // Remove assistant captain
+  app.delete("/api/guilds/:id/assistant-captain", requireSessionAuth, async (req, res) => {
+    try {
+      const captainId = getThorxPrincipalId(req) as string;
+      const guild = await storage.getGuildById(req.params.id);
+      if (!guild) return res.status(404).json({ message: "Guild not found" });
+      if (guild.captainId !== captainId) return res.status(403).json({ message: "Only captain can remove assistant captain" });
+
+      await db.update(guilds)
+        .set({ assistantCaptainId: null, assistantPermissions: [], updatedAt: new Date() })
+        .where(eq(guilds.id, req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to remove assistant captain";
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  // Update assistant captain permissions
+  app.patch("/api/guilds/:id/assistant-captain/permissions", requireSessionAuth, async (req, res) => {
+    try {
+      const captainId = getThorxPrincipalId(req) as string;
+      const schema = z.object({
+        permissions: z.array(z.string()).max(20),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "permissions must be an array of strings" });
+
+      const guild = await storage.getGuildById(req.params.id);
+      if (!guild) return res.status(404).json({ message: "Guild not found" });
+      if (guild.captainId !== captainId) return res.status(403).json({ message: "Only captain can update assistant permissions" });
+
+      await db.update(guilds)
+        .set({ assistantPermissions: parsed.data.permissions, updatedAt: new Date() })
+        .where(eq(guilds.id, req.params.id));
+      res.json({ success: true, permissions: parsed.data.permissions });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to update permissions";
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GUILD PROFILES — Per-member identity inside a guild (Phase 5)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Get my guild profile
+  app.get("/api/guilds/:id/profile/me", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req) as string;
+      const [profile] = await db.select().from(guildProfiles)
+        .where(and(eq(guildProfiles.guildId, req.params.id), eq(guildProfiles.userId, userId)))
+        .limit(1);
+      res.json({ profile: profile ?? null });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch guild profile" });
+    }
+  });
+
+  // Create or update my guild profile
+  app.post("/api/guilds/:id/profile", requireSessionAuth, profileRateLimiter, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req) as string;
+      const schema = z.object({
+        username: z.string().trim().min(2).max(50).optional(),
+        description: z.string().trim().max(500).optional(),
+        links: z.array(z.object({ label: z.string().max(50), url: z.string().url() })).max(5).optional(),
+        favoriteMemberId: z.string().nullable().optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input" });
+
+      // Verify user is active member
+      const [membership] = await db.select().from(guildMembers)
+        .where(and(eq(guildMembers.guildId, req.params.id), eq(guildMembers.userId, userId), eq(guildMembers.status, "active")))
+        .limit(1);
+      if (!membership) return res.status(403).json({ message: "You must be an active guild member to have a guild profile" });
+
+      const [existing] = await db.select().from(guildProfiles)
+        .where(and(eq(guildProfiles.guildId, req.params.id), eq(guildProfiles.userId, userId)))
+        .limit(1);
+
+      let profile;
+      if (existing) {
+        [profile] = await db.update(guildProfiles)
+          .set({ ...parsed.data, updatedAt: new Date() })
+          .where(and(eq(guildProfiles.guildId, req.params.id), eq(guildProfiles.userId, userId)))
+          .returning();
+      } else {
+        // Pre-fill from user profile
+        const user = await storage.getUserById(userId);
+        [profile] = await db.insert(guildProfiles)
+          .values({
+            userId,
+            guildId: req.params.id,
+            username: parsed.data.username || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.identity || "Member",
+            description: parsed.data.description,
+            links: parsed.data.links || [],
+            favoriteMemberId: parsed.data.favoriteMemberId,
+          })
+          .returning();
+      }
+      res.json({ profile });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to save guild profile";
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  // Get all profiles in a guild (visible to members)
+  app.get("/api/guilds/:id/profiles", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req) as string;
+      // Must be a member to see profiles
+      const [membership] = await db.select().from(guildMembers)
+        .where(and(eq(guildMembers.guildId, req.params.id), eq(guildMembers.userId, userId), eq(guildMembers.status, "active")))
+        .limit(1);
+      if (!membership) return res.status(403).json({ message: "Must be an active guild member" });
+
+      const profiles = await db.select().from(guildProfiles)
+        .where(eq(guildProfiles.guildId, req.params.id));
+      res.json({ profiles });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch guild profiles" });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PRIVATE CHAT — Upgraded from Captain-Only DM to Member-to-Member (Phase 4.4)
+  // Any active guild member can message any other active member in the same guild.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Get private chat thread between two guild members (replaces old captain-only DM)
+  app.get("/api/guilds/:id/private-chat/:memberId", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req) as string;
+      const guildId = req.params.id;
+      const otherId = req.params.memberId;
+
+      if (userId === otherId) return res.status(400).json({ message: "Cannot chat with yourself" });
+
+      // Both must be active members
+      const [myMembership, theirMembership] = await Promise.all([
+        db.select().from(guildMembers).where(and(eq(guildMembers.guildId, guildId), eq(guildMembers.userId, userId), eq(guildMembers.status, "active"))).limit(1),
+        db.select().from(guildMembers).where(and(eq(guildMembers.guildId, guildId), eq(guildMembers.userId, otherId), eq(guildMembers.status, "active"))).limit(1),
+      ]);
+      if (!myMembership[0] || !theirMembership[0]) return res.status(403).json({ message: "Both users must be active members of this guild" });
+
+      // Thread uses consistent ordering: lower id first
+      const [fromId, toId] = userId < otherId ? [userId, otherId] : [otherId, userId];
+      const messages = await storage.getCaptainMessageThread(guildId, fromId, toId);
+      res.json({ messages });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch private chat" });
+    }
+  });
+
+  // Send private message to any guild member
+  app.post("/api/guilds/:id/private-chat/:memberId", requireSessionAuth, guildInteractionRateLimiter, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req) as string;
+      const guildId = req.params.id;
+      const otherId = req.params.memberId;
+
+      if (userId === otherId) return res.status(400).json({ message: "Cannot message yourself" });
+
+      const [myMembership, theirMembership] = await Promise.all([
+        db.select().from(guildMembers).where(and(eq(guildMembers.guildId, guildId), eq(guildMembers.userId, userId), eq(guildMembers.status, "active"))).limit(1),
+        db.select().from(guildMembers).where(and(eq(guildMembers.guildId, guildId), eq(guildMembers.userId, otherId), eq(guildMembers.status, "active"))).limit(1),
+      ]);
+      if (!myMembership[0] || !theirMembership[0]) return res.status(403).json({ message: "Both users must be active members of this guild" });
+
+      const { message } = req.body;
+      if (!message || typeof message !== "string" || message.trim().length === 0) {
+        return res.status(400).json({ message: "Message cannot be empty." });
+      }
+      if (message.trim().length > 1000) return res.status(400).json({ message: "Message too long (max 1000 chars)." });
+
+      // Use consistent thread key (lower id = fromId in storage)
+      const [fromId, toId] = userId < otherId ? [userId, otherId] : [otherId, userId];
+      const msg = await storage.sendCaptainMessage(guildId, userId, otherId, message.trim());
+      broadcastToUser(otherId, 'guild.dm_received', { fromUserId: userId, guildId, messageId: msg.id });
+      res.status(201).json({ message: msg });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to send message";
+      res.status(400).json({ message: msg });
     }
   });
 

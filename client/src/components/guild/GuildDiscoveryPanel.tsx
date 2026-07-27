@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Search, Users, Trophy, Clock, Lock, ChevronRight, Star, Shield } from "lucide-react";
+import { Search, Users, Trophy, Clock, Lock, ChevronRight, Star, Shield, Plus, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GuildDiscovery {

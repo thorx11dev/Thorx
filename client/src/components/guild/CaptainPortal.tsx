@@ -14,12 +14,14 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Megaphone, Users, MessageCircle, BarChart3, Settings, CheckCircle, XCircle, Star, Send, Bell, Sword, Crown, Target, MessagesSquare, Loader2 } from "lucide-react";
+import { Megaphone, Users, MessageCircle, BarChart3, Settings, CheckCircle, XCircle, Star, Send, Bell, Sword, Crown, Target, MessagesSquare, Loader2, Swords, UserPlus, UserMinus, Shield } from "lucide-react";
+import { GuildWarsPanel } from "./GuildWarsPanel";
+import { GuildProfileWizard } from "./GuildProfileWizard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
-type Tab = "requests" | "roster" | "chat" | "dm" | "stats" | "settings";
+type Tab = "requests" | "roster" | "chat" | "dm" | "stats" | "settings" | "wars" | "profile";
 
 // Points target per difficulty, mirroring server/storage.ts DatabaseStorage.DIFFICULTY_TARGETS
 const DIFFICULTY_TARGETS: Record<string, Record<string, number>> = {
@@ -249,7 +251,9 @@ export function CaptainPortal() {
     { id: "requests", label: "Requests", icon: <Sword size={14} />, badge: pending.length },
     { id: "roster",   label: "Roster",   icon: <Users size={14} /> },
     { id: "chat",     label: "Guild Chat", icon: <MessagesSquare size={14} /> },
-    { id: "dm",       label: "DM Hub",   icon: <MessageCircle size={14} />, },
+    { id: "dm",       label: "Private Chat", icon: <MessageCircle size={14} /> },
+    { id: "wars",     label: "Wars",     icon: <Swords size={14} /> },
+    { id: "profile",  label: "My Profile", icon: <Shield size={14} /> },
     { id: "stats",    label: "Stats",    icon: <BarChart3 size={14} /> },
     { id: "settings", label: "Settings", icon: <Settings size={14} /> },
   ];
@@ -558,6 +562,18 @@ export function CaptainPortal() {
         </div>
       )}
 
+      {/* ── WARS ── */}
+      {tab === "wars" && guildId && (
+        <GuildWarsPanel guildId={guildId} isCaptain={true} />
+      )}
+
+      {/* ── MY GUILD PROFILE ── */}
+      {tab === "profile" && guildId && guild && (
+        <div className="rounded-xl border border-zinc-200 bg-white p-4">
+          <GuildProfileWizard guildId={guildId} guildName={guild.name} mode="edit" />
+        </div>
+      )}
+
       {/* ── SETTINGS ── */}
       {tab === "settings" && settingsForm && (
         <div className="space-y-4">
@@ -643,6 +659,63 @@ export function CaptainPortal() {
             }}>
               {settingsMutation.isPending ? <span className="flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" />Saving…</span> : "Save Settings"}
             </Button>
+          </div>
+
+          {/* Assistant Captain */}
+          <div className="rounded-xl border border-zinc-200 bg-white p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Shield size={14} className="text-purple-500" />
+              <div className="font-bold text-sm">Assistant Captain</div>
+            </div>
+            {guild.assistantCaptainId ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-zinc-600">
+                    Current: <strong>{active.find((m: any) => m.userId === guild.assistantCaptainId)?.firstName || "Member"}</strong>
+                  </div>
+                  <Button size="sm" variant="outline" className="h-6 text-xs text-red-600 border-red-200" onClick={() => {
+                    apiRequest("DELETE", `/api/guilds/${guildId}/assistant-captain`).then(() => {
+                      toast({ title: "Assistant Captain removed." });
+                      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId] });
+                    });
+                  }}>Remove</Button>
+                </div>
+                <div className="text-xs text-zinc-500">Permissions enabled (toggle in future update):</div>
+                <div className="flex flex-wrap gap-1">
+                  {(guild.assistantPermissions as string[] || []).map((p: string) => (
+                    <Badge key={p} variant="outline" className="text-[10px]">{p.replace(/_/g, " ")}</Badge>
+                  ))}
+                  {(guild.assistantPermissions as string[] || []).length === 0 && (
+                    <span className="text-xs text-zinc-400">No permissions enabled yet.</span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-zinc-500">Appoint a trusted member as your assistant. They can help manage the guild based on permissions you grant.</p>
+                <select
+                  className="w-full h-9 border border-zinc-200 rounded-lg px-3 text-sm bg-white"
+                  defaultValue=""
+                  onChange={async (e) => {
+                    if (!e.target.value) return;
+                    try {
+                      await apiRequest("POST", `/api/guilds/${guildId}/assistant-captain`, { memberId: e.target.value });
+                      toast({ title: "Assistant Captain appointed!" });
+                      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId] });
+                    } catch (err: any) {
+                      toast({ title: "Error", description: err?.message, variant: "destructive" });
+                    }
+                  }}
+                >
+                  <option value="">— Select a member —</option>
+                  {active.filter((m: any) => m.userId !== user?.id).map((m: any) => (
+                    <option key={m.userId} value={m.userId}>
+                      {m.firstName || m.identity || "Member"} ({m.userRankTier})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Announcements */}

@@ -15,12 +15,14 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Target, Clock, MessageCircle, Megaphone, Star, Send, Users, Zap } from "lucide-react";
+import { Trophy, Target, Clock, MessageCircle, Megaphone, Star, Send, Users, Zap, Swords } from "lucide-react";
+import { GuildWarsPanel } from "./GuildWarsPanel";
+import { GuildProfileWizard } from "./GuildProfileWizard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
-type Tab = "progress" | "tasks" | "chat" | "dm";
+type Tab = "progress" | "tasks" | "chat" | "dm" | "wars" | "profile";
 
 function CountdownTimer({ targetDate }: { targetDate: Date }) {
   const [timeLeft, setTimeLeft] = useState("");
@@ -216,10 +218,12 @@ export function GuildMemberPanel() {
   const myRank = sortedMembers.findIndex(m => m.userId === user?.id) + 1;
 
   const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: "progress", label: "Progress",   icon: <Target size={14} /> },
-    { id: "tasks",    label: "Tasks",      icon: <Zap size={14} /> },
-    { id: "chat",     label: "Guild Chat", icon: <Users size={14} /> },
-    { id: "dm",       label: "Captain DM", icon: <MessageCircle size={14} /> },
+    { id: "progress", label: "Progress",     icon: <Target size={14} /> },
+    { id: "tasks",    label: "Tasks",        icon: <Zap size={14} /> },
+    { id: "chat",     label: "Guild Chat",   icon: <Users size={14} /> },
+    { id: "dm",       label: "Private Chat", icon: <MessageCircle size={14} /> },
+    { id: "wars",     label: "Wars",         icon: <Swords size={14} /> },
+    { id: "profile",  label: "My Profile",   icon: <Star size={14} /> },
   ];
 
   return (

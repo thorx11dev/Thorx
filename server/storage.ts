@@ -917,7 +917,7 @@ export class DatabaseStorage implements IStorage {
     engineType: "Engine_A" | "Engine_B" | "Engine_C" | "Indirect";
     grossPkr: string | number; // from network/task config — string preferred (Decimal-safe)
     sourceId: string; // ad_view.id or task_record.id
-    sourceType: "ad_view" | "weekly_task" | "daily_task";
+    sourceType: "ad_view" | "weekly_task" | "daily_task" | "engine_b_task";
     guildId?: string; // required for Engine_C
     tx?: any; // optional outer transaction — when provided, no inner db.transaction() is opened
   }): Promise<{ success: boolean; pointsCredited: number; realPkrValue: string; earning?: Earning }> {

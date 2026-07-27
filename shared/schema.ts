@@ -1008,15 +1008,12 @@ export const insertDailyTaskSchema = createInsertSchema(dailyTasks, {
   createdAt: true,
   updatedAt: true,
 });
-export type InsertDailyTask = z.infer<typeof insertDailyTaskSchema>;
-export type DailyTask = typeof dailyTasks.$inferSelect;
+// Note: DailyTask / InsertDailyTask / TaskRecord / InsertTaskRecord declared near the table definitions above.
 
 export const insertTaskRecordSchema = createInsertSchema(taskRecords).omit({
   id: true,
   completedAt: true,
 });
-export type InsertTaskRecord = z.infer<typeof insertTaskRecordSchema>;
-export type TaskRecord = typeof taskRecords.$inferSelect;
 
 // ── Feature 1: Founder Profit Ledger ──────────────────────────────────────────
 // Tracks every time the founder transfers money from the THORX bank account to
@@ -1712,3 +1709,26 @@ export const insertReferralCommissionSchema = createInsertSchema(referralCommiss
 export const insertCaptainMessageSchema = createInsertSchema(captainMessages).omit({ id: true, createdAt: true, isRead: true });
 export const insertGuildWeeklySnapshotSchema = createInsertSchema(guildWeeklySnapshots).omit({ id: true, createdAt: true });
 export const insertActivityFeedSchema = createInsertSchema(activityFeed).omit({ id: true, createdAt: true });
+
+// ── Guild Creation Requests — admin approval flow ─────────────────────────────
+// B-Rank+ users submit a request to create a guild. Admin approves/rejects.
+// Upon approval, the guild is auto-created and user becomes captain.
+export const guildCreationRequests = pgTable("guild_creation_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  guildName: text("guild_name").notNull(),
+  description: text("description"),
+  reason: text("reason").notNull(), // why they want a guild (min 50 chars)
+  status: text("status").notNull().default("pending"), // pending | approved | rejected
+  adminNote: text("admin_note"),
+  reviewedBy: varchar("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+  reviewedAt: timestamp("reviewed_at"),
+  createdGuildId: varchar("created_guild_id").references((): any => guilds.id, { onDelete: "set null" }), // set when approved
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("idx_gcr_user_id").on(table.userId, table.createdAt),
+  index("idx_gcr_status").on(table.status, table.createdAt),
+]);
+export type GuildCreationRequest = typeof guildCreationRequests.$inferSelect;
+export type InsertGuildCreationRequest = typeof guildCreationRequests.$inferInsert;

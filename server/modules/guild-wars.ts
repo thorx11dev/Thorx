@@ -1,20 +1,16 @@
 /**
- * THORX Guild Wars — Architecture & Service Layer
+ * THORX Guild Wars — Service Layer (fixed to match actual schema columns)
  *
- * Status: ARCHITECTURE READY (UI implementation deferred).
- *
- * Tables provisioned:
+ * Tables:
  *   guild_war_seasons     — seasonal containers
- *   guild_wars            — individual war matchups
- *   guild_war_participants — per-user war contributions
+ *   guild_wars            — individual war matchups (challengerGuildId / challengedGuildId)
+ *   guild_war_approvals   — per-member vote to approve/reject participation
+ *   guild_war_participants — per-user point contributions during an active war
  *   guild_hall_of_fame    — permanent season winners
  *   guild_badges          — awarded badges per guild
  *
- * Service stubs are fully typed and ready for activation.
- * Enable a season via POST /api/guild-wars/seasons (admin only).
- *
- * Guild Wars can be enabled without any architectural changes —
- * tables and service contracts are production-grade from day one.
+ * Status flow:
+ *   pending_challenger_approval → pending_challenged_approval → active → completed | cancelled
  */
 
 import Decimal from "decimal.js";
@@ -23,16 +19,19 @@ import {
   guildWarSeasons,
   guildWars,
   guildWarParticipants,
+  guildWarApprovals,
   guildHallOfFame,
   guildBadges,
   guilds,
+  guildMembers,
   users,
   type GuildWarSeason,
   type GuildWar,
+  type GuildWarApproval,
   type GuildHallOfFame,
   type GuildBadge,
 } from "@shared/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, or, ne } from "drizzle-orm";
 import { storage } from "../storage";
 import { logger } from "../lib/logger";
 
@@ -86,122 +85,354 @@ export async function listSeasons(limit = 20): Promise<GuildWarSeason[]> {
 
 // ─── War Matchup Management ───────────────────────────────────────────────────
 
+/**
+ * Admin: create a war directly (admin-managed matchup).
+ * For captain-initiated challenges, use initiateChallenge().
+ */
 export async function createWar(params: {
-  seasonId: string;
-  guild1Id: string;
-  guild2Id: string;
-  startDate: Date;
-  endDate: Date;
-  prizePoolPkr: string;
+  seasonId?: string;
+  challengerGuildId: string;
+  challengedGuildId: string;
 }): Promise<GuildWar> {
-  if (params.guild1Id === params.guild2Id) {
+  if (params.challengerGuildId === params.challengedGuildId) {
     throw new Error("A guild cannot war against itself");
   }
   const [war] = await db
     .insert(guildWars)
     .values({
-      seasonId: params.seasonId,
-      guild1Id: params.guild1Id,
-      guild2Id: params.guild2Id,
-      status: "scheduled",
-      guild1Score: 0,
-      guild2Score: 0,
-      startDate: params.startDate,
-      endDate: params.endDate,
-      prizePoolPkr: params.prizePoolPkr,
+      seasonId: params.seasonId ?? null,
+      challengerGuildId: params.challengerGuildId,
+      challengedGuildId: params.challengedGuildId,
+      status: "active", // admin-created wars start immediately
+      challengerScore: 0,
+      challengedScore: 0,
+      startedAt: new Date(),
     })
     .returning();
   logger.info(
-    { warId: war.id, guild1: params.guild1Id, guild2: params.guild2Id },
-    "[GuildWars] War scheduled",
+    { warId: war.id, challenger: params.challengerGuildId, challenged: params.challengedGuildId },
+    "[GuildWars] Admin war created",
   );
   return war;
 }
 
+// ─── Captain-Initiated Challenge Flow ────────────────────────────────────────
+
+/**
+ * Step 1: Captain initiates a challenge against another guild.
+ * Creates war with status "pending_challenger_approval".
+ * All challenger members must then vote (including captain).
+ */
+export async function initiateChallenge(params: {
+  challengerGuildId: string;
+  challengedGuildId: string;
+  captainId: string;
+}): Promise<GuildWar> {
+  const { challengerGuildId, challengedGuildId, captainId } = params;
+
+  if (challengerGuildId === challengedGuildId) {
+    throw new Error("A guild cannot challenge itself");
+  }
+
+  // Verify captain
+  const guild = await db.select().from(guilds).where(eq(guilds.id, challengerGuildId)).limit(1);
+  if (!guild[0]) throw new Error("Guild not found");
+  if (guild[0].captainId !== captainId) throw new Error("Only the guild captain can initiate a challenge");
+  if (guild[0].status !== "active") throw new Error("Guild must be active to challenge");
+
+  // Check no active/pending war for either guild
+  const existingWar = await db.select().from(guildWars).where(
+    and(
+      or(
+        eq(guildWars.challengerGuildId, challengerGuildId),
+        eq(guildWars.challengedGuildId, challengerGuildId),
+        eq(guildWars.challengerGuildId, challengedGuildId),
+        eq(guildWars.challengedGuildId, challengedGuildId),
+      ),
+      or(
+        eq(guildWars.status, "pending_challenger_approval"),
+        eq(guildWars.status, "pending_challenged_approval"),
+        eq(guildWars.status, "active"),
+      ),
+    )
+  ).limit(1);
+
+  if (existingWar[0]) throw new Error("One of the guilds is already in an active war or has a pending challenge");
+
+  // Verify challenged guild exists and is active
+  const challengedGuild = await db.select().from(guilds).where(eq(guilds.id, challengedGuildId)).limit(1);
+  if (!challengedGuild[0]) throw new Error("Challenged guild not found");
+  if (challengedGuild[0].status !== "active") throw new Error("Challenged guild is not active");
+
+  const [war] = await db
+    .insert(guildWars)
+    .values({
+      challengerGuildId,
+      challengedGuildId,
+      status: "pending_challenger_approval",
+      challengerScore: 0,
+      challengedScore: 0,
+    })
+    .returning();
+
+  logger.info({ warId: war.id, challengerGuildId, challengedGuildId }, "[GuildWars] Challenge initiated");
+  return war;
+}
+
+/**
+ * Step 2 & 3: Member votes to approve or reject their guild's war participation.
+ * - Challenger guild members vote first (pending_challenger_approval)
+ * - Once all active challenger members approve → status moves to pending_challenged_approval
+ * - Challenged guild members vote → all approve → status moves to active
+ * - Any rejection → war cancelled
+ */
+export async function voteOnWar(params: {
+  warId: string;
+  userId: string;
+  approved: boolean;
+}): Promise<{ war: GuildWar; allApproved: boolean; cancelled: boolean }> {
+  const { warId, userId, approved } = params;
+
+  const [war] = await db.select().from(guildWars).where(eq(guildWars.id, warId)).limit(1);
+  if (!war) throw new Error("War not found");
+
+  if (war.status !== "pending_challenger_approval" && war.status !== "pending_challenged_approval") {
+    throw new Error("War is not in a voting phase");
+  }
+
+  // Determine which guild this user belongs to
+  const membership = await db.select().from(guildMembers).where(
+    and(eq(guildMembers.userId, userId), eq(guildMembers.status, "active"))
+  ).limit(1);
+  if (!membership[0]) throw new Error("You are not an active guild member");
+
+  const userGuildId = membership[0].guildId;
+  const expectedGuildId = war.status === "pending_challenger_approval"
+    ? war.challengerGuildId
+    : war.challengedGuildId;
+
+  if (userGuildId !== expectedGuildId) {
+    throw new Error("It is not your guild's turn to vote");
+  }
+
+  // Record or update vote
+  await db
+    .insert(guildWarApprovals)
+    .values({ warId, userId, guildId: userGuildId, approved, approvedAt: new Date() })
+    .onConflictDoUpdate({
+      target: [guildWarApprovals.warId, guildWarApprovals.userId],
+      set: { approved, approvedAt: new Date() },
+    });
+
+  // If rejected → cancel war
+  if (!approved) {
+    const [cancelled] = await db
+      .update(guildWars)
+      .set({ status: "cancelled" })
+      .where(eq(guildWars.id, warId))
+      .returning();
+    logger.info({ warId, userId }, "[GuildWars] War cancelled by member rejection");
+    return { war: cancelled, allApproved: false, cancelled: true };
+  }
+
+  // Check if all active members of this guild have approved
+  const activeMembers = await db
+    .select({ userId: guildMembers.userId })
+    .from(guildMembers)
+    .where(and(eq(guildMembers.guildId, userGuildId), eq(guildMembers.status, "active")));
+
+  const approvals = await db
+    .select()
+    .from(guildWarApprovals)
+    .where(and(eq(guildWarApprovals.warId, warId), eq(guildWarApprovals.guildId, userGuildId)));
+
+  const approvedUserIds = new Set(approvals.filter(a => a.approved).map(a => a.userId));
+  const allApproved = activeMembers.every(m => approvedUserIds.has(m.userId));
+
+  if (!allApproved) {
+    return { war, allApproved: false, cancelled: false };
+  }
+
+  // All approved — advance status
+  let newStatus: string;
+  let updatedWar: GuildWar;
+  if (war.status === "pending_challenger_approval") {
+    newStatus = "pending_challenged_approval";
+    [updatedWar] = await db
+      .update(guildWars)
+      .set({ status: newStatus })
+      .where(eq(guildWars.id, warId))
+      .returning();
+    logger.info({ warId }, "[GuildWars] Challenger approved — waiting for challenged guild");
+  } else {
+    newStatus = "active";
+    [updatedWar] = await db
+      .update(guildWars)
+      .set({ status: newStatus, startedAt: new Date() })
+      .where(eq(guildWars.id, warId))
+      .returning();
+    logger.info({ warId }, "[GuildWars] War is now ACTIVE");
+  }
+
+  return { war: updatedWar, allApproved: true, cancelled: false };
+}
+
+/**
+ * Captain cancels a pending war challenge (before it goes active).
+ */
+export async function cancelWar(warId: string, captainId: string): Promise<GuildWar> {
+  const [war] = await db.select().from(guildWars).where(eq(guildWars.id, warId)).limit(1);
+  if (!war) throw new Error("War not found");
+
+  if (war.status === "active" || war.status === "completed" || war.status === "cancelled") {
+    throw new Error(`Cannot cancel a war with status: ${war.status}`);
+  }
+
+  // Verify captain belongs to challenger guild
+  const guild = await db.select().from(guilds).where(eq(guilds.id, war.challengerGuildId)).limit(1);
+  if (!guild[0] || guild[0].captainId !== captainId) {
+    throw new Error("Only the challenger guild captain can cancel the challenge");
+  }
+
+  const [cancelled] = await db
+    .update(guildWars)
+    .set({ status: "cancelled" })
+    .where(eq(guildWars.id, warId))
+    .returning();
+
+  logger.info({ warId, captainId }, "[GuildWars] War cancelled by captain");
+  return cancelled;
+}
+
+/**
+ * Get the current active or pending war for a guild.
+ */
+export async function getGuildCurrentWar(guildId: string): Promise<GuildWar | null> {
+  const [war] = await db
+    .select()
+    .from(guildWars)
+    .where(
+      and(
+        or(
+          eq(guildWars.challengerGuildId, guildId),
+          eq(guildWars.challengedGuildId, guildId),
+        ),
+        or(
+          eq(guildWars.status, "pending_challenger_approval"),
+          eq(guildWars.status, "pending_challenged_approval"),
+          eq(guildWars.status, "active"),
+        ),
+      )
+    )
+    .orderBy(desc(guildWars.createdAt))
+    .limit(1);
+  return war ?? null;
+}
+
+/**
+ * Get war with approval votes for a given guild.
+ */
+export async function getWarWithApprovals(warId: string, guildId: string): Promise<{
+  war: GuildWar;
+  approvals: GuildWarApproval[];
+  totalActiveMembers: number;
+  approvedCount: number;
+}> {
+  const [war] = await db.select().from(guildWars).where(eq(guildWars.id, warId)).limit(1);
+  if (!war) throw new Error("War not found");
+
+  const approvals = await db
+    .select()
+    .from(guildWarApprovals)
+    .where(and(eq(guildWarApprovals.warId, warId), eq(guildWarApprovals.guildId, guildId)));
+
+  const activeMembers = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(guildMembers)
+    .where(and(eq(guildMembers.guildId, guildId), eq(guildMembers.status, "active")));
+
+  const totalActiveMembers = Number(activeMembers[0]?.count ?? 0);
+  const approvedCount = approvals.filter(a => a.approved).length;
+
+  return { war, approvals, totalActiveMembers, approvedCount };
+}
+
+// ─── Point Contribution ───────────────────────────────────────────────────────
+
 /**
  * Called by earn events to contribute points to an active war.
- * Only contributes if both user's guild is a participant in an active war.
+ * Only contributes if user's guild is a participant in an active war.
  */
 export async function contributeWarPoints(
   userId: string,
   guildId: string,
   points: number,
 ): Promise<void> {
-  // Find active war for this guild
   const [activeWar] = await db
     .select()
     .from(guildWars)
     .where(
       and(
         eq(guildWars.status, "active"),
-        sql`(guild1_id = ${guildId} OR guild2_id = ${guildId})`,
+        or(
+          eq(guildWars.challengerGuildId, guildId),
+          eq(guildWars.challengedGuildId, guildId),
+        ),
       ),
     )
     .limit(1);
 
-  if (!activeWar) return; // no active war for this guild
+  if (!activeWar) return;
 
   // Upsert participant contribution
   await db
     .insert(guildWarParticipants)
-    .values({
-      warId: activeWar.id,
-      guildId,
-      userId,
-      pointsContributed: points,
-    })
+    .values({ warId: activeWar.id, guildId, userId, pointsContributed: points })
     .onConflictDoUpdate({
       target: [guildWarParticipants.warId, guildWarParticipants.guildId, guildWarParticipants.userId],
-      set: {
-        pointsContributed: sql`${guildWarParticipants.pointsContributed} + ${points}`,
-      },
+      set: { pointsContributed: sql`${guildWarParticipants.pointsContributed} + ${points}` },
     });
 
-  // Update war score for this guild
-  if (activeWar.guild1Id === guildId) {
+  // Update war score for the correct side
+  if (activeWar.challengerGuildId === guildId) {
     await db
       .update(guildWars)
-      .set({ guild1Score: sql`${guildWars.guild1Score} + ${points}` })
+      .set({ challengerScore: sql`${guildWars.challengerScore} + ${points}` })
       .where(eq(guildWars.id, activeWar.id));
   } else {
     await db
       .update(guildWars)
-      .set({ guild2Score: sql`${guildWars.guild2Score} + ${points}` })
+      .set({ challengedScore: sql`${guildWars.challengedScore} + ${points}` })
       .where(eq(guildWars.id, activeWar.id));
   }
 }
 
+// ─── War Resolution ───────────────────────────────────────────────────────────
+
 /**
- * Resolve a completed war — determine winner, distribute prizes,
- * create Hall of Fame entry, award badges.
+ * Resolve a completed war — determine winner based on who first completed their
+ * weekly target. If neither completed, the higher score wins. If tied, it's a draw.
  */
 export async function resolveWar(warId: string): Promise<{
   winnerId: string | null;
   isDraw: boolean;
 }> {
-  const [war] = await db
-    .select()
-    .from(guildWars)
-    .where(eq(guildWars.id, warId))
-    .limit(1);
-
+  const [war] = await db.select().from(guildWars).where(eq(guildWars.id, warId)).limit(1);
   if (!war) throw new Error("War not found");
   if (war.status === "completed") return { winnerId: war.winnerId, isDraw: !war.winnerId };
 
-  const isDraw = war.guild1Score === war.guild2Score;
+  const isDraw = war.challengerScore === war.challengedScore;
   const winnerId = isDraw
     ? null
-    : war.guild1Score > war.guild2Score
-    ? war.guild1Id
-    : war.guild2Id;
-  const loserId = isDraw ? null : winnerId === war.guild1Id ? war.guild2Id : war.guild1Id;
+    : war.challengerScore > war.challengedScore
+    ? war.challengerGuildId
+    : war.challengedGuildId;
 
   await db
     .update(guildWars)
-    .set({ status: "completed", winnerId })
+    .set({ status: "completed", winnerId, completedAt: new Date() })
     .where(eq(guildWars.id, warId));
 
-  // Award winner badge
   if (winnerId) {
     await awardBadge(winnerId, "war_winner", "⚔️ War Victor", war.seasonId ?? undefined);
     logger.info({ warId, winnerId }, "[GuildWars] War resolved — winner");
@@ -209,31 +440,27 @@ export async function resolveWar(warId: string): Promise<{
     logger.info({ warId }, "[GuildWars] War resolved — draw");
   }
 
-  // Hall of Fame entry for season winners (handled by resolveSeason)
   return { winnerId, isDraw };
 }
 
 // ─── Season Resolution ────────────────────────────────────────────────────────
 
 export async function resolveSeason(seasonId: string): Promise<void> {
-  // Compute standings: sum war wins per guild in this season
   const standings = await db
     .select({
-      guildId: guildWars.guild1Id,
-      wins: sql<number>`COUNT(*) FILTER (WHERE winner_id = guild1_id)`,
-      totalScore: sql<number>`SUM(guild1_score)`,
+      guildId: guildWars.challengerGuildId,
+      wins: sql<number>`COUNT(*) FILTER (WHERE winner_id = challenger_guild_id)`,
+      totalScore: sql<number>`SUM(challenger_score)`,
     })
     .from(guildWars)
     .where(and(eq(guildWars.seasonId, seasonId), eq(guildWars.status, "completed")))
-    .groupBy(guildWars.guild1Id);
+    .groupBy(guildWars.challengerGuildId);
 
-  // Sort by wins desc, then by total score desc
   standings.sort((a, b) => {
     if (b.wins !== a.wins) return b.wins - a.wins;
     return b.totalScore - a.totalScore;
   });
 
-  // Top 3 → Hall of Fame
   for (let i = 0; i < Math.min(3, standings.length); i++) {
     const placement = i + 1;
     const entry = standings[i];
@@ -245,7 +472,6 @@ export async function resolveSeason(seasonId: string): Promise<void> {
       totalPointsScored: entry.totalScore,
     }).onConflictDoNothing();
 
-    // Season champion badge to 1st place
     if (placement === 1) {
       await awardBadge(entry.guildId, "season_champion", "🏆 Season Champion", seasonId);
     } else if (placement === 2) {
@@ -292,16 +518,16 @@ export async function getHallOfFame(
   seasonId?: string,
   limit = 10,
 ): Promise<GuildHallOfFame[]> {
-  const query = db
+  const base = db
     .select()
     .from(guildHallOfFame)
     .orderBy(guildHallOfFame.placement, desc(guildHallOfFame.awardedAt))
     .limit(limit);
 
   if (seasonId) {
-    return (query as any).where(eq(guildHallOfFame.seasonId, seasonId));
+    return base.where(eq(guildHallOfFame.seasonId, seasonId));
   }
-  return query;
+  return base;
 }
 
 // ─── War Leaderboard ──────────────────────────────────────────────────────────
@@ -315,14 +541,14 @@ export async function getSeasonLeaderboard(seasonId: string): Promise<{
 }[]> {
   const rows = await db
     .select({
-      guildId: guildWars.guild1Id,
+      guildId: guildWars.challengerGuildId,
       total: sql<number>`COUNT(*)`,
-      won: sql<number>`COUNT(*) FILTER (WHERE winner_id = guild1_id)`,
-      score: sql<number>`SUM(guild1_score)`,
+      won: sql<number>`COUNT(*) FILTER (WHERE winner_id = challenger_guild_id)`,
+      score: sql<number>`SUM(challenger_score)`,
     })
     .from(guildWars)
     .where(and(eq(guildWars.seasonId, seasonId), eq(guildWars.status, "completed")))
-    .groupBy(guildWars.guild1Id);
+    .groupBy(guildWars.challengerGuildId);
 
   return rows.map((r) => ({
     guildId: r.guildId,
