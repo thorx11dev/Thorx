@@ -4,10 +4,10 @@ import Decimal from "decimal.js";
 import crypto from "crypto";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { storage, RANK_NAMES } from "./storage";
+import { storage } from "./storage";
 import { pool, db } from "./db";
 import { initRealtime, broadcastUserUpdated, broadcastTeamRefresh, broadcastGuildMessage, broadcastGuildEvent, broadcastToUser, closeUserSockets } from "./realtime";
-import { insertRegistrationSchema, insertUserSchema, insertWithdrawalSchema, users, teamKeys, insertDailyTaskSchema, insertTaskRecordSchema, taskRecords, adViews, dailyTasks, systemConfig, weeklyTasks, auditLogs, insertHilltopAdsConfigSchema, insertHilltopAdsZoneSchema, passwordResetTokens } from "@shared/schema";
+import { insertRegistrationSchema, insertUserSchema, insertWithdrawalSchema, users, teamKeys, adViews, systemConfig, weeklyTasks, auditLogs, insertHilltopAdsConfigSchema, insertHilltopAdsZoneSchema, passwordResetTokens, insertEngineBTaskSchema, engineBRecords } from "@shared/schema";
 import { eq, sql, and, desc } from "drizzle-orm";
 import { z } from "zod";
 import { validateEmailServer, validatePhoneServer, normalizePhoneNumber } from "./validation";
@@ -764,7 +764,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         permissions: permissions,
         avatar: user.avatar || 'default',
         profilePicture: user.profilePicture,
-        rank: user.rank || 'Nawa Aya',
         name: `${user.firstName} ${user.lastName || ""}`.trim(),
         // THORX v3 fields
         userRankTier: user.userRankTier || 'E-Rank',
@@ -1844,73 +1843,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // RANKING SYSTEM ENDPOINTS
   // ============================================
 
-  // Get rank history for current user
+  // Get rank history for current user (PS-based userRankTier — legacy Urdu rank removed)
   app.get("/api/rank/history", requireSessionAuth, async (req, res) => {
     try {
       const thorxPid = req.userProfile.id;
-
-      const user = await storage.getUserById(thorxPid);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
       const rankLogs = await storage.getRankHistory(thorxPid);
-
-      res.json({
-        rankLogs,
-        currentRank: user.rank || "Nawa Aya"
-      });
+      res.json({ rankLogs });
     } catch (error) {
       logger.error({ err: error }, "Get rank history error:");
-      res.status(500).json({
-        message: "Failed to fetch rank history",
-        error: "INTERNAL_ERROR"
-      });
-    }
-  });
-
-  // Manually trigger rank recalculation
-  app.post("/api/rank/refresh", requireSessionAuth, profileRateLimiter, async (req, res) => {
-    try {
-      // requireSessionAuth guarantees a valid session; cast is safe here
-      const thorxPid = getThorxPrincipalId(req) as string;
-
-      if (thorxPid.startsWith('anonymous_')) {
-        return res.json({
-          oldRank: "Nawa Aya",
-          newRank: "Nawa Aya",
-          updated: false
-        });
-      }
-
-      const userBefore = await storage.getUserById(thorxPid);
-      if (!userBefore) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const oldRank = userBefore.rank || "Nawa Aya";
-      const updatedUser = await storage.checkAndUpdateRank(thorxPid);
-      const newRank = updatedUser.rank || "Nawa Aya";
-
-      if (oldRank !== newRank) {
-        broadcastUserUpdated(thorxPid, "rank_updated");
-      }
-
-      res.json({
-        oldRank,
-        newRank,
-        updated: oldRank !== newRank,
-        rank: newRank,
-        message: oldRank !== newRank
-          ? `Rank updated from ${oldRank} to ${newRank}!`
-          : "Rank is current"
-      });
-    } catch (error) {
-      logger.error({ err: error }, "Rank refresh error:");
-      res.status(500).json({
-        message: "Failed to refresh rank",
-        error: "INTERNAL_ERROR"
-      });
+      res.status(500).json({ message: "Failed to fetch rank history", error: "INTERNAL_ERROR" });
     }
   });
 
@@ -2191,7 +2132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             w.user.email,
             w.user.phone,
             w.user.identity,
-            w.user.rank,
+            w.user.userRankTier ?? "",
             w.amount,
             w.method,
             w.accountName,
@@ -2615,7 +2556,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const u of batch) {
           res.write(toCsvRow([
             u.id, u.firstName, u.lastName, u.email, u.phone ?? "", u.identity ?? "",
-            u.role ?? "user", u.rank ?? "", u.availableBalance, u.totalEarnings,
+            u.role ?? "user", u.userRankTier ?? "E-Rank", u.availableBalance, u.totalEarnings,
             u.referralCode ?? "", new Date(u.createdAt ?? new Date()).toISOString(),
           ]) + "\n");
         }
@@ -3395,7 +3336,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: user.isActive,
         createdAt: user.createdAt,
         role: user.role || 'user',
-        rank: (user as any).rank,
         avatar: (user as any).avatar,
         profilePicture: (user as any).profilePicture,
         // THORX v3 fields (spec Part F — frontend relies on these via useAuth)
@@ -3514,7 +3454,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isActive: updatedUser.isActive,
           createdAt: updatedUser.createdAt,
           role: updatedUser.role || 'user',
-          rank: (updatedUser as any).rank,
           avatar: (updatedUser as any).avatar,
           profilePicture: (updatedUser as any).profilePicture,
           // THORX v3 fields
@@ -3734,231 +3673,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // here. The allowedKeys safety list in the dead PATCH was never enforced. Both removed.
 
   // --- Daily Tasks Management (Admin) ---
-  app.get("/api/admin/tasks", requireTeamRole, async (req, res) => {
+  // ── Engine B Admin CRUD ───────────────────────────────────────────────────────
+  app.get("/api/admin/engine-b-tasks", requireTeamRole, async (req, res) => {
     try {
-      const tasks = await storage.getDailyTasks();
+      const tasks = await storage.getEngineBTasks();
       res.json(tasks);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch tasks" });
+      res.status(500).json({ message: "Failed to fetch Engine B tasks" });
     }
   });
 
-  app.post("/api/admin/tasks", requireTeamRole, async (req, res) => {
+  app.post("/api/admin/engine-b-tasks", requirePermission("MANAGE_TASKS"), async (req, res) => {
     try {
-      debugLog("[ADMIN_TASK_POST] Raw Payload:", req.body);
-      const validatedData = insertDailyTaskSchema.parse(req.body);
-      const task = await storage.createDailyTask(validatedData);
+      const validatedData = insertEngineBTaskSchema.parse(req.body);
+      const task = await storage.createEngineBTask(validatedData);
       res.status(201).json(task);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        logger.error({ errors: error.errors }, "[ADMIN_TASK_POST] Validation Error");
-      } else {
-        logger.error({ err: error }, "[ADMIN_TASK_POST] Database/Internal Error:");
+        logger.error({ errors: error.errors }, "[ENGINE_B_TASK_POST] Validation Error");
       }
-      res.status(400).json({ 
-        message: "Invalid task data", 
-        error: error instanceof z.ZodError ? error.errors : (error.message || "GENERIC_ERROR") 
-      });
+      res.status(400).json({ message: "Invalid task data", error: error instanceof z.ZodError ? error.errors : (error.message || "GENERIC_ERROR") });
     }
   });
 
-  app.patch("/api/admin/tasks/:id", requireTeamRole, async (req, res) => {
+  app.patch("/api/admin/engine-b-tasks/:id", requirePermission("MANAGE_TASKS"), async (req, res) => {
     try {
-      debugLog(`[ADMIN_TASK_PATCH] ID: ${req.params.id}. Payload:`, req.body);
-      // T-2 audit fix: whitelist permitted fields — prevents mass-assignment of internal columns.
-      const updateTaskSchema = z.object({
-        title:           z.string().min(1).max(200).optional(),
-        description:     z.string().max(1000).optional(),
-        pointReward:     z.number().int().min(0).max(10000).optional(),
-        isActive:        z.boolean().optional(),
-        weekStart:       z.string().datetime().optional(),
-        weekEnd:         z.string().datetime().optional(),
-        targetGuildRank: z.string().optional(),
-        taskType:        z.enum(["daily", "weekly", "special"]).optional(),
-        requirements:    z.record(z.unknown()).optional(),
+      const updateSchema = z.object({
+        title:                 z.string().min(1).max(200).optional(),
+        description:           z.string().max(1000).optional(),
+        actionUrl:             z.string().url().optional().nullable(),
+        secretCode:            z.string().max(100).optional().nullable(),
+        instructions:          z.string().max(2000).optional().nullable(),
+        targetRank:            z.enum(["E-Rank","D-Rank","C-Rank","B-Rank","A-Rank","S-Rank"]).optional(),
+        difficulty:            z.enum(["Easy","Medium","Hard","Elite"]).optional(),
+        isActive:              z.boolean().optional(),
+        grossPkrPerCompletion: z.string().optional(),
       });
-      const parsed = updateTaskSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
-      }
-      const task = await storage.updateDailyTask(req.params.id, parsed.data);
+      const parsed = updateSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
+      const task = await storage.updateEngineBTask(req.params.id, parsed.data);
       if (!task) return res.status(404).json({ message: "Task not found" });
       res.json(task);
     } catch (error) {
-      logger.error({ err: error }, "[ADMIN_TASK_PATCH] Error:");
-      res.status(400).json({ message: "Failed to update task" });
+      res.status(400).json({ message: "Failed to update Engine B task" });
     }
   });
 
-  app.delete("/api/admin/tasks/:id", requireTeamRole, async (req, res) => {
+  app.delete("/api/admin/engine-b-tasks/:id", requirePermission("MANAGE_TASKS"), async (req, res) => {
     try {
-      await storage.deleteDailyTask(req.params.id);
+      await storage.deleteEngineBTask(req.params.id);
       res.status(204).end();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete task" });
     }
   });
 
-  // --- User Tasks Endpoints ---
-  app.get("/api/tasks", requireSessionAuth, async (req, res) => {
+  // ── Engine B User Endpoints ───────────────────────────────────────────────────
+  app.get("/api/engine-b/tasks", requireSessionAuth, async (req, res) => {
     try {
       const userId = getThorxPrincipalId(req) as string;
-      const user = await storage.getUserById(userId);
-      const userRankTier = (user?.userRankTier || "E-Rank").toLowerCase();
-
-      const tasksWithRecords = await storage.getDailyTasksForUser(userId);
-
-      // Filter by rank tier and active status (THORX v3: keyed off userRankTier,
-      // the PS-driven rank — not the legacy, now-frozen `rank` field).
-      const filteredTasks = tasksWithRecords.filter(({ task }) => {
-          const targetRank = (task.targetRank || "e-rank").toLowerCase();
-          const isTargeted = targetRank === "e-rank" || targetRank === userRankTier;
-          return isTargeted && task.isActive;
-      });
-
-      res.json(filteredTasks);
+      const tasksWithRecords = await storage.getEngineBTasksForUser(userId);
+      res.json(tasksWithRecords);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch tasks" });
+      res.status(500).json({ message: "Failed to fetch Engine B tasks" });
     }
   });
 
-  app.post("/api/tasks/:id/click", requireSessionAuth, earnRateLimiter, async (req, res) => {
+  app.post("/api/engine-b/tasks/:id/click", requireSessionAuth, earnRateLimiter, async (req, res) => {
     try {
       const userId = getThorxPrincipalId(req) as string;
-
       const taskId = req.params.id;
-      let record = await storage.getTaskRecord(userId, taskId);
-
+      let record = await storage.getEngineBRecord(userId, taskId);
       if (record) {
-        if (record.status === 'completed') {
-          return res.json({ message: "Task already completed", record });
-        }
-        // Update clickedAt for existing pending record
-        record = await storage.updateTaskRecord(record.id, { clickedAt: new Date() });
+        if (record.status === "completed") return res.json({ message: "Task already completed", record });
+        record = await storage.updateEngineBRecord(record.id, { clickedAt: new Date() });
       } else {
-        // Create new record with clickedAt
-        record = await storage.createTaskRecord({
-          userId,
-          taskId,
-          status: 'pending',
-          clickedAt: new Date()
-        });
+        record = await storage.createEngineBRecord({ userId, taskId, status: "pending", clickedAt: new Date() });
       }
-
       res.json(record);
     } catch (error) {
       res.status(500).json({ message: "Failed to record task click" });
     }
   });
 
-  // POST /api/tasks/:id/verify — requireSessionAuth + earnRateLimiter.
-  // Atomic: task completion record + earn event are wrapped in a single DB transaction
-  // so a crash between the two can no longer leave the task "done" with no points credited.
-  app.post("/api/tasks/:id/verify", requireSessionAuth, earnRateLimiter, async (req, res) => {
+  // POST /api/engine-b/tasks/:id/verify — atomic: record + earn event in one transaction
+  app.post("/api/engine-b/tasks/:id/verify", requireSessionAuth, earnRateLimiter, async (req, res) => {
     try {
       const userId = getThorxPrincipalId(req) as string;
       const taskId = req.params.id;
       const { code } = req.body;
 
-      const task = await storage.getDailyTask(taskId);
-      if (!task) return res.status(404).json({ message: "Task not found" });
+      const task = await storage.getEngineBTask(taskId);
+      if (!task || !task.isActive) return res.status(404).json({ message: "Task not found" });
 
-      const record = await storage.getTaskRecord(userId, taskId);
-      if (!record || !record.clickedAt) {
-        return res.status(400).json({ message: "Task session not initialized. Click the link first." });
-      }
+      const record = await storage.getEngineBRecord(userId, taskId);
+      if (!record || !record.clickedAt) return res.status(400).json({ message: "Task session not initialized. Click the link first." });
+      if (record.status === "completed") return res.json({ message: "Task already completed", record });
 
-      if (record.status === 'completed') {
-        return res.json({ message: "Task already completed", record });
-      }
-
-      // Check anti-cheat timing (10-15 seconds minimum)
-      const now = new Date();
-      const clickTime = new Date(record.clickedAt);
-      const diffSeconds = (now.getTime() - clickTime.getTime()) / 1000;
-
+      // Anti-cheat: 10-second minimum engagement
+      const diffSeconds = (Date.now() - new Date(record.clickedAt).getTime()) / 1000;
       if (diffSeconds < 10) {
-        return res.status(400).json({ 
-          message: "VERIFICATION_FAILED_TIME", 
-          details: `Wait at least ${10 - Math.floor(diffSeconds)} more seconds to ensure content engagement.`
-        });
+        return res.status(400).json({ message: "VERIFICATION_FAILED_TIME", details: `Wait at least ${Math.ceil(10 - diffSeconds)} more seconds.` });
       }
 
-      // Verify Secret Code (case insensitive)
+      // Secret code verification (case-insensitive)
       if (task.secretCode && task.secretCode.toUpperCase() !== (code || "").toUpperCase()) {
-        return res.status(400).json({ 
-          message: "VERIFICATION_FAILED_CODE", 
-          details: "The secret code entered is incorrect." 
-        });
+        return res.status(400).json({ message: "VERIFICATION_FAILED_CODE", details: "The secret code entered is incorrect." });
       }
 
-      // Engine B rank gates — difficulty system (Q7) + CPA gate (spec B.2, L.3).
-      // Gate checks are BEFORE the transaction so a failed rank check does not
-      // consume the task slot — spec invariant L.3.
-      const isCpaTask = task.taskCategory === 'cpa_offer' && task.grossPkrPerCompletion && new Decimal(task.grossPkrPerCompletion).gt(0);
-
-      // Fetch user once for all rank gate checks.
+      // Rank gate: Engine B requires C-Rank minimum (spec B.2)
+      const RANK_ORDER = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
+      const DIFFICULTY_MIN: Record<string, string> = { Easy: "E-Rank", Medium: "D-Rank", Hard: "C-Rank", Elite: "A-Rank" };
       const taskUser = await storage.getUserById(userId);
-      const RANK_ORDER_VERIFY = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
-      const userTierIdx = RANK_ORDER_VERIFY.indexOf(taskUser?.userRankTier || "E-Rank");
-
-      // Q7: Difficulty-based rank gate (Easy=All, Medium=D+, Hard=C+, Elite=A+)
-      const DIFFICULTY_MIN_RANK: Record<string, string> = {
-        "Easy":   "E-Rank",
-        "Medium": "D-Rank",
-        "Hard":   "C-Rank",
-        "Elite":  "A-Rank",
-      };
-      const taskDifficulty = (task as any).difficulty || "Easy";
-      const diffRequiredRank = DIFFICULTY_MIN_RANK[taskDifficulty] ?? "E-Rank";
-      const diffRequiredIdx = RANK_ORDER_VERIFY.indexOf(diffRequiredRank);
-      if (userTierIdx < diffRequiredIdx) {
-        return res.status(403).json({
-          error: "RANK_GATE",
-          requiredRank: diffRequiredRank,
-          currentRank: taskUser?.userRankTier || "E-Rank",
-          message: `This ${taskDifficulty} task requires ${diffRequiredRank} or higher.`,
-        });
+      const userTierIdx = RANK_ORDER.indexOf(taskUser?.userRankTier || "E-Rank");
+      const diffMinRank = DIFFICULTY_MIN[task.difficulty || "Easy"] ?? "E-Rank";
+      if (userTierIdx < RANK_ORDER.indexOf(diffMinRank)) {
+        return res.status(403).json({ error: "RANK_GATE", requiredRank: diffMinRank, message: `This task requires ${diffMinRank} or higher.` });
+      }
+      // CPA always requires C-Rank minimum
+      if (userTierIdx < RANK_ORDER.indexOf("C-Rank")) {
+        return res.status(403).json({ error: "RANK_GATE", requiredRank: "C-Rank", message: "Engine B CPA tasks require C-Rank or higher." });
       }
 
-      // Spec B.2, L.3: CPA offers also require C-Rank minimum regardless of difficulty label.
-      if (isCpaTask && userTierIdx < RANK_ORDER_VERIFY.indexOf("C-Rank")) {
-        return res.status(403).json({
-          error: "RANK_GATE",
-          requiredRank: "C-Rank",
-          currentRank: taskUser?.userRankTier || "E-Rank",
-          message: "Engine B CPA offers require C-Rank or higher.",
-        });
-      }
-
-      // ── Atomicity fix: wrap task completion + earn event in a single transaction.
-      // Either both commit or neither does — no more "task done but no points" crash gap.
+      // Atomic: complete record + earn event in one transaction
       let updatedRecord: any;
       let thorxCard: { pointsCredited: number; engineType: string } | null = null;
       try {
         await db.transaction(async (tx) => {
-          // Mark as completed (only reached if rank gate passed)
           [updatedRecord] = await tx
-            .update(taskRecords)
-            .set({ status: 'completed', completedAt: new Date() })
-            .where(eq(taskRecords.id, record.id))
+            .update(engineBRecords)
+            .set({ status: "completed", completedAt: new Date() })
+            .where(eq(engineBRecords.id, record.id))
             .returning();
 
-          // Fire earn event inside the same transaction via tx passthrough.
           const earnResult = await storage.recordEarnEvent({
             userId,
-            engineType: isCpaTask ? 'Engine_B' : 'Indirect',
-            grossPkr: isCpaTask ? new Decimal(task.grossPkrPerCompletion!).toNumber() : 0,
+            engineType: "Engine_B",
+            grossPkr: new Decimal(task.grossPkrPerCompletion).toNumber(),
             sourceId: updatedRecord?.id ?? taskId,
-            sourceType: 'daily_task',
-            tx, // ← threads the outer transaction through so both writes are atomic
+            sourceType: "engine_b_task",
+            tx,
           });
-          if (isCpaTask && earnResult.pointsCredited > 0) {
-            thorxCard = { pointsCredited: earnResult.pointsCredited, engineType: 'Engine_B' };
+          if (earnResult.pointsCredited > 0) {
+            thorxCard = { pointsCredited: earnResult.pointsCredited, engineType: "Engine_B" };
           }
         });
       } catch (err) {
-        logger.error({ err: err }, "[tasks/verify] atomic transaction failed:");
+        logger.error({ err }, "[engine-b/verify] atomic transaction failed:");
         return res.status(500).json({ message: "Verification failed" });
       }
 
@@ -4325,16 +4186,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Manually set (and optionally lock) a user's rank — bypasses the automatic
-  // earnings/referral thresholds. Once locked, checkAndUpdateRank leaves the
-  // rank untouched until an admin unlocks it; all other rank-linked benefits
-  // (avatar unlocks, badges, etc.) continue to apply exactly as if the rank
-  // had been earned normally — only future automatic *changes* are suppressed.
+  // Manually override a user's PS-based rank tier (E-Rank → S-Rank).
+  // Sets userRankTier directly and optionally locks it so PS changes do not override it.
   app.patch("/api/admin/users/:id/rank", requirePermission("MANAGE_USERS"), profileRateLimiter, async (req, res) => {
     try {
       const { id } = req.params;
+      const RANK_TIERS = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"] as const;
       const rankSchema = z.object({
-        rank: z.enum(RANK_NAMES as [string, ...string[]]),
+        rank: z.enum(RANK_TIERS),
         locked: z.boolean().optional(),
       });
       const parsedRank = rankSchema.safeParse(req.body);
@@ -4343,23 +4202,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const targetUser = await storage.getUserById(id);
       if (!targetUser) return res.status(404).json({ message: "User not found" });
+      const oldTier = targetUser.userRankTier || "E-Rank";
 
-      const updatedUser = await storage.setUserRank(id, rank, !!locked, req.userProfile.id);
+      const [updatedUser] = await db
+        .update(users)
+        .set({ userRankTier: rank, rankLocked: !!locked, updatedAt: new Date() })
+        .where(eq(users.id, id))
+        .returning();
 
       await storage.createAuditLog({
         adminId: req.userProfile.id,
-        action: "RANK_MANUALLY_SET",
+        action: "RANK_TIER_MANUALLY_SET",
         targetType: "user",
         targetId: id,
-        details: { oldRank: targetUser.rank, newRank: rank, locked: !!locked },
-        ipAddress: req.ip
+        details: { oldTier, newTier: rank, locked: !!locked },
+        ipAddress: req.ip,
       });
 
-      broadcastUserUpdated(id, "rank_manually_set", { oldRank: targetUser.rank || "Nawa Aya", newRank: rank });
+      broadcastUserUpdated(id, "rank_updated", { oldRank: oldTier, newRank: rank });
       res.json(sanitizeUser(updatedUser));
     } catch (error) {
-      logger.error({ err: error }, "Manual rank update error:");
-      res.status(500).json({ message: "Failed to update rank" });
+      logger.error({ err: error }, "Manual rank tier update error:");
+      res.status(500).json({ message: "Failed to update rank tier" });
     }
   });
 
@@ -4483,16 +4347,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (e) {
       logger.error({ err: e }, "Team member removal failed");
       res.status(500).json({ message: "Operation failed." });
-    }
-  });
-
-  app.get("/api/tasks/completed/today/:type", requireSessionAuth, async (req, res) => {
-    try {
-      const userId = getThorxPrincipalId(req) as string;
-      const count = await storage.getTodayCompletedTasksByType(userId, req.params.type);
-      res.json({ count });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch task count" });
     }
   });
 
@@ -4944,8 +4798,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userBefore = await storage.getUserById(req.params.userId);
       const user = await storage.adminAdjustUserPS(req.params.userId, delta, String(reason).trim(), adminId);
       // Broadcast rank_updated when the rank actually changed, ps_updated otherwise.
-      const eventType = user.rank !== userBefore?.rank ? 'rank_updated' : 'ps_updated';
-      broadcastUserUpdated(req.params.userId, eventType, { delta, newPs: user.performanceScore, newRank: user.rank });
+      const eventType = user.userRankTier !== userBefore?.userRankTier ? 'rank_updated' : 'ps_updated';
+      broadcastUserUpdated(req.params.userId, eventType, { delta, newPs: user.performanceScore, newRank: user.userRankTier });
       // Also fire the dedicated user.ps_updated event so the client PS notification handler triggers
       broadcastToUser(req.params.userId, 'user.ps_updated', { delta, newPs: user.performanceScore });
       res.json({ user });

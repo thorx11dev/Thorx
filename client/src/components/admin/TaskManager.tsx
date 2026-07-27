@@ -1,26 +1,13 @@
+/**
+ * Engine B Task Manager
+ * Admin interface for managing Engine B CPA tasks.
+ * Replaces the legacy daily_tasks system.
+ */
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  Target as TargetIcon, 
-  Plus, 
-  Trash2, 
-  Edit2, 
-  CheckCircle2, 
-  XCircle, 
-  AlertCircle,
-  ExternalLink,
-  Lock,
-  Unlock,
-  Eye,
-  EyeOff,
-  Search,
-  Filter,
-  Youtube,
-  Share2,
-  Globe,
-  Check,
-  X,
-  Play as PlayIcon
+import {
+  Plus, Trash2, Edit2, ExternalLink, Search,
+  CheckCircle2, XCircle, Eye, EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TechnicalLabel from "@/components/ui/technical-label";
@@ -30,542 +17,354 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { type DailyTask } from "@shared/schema";
+import { Textarea } from "@/components/ui/textarea";
+
+interface EngineBTask {
+  id: string;
+  title: string;
+  description?: string | null;
+  type: string;
+  actionUrl?: string | null;
+  secretCode?: string | null;
+  instructions?: string | null;
+  targetRank: string;
+  difficulty: string;
+  isActive: boolean;
+  grossPkrPerCompletion: string;
+  createdAt?: string;
+}
+
+const RANK_TIERS = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
+const DIFFICULTIES = ["Easy", "Medium", "Hard", "Elite"];
+
+const DEFAULT_FORM = {
+  title: "",
+  description: "",
+  actionUrl: "",
+  secretCode: "",
+  instructions: "",
+  targetRank: "C-Rank",
+  difficulty: "Easy",
+  isActive: true,
+  grossPkrPerCompletion: "0.50",
+};
 
 export function TaskManager() {
-  const [activeTab, setActiveTab] = useState<"tasks" | "payout">("tasks");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<DailyTask | null>(null);
+  const [editingTask, setEditingTask] = useState<EngineBTask | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  
-  const [localRules, setLocalRules] = useState<any>(null);
-  
+  const [form, setForm] = useState(DEFAULT_FORM);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: tasks, isLoading: tasksLoading } = useQuery<DailyTask[]>({
-    queryKey: ['/api/admin/tasks'],
+  const { data: tasks = [], isLoading } = useQuery<EngineBTask[]>({
+    queryKey: ["/api/admin/engine-b-tasks"],
   });
 
-  const { data: payoutRules, isLoading: rulesLoading } = useQuery({
-    queryKey: ['/api/system-config/rank_payout_requirements'],
-    queryFn: async () => {
-      const res = await apiRequest("GET", "/api/system-config/rank_payout_requirements");
-      return res.json();
-    }
-  });
-
-  // Sync local rules with fetched rules
-  React.useEffect(() => {
-    if (payoutRules?.value && !localRules) {
-      // Ensure all keys are lowercase for consistency
-      const normalizedRules = Object.keys(payoutRules.value).reduce((acc: any, key) => {
-        acc[key.toLowerCase()] = payoutRules.value[key];
-        return acc;
-      }, {});
-      setLocalRules(normalizedRules);
-    }
-  }, [payoutRules, localRules]);
-
-  const upsertMutation = useMutation({
-    mutationFn: async (taskData: any) => {
-      if (editingTask) {
-        const res = await apiRequest("PATCH", `/api/admin/tasks/${editingTask.id}`, taskData);
-        return res.json();
-      } else {
-        const res = await apiRequest("POST", "/api/admin/tasks", taskData);
-        return res.json();
-      }
-    },
+  const createMutation = useMutation({
+    mutationFn: (data: typeof DEFAULT_FORM) =>
+      apiRequest("POST", "/api/admin/engine-b-tasks", data).then(r => r.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/engine-b-tasks"] });
+      toast({ title: "Task created", description: "Engine B CPA task added successfully." });
+      setIsDialogOpen(false);
+      setForm(DEFAULT_FORM);
+    },
+    onError: () => toast({ title: "Error", description: "Failed to create task.", variant: "destructive" }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<typeof DEFAULT_FORM> }) =>
+      apiRequest("PATCH", `/api/admin/engine-b-tasks/${id}`, data).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/engine-b-tasks"] });
+      toast({ title: "Task updated" });
       setIsDialogOpen(false);
       setEditingTask(null);
-      toast({
-        title: editingTask ? "Task Updated" : "Task Created",
-        description: "The task matrix has been synchronized.",
-      });
     },
-    onError: (error: any) => {
-      toast({
-        title: "Configuration Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  });
-
-  const updateRulesMutation = useMutation({
-    mutationFn: async (rules: any) => {
-      const res = await apiRequest("POST", "/api/admin/system-config", {
-        key: 'rank_payout_requirements',
-        value: rules
-      });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/system-config/rank_payout_requirements'] });
-      toast({
-         title: "Rules Synchronized",
-         description: "Rank-based payout requirements updated.",
-      });
-    }
+    onError: () => toast({ title: "Error", description: "Failed to update task.", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await apiRequest("DELETE", `/api/admin/tasks/${id}`);
-    },
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/engine-b-tasks/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/tasks'] });
-      toast({
-        title: "Task Deleted",
-        description: "Task has been removed from the protocol.",
-      });
-    }
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/engine-b-tasks"] });
+      toast({ title: "Task deleted" });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to delete task.", variant: "destructive" }),
   });
 
-  const toggleStatusMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string, updates: Partial<DailyTask> }) => {
-      const res = await apiRequest("PATCH", `/api/admin/tasks/${id}`, updates);
-      return res.json();
-    },
-    onSuccess: (_data, { updates }) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/tasks'] });
-      toast({
-        title: updates.isActive !== undefined
-          ? updates.isActive ? "Task Activated" : "Task Deactivated"
-          : "Task Updated",
-        description: "Task status synchronized.",
-      });
-    },
-    onError: (error: any) => toast({ title: "Update Failed", description: error.message, variant: "destructive" }),
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      apiRequest("PATCH", `/api/admin/engine-b-tasks/${id}`, { isActive }).then(r => r.json()),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/engine-b-tasks"] }),
   });
 
-  const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const data = {
-      title: formData.get('title'),
-      type: formData.get('type'),
-      actionUrl: formData.get('actionUrl'),
-      secretCode: formData.get('secretCode'),
-      instructions: formData.get('instructions'),
-      targetRank: formData.get('targetRank'),
-      isMandatory: formData.get('isMandatory') === 'on',
-      isActive: formData.get('isActive') === 'on',
-    };
-    upsertMutation.mutate(data);
+  const filteredTasks = tasks.filter(t =>
+    t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (t.description || "").toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+
+  const openCreate = () => {
+    setEditingTask(null);
+    setForm(DEFAULT_FORM);
+    setIsDialogOpen(true);
   };
 
-  const handleRuleChange = (rank: string, field: string, val: string) => {
-    const key = rank.toLowerCase();
-    const currentRules = localRules || {};
-    const rankRules = currentRules[key] || { minAds: 0, minTasks: 0 };
-    
-    const numVal = parseInt(val) || 0;
-    
-    setLocalRules({
-      ...currentRules,
-      [key]: {
-        ...rankRules,
-        [field]: numVal
-      }
+  const openEdit = (task: EngineBTask) => {
+    setEditingTask(task);
+    setForm({
+      title: task.title,
+      description: task.description || "",
+      actionUrl: task.actionUrl || "",
+      secretCode: task.secretCode || "",
+      instructions: task.instructions || "",
+      targetRank: task.targetRank,
+      difficulty: task.difficulty,
+      isActive: task.isActive,
+      grossPkrPerCompletion: task.grossPkrPerCompletion,
     });
+    setIsDialogOpen(true);
   };
 
-  const RANKS = ["S-Rank", "A-Rank", "B-Rank", "C-Rank", "D-Rank", "E-Rank"];
-
-  const filteredTasks = tasks?.filter(task => 
-    task.title.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'video': return <Youtube size={16} />;
-      case 'social': return <Share2 size={16} />;
-      default: return <Globe size={16} />;
+  const handleSubmit = () => {
+    if (!form.title.trim()) {
+      toast({ title: "Title required", variant: "destructive" });
+      return;
+    }
+    if (editingTask) {
+      updateMutation.mutate({ id: editingTask.id, data: form });
+    } else {
+      createMutation.mutate(form);
     }
   };
-
 
   return (
-    <div className="space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Header Info */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="space-y-4">
-          <h1 className="text-4xl font-black tracking-tighter uppercase text-[#111]">Tasks</h1>
-          
-          <div className="flex items-center gap-2">
-             <button 
-               onClick={() => setActiveTab("tasks")}
-               className={cn(
-                 "px-6 py-2 font-black text-[10px] tracking-widest uppercase transition-all rounded-full border-[1.5px]",
-                 activeTab === "tasks" ? "bg-[#111] text-white border-[#111]" : "bg-white text-zinc-400 border-zinc-200 hover:border-[#111] hover:text-[#111]"
-               )}
-             >
-               Internal Tasks
-             </button>
-             <button 
-                onClick={() => setActiveTab("payout")}
-                className={cn(
-                  "px-6 py-2 font-black text-[10px] tracking-widest uppercase transition-all rounded-full border-[1.5px]",
-                  activeTab === "payout" ? "bg-[#111] text-white border-[#111]" : "bg-white text-zinc-400 border-zinc-200 hover:border-[#111] hover:text-[#111]"
-                )}
-             >
-               Engine Tasks
-             </button>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-black tracking-tight">ENGINE B — CPA TASKS</h2>
+          <TechnicalLabel text={`${tasks.length} TASKS TOTAL`} className="text-muted-foreground" />
         </div>
-        {activeTab === "tasks" && (
-          <Button 
-            onClick={() => {
-              setEditingTask(null);
-              setIsDialogOpen(true);
-            }}
-            className="h-12 bg-primary text-white border-[1.5px] border-[#111] font-black text-xs px-8 hover:bg-primary/80 rounded-full transition-all uppercase shadow-md flex items-center gap-2"
-          >
-            <Plus size={18} /> New Task
-          </Button>
-        )}
+        <Button onClick={openCreate} size="sm" className="gap-2">
+          <Plus className="w-4 h-4" /> New CPA Task
+        </Button>
       </div>
 
-      {activeTab === "tasks" ? (
-        /* Main Table Container */
-        <div className="bg-background border-[1.5px] border-[#111] rounded-[2rem] overflow-hidden shadow-sm">
-          {/* Table Filters */}
-          <div className="p-6 border-b-[1.5px] border-[#111]/10 bg-white/50 flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full md:w-96 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#111] transition-colors" size={18} />
-              <Input 
-                placeholder="Search Task" 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-11 pl-11 pr-4 bg-white border-[1.5px] border-[#111] rounded-full focus-visible:ring-2 focus-visible:ring-primary/50 transition-all text-xs font-bold text-[#111] placeholder:text-zinc-400"
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Search tasks..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
+      {/* Task List */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full" />)}
+        </div>
+      ) : filteredTasks.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <p className="text-sm">No Engine B tasks found.</p>
+          <Button variant="outline" size="sm" className="mt-4" onClick={openCreate}>
+            <Plus className="w-4 h-4 mr-2" /> Add First Task
+          </Button>
+        </div>
+      ) : (
+        <AnimatePresence initial={false}>
+          <div className="space-y-2">
+            {filteredTasks.map(task => (
+              <motion.div
+                key={task.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, height: 0 }}
+                className={cn(
+                  "border rounded-lg p-4 flex items-start gap-4 transition-colors",
+                  task.isActive ? "bg-card border-border" : "bg-muted/30 border-muted opacity-60",
+                )}
+              >
+                {/* Status indicator */}
+                <div className="mt-1 shrink-0">
+                  {task.isActive
+                    ? <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    : <XCircle className="w-5 h-5 text-muted-foreground" />}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-sm">{task.title}</span>
+                    <span className="text-xs bg-primary/10 text-primary rounded px-1.5 py-0.5 font-mono">
+                      Rs. {parseFloat(task.grossPkrPerCompletion).toFixed(2)}
+                    </span>
+                    <span className="text-xs border rounded px-1.5 py-0.5 text-muted-foreground">
+                      {task.difficulty}
+                    </span>
+                    <span className="text-xs border rounded px-1.5 py-0.5 text-muted-foreground">
+                      {task.targetRank}+
+                    </span>
+                  </div>
+                  {task.description && (
+                    <p className="text-xs text-muted-foreground mt-1 truncate">{task.description}</p>
+                  )}
+                  {task.actionUrl && (
+                    <a
+                      href={task.actionUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-500 hover:underline flex items-center gap-1 mt-1"
+                    >
+                      <ExternalLink className="w-3 h-3" /> {task.actionUrl}
+                    </a>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => toggleMutation.mutate({ id: task.id, isActive: !task.isActive })}
+                    title={task.isActive ? "Deactivate" : "Activate"}
+                  >
+                    {task.isActive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(task)}>
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={() => {
+                      if (confirm(`Delete "${task.title}"?`)) deleteMutation.mutate(task.id);
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </AnimatePresence>
+      )}
+
+      {/* Create / Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={open => { setIsDialogOpen(open); if (!open) setEditingTask(null); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingTask ? "Edit CPA Task" : "New CPA Task"}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label>Title *</Label>
+              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Task name" />
+            </div>
+
+            <div>
+              <Label>Description</Label>
+              <Textarea
+                value={form.description}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="Brief description shown to users"
+                rows={2}
               />
             </div>
-            <div className="flex items-center gap-3 w-full md:w-auto">
-               <div className="w-10 h-10 bg-[#111] text-white flex items-center justify-center font-black text-sm shadow-sm">
-                 {filteredTasks.length}
-               </div>
+
+            <div>
+              <Label>Gross PKR per Completion *</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={form.grossPkrPerCompletion}
+                onChange={e => setForm(f => ({ ...f, grossPkrPerCompletion: e.target.value }))}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Target Rank (minimum)</Label>
+                <Select value={form.targetRank} onValueChange={v => setForm(f => ({ ...f, targetRank: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {RANK_TIERS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Difficulty</Label>
+                <Select value={form.difficulty} onValueChange={v => setForm(f => ({ ...f, difficulty: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {DIFFICULTIES.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label>Action URL (link user visits)</Label>
+              <Input
+                type="url"
+                value={form.actionUrl}
+                onChange={e => setForm(f => ({ ...f, actionUrl: e.target.value }))}
+                placeholder="https://..."
+              />
+            </div>
+
+            <div>
+              <Label>Secret Code (user must enter to verify)</Label>
+              <Input
+                value={form.secretCode}
+                onChange={e => setForm(f => ({ ...f, secretCode: e.target.value }))}
+                placeholder="e.g. THORX2026"
+              />
+            </div>
+
+            <div>
+              <Label>Instructions</Label>
+              <Textarea
+                value={form.instructions}
+                onChange={e => setForm(f => ({ ...f, instructions: e.target.value }))}
+                placeholder="Step-by-step instructions for user"
+                rows={3}
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={form.isActive}
+                onCheckedChange={v => setForm(f => ({ ...f, isActive: v }))}
+              />
+              <Label>Active (visible to users)</Label>
             </div>
           </div>
 
-        {/* Dynamic Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-white/50 border-b-[1.5px] border-[#111]/10">
-                <th className="p-6 font-black text-[10px] tracking-widest text-[#111]/40 uppercase">Tasks</th>
-                <th className="p-6 font-black text-[10px] tracking-widest text-[#111]/40 uppercase">Type</th>
-                <th className="p-6 font-black text-[10px] tracking-widest text-[#111]/40 uppercase text-center">Rank</th>
-                <th className="p-6 font-black text-[10px] tracking-widest text-[#111]/40 uppercase text-center">Importance</th>
-                <th className="p-6 font-black text-[10px] tracking-widest text-[#111]/40 uppercase text-center">Status</th>
-                <th className="p-6 font-black text-[10px] tracking-widest text-[#111]/40 uppercase text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y-[1.5px] divide-[#111]/10">
-              <AnimatePresence mode="popLayout">
-                {tasksLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i} className="animate-pulse">
-                      <td colSpan={6} className="px-8 py-6">
-                        <Skeleton className="h-8 w-full bg-zinc-100" />
-                      </td>
-                    </tr>
-                  ))
-                ) : filteredTasks.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-8 py-20 text-center space-y-4">
-                      <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto border-2 border-dashed border-black/10">
-                         <AlertCircle className="text-zinc-300" size={32} />
-                      </div>
-                      <p className="font-black text-xs tracking-widest uppercase text-zinc-400">No tasks detected in current grid</p>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredTasks.map((task, idx) => (
-                    <motion.tr 
-                      key={task.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className="hover:bg-black/5 transition-colors group"
-                    >
-                      <td className="p-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center rounded-full group-hover:bg-primary/20 group-hover:border-primary transition-colors shadow-sm">
-                             {getTypeIcon(task.type)}
-                          </div>
-                          <div>
-                            <p className="font-black text-sm uppercase tracking-tight text-[#111] flex items-center gap-2">
-                               {task.title}
-                               {task.isMandatory && <Lock size={12} className="text-primary" />}
-                            </p>
-                            <p className="text-[10px] font-bold text-[#111]/40 uppercase tracking-widest mt-0.5">
-                              {task.actionUrl ? (
-                                <span className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer" onClick={() => window.open(task.actionUrl!, '_blank')}>
-                                  {task.actionUrl.substring(0, 30)}...
-                                </span>
-                              ) : "INTERNAL TASK"}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-6">
-                         <div className="px-3 py-1 bg-[#e5e5e5] border-[1.5px] border-[#111]/10 rounded-full font-black text-[9px] tracking-widest uppercase text-[#111] shadow-sm">
-                            {task.type}
-                         </div>
-                      </td>
-                      <td className="p-6 text-center">
-                         <span className="px-3 py-1 bg-black text-white rounded-full font-black text-[9px] tracking-widest uppercase shadow-sm">
-                            {task.targetRank}
-                         </span>
-                      </td>
-                      <td className="p-6 text-center whitespace-nowrap">
-                         <button
-                           onClick={() => toggleStatusMutation.mutate({ id: task.id, updates: { isMandatory: !task.isMandatory } })}
-                           className={cn(
-                             "w-10 h-10 rounded-full flex items-center justify-center border-[1.5px] transition-all shadow-sm mx-auto",
-                             task.isMandatory 
-                               ? "bg-primary text-white border-primary hover:bg-primary/80" 
-                               : "bg-[#111] text-white border-[#111] hover:bg-[#222]"
-                           )}
-                           title={task.isMandatory ? "Mandatory" : "Optional"}
-                         >
-                           {task.isMandatory ? <Lock size={16} /> : <Unlock size={16} />}
-                         </button>
-                      </td>
-                      <td className="p-6 text-center whitespace-nowrap">
-                         <button
-                           onClick={() => toggleStatusMutation.mutate({ id: task.id, updates: { isActive: !task.isActive } })}
-                           className={cn(
-                             "w-10 h-10 rounded-full flex items-center justify-center border-[1.5px] transition-all shadow-sm mx-auto",
-                             task.isActive 
-                               ? "bg-primary text-white border-primary hover:bg-primary/80" 
-                               : "bg-[#111] text-white border-[#111] hover:bg-[#222]"
-                           )}
-                           title={task.isActive ? "Active" : "Inactive"}
-                         >
-                           {task.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
-                         </button>
-                      </td>
-                      <td className="p-6 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-2 transition-all">
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => {
-                              setEditingTask(task);
-                              setIsDialogOpen(true);
-                            }}
-                            className="h-10 w-10 border-[1.5px] border-[#111]/20 hover:border-[#111] hover:bg-white text-[#111] transition-all rounded-full shadow-sm"
-                          >
-                            <Edit2 size={16} />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => {
-                              if (confirm("ARCHIVE TASK? THIS ACTION IS PERMANENT.")) {
-                                deleteMutation.mutate(task.id);
-                              }
-                            }}
-                            className="h-10 w-10 border-[1.5px] border-[#111]/20 hover:border-primary hover:bg-primary/5 text-[#111] hover:text-primary transition-all rounded-full shadow-sm"
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))
-                )}
-              </AnimatePresence>
-            </tbody>
-          </table>
-        </div>
-        </div>
-      ) : (
-        /* Payout Rules Container */
-        <div className="bg-background border-[1.5px] border-[#111] rounded-[2rem] overflow-hidden shadow-sm p-10">
-           <div className="grid grid-cols-1 gap-4">
-              {RANKS.map((rank) => {
-                 const rules = localRules?.[rank.toLowerCase()] || { minAds: 0, minTasks: 0 };
-                 return (
-                   <div key={rank} className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 border-[1.5px] border-[#111]/10 rounded-3xl hover:bg-black/5 transition-all group">
-                      <div className="flex items-center gap-4">
-                         <div className="w-12 h-12 bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center rounded-full font-black text-lg text-[#111] group-hover:bg-primary/20 group-hover:border-primary transition-colors shadow-sm uppercase">
-                            {rank[0]}
-                         </div>
-                         <div>
-                            <h3 className="text-2xl font-black uppercase tracking-tighter text-[#111]">{rank}</h3>
-                            <p className="text-[10px] font-black text-[#111]/40 uppercase tracking-widest mt-1">Daily Engagement Quota</p>
-                         </div>
-                      </div>
-
-                      <div className="flex flex-col md:flex-row gap-8">
-                         <div className="space-y-2">
-                            <label className="font-black text-[9px] tracking-widest uppercase text-[#111]/40 block ml-4">Min Video Ads</label>
-                            <Input 
-                               type="number"
-                               value={rules.minAds}
-                               onChange={(e) => handleRuleChange(rank, 'minAds', e.target.value)}
-                               className="w-full md:w-32 h-11 bg-white border-[1.5px] border-[#111] rounded-full font-black text-sm text-center focus-visible:ring-2 focus-visible:ring-primary/50"
-                            />
-                         </div>
-
-                         <div className="space-y-2">
-                            <label className="font-black text-[9px] tracking-widest uppercase text-[#111]/40 block ml-4">Min CPA Tasks</label>
-                            <Input 
-                               type="number"
-                               value={rules.minTasks}
-                               onChange={(e) => handleRuleChange(rank, 'minTasks', e.target.value)}
-                               className="w-full md:w-32 h-11 bg-white border-[1.5px] border-[#111] rounded-full font-black text-sm text-center focus-visible:ring-2 focus-visible:ring-primary/50"
-                            />
-                         </div>
-                      </div>
-                   </div>
-                 );
-              })}
-           </div>
-
-           <div className="mt-12 pt-8 border-t-[1.5px] border-[#111]/10 flex justify-end">
-              <Button 
-                onClick={() => updateRulesMutation.mutate(localRules)}
-                disabled={updateRulesMutation.isPending}
-                className="h-12 bg-[#111] text-white font-black text-xs px-10 hover:bg-[#222] rounded-full transition-all uppercase shadow-md"
-              >
-                {updateRulesMutation.isPending ? "Synchronizing..." : "Save Changes"}
-              </Button>
-           </div>
-        </div>
-      )}
-
-      {/* Create/Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl bg-white border border-zinc-200 rounded-2xl p-0 gap-0 overflow-hidden outline-none shadow-xl">
-          <form onSubmit={handleSave}>
-            <DialogHeader className="px-7 py-5 border-b border-zinc-100 bg-white">
-              <DialogTitle className="text-xl font-semibold text-zinc-900">
-                Daily Task
-              </DialogTitle>
-            </DialogHeader>
-
-            <div className="px-7 py-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-semibold tracking-widest uppercase text-zinc-400 ml-1">Title</Label>
-                  <Input 
-                    name="title" 
-                    defaultValue={editingTask?.title || ""} 
-                    required 
-                    className="h-11 bg-white border border-zinc-300 rounded-xl font-medium px-4 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/60" 
-                    placeholder="e.g. Subscribe to YouTube" 
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-semibold tracking-widest uppercase text-zinc-400 ml-1">Type</Label>
-                  <Select name="type" defaultValue={editingTask?.type || "video"}>
-                    <SelectTrigger className="h-11 bg-white border border-zinc-300 rounded-xl font-medium text-sm px-4">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="border border-zinc-200 rounded-xl text-sm">
-                      <SelectItem value="video">YouTube Video</SelectItem>
-                      <SelectItem value="social">Social Action</SelectItem>
-                      <SelectItem value="internal">Platform Task</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-semibold tracking-widest uppercase text-zinc-400 ml-1">URL Address</Label>
-                <Input 
-                  name="actionUrl" 
-                  defaultValue={editingTask?.actionUrl || ""} 
-                  className="h-11 bg-white border border-zinc-300 rounded-xl font-medium px-4 focus-visible:ring-2 focus-visible:ring-primary/40" 
-                  placeholder="https://youtu.be/xxxx" 
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-semibold tracking-widest uppercase text-zinc-400 ml-1">Instructions</Label>
-                <Input 
-                  name="instructions" 
-                  defaultValue={editingTask?.instructions || ""} 
-                  className="h-11 bg-white border border-zinc-300 rounded-xl font-medium px-4 focus-visible:ring-2 focus-visible:ring-primary/40" 
-                  placeholder="e.g. Go to Work section and complete task..." 
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-semibold tracking-widest uppercase text-zinc-400 ml-1">Code</Label>
-                  <Input 
-                    name="secretCode" 
-                    defaultValue={editingTask?.secretCode || ""} 
-                    className="h-11 bg-white border border-zinc-300 rounded-xl font-medium px-4 focus-visible:ring-2 focus-visible:ring-primary/40 tracking-widest" 
-                    placeholder="SECRET-KEY-123" 
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-semibold tracking-widest uppercase text-zinc-400 ml-1">Target Rank</Label>
-                  <Select name="targetRank" defaultValue={editingTask?.targetRank || "E-Rank"}>
-                    <SelectTrigger className="h-11 bg-white border border-zinc-300 rounded-xl font-medium text-sm px-4">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="border border-zinc-200 rounded-xl text-sm">
-                      <SelectItem value="E-Rank">E-Rank (Public)</SelectItem>
-                      <SelectItem value="D-Rank">D-Rank</SelectItem>
-                      <SelectItem value="C-Rank">C-Rank</SelectItem>
-                      <SelectItem value="B-Rank">B-Rank</SelectItem>
-                      <SelectItem value="A-Rank">A-Rank</SelectItem>
-                      <SelectItem value="S-Rank">S-Rank</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                <div className="flex items-center justify-between px-4 py-3.5 border border-zinc-100 bg-zinc-50 rounded-xl">
-                  <Label className="text-sm font-medium text-zinc-700 cursor-pointer">Mandatory</Label>
-                  <input type="checkbox" name="isMandatory" defaultChecked={editingTask?.isMandatory === true} className="w-4 h-4 accent-zinc-900 cursor-pointer" />
-                </div>
-                <div className="flex items-center justify-between px-4 py-3.5 border border-zinc-100 bg-zinc-50 rounded-xl">
-                  <Label className="text-sm font-medium text-zinc-700 cursor-pointer">Active</Label>
-                  <input type="checkbox" name="isActive" defaultChecked={editingTask?.isActive !== false} className="w-4 h-4 accent-zinc-900 cursor-pointer" />
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter className="px-7 py-5 border-t border-zinc-100 bg-white flex flex-col items-center gap-2">
-              <Button 
-                type="submit"
-                disabled={upsertMutation.isPending}
-                className="w-full h-11 bg-zinc-900 text-white font-semibold text-sm rounded-xl hover:bg-black transition-all"
-              >
-                {upsertMutation.isPending ? "Saving..." : "Save Task"}
-              </Button>
-              <button
-                type="button"
-                onClick={() => setIsDialogOpen(false)}
-                className="text-sm text-zinc-400 hover:text-zinc-600 transition-colors py-1"
-              >
-                Cancel
-              </button>
-            </DialogFooter>
-          </form>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
+              {editingTask ? "Save Changes" : "Create Task"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

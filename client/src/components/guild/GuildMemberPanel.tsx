@@ -76,7 +76,7 @@ export function GuildMemberPanel() {
   // Weekly tasks
   const { data: weeklyTasks = [] } = useQuery<any[]>({
     queryKey: guildId ? QUERY_KEYS.guildTasks(guildId) : [],
-    queryFn: async () => { const r = await apiRequest("GET", `/api/tasks?guildId=${guildId}`); const d = await r.json(); return d.weeklyTasks ?? []; },
+    queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/weekly-tasks`); const d = await r.json(); return Array.isArray(d) ? d : (d.weeklyTasks ?? []); },
     enabled: !!guildId,
   });
 

@@ -124,6 +124,12 @@ import {
   activityFeed,
   type ActivityFeed,
   economyState,
+  engineBTasks,
+  type EngineBTask,
+  type InsertEngineBTask,
+  engineBRecords,
+  type EngineBRecord,
+  type InsertEngineBRecord,
 } from "@shared/schema";
 import { drawThorxCard } from "./modules/thorx-card";
 import { awardTaskPS, processStreak } from "./modules/ps-engine";
@@ -276,18 +282,16 @@ export interface IStorage {
   createChatMessage(chatMessage: InsertChatMessage): Promise<ChatMessage>;
   getUserChatHistory(userId: string, limit?: number): Promise<ChatMessage[]>;
 
-  // Daily Tasks & Completions
-  getDailyTasks(): Promise<DailyTask[]>;
-  getDailyTask(id: string): Promise<DailyTask | undefined>;
-  createDailyTask(task: InsertDailyTask): Promise<DailyTask>;
-  updateDailyTask(id: string, updates: Partial<InsertDailyTask>): Promise<DailyTask | undefined>;
-  deleteDailyTask(id: string): Promise<void>;
-  
-  getDailyTasksForUser(userId: string): Promise<Array<{ task: DailyTask, record: TaskRecord | null }>>;
-  getTodayCompletedTasksByType(userId: string, type: string): Promise<number>;
-  getTaskRecord(userId: string, taskId: string): Promise<TaskRecord | undefined>;
-  createTaskRecord(record: InsertTaskRecord): Promise<TaskRecord>;
-  updateTaskRecord(id: string, updates: Partial<InsertTaskRecord> & { completedAt?: Date | null }): Promise<TaskRecord | undefined>;
+  // Engine B — CPA Tasks
+  getEngineBTasks(): Promise<EngineBTask[]>;
+  getEngineBTask(id: string): Promise<EngineBTask | undefined>;
+  createEngineBTask(task: InsertEngineBTask): Promise<EngineBTask>;
+  updateEngineBTask(id: string, updates: Partial<InsertEngineBTask>): Promise<EngineBTask | undefined>;
+  deleteEngineBTask(id: string): Promise<void>;
+  getEngineBTasksForUser(userId: string): Promise<Array<{ task: EngineBTask; record: EngineBRecord | null }>>;
+  getEngineBRecord(userId: string, taskId: string): Promise<EngineBRecord | undefined>;
+  createEngineBRecord(record: InsertEngineBRecord): Promise<EngineBRecord>;
+  updateEngineBRecord(id: string, updates: Partial<InsertEngineBRecord>): Promise<EngineBRecord | undefined>;
 
   // HilltopAds configuration methods
   createHilltopAdsConfig(config: InsertHilltopAdsConfig): Promise<HilltopAdsConfig>;
@@ -318,9 +322,7 @@ export interface IStorage {
   processWithdrawal(withdrawalId: string, adminId: string, transactionId?: string): Promise<Withdrawal>;
   rejectWithdrawal(withdrawalId: string, adminId: string, reason: string): Promise<Withdrawal>;
 
-  // Ranking System
-  checkAndUpdateRank(userId: string): Promise<User>;
-  setUserRank(userId: string, rank: string, locked: boolean, adminId: string): Promise<User>;
+  // Ranking System — legacy rank (Urdu names) removed; only userRankTier (E→S) remains
   setUserTrustStatus(userId: string, status: string, reason: string, adminId: string): Promise<User>;
   getRankHistory(userId: string): Promise<RankLog[]>;
 
@@ -517,26 +519,10 @@ export interface IStorage {
   adminGetReferralLeaderboard(limit?: number): Promise<any[]>;
 }
 
-const RANKS = [
-  { name: "Nawa Aya",      minEarned: 0,     minRefs: 0,  priority: 5 },
-  { name: "Chota Don",     minEarned: 2500,  minRefs: 5,  priority: 4 },
-  { name: "Bawa Ji",       minEarned: 5000,  minRefs: 10, priority: 3 },
-  { name: "Haji Sab",      minEarned: 10000, minRefs: 15, priority: 2 },
-  { name: "Chacha Supreme",minEarned: 25000, minRefs: 25, priority: 1 },
-];
-
-export const RANK_NAMES = RANKS.map(r => r.name);
-
-// Note: avatar id strings ("baja-ji", "supreme-chacha") are internal asset
-// identifiers matching existing files in /avatars and are intentionally left
-// unchanged — only the rank display names above were renamed.
-const RANK_DEFAULT_AVATARS: Record<string, string> = {
-  "Nawa Aya":       "nawa-aya",
-  "Chota Don":      "chota-don",
-  "Bawa Ji":        "baja-ji",
-  "Haji Sab":       "haji-sab",
-  "Chacha Supreme": "supreme-chacha",
-};
+// Legacy rank names kept as a frozen list for audit log compatibility only.
+// The legacy Urdu-named rank system (Nawa Aya → Chacha Supreme) has been removed.
+// Only userRankTier (E-Rank → S-Rank, PS-based) is used going forward.
+export const RANK_NAMES: string[] = [];
 
 export class DatabaseStorage implements IStorage {
   /** Epoch-ms timestamp of the last successful leaderboard cache refresh. */
@@ -848,8 +834,6 @@ export class DatabaseStorage implements IStorage {
       .set(updateObj)
       .where(eq(users.id, userId));
 
-    // Check for rank update (runs after the balance write settles)
-    await this.checkAndUpdateRank(userId);
   }
 
   async releasePendingBalance(userId: string, amount: string): Promise<void> {
@@ -882,9 +866,6 @@ export class DatabaseStorage implements IStorage {
 
       await tx.update(users).set(updateObj).where(eq(users.id, insertEarning.userId));
 
-      return earning;
-    }).then(async (earning) => {
-      await this.checkAndUpdateRank(insertEarning.userId);
       return earning;
     });
   }
@@ -1781,80 +1762,60 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
   }
 
-  // --- Daily Tasks Methods ---
-  async getDailyTasks(): Promise<DailyTask[]> {
-    // Limit to 500 — an unbounded query grows to a full-table scan as the task
-    // library grows. Admin task management screens paginate separately.
-    return await db.select().from(dailyTasks).orderBy(desc(dailyTasks.createdAt)).limit(500);
+  // ── Engine B — CPA Tasks ─────────────────────────────────────────────────────
+  async getEngineBTasks(): Promise<EngineBTask[]> {
+    return await db.select().from(engineBTasks).orderBy(desc(engineBTasks.createdAt)).limit(500);
   }
 
-  async getDailyTask(id: string): Promise<DailyTask | undefined> {
-    const [task] = await db.select().from(dailyTasks).where(eq(dailyTasks.id, id));
+  async getEngineBTask(id: string): Promise<EngineBTask | undefined> {
+    const [task] = await db.select().from(engineBTasks).where(eq(engineBTasks.id, id));
     return task;
   }
 
-  async createDailyTask(insertTask: InsertDailyTask): Promise<DailyTask> {
-    const [task] = await db.insert(dailyTasks).values(insertTask).returning();
+  async createEngineBTask(insertTask: InsertEngineBTask): Promise<EngineBTask> {
+    const [task] = await db.insert(engineBTasks).values(insertTask).returning();
     return task;
   }
 
-  async updateDailyTask(id: string, updates: Partial<InsertDailyTask>): Promise<DailyTask | undefined> {
-    const [task] = await db.update(dailyTasks).set(updates).where(eq(dailyTasks.id, id)).returning();
+  async updateEngineBTask(id: string, updates: Partial<InsertEngineBTask>): Promise<EngineBTask | undefined> {
+    const [task] = await db.update(engineBTasks).set({ ...updates, updatedAt: new Date() }).where(eq(engineBTasks.id, id)).returning();
     return task;
   }
 
-  async deleteDailyTask(id: string): Promise<void> {
-    await db.delete(dailyTasks).where(eq(dailyTasks.id, id));
+  async deleteEngineBTask(id: string): Promise<void> {
+    await db.delete(engineBTasks).where(eq(engineBTasks.id, id));
   }
 
-  // --- Task Records Methods ---
-  async getDailyTasksForUser(userId: string): Promise<{ task: DailyTask, record: TaskRecord | null }[]> {
-    // Return only active daily tasks. Filter in SQL to avoid loading inactive rows into memory.
+  async getEngineBTasksForUser(userId: string): Promise<{ task: EngineBTask; record: EngineBRecord | null }[]> {
     const results = await db
-      .select({
-        task: dailyTasks,
-        record: taskRecords
-      })
-      .from(dailyTasks)
-      .where(eq(dailyTasks.isActive, true))
-      .leftJoin(taskRecords, and(eq(taskRecords.taskId, dailyTasks.id), eq(taskRecords.userId, userId)));
+      .select({ task: engineBTasks, record: engineBRecords })
+      .from(engineBTasks)
+      .where(eq(engineBTasks.isActive, true))
+      .leftJoin(engineBRecords, and(eq(engineBRecords.taskId, engineBTasks.id), eq(engineBRecords.userId, userId)));
     return results;
   }
 
-  async getTaskRecord(userId: string, taskId: string): Promise<TaskRecord | undefined> {
+  async getEngineBRecord(userId: string, taskId: string): Promise<EngineBRecord | undefined> {
     const [record] = await db
       .select()
-      .from(taskRecords)
-      .where(and(eq(taskRecords.userId, userId), eq(taskRecords.taskId, taskId)));
+      .from(engineBRecords)
+      .where(and(eq(engineBRecords.userId, userId), eq(engineBRecords.taskId, taskId)));
     return record;
   }
 
-  async createTaskRecord(insertRecord: InsertTaskRecord): Promise<TaskRecord> {
-    const [record] = await db.insert(taskRecords).values(insertRecord).returning();
+  async createEngineBRecord(insertRecord: InsertEngineBRecord): Promise<EngineBRecord> {
+    const [record] = await db.insert(engineBRecords).values(insertRecord).returning();
     return record;
   }
 
-  async updateTaskRecord(id: string, updates: Partial<InsertTaskRecord> & { completedAt?: Date | null }): Promise<TaskRecord | undefined> {
-    const [record] = await db.update(taskRecords).set(updates).where(eq(taskRecords.id, id)).returning();
+  async updateEngineBRecord(id: string, updates: Partial<InsertEngineBRecord>): Promise<EngineBRecord | undefined> {
+    const [record] = await db.update(engineBRecords).set(updates).where(eq(engineBRecords.id, id)).returning();
     return record;
   }
 
-  async getTodayCompletedTasksByType(userId: string, type: string): Promise<number> {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    const result = await db
-      .select({ count: sql<number>`COUNT(*)` })
-      .from(taskRecords)
-      .innerJoin(dailyTasks, eq(taskRecords.taskId, dailyTasks.id))
-      .where(and(
-        eq(taskRecords.userId, userId),
-        eq(dailyTasks.type, type),
-        eq(taskRecords.status, 'completed'),
-        gte(taskRecords.completedAt, todayStart)
-      ));
-
-    return Number(result[0]?.count || 0);
+  // LEGACY stub — daily_tasks retired. Always returns 0.
+  async getTodayCompletedTasksByType(_userId: string, _type: string): Promise<number> {
+    return 0;
   }
 
 
@@ -2770,119 +2731,7 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  // Rank System Logic
-  async checkAndUpdateRank(userId: string): Promise<User> {
-    // Use transaction to prevent race conditions
-    const result = await db.transaction(async (tx) => {
-      // Get user with row-level lock to prevent concurrent updates
-      const [user] = await tx
-        .select()
-        .from(users)
-        .where(eq(users.id, userId))
-        .for('update'); // Row-level lock
-
-      if (!user) throw new Error("User not found");
-
-      // Manually locked ranks (set via admin rank override) are never
-      // touched by the automatic earnings/referral evaluation.
-      if (user.rankLocked) {
-        return user;
-      }
-
-      // H-04: Use Decimal comparison — avoids IEEE-754 drift at large earning thresholds.
-      const totalEarningsD = new Decimal(user.totalEarnings || "0");
-
-      // Count direct active referrals
-      const [{ count: refCount }] = await tx
-        .select({ count: sql<number>`count(*)` })
-        .from(users)
-        .where(eq(users.referredBy, user.id));
-
-      const activeRefs = Number(refCount) || 0;
-
-      let newRank = "Nawa Aya";
-
-      // Evaluate Rank based on BOTH earnings and referrals thresholds
-      for (const rank of RANKS) {
-        if (totalEarningsD.greaterThanOrEqualTo(rank.minEarned) && activeRefs >= rank.minRefs) {
-          newRank = rank.name;
-        }
-      }
-
-      if (newRank !== user.rank) {
-        // Log the change
-        await tx.insert(rankLogs).values({
-          userId: user.id,
-          oldRank: user.rank || "Nawa Aya",
-          newRank: newRank,
-          triggerSource: "earning_update_or_refresh"
-        });
-
-        // Auto-assign the default avatar for the new rank (only if user hasn't customised)
-        const currentAvatarId = user.avatar || "default";
-        const isDefaultOrRankAvatar =
-          currentAvatarId === "default" ||
-          Object.values(RANK_DEFAULT_AVATARS).includes(currentAvatarId) ||
-          // legacy IDs — treated as replaceable
-          currentAvatarId.startsWith("nawa-aya-") ||
-          currentAvatarId.startsWith("munna-") ||
-          currentAvatarId.startsWith("bawa-ji-") ||
-          currentAvatarId.startsWith("haji-saab-") ||
-          currentAvatarId.startsWith("chacha-");
-        const newAvatarId = isDefaultOrRankAvatar
-          ? (RANK_DEFAULT_AVATARS[newRank] ?? "nawa-aya-1")
-          : currentAvatarId; // keep custom photo/avatar
-
-        // Update user rank + avatar
-        const [updatedUser] = await tx
-          .update(users)
-          .set({ rank: newRank, avatar: newAvatarId, updatedAt: new Date() })
-          .where(eq(users.id, userId))
-          .returning();
-
-        // Persist rank-up notification so the user sees it in their inbox
-        await tx.insert(notifications).values({
-          userId,
-          title: "Rank Up! 🎉",
-          message: `Congratulations! You've advanced from ${user.rank || "Nawa Aya"} to ${newRank}. Keep earning to climb higher!`,
-          type: "system",
-        });
-
-        return updatedUser;
-      }
-
-      return user;
-    });
-
-    // R-11: Broadcast AFTER the transaction commits — never inside it.
-    // Broadcasting inside an open transaction fires the WS event even if the
-    // transaction later rolls back, sending a phantom rank-change notification.
-    // Dynamic import avoids the circular dependency with ./realtime.
-    if (result.rank !== undefined) {
-      // Detect whether rank actually changed by comparing result against
-      // the original user we fetched at the start of the function.
-      const originalUser = await this.getUserById(userId).catch(() => null);
-      // We compare by checking if the returned user has a different rank
-      // from what was in the DB before this call — check rankLogs for latest change.
-      const recentLog = await db.select()
-        .from(rankLogs)
-        .where(eq(rankLogs.userId, userId))
-        .orderBy(desc(rankLogs.createdAt))
-        .limit(1);
-      const latestLog = recentLog[0];
-      if (latestLog && latestLog.newRank !== latestLog.oldRank) {
-        try {
-          const { broadcastUserUpdated } = await import("./realtime");
-          broadcastUserUpdated(userId, "rank_updated", { oldRank: latestLog.oldRank, newRank: latestLog.newRank });
-        } catch (e) {
-          logger.error({ err: e }, "Failed to broadcast rank update");
-        }
-      }
-    }
-    return result;
-  }
-
-  // Get rank history for a user
+  // Get rank history for a user (kept for audit trail)
   async getRankHistory(userId: string): Promise<RankLog[]> {
     return await db
       .select()
@@ -3910,16 +3759,6 @@ export class DatabaseStorage implements IStorage {
       });
 
       return updatedUser;
-    }).then(async (updatedUser) => {
-      // After the transaction commits: re-evaluate rank if credit increased
-      // totalEarnings. This runs outside the transaction and after it
-      // resolves, so a rank check never blocks/deadlocks the balance write.
-      if (type === 'add') {
-        await this.checkAndUpdateRank(userId);
-        const finalUser = await this.getUserById(userId);
-        return finalUser!;
-      }
-      return updatedUser;
     });
   }
 
@@ -4192,47 +4031,6 @@ export class DatabaseStorage implements IStorage {
     return updatedUser;
   }
 
-  // Manually set a user's rank, bypassing the automatic earnings/referral
-  // evaluation. When `locked` is true, checkAndUpdateRank will leave this
-  // user's rank untouched on future earning/referral changes until an admin
-  // unlocks it again (locked=false via a follow-up call to this method).
-  async setUserRank(userId: string, rank: string, locked: boolean, adminId: string): Promise<User> {
-    return await db.transaction(async (tx) => {
-      const [user] = await tx.select().from(users).where(eq(users.id, userId)).for('update');
-      if (!user) throw new Error("User not found");
-
-      const oldRank = user.rank || "Nawa Aya";
-      const currentAvatarId = user.avatar || "default";
-      const isDefaultOrRankAvatar =
-        currentAvatarId === "default" ||
-        Object.values(RANK_DEFAULT_AVATARS).includes(currentAvatarId) ||
-        currentAvatarId.startsWith("nawa-aya-") ||
-        currentAvatarId.startsWith("munna-") ||
-        currentAvatarId.startsWith("bawa-ji-") ||
-        currentAvatarId.startsWith("haji-saab-") ||
-        currentAvatarId.startsWith("chacha-");
-      const newAvatarId = isDefaultOrRankAvatar
-        ? (RANK_DEFAULT_AVATARS[rank] ?? currentAvatarId)
-        : currentAvatarId;
-
-      const [updatedUser] = await tx
-        .update(users)
-        .set({ rank, rankLocked: locked, avatar: newAvatarId, updatedAt: new Date() })
-        .where(eq(users.id, userId))
-        .returning();
-
-      if (oldRank !== rank) {
-        await tx.insert(rankLogs).values({
-          userId,
-          oldRank,
-          newRank: rank,
-          triggerSource: `manual_admin_override:${adminId}`
-        });
-      }
-
-      return updatedUser;
-    });
-  }
 
   async createNotification(insertNotification: InsertNotification): Promise<Notification> {
     const [notification] = await db.insert(notifications).values(insertNotification).returning();

@@ -343,50 +343,94 @@ export const userCredentials = pgTable("user_credentials", {
   index("user_credentials_email_idx").on(table.email),
 ]);
 
-// Daily Tasks for unlocking payouts and engaging users
+// Daily Tasks — LEGACY. Kept for DB-level FK integrity only; no new code reads this table.
+// Engine B CPA tasks have been migrated to engine_b_tasks / engine_b_records below.
 export const dailyTasks = pgTable("daily_tasks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
-  type: text("type").notNull(), // 'video', 'social', 'internal', etc.
-  actionUrl: text("action_url"), // URL to visit
-  secretCode: text("secret_code"), // Code required to pass verification
-  instructions: text("instructions"), // How to do the task
-  targetRank: text("target_rank").default("E-Rank"), // minimum rank tier to see it (E-Rank..S-Rank)
-  // Engine B Difficulty System: Easy=All, Medium=D+, Hard=C+, Elite=A+
-  difficulty: text("difficulty").default("Easy"), // 'Easy' | 'Medium' | 'Hard' | 'Elite'
+  type: text("type").notNull(),
+  actionUrl: text("action_url"),
+  secretCode: text("secret_code"),
+  instructions: text("instructions"),
+  targetRank: text("target_rank").default("E-Rank"),
+  difficulty: text("difficulty").default("Easy"),
   isActive: boolean("is_active").default(true),
-  isMandatory: boolean("is_mandatory").default(false), // controls payout access
-  // THORX v3 (spec D.5 analogue for daily_tasks): Engine B CPA tasks vs indirect social tasks
-  taskCategory: text("task_category").default("indirect"), // 'cpa_offer' | 'indirect' | 'platform'
-  grossPkrPerCompletion: decimal("gross_pkr_per_completion", { precision: 10, scale: 4 }), // null = indirect
+  isMandatory: boolean("is_mandatory").default(false),
+  taskCategory: text("task_category").default("indirect"),
+  grossPkrPerCompletion: decimal("gross_pkr_per_completion", { precision: 10, scale: 4 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
   index("daily_tasks_is_active_idx").on(table.isActive),
   index("daily_tasks_target_rank_idx").on(table.targetRank),
-  index("daily_tasks_target_rank_is_active_idx").on(table.targetRank, table.isActive), // H-10: task-by-rank+active queries
+  index("daily_tasks_target_rank_is_active_idx").on(table.targetRank, table.isActive),
   index("daily_tasks_difficulty_idx").on(table.difficulty),
 ]);
-export type LeaderboardCache = typeof leaderboardCache.$inferSelect;
-export type InsertLeaderboardCache = typeof leaderboardCache.$inferInsert;
+export type DailyTask = typeof dailyTasks.$inferSelect;
+export type InsertDailyTask = typeof dailyTasks.$inferInsert;
 
-// Records of task completions by users
+// Legacy task records — kept for FK integrity
 export const taskRecords = pgTable("task_records", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
   taskId: varchar("task_id").notNull().references(() => dailyTasks.id, { onDelete: "cascade" }),
   status: text("status").default("completed"),
-  clickedAt: timestamp("clicked_at"), // track when they clicked for the delay verification
+  clickedAt: timestamp("clicked_at"),
   completedAt: timestamp("completed_at").defaultNow(),
 }, (table) => [
   index("task_records_user_id_idx").on(table.userId),
   index("task_records_task_id_idx").on(table.taskId),
-  // Composite index for "has user completed task X?" lookup — 2026-07-15 perf audit
   index("task_records_user_task_idx").on(table.userId, table.taskId),
   index("task_records_user_completed_at_idx").on(table.userId, table.completedAt),
-  // 2-D: composite for daily-task completion status checks (user_id + status)
   index("task_records_user_id_status_idx").on(table.userId, table.status),
 ]);
+export type TaskRecord = typeof taskRecords.$inferSelect;
+export type InsertTaskRecord = typeof taskRecords.$inferInsert;
+
+// ── Engine B — CPA Tasks (replaces daily_tasks for CPA offers) ────────────────
+// Independent table so Engine B can evolve separately from legacy daily tasks.
+export const engineBTasks = pgTable("engine_b_tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description"),
+  type: text("type").notNull().default("cpa_offer"), // 'cpa_offer'
+  actionUrl: text("action_url"),
+  secretCode: text("secret_code"),
+  instructions: text("instructions"),
+  targetRank: text("target_rank").default("C-Rank"), // minimum rank tier — Engine B requires C-Rank+
+  difficulty: text("difficulty").default("Easy"),    // 'Easy' | 'Medium' | 'Hard' | 'Elite'
+  isActive: boolean("is_active").default(true),
+  grossPkrPerCompletion: decimal("gross_pkr_per_completion", { precision: 10, scale: 4 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("engine_b_tasks_is_active_idx").on(table.isActive),
+  index("engine_b_tasks_target_rank_idx").on(table.targetRank),
+  index("engine_b_tasks_difficulty_idx").on(table.difficulty),
+]);
+export type EngineBTask = typeof engineBTasks.$inferSelect;
+export type InsertEngineBTask = typeof engineBTasks.$inferInsert;
+export const insertEngineBTaskSchema = createInsertSchema(engineBTasks).omit({ id: true, createdAt: true, updatedAt: true });
+
+// Completion records for Engine B tasks — one row per user-task pair
+export const engineBRecords = pgTable("engine_b_records", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  taskId: varchar("task_id").notNull().references(() => engineBTasks.id, { onDelete: "cascade" }),
+  status: text("status").default("pending"), // 'pending' | 'completed'
+  clickedAt: timestamp("clicked_at"),
+  completedAt: timestamp("completed_at"),
+}, (table) => [
+  index("engine_b_records_user_id_idx").on(table.userId),
+  index("engine_b_records_task_id_idx").on(table.taskId),
+  unique("engine_b_records_unique_user_task").on(table.userId, table.taskId),
+  index("engine_b_records_user_status_idx").on(table.userId, table.status),
+]);
+export type EngineBRecord = typeof engineBRecords.$inferSelect;
+export type InsertEngineBRecord = typeof engineBRecords.$inferInsert;
+
+export type LeaderboardCache = typeof leaderboardCache.$inferSelect;
+export type InsertLeaderboardCache = typeof leaderboardCache.$inferInsert;
 
 // Chat messages for support chatbot
 export const chatMessages = pgTable("chat_messages", {

@@ -18,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import EnhancedVideoPlayer from "@/components/ui/enhanced-video-player";
 import IndustrialTabs, { WORK_TABS } from "@/components/ui/industrial-tabs";
 import MetricsCards from "@/components/ui/metrics-cards";
-import { DailyGoalModal } from "@/components/ui/daily-goal-modal";
 import { ProfileModal } from "@/components/ui/profile-modal";
 import { resolveAvatarUrl } from "@/lib/rankAvatars";
 import { MobileNavBar } from "@/components/ui/mobile-nav-bar";
@@ -539,7 +538,6 @@ export default function UserPortal() {
   // Share Modal State
   const [showShareModal, setShowShareModal] = useState(false);
   const [showReferralLink, setShowReferralLink] = useState(false);
-  const [showDailyGoalModal, setShowDailyGoalModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [referralZoom, setReferralZoom] = useState(1);
@@ -660,14 +658,6 @@ export default function UserPortal() {
     enabled: !!user,
   });
 
-  const { data: cpaTasksCompletedToday } = useQuery({
-    queryKey: ['/api/tasks/completed/today/internal'],
-    queryFn: async () => {
-      const res = await apiRequest("GET", "/api/tasks/completed/today/internal");
-      return res.json() as Promise<{ count: number }>;
-    },
-    enabled: !!user,
-  });
 
   const commissions = commissionsData?.commissions || [];
 
@@ -717,17 +707,8 @@ export default function UserPortal() {
     refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 
-  // Auto rank refresh: silently re-evaluate rank on portal load.
-  // This corrects any stale rank without requiring user action. The rank-up
-  // toast + cache invalidation is handled reactively by useRealtimeSync via
-  // the server's broadcast (checkAndUpdateRank), so this effect stays silent
-  // to avoid firing a duplicate toast.
-  useEffect(() => {
-    if (!user || user.id === 'guest') return;
-    apiRequest("POST", "/api/rank/refresh").catch(() => {
-      // Silently fail — rank refresh is non-critical
-    });
-  }, [user?.id]); // Only re-run when a different user logs in
+  // PS-based rank tier is updated automatically by the server on each earn event.
+  // No client-initiated refresh needed.
 
   const activeRefsCount = dashboardStats?.referralCount || referralsData?.stats.count || 0;
 
@@ -763,7 +744,7 @@ export default function UserPortal() {
   });
 
   const { data: tasksWithRecords } = useQuery<any[]>({
-    queryKey: ["/api/tasks"],
+    queryKey: ["/api/engine-b/tasks"],
     enabled: !!user && user.id !== 'guest',
   });
 
@@ -777,7 +758,7 @@ export default function UserPortal() {
 
   // Payout is always open — no task gate (Blueprint v2026)
   const adsWatchedTodayCount = todayAdViews?.count || 0;
-  const cpaCompletedCount = cpaTasksCompletedToday?.count || 0;
+  const cpaCompletedCount = (tasksWithRecords || []).filter((t: any) => t.record?.status === 'completed').length;
 
   const { data: withdrawalsHistory, error: withdrawalsError } = useQuery<any>({
     queryKey: ["/api/withdrawals"],
@@ -1613,14 +1594,6 @@ export default function UserPortal() {
         toast={toast}
       />
 
-      <DailyGoalModal
-        isOpen={showDailyGoalModal}
-        onClose={() => setShowDailyGoalModal(false)}
-        adsWatched={todayAdViews?.count || 0}
-        adsTarget={adsDailyLimit}
-        cpaCount={cpaCompletedCount}
-        cpaTarget={0}
-      />
 
       <AdWebPanel
         isOpen={isWebPanelOpen}
@@ -2110,7 +2083,6 @@ export default function UserPortal() {
                     whileTap={{ scale: 0.98 }}
                     className="group split-card bg-gradient-to-br from-card to-card/80 hover:from-card/90 hover:to-card/70 border-2 border-muted-foreground/20 hover:border-muted-foreground/40 p-6 text-left transition-all duration-300 cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] hover:shadow-muted-foreground/10"
                     data-testid="card-work-daily-goal"
-                    onClick={() => setShowDailyGoalModal(true)}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <Award className="w-8 h-8 text-primary group-hover:text-primary/80 transition-colors" />
