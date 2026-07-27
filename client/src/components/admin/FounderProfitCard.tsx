@@ -120,14 +120,16 @@ export function FounderProfitCard() {
 
         {/* Main number */}
         <div className="mb-5">
-          <p className={cn("text-3xl font-black mb-1", isOver ? "text-red-600" : "text-emerald-700")}>
-            {isLoading ? (
-              <Skeleton className="h-9 w-36 rounded-lg" />
-            ) : isOver
-              ? `−₨${parseFloat(summary?.overWithdrawnAmount ?? "0").toLocaleString()}`
-              : `₨${safe.toLocaleString()}`
-            }
-          </p>
+          {isLoading ? (
+            <Skeleton className="h-9 w-36 rounded-lg mb-1" />
+          ) : (
+            <div className={cn("text-3xl font-black mb-1", isOver ? "text-red-600" : "text-emerald-700")}>
+              {isOver
+                ? `−₨${parseFloat(summary?.overWithdrawnAmount ?? "0").toLocaleString()}`
+                : `₨${safe.toLocaleString()}`
+              }
+            </div>
+          )}
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
             {isOver ? "Over-withdrawn" : "Available to withdraw"}
           </p>

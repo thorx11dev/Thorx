@@ -125,14 +125,17 @@ export function SystemHealthCard() {
 
         {/* Score hero */}
         <div className="flex items-end gap-3 mb-1">
-          <p className={cn("text-4xl font-black leading-none", isLoading ? "text-zinc-300" : scoreColor(overall))}>
-            {isLoading ? <Skeleton className="inline-block h-8 w-12 rounded align-bottom" /> : Math.round(overall)}
+          <div className={cn("text-4xl font-black leading-none", isLoading ? "text-zinc-300" : scoreColor(overall))}>
+            {isLoading
+              ? <Skeleton className="inline-block h-8 w-12 rounded align-bottom" />
+              : <span>{Math.round(overall)}</span>
+            }
             <span className="text-lg font-bold text-muted-foreground">/100</span>
-          </p>
+          </div>
         </div>
 
         {!isLoading && (
-          <p className={cn("text-sm font-black mb-3", scoreColor(overall))}>{scoreLabel(overall)}</p>
+          <div className={cn("text-sm font-black mb-3", scoreColor(overall))}>{scoreLabel(overall)}</div>
         )}
 
         {/* Delta badges */}

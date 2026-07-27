@@ -37,8 +37,6 @@ interface ExtendedMetrics {
   userGrowthLastWeek: number;
   userGrowthRate: number;
   networkL1Total: number;
-  networkL2Total: number;
-  networkRatio: number;
   totalReferrals: number;
   totalCommissionsPaid: string;
   teamActivity24h: number;
@@ -139,8 +137,11 @@ function ChartCard({ title, icon: Icon, children }: { title: string; icon: React
 }
 
 // ── Referral Network Mini-Card ────────────────────────────────────────────────
+// THORX v3: L1-only referral system. L2 is write-frozen and not displayed.
 
-function ReferralNetworkCard({ l1, l2, ratio, totalReferrals, delay }: { l1: number; l2: number; ratio: number; totalReferrals: number; delay: number }) {
+function ReferralNetworkCard({ l1, totalReferrals, delay }: { l1: number; totalReferrals: number; delay: number }) {
+  const conversionPct = totalReferrals > 0 ? Math.round((l1 / totalReferrals) * 100) : 0;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
@@ -161,22 +162,17 @@ function ReferralNetworkCard({ l1, l2, ratio, totalReferrals, delay }: { l1: num
         <p className="text-[10px] font-bold text-muted-foreground">total referred users</p>
       </div>
 
-      {/* L1 / L2 / Depth grid */}
-      <div className="grid grid-cols-3 gap-2 text-center">
+      {/* L1 / Conversion grid */}
+      <div className="grid grid-cols-2 gap-2 text-center">
         <div className="p-2 bg-zinc-50 rounded-xl border border-zinc-100">
           <p className="text-sm font-black text-foreground">{l1}</p>
-          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">L1 Earners</p>
-          <p className="text-[8px] text-muted-foreground/70 mt-0.5">direct referrers</p>
+          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Active Referrers</p>
+          <p className="text-[8px] text-muted-foreground/70 mt-0.5">earned commission</p>
         </div>
         <div className="p-2 bg-zinc-50 rounded-xl border border-zinc-100">
-          <p className="text-sm font-black text-foreground">{l2}</p>
-          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">L2 Earners</p>
-          <p className="text-[8px] text-muted-foreground/70 mt-0.5">network earners</p>
-        </div>
-        <div className="p-2 bg-zinc-50 rounded-xl border border-zinc-100">
-          <p className="text-sm font-black text-foreground">{ratio}×</p>
-          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Depth</p>
-          <p className="text-[8px] text-muted-foreground/70 mt-0.5">L2÷L1 ratio</p>
+          <p className="text-sm font-black text-foreground">{conversionPct}%</p>
+          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Conversion</p>
+          <p className="text-[8px] text-muted-foreground/70 mt-0.5">referrers earning</p>
         </div>
       </div>
     </motion.div>
@@ -296,8 +292,6 @@ export function AdminDashboard() {
   const thisWeek           = metrics?.userGrowthThisWeek ?? 0;
   const lastWeek           = metrics?.userGrowthLastWeek ?? 0;
   const l1                 = metrics?.networkL1Total ?? 0;
-  const l2                 = metrics?.networkL2Total ?? 0;
-  const networkRatio       = metrics?.networkRatio ?? 0;
   const totalReferrals     = metrics?.totalReferrals ?? 0;
   const totalCommissions   = safePkr(metrics?.totalCommissionsPaid);
   const activity24h        = metrics?.teamActivity24h ?? 0;
@@ -432,7 +426,7 @@ export function AdminDashboard() {
           />
 
           {/* Referral Network */}
-          <ReferralNetworkCard l1={l1} l2={l2} ratio={networkRatio} totalReferrals={totalReferrals} delay={0.1} />
+          <ReferralNetworkCard l1={l1} totalReferrals={totalReferrals} delay={0.1} />
 
           {/* Team Activity */}
           <TeamActivityCard activity24h={activity24h} activityAvg7d={activityAvg} mostActive={mostActive} delay={0.15} />
@@ -447,7 +441,7 @@ export function AdminDashboard() {
           <MetricCard
             title="Commissions Paid Out"
             value={`₨${totalCommissions.toLocaleString()}`}
-            subtitle="Total L1+L2 commission payouts ever processed"
+            subtitle="Total L1 referral commission payouts ever processed"
             icon={Award}
             variant="white"
             delay={0}

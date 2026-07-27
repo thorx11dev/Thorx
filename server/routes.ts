@@ -2462,11 +2462,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const ageMinutes = snap?.recordedAt ? (Date.now() - new Date(snap.recordedAt).getTime()) / 60000 : 0;
       // Audit log — manual health recalculations must be traceable (enterprise §8)
       await storage.createAuditLog({
-        adminId: (req as any).user?.id,
+        adminId: req.userProfile?.id,
         action: "SYSTEM_HEALTH_RECALCULATE",
         targetType: "system",
         targetId: "health_engine",
-        details: { triggeredBy: (req as any).user?.email, overallScore: (snap as any)?.overallScore },
+        details: { triggeredBy: req.userProfile?.email, overallScore: (snap as any)?.overallScore },
       });
       res.json({ ...snap, isStale: ageMinutes > 90 });
     } catch (error) {
