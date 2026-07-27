@@ -7,7 +7,7 @@
 
 import { db } from "../db";
 import { and, eq, isNull, lt, or, sql as drizzleSql } from "drizzle-orm";
-import { users, rankLogs } from "@shared/schema";
+import { users, rankLogs, notifications, activityFeed } from "@shared/schema";
 import { storage } from "../storage";
 import { logger } from "../lib/logger";
 
@@ -175,28 +175,37 @@ export async function checkAndUpdateRankTier(userId: string, tx?: DbClient): Pro
     targetType: "user",
   });
 
-  await storage.createNotification({
+  // Use the in-transaction connection (dbc) for the notification INSERT so the FK check
+  // on notifications.userId → users.id reuses the same transaction connection.
+  // Calling storage.createNotification() would use the global db pool — a separate
+  // connection that cannot see the FOR UPDATE lock held on the users row, causing a hang.
+  await dbc.insert(notifications).values({
     userId,
     title: "Rank Up!",
     message: `You've reached ${newRank}!`,
     type: "system",
   });
 
-  try {
-    const { broadcastUserUpdated } = await import("../realtime");
-    broadcastUserUpdated(userId, "rank_updated", { oldRank: user.userRankTier, newRank });
-  } catch (e) {
-    logger.error({ err: e, userId }, "[PSEngine] Failed to broadcast rank tier update — continuing.");
-  }
-
-  const { emitFeedEvent } = await import("./live-feed");
+  // Defer side-effects that use their own DB connections to after this transaction
+  // commits — avoids cross-connection FK-lock contention on the users row.
   const rankOrder = RANK_TIERS.indexOf(newRank) > RANK_TIERS.indexOf(user.userRankTier as RankTier);
-  await emitFeedEvent({
-    type: "rank_up",
-    userId,
-    displayMessage: rankOrder
-      ? `User '${user.identity}' reached ${newRank}!${newRank === "C-Rank" ? " Engine B now unlocked." : ""}`
-      : `User '${user.identity}' rank adjusted to ${newRank}.`,
-    data: { oldRank: user.userRankTier, newRank, performanceScore: user.performanceScore },
+  const displayMessage = rankOrder
+    ? `User '${user.identity}' reached ${newRank}!${newRank === "C-Rank" ? " Engine B now unlocked." : ""}`
+    : `User '${user.identity}' rank adjusted to ${newRank}.`;
+  const feedData = { oldRank: user.userRankTier, newRank, performanceScore: user.performanceScore };
+
+  setImmediate(async () => {
+    try {
+      const { broadcastUserUpdated } = await import("../realtime");
+      broadcastUserUpdated(userId, "rank_updated", { oldRank: user.userRankTier, newRank });
+    } catch (e) {
+      logger.error({ err: e, userId }, "[PSEngine] Failed to broadcast rank tier update — continuing.");
+    }
+    try {
+      const { emitFeedEvent } = await import("./live-feed");
+      await emitFeedEvent({ type: "rank_up", userId, displayMessage, data: feedData });
+    } catch (e) {
+      logger.error({ err: e, userId }, "[PSEngine] Failed to emit feed event — continuing.");
+    }
   });
 }

@@ -19,6 +19,10 @@ export default defineConfig({
     env: {
       NODE_ENV: "test",
     },
+    // recordEarnEvent() fires ~32 system_config DB round-trips per call;
+    // default 5 s is too tight for that path in CI/test environments.
+    testTimeout: 30_000,
+    hookTimeout: 60_000,
     // Show each individual test name in output
     reporter: "verbose",
     coverage: {
