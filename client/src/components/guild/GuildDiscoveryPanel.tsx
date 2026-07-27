@@ -14,8 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Search, Users, Trophy, Clock, Lock, ChevronRight, Star, Shield, Plus, Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Search, Users, Trophy, Clock, Lock, ChevronRight, Star, Shield, Plus, Loader2, ArrowLeft, Swords, Crown, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
 
 interface GuildDiscovery {
   id: string;
@@ -58,6 +60,24 @@ export function GuildDiscoveryPanel() {
   const [applyingTo, setApplyingTo] = useState<GuildDiscovery | null>(null);
   const [coverLetter, setCoverLetter] = useState("");
   const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
+  const [viewingGuild, setViewingGuild] = useState<GuildDiscovery | null>(null);
+
+  // Detail view — guild info + members (fetched on demand)
+  const { data: guildDetail } = useQuery<any>({
+    queryKey: ["guild", "detail", viewingGuild?.id],
+    queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/${viewingGuild!.id}`); return r.json(); },
+    enabled: !!viewingGuild,
+  });
+  const { data: guildMembers = [] } = useQuery<any[]>({
+    queryKey: ["guild", "members", viewingGuild?.id],
+    queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/${viewingGuild!.id}/members`); const d = await r.json(); return d.members ?? []; },
+    enabled: !!viewingGuild,
+  });
+  const { data: guildWars = [] } = useQuery<any[]>({
+    queryKey: ["guild", "wars", viewingGuild?.id],
+    queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/${viewingGuild!.id}/war`); const d = await r.json(); return d.wars ?? d ?? []; },
+    enabled: !!viewingGuild,
+  });
 
   const { data: guilds = [], isLoading } = useQuery<GuildDiscovery[]>({
     queryKey: ["/api/guilds/discovery"],
@@ -114,6 +134,189 @@ export function GuildDiscoveryPanel() {
     }
     applyMutation.mutate({ guildId: applyingTo.id, letter: coverLetter.trim() });
   };
+
+  /* ── Guild Detail View ──────────────────────────────────────────── */
+  if (viewingGuild) {
+    const detail = guildDetail?.guild ?? viewingGuild;
+    const accentColor = RANK_COLORS[gpsTier(viewingGuild.guildPerformanceScore)] ?? "#71717a";
+    const slots = viewingGuild.memberCapacity - viewingGuild.memberCount;
+    const applied = appliedIds.has(viewingGuild.id);
+    const canApplyToViewing = canApply(viewingGuild);
+
+    return (
+      <div className="space-y-4">
+        {/* Back */}
+        <button
+          onClick={() => setViewingGuild(null)}
+          className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-800 transition-colors"
+        >
+          <ArrowLeft size={14} /> Back to guilds
+        </button>
+
+        {/* Guild Hero */}
+        <div className="rounded-xl border border-zinc-200 bg-white p-5 space-y-3">
+          <div className="flex items-start gap-4">
+            <div
+              className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-black text-xl shrink-0"
+              style={{ backgroundColor: accentColor }}
+            >
+              {viewingGuild.avatarUrl
+                ? <img src={viewingGuild.avatarUrl} alt={viewingGuild.name} className="w-full h-full rounded-xl object-cover" />
+                : viewingGuild.name[0].toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="font-black text-lg">{viewingGuild.name}</h2>
+                <RankBadge rank={gpsTier(viewingGuild.guildPerformanceScore)} size="sm" />
+              </div>
+              {viewingGuild.description && <p className="text-sm text-zinc-500 mt-1">{viewingGuild.description}</p>}
+            </div>
+          </div>
+
+          {/* Stats grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-zinc-100">
+            <div className="text-center">
+              <div className="text-[10px] text-zinc-400 uppercase tracking-wider">GPS Score</div>
+              <div className="font-black text-lg">{viewingGuild.guildPerformanceScore.toLocaleString()}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-[10px] text-zinc-400 uppercase tracking-wider">Members</div>
+              <div className="font-black text-lg">{viewingGuild.memberCount}/{viewingGuild.memberCapacity}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-[10px] text-zinc-400 uppercase tracking-wider">Min Rank</div>
+              <div className="font-black text-lg" style={{ color: RANK_COLORS[viewingGuild.minRankRequired] ?? "#71717a" }}>
+                {viewingGuild.minRankRequired}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-[10px] text-zinc-400 uppercase tracking-wider">Success Weeks</div>
+              <div className="font-black text-lg">{viewingGuild.successfulWeeks ?? 0}</div>
+            </div>
+          </div>
+
+          {/* Weekly progress */}
+          {viewingGuild.weeklyTarget > 0 && (
+            <div className="pt-2 border-t border-zinc-100 space-y-1.5">
+              <div className="flex justify-between text-xs text-zinc-400">
+                <span>This week's progress</span>
+                <span>{viewingGuild.currentWeeklyPoints.toLocaleString()} / {viewingGuild.weeklyTarget.toLocaleString()} pts</span>
+              </div>
+              <Progress value={Math.min(100, (viewingGuild.currentWeeklyPoints / viewingGuild.weeklyTarget) * 100)} className="h-2" />
+            </div>
+          )}
+
+          {/* Apply CTA */}
+          <div className="pt-2 border-t border-zinc-100">
+            {applied ? (
+              <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50">Application Sent ✓</Badge>
+            ) : !viewingGuild.recruitmentOpen ? (
+              <Badge variant="outline" className="text-zinc-400">Recruitment Closed</Badge>
+            ) : slots === 0 ? (
+              <Badge variant="outline" className="text-zinc-400">Guild Full</Badge>
+            ) : !canApplyToViewing ? (
+              <div className="flex items-center gap-1 text-xs text-zinc-400"><Lock size={12} /> Need {viewingGuild.minRankRequired} to apply</div>
+            ) : (
+              <Button
+                size="sm"
+                onClick={() => { setApplyingTo(viewingGuild); setCoverLetter(""); }}
+                className="bg-zinc-900 text-white hover:bg-zinc-700"
+              >
+                Apply to Join <ChevronRight size={14} />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Members List */}
+        <div className="rounded-xl border border-zinc-200 bg-white p-4">
+          <h3 className="font-bold text-sm mb-3 flex items-center gap-2"><Users size={14} /> Members ({guildMembers.length})</h3>
+          {guildMembers.length === 0 ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full rounded-lg" />)}
+            </div>
+          ) : (
+            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+              {guildMembers.map((m: any) => (
+                <div key={m.userId} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-zinc-50">
+                  <div className="w-7 h-7 rounded-full bg-zinc-800 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                    {(m.firstName || m.identity || "M")[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-medium truncate">{m.firstName || m.identity || "Member"}</span>
+                      {m.userId === detail?.captainId && <Crown size={11} className="text-yellow-500 shrink-0" />}
+                    </div>
+                    {m.userRankTier && <div className="text-[10px] text-zinc-400">{m.userRankTier}</div>}
+                  </div>
+                  <div className="text-xs text-zinc-400 shrink-0">{(m.weeklyPointsContributed ?? 0).toLocaleString()} pts</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* War History */}
+        {guildWars.length > 0 && (
+          <div className="rounded-xl border border-zinc-200 bg-white p-4">
+            <h3 className="font-bold text-sm mb-3 flex items-center gap-2"><Swords size={14} /> Battle History</h3>
+            <div className="space-y-2">
+              {guildWars.slice(0, 5).map((w: any) => {
+                const won = w.winnerId === viewingGuild.id;
+                const isActive = w.status === "active";
+                return (
+                  <div key={w.id} className="flex items-center gap-3 text-xs">
+                    <span className={cn("w-2 h-2 rounded-full shrink-0", isActive ? "bg-blue-400 animate-pulse" : won ? "bg-emerald-500" : "bg-red-400")} />
+                    <span className="flex-1 text-zinc-600">
+                      {isActive ? "⚔️ Active War" : won ? "✅ Victory" : "❌ Defeat"}
+                    </span>
+                    {w.completedAt && (
+                      <span className="text-zinc-400">{formatDistanceToNow(new Date(w.completedAt), { addSuffix: true })}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Application Modal (shared) */}
+        {applyingTo && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style={{ backgroundColor: accentColor }}>
+                  {applyingTo.name[0]}
+                </div>
+                <div>
+                  <div className="font-bold">{applyingTo.name}</div>
+                  <div className="text-xs text-zinc-500">{applyingTo.memberCount}/{applyingTo.memberCapacity} members</div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Application Letter</label>
+                <textarea
+                  value={coverLetter} onChange={e => setCoverLetter(e.target.value)} rows={5} maxLength={500}
+                  placeholder="Tell the Captain what you'll contribute and why you'd be a great team member."
+                  className="w-full border border-zinc-200 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-black"
+                />
+                <div className={cn("text-[11px] text-right", coverLetter.length < 50 ? "text-red-400" : "text-zinc-400")}>
+                  {coverLetter.length}/500 {coverLetter.length < 50 ? `(min 50, need ${50 - coverLetter.length} more)` : ""}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setApplyingTo(null)}>Cancel</Button>
+                <Button className="flex-1" disabled={coverLetter.trim().length < 50 || applyMutation.isPending}
+                  onClick={() => { if (!applyingTo) return; if (coverLetter.trim().length < 50) return; applyMutation.mutate({ guildId: applyingTo.id, letter: coverLetter.trim() }); }}>
+                  {applyMutation.isPending ? "Sending…" : "Submit Application"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -183,7 +386,11 @@ export function GuildDiscoveryPanel() {
             const accentColor = RANK_COLORS[gpsTier(guild.guildPerformanceScore)] ?? "#71717a";
 
             return (
-              <div key={guild.id} className="rounded-xl border border-zinc-200 bg-white p-4 hover:shadow-sm transition-shadow">
+              <div
+                key={guild.id}
+                className="rounded-xl border border-zinc-200 bg-white p-4 hover:shadow-sm transition-shadow cursor-pointer hover:border-zinc-300"
+                onClick={() => setViewingGuild(guild)}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     {/* Rank number */}

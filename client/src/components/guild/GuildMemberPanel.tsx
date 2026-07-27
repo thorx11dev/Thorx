@@ -1,7 +1,8 @@
 /**
  * GuildMemberPanel — THORX v3 (spec F.7)
  * Default Engine C view for guild members (guildRole='member').
- * Tabs: Weekly Progress | Engine C Tasks | Guild Chat | Captain Channel
+ * Tabs: Weekly Progress | Engine C Tasks | Guild Chat | Private Chat | Wars | My Profile
+ * Private Chat: member-to-member DM (Phase 4.4 — any member can DM any other member).
  * NEVER shows "Vault", "Locked Points", or PKR pool amounts to users.
  */
 import { useState, useEffect, useRef } from "react";
@@ -15,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Target, Clock, MessageCircle, Megaphone, Star, Send, Users, Zap, Swords } from "lucide-react";
+import { Trophy, Target, Clock, MessageCircle, Megaphone, Star, Send, Users, Zap, Swords, ArrowLeft, Crown } from "lucide-react";
 import { GuildWarsPanel } from "./GuildWarsPanel";
 import { GuildProfileWizard } from "./GuildProfileWizard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -49,7 +50,9 @@ export function GuildMemberPanel() {
   const [tab, setTab] = useState<Tab>("progress");
   const [chatMsg, setChatMsg] = useState("");
   const [dmMsg, setDmMsg] = useState("");
+  const [selectedDmMemberId, setSelectedDmMemberId] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const dmEndRef = useRef<HTMLDivElement>(null);
 
   const guildId = user?.guildId;
 
@@ -90,12 +93,16 @@ export function GuildMemberPanel() {
     refetchInterval: 30000, // WS push (engine_c:message) handles real-time; poll as fallback (audit fix Z)
   });
 
-  // Captain DM
+  // Private Chat — member-to-member (Phase 4.4)
   const { data: dmMessages = [] } = useQuery<any[]>({
-    queryKey: guildId && guild?.captainId ? QUERY_KEYS.guildDm(guildId, guild.captainId) : [],
-    queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/${guildId}/dm/${guild?.captainId}`); const d = await r.json(); return d.messages ?? []; },
-    enabled: !!guildId && !!guild?.captainId && tab === "dm",
-    refetchInterval: 30000, // WS push handles real-time; 30s fallback poll
+    queryKey: guildId && selectedDmMemberId ? ["guild", guildId, "private-chat", selectedDmMemberId] : [],
+    queryFn: async () => {
+      const r = await apiRequest("GET", `/api/guilds/${guildId}/private-chat/${selectedDmMemberId}`);
+      const d = await r.json();
+      return d.messages ?? [];
+    },
+    enabled: !!guildId && !!selectedDmMemberId && tab === "dm",
+    refetchInterval: 30000,
   });
 
   // Guild weekly performance history (last 8 cycles)
@@ -138,13 +145,16 @@ export function GuildMemberPanel() {
 
   const sendDmMutation = useMutation({
     mutationFn: async (message: string) => {
-      const r = await apiRequest("POST", `/api/guilds/${guildId}/dm/${guild?.captainId}`, { message });
+      if (!selectedDmMemberId) throw new Error("No member selected");
+      const r = await apiRequest("POST", `/api/guilds/${guildId}/private-chat/${selectedDmMemberId}`, { message });
+      if (!r.ok) throw await r.json();
       return r.json();
     },
     onMutate: async (message: string) => {
-      await queryClient.cancelQueries({ queryKey: ["/api/guilds", guildId, "dm", guild?.captainId] });
-      const prev = queryClient.getQueryData<any[]>(["/api/guilds", guildId, "dm", guild?.captainId]);
-      queryClient.setQueryData(["/api/guilds", guildId, "dm", guild?.captainId], (old: any[] = []) => [
+      const key = ["guild", guildId, "private-chat", selectedDmMemberId];
+      await queryClient.cancelQueries({ queryKey: key });
+      const prev = queryClient.getQueryData<any[]>(key);
+      queryClient.setQueryData(key, (old: any[] = []) => [
         ...old,
         { message, fromUserId: user?.id, createdAt: new Date().toISOString(), _optimistic: true },
       ]);
@@ -152,13 +162,13 @@ export function GuildMemberPanel() {
       return { prev };
     },
     onError: (_err: any, _msg: string, context: any) => {
-      if (context?.prev !== undefined) {
-        queryClient.setQueryData(["/api/guilds", guildId, "dm", guild?.captainId], context.prev);
-      }
-      toast({ title: "Message not sent", description: "Could not reach the captain. Please try again.", variant: "destructive" });
+      const key = ["guild", guildId, "private-chat", selectedDmMemberId];
+      if (context?.prev !== undefined) queryClient.setQueryData(key, context.prev);
+      toast({ title: "Message not sent", description: "Could not deliver your message. Please try again.", variant: "destructive" });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "dm", guild?.captainId] });
+      queryClient.invalidateQueries({ queryKey: ["guild", guildId, "private-chat", selectedDmMemberId] });
+      setTimeout(() => dmEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
     },
   });
 
@@ -425,38 +435,117 @@ export function GuildMemberPanel() {
       )}
 
       {tab === "dm" && (
-        <div className="rounded-xl border border-zinc-200 bg-white flex flex-col h-[400px] max-h-[60vh] min-h-[200px]">
-          <div className="p-3 border-b border-zinc-100 font-semibold text-sm flex items-center gap-2">
-            <MessageCircle size={14} />
-            Captain Channel
-          </div>
-          <div className="flex-1 overflow-y-auto p-3 space-y-2">
-            {dmMessages.length === 0 && (
-              <div className="text-center py-8 text-zinc-400 text-sm">No messages yet. Say hello to the captain!</div>
-            )}
-            {dmMessages.map((msg: any, i) => (
-              <div key={i} className={cn("flex", msg.fromUserId === user?.id ? "justify-end" : "justify-start")}>
-                <div className={cn("max-w-[75%] rounded-2xl px-3 py-2 text-sm", msg.fromUserId === user?.id ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-800")}>
-                  {msg.message}
-                  <div className="text-[10px] mt-0.5 opacity-50">{msg.createdAt ? formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true }) : ""}</div>
+        <div className="space-y-3">
+          {!selectedDmMemberId ? (
+            /* ── Member Picker ── */
+            <div className="rounded-xl border border-zinc-200 bg-white p-4 space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <MessageCircle size={14} />
+                <span className="font-semibold text-sm">Private Chat</span>
+              </div>
+              <p className="text-xs text-zinc-500">Select a guild member to start a private conversation.</p>
+              <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                {members
+                  .filter((m: any) => m.userId !== user?.id && m.status === "active")
+                  .map((m: any) => {
+                    const isCaptain = m.userId === guild?.captainId;
+                    const isAssistant = m.userId === guild?.assistantCaptainId;
+                    return (
+                      <button
+                        key={m.userId}
+                        onClick={() => { setSelectedDmMemberId(m.userId); setDmMsg(""); }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-zinc-50 border border-transparent hover:border-zinc-200 transition-all text-left"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-zinc-800 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                          {(m.firstName || m.identity || "M")[0].toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-medium truncate">{m.firstName || m.identity || "Member"}</span>
+                            {isCaptain && <Crown size={11} className="text-yellow-500 shrink-0" />}
+                            {isAssistant && !isCaptain && <Star size={11} className="text-blue-400 shrink-0" />}
+                          </div>
+                          <span className="text-[10px] text-zinc-400">{isCaptain ? "Captain" : isAssistant ? "Assistant Captain" : "Member"}</span>
+                        </div>
+                        <MessageCircle size={14} className="text-zinc-300 shrink-0" />
+                      </button>
+                    );
+                  })}
+                {members.filter((m: any) => m.userId !== user?.id && m.status === "active").length === 0 && (
+                  <p className="text-xs text-zinc-400 text-center py-6">No other active members yet.</p>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* ── Chat with selected member ── */
+            <div className="rounded-xl border border-zinc-200 bg-white flex flex-col h-[420px] max-h-[65vh] min-h-[200px]">
+              <div className="p-3 border-b border-zinc-100 flex items-center gap-2">
+                <button onClick={() => { setSelectedDmMemberId(null); setDmMsg(""); }} className="text-zinc-400 hover:text-zinc-700 transition-colors">
+                  <ArrowLeft size={16} />
+                </button>
+                <div className="w-7 h-7 rounded-full bg-zinc-800 text-white flex items-center justify-center text-xs font-bold">
+                  {(() => {
+                    const m = members.find((m: any) => m.userId === selectedDmMemberId);
+                    return (m?.firstName || m?.identity || "M")[0].toUpperCase();
+                  })()}
+                </div>
+                <div>
+                  <div className="font-semibold text-sm leading-none">
+                    {(() => {
+                      const m = members.find((m: any) => m.userId === selectedDmMemberId);
+                      return m?.firstName || m?.identity || "Member";
+                    })()}
+                  </div>
+                  <div className="text-[10px] text-zinc-400">
+                    {members.find((m: any) => m.userId === selectedDmMemberId)?.userId === guild?.captainId ? "Captain" : "Member"}
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-          <div className="p-3 border-t border-zinc-100 flex gap-2">
-            <Input
-              value={dmMsg}
-              onChange={e => setDmMsg(e.target.value)}
-              placeholder="Message captain…"
-              className="flex-1 h-8 text-sm"
-              maxLength={500}
-              onKeyDown={e => { if (e.key === "Enter" && dmMsg.trim() && dmMsg.length <= 500) sendDmMutation.mutate(dmMsg.trim()); }}
-            />
-            <Button size="sm" className="h-8 w-8 p-0" aria-label="Send message to captain" disabled={!dmMsg.trim() || dmMsg.length > 500 || sendDmMutation.isPending} onClick={() => sendDmMutation.mutate(dmMsg.trim())}>
-              <Send size={14} />
-            </Button>
-          </div>
+              <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                {dmMessages.length === 0 && (
+                  <div className="text-center py-8 text-zinc-400 text-sm">No messages yet. Start the conversation!</div>
+                )}
+                {dmMessages.map((msg: any, i) => (
+                  <div key={i} className={cn("flex", msg.fromUserId === user?.id ? "justify-end" : "justify-start")}>
+                    <div className={cn("max-w-[75%] rounded-2xl px-3 py-2 text-sm", msg.fromUserId === user?.id ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-800")}>
+                      {msg.message}
+                      <div className="text-[10px] mt-0.5 opacity-50">
+                        {msg.createdAt ? formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true }) : ""}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div ref={dmEndRef} />
+              </div>
+              <div className="p-3 border-t border-zinc-100 flex gap-2">
+                <Input
+                  value={dmMsg}
+                  onChange={e => setDmMsg(e.target.value)}
+                  placeholder="Send a private message…"
+                  className="flex-1 h-8 text-sm"
+                  maxLength={1000}
+                  onKeyDown={e => { if (e.key === "Enter" && dmMsg.trim() && dmMsg.length <= 1000) sendDmMutation.mutate(dmMsg.trim()); }}
+                />
+                <Button
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  aria-label="Send private message"
+                  disabled={!dmMsg.trim() || dmMsg.length > 1000 || sendDmMutation.isPending}
+                  onClick={() => sendDmMutation.mutate(dmMsg.trim())}
+                >
+                  <Send size={14} />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
+      )}
+      {tab === "wars" && (
+        <GuildWarsPanel guildId={guildId} />
+      )}
+
+      {tab === "profile" && (
+        <GuildProfileWizard guildId={guildId} />
       )}
     </div>
   );

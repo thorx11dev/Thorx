@@ -627,25 +627,18 @@ export function CaptainPortal() {
                 </p>
               </div>
 
-              {/* Weekly target difficulty */}
-              <div>
-                <label className="text-xs text-zinc-500 block mb-1">Weekly Goal Difficulty</label>
-                <div className="flex gap-3">
-                  {["low", "medium", "high"].map(d => (
-                    <label key={d} className="flex items-center gap-1.5 text-sm cursor-pointer capitalize">
-                      <input type="radio" name="difficulty" value={d}
-                        checked={settingsForm.targetDifficulty === d}
-                        onChange={() => setSettingsForm((f: any) => ({ ...f, targetDifficulty: d }))} />
-                      {d}
-                    </label>
-                  ))}
+              {/* Weekly target difficulty — Admin-only per Master Plan Phase 4 §5.6.
+                  Captains can view current target but cannot change difficulty. */}
+              <div className="rounded-lg bg-zinc-50 border border-zinc-200 px-3 py-2 flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-zinc-500 mb-0.5">Weekly Target</div>
+                  <div className="font-bold text-sm">{(guild.weeklyTarget || 0).toLocaleString()} pts</div>
                 </div>
-                <p className="text-xs text-zinc-400 mt-1">
-                  {settingsForm.targetDifficulty !== guild.targetDifficulty
-                    ? <>Setting to <strong>{settingsForm.targetDifficulty}</strong> will change weekly target to <strong>{previewTarget.toLocaleString()} pts</strong>.</>
-                    : <>Current target: <strong>{(guild.weeklyTarget || 0).toLocaleString()} pts</strong>. Admin can override anytime.</>
-                  }
-                </p>
+                <div className="text-[10px] text-zinc-400 text-right">
+                  <span className="uppercase tracking-wider">Difficulty: </span>
+                  <span className="font-semibold capitalize">{guild.targetDifficulty || "medium"}</span>
+                  <br /><span className="text-zinc-300">Set by admin</span>
+                </div>
               </div>
             </div>
             <Button className="w-full" disabled={settingsMutation.isPending} onClick={() => {

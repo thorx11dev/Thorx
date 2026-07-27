@@ -559,6 +559,13 @@ export default function UserPortal() {
   const [completedVideos, setCompletedVideos] = useState<Set<string>>(new Set());
   const [isMobile, setIsMobile] = useState(false);
 
+  // Engine B state
+  const [engineBActiveTask, setEngineBActiveTask] = useState<any | null>(null);
+  const [engineBPhase, setEngineBPhase] = useState<"idle" | "timer" | "verify" | "done">("idle");
+  const [engineBTimer, setEngineBTimer] = useState(10);
+  const [engineBCode, setEngineBCode] = useState("");
+  const [engineBCodeError, setEngineBCodeError] = useState("");
+
   // Mobile detection
   useEffect(() => {
     const checkIsMobile = () => {
@@ -822,6 +829,63 @@ export default function UserPortal() {
         description: err?.message || "Could not record your ad completion. Please try again.",
         variant: "destructive",
       });
+    },
+  });
+
+  // Engine B mutations
+  const engineBClickMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const res = await apiRequest("POST", `/api/engine-b/tasks/${taskId}/click`);
+      return await res.json();
+    },
+    onSuccess: (_, taskId) => {
+      setEngineBPhase("timer");
+      setEngineBTimer(10);
+      setEngineBCode("");
+      setEngineBCodeError("");
+      const interval = setInterval(() => {
+        setEngineBTimer(prev => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setEngineBPhase("verify");
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err?.message || "Could not start task.", variant: "destructive" });
+    },
+  });
+
+  const engineBVerifyMutation = useMutation({
+    mutationFn: async ({ taskId, code }: { taskId: string; code: string }) => {
+      const res = await apiRequest("POST", `/api/engine-b/tasks/${taskId}/verify`, { code });
+      if (!res.ok) {
+        const err = await res.json();
+        throw err;
+      }
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      setEngineBPhase("done");
+      queryClient.invalidateQueries({ queryKey: ["/api/engine-b/tasks"] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.sessionAuth });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earnings });
+      toast({
+        title: "Task Completed!",
+        description: `+25 PS credited. PKR earned has been added to your balance.`,
+      });
+    },
+    onError: (err: any) => {
+      if (err?.message === "VERIFICATION_FAILED_CODE") {
+        setEngineBCodeError("Incorrect secret code. Please check and try again.");
+      } else if (err?.message === "VERIFICATION_FAILED_TIME") {
+        setEngineBCodeError(err?.details || "Wait longer before verifying.");
+      } else {
+        setEngineBCodeError(err?.message || "Verification failed. Please try again.");
+      }
     },
   });
 
@@ -2149,42 +2213,183 @@ export default function UserPortal() {
                 </Button>
               </motion.div>
             ) : (
+              /* ── Engine B — CPA Tasks Dashboard ─────────────────────────── */
               <motion.div
                 key="engine-2"
                 initial={{ opacity: 0, x: 60 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 60 }}
                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="mt-12 py-16 space-y-0 overflow-hidden"
+                className="mt-8 space-y-6"
               >
-                <TextMarquee
-                  baseVelocity={-4}
-                  delay={200}
-                  className="font-black tracking-tighter leading-none uppercase text-foreground"
-                >
-                  Engine B is being engineered for maximum earning potential —
-                </TextMarquee>
-                <TextMarquee
-                  baseVelocity={3}
-                  delay={400}
-                  className="font-black tracking-tighter leading-none uppercase text-muted-foreground"
-                >
-                  Surveys · App Installs · Brand Videos · Product Reviews · Sign-ups —
-                </TextMarquee>
-                <TextMarquee
-                  baseVelocity={-3}
-                  delay={600}
-                  className="font-black tracking-tighter leading-none uppercase text-foreground"
-                >
-                  Your next income stream is loading — stay tuned —
-                </TextMarquee>
-                <TextMarquee
-                  baseVelocity={4}
-                  delay={800}
-                  className="font-black tracking-tighter leading-none uppercase text-muted-foreground"
-                >
-                  Higher rewards · More tasks · New opportunities incoming —
-                </TextMarquee>
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <TechnicalLabel text="ENGINE B — CPA TASKS" className="text-xs mb-1" />
+                    <p className="text-sm text-muted-foreground">Complete offers &amp; earn PKR + <span className="font-bold text-foreground">+25 PS</span> per task</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Completed</p>
+                    <p className="text-2xl font-black tracking-tighter">{cpaCompletedCount}</p>
+                  </div>
+                </div>
+
+                {/* Active Task Modal */}
+                <AnimatePresence>
+                  {engineBActiveTask && engineBPhase !== "idle" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -16 }}
+                      className="wireframe-border rounded-lg p-6 border-4 border-foreground bg-background space-y-4"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <TechnicalLabel text={`ACTIVE TASK — ${engineBActiveTask.difficulty?.toUpperCase() || "STANDARD"}`} className="text-xs mb-1" />
+                          <h3 className="font-black text-lg tracking-tight">{engineBActiveTask.title}</h3>
+                          {engineBActiveTask.instructions && (
+                            <p className="text-sm text-muted-foreground mt-1">{engineBActiveTask.instructions}</p>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => { setEngineBActiveTask(null); setEngineBPhase("idle"); setEngineBCodeError(""); }}
+                          className="shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      {engineBPhase === "timer" && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-full border-4 border-primary flex items-center justify-center shrink-0">
+                              <span className="font-black text-xl text-primary">{engineBTimer}</span>
+                            </div>
+                            <div>
+                              <p className="font-bold text-sm">Complete the task on the opened page</p>
+                              <p className="text-xs text-muted-foreground">Verification unlocks in {engineBTimer} second{engineBTimer !== 1 ? "s" : ""}</p>
+                            </div>
+                          </div>
+                          <Progress value={((10 - engineBTimer) / 10) * 100} className="h-2" />
+                        </div>
+                      )}
+
+                      {engineBPhase === "verify" && (
+                        <div className="space-y-3">
+                          <p className="text-sm font-medium">Enter the secret code from the task page to verify completion:</p>
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Enter secret code…"
+                              value={engineBCode}
+                              onChange={e => { setEngineBCode(e.target.value); setEngineBCodeError(""); }}
+                              className="font-mono uppercase tracking-widest"
+                              onKeyDown={e => { if (e.key === "Enter" && engineBCode.trim()) engineBVerifyMutation.mutate({ taskId: engineBActiveTask.id, code: engineBCode.trim() }); }}
+                            />
+                            <Button
+                              onClick={() => engineBVerifyMutation.mutate({ taskId: engineBActiveTask.id, code: engineBCode.trim() })}
+                              disabled={!engineBCode.trim() || engineBVerifyMutation.isPending}
+                              className="bg-primary text-black font-black shrink-0"
+                            >
+                              {engineBVerifyMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                          {engineBCodeError && <p className="text-xs text-destructive">{engineBCodeError}</p>}
+                          {engineBActiveTask.secretCode === null && (
+                            <p className="text-xs text-muted-foreground">No code required for this task — leave blank and submit.</p>
+                          )}
+                        </div>
+                      )}
+
+                      {engineBPhase === "done" && (
+                        <div className="flex items-center gap-3 py-2">
+                          <CheckCircle2 className="w-8 h-8 text-primary shrink-0" />
+                          <div>
+                            <p className="font-black text-primary">Task Verified!</p>
+                            <p className="text-xs text-muted-foreground">+25 PS &amp; PKR added to your balance.</p>
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Task List */}
+                {!tasksWithRecords ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-24 w-full rounded-lg" />)}
+                  </div>
+                ) : tasksWithRecords.length === 0 ? (
+                  <div className="wireframe-border rounded-lg p-12 text-center border-2 border-dashed">
+                    <Briefcase className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+                    <TechnicalLabel text="NO TASKS AVAILABLE" className="text-muted-foreground text-xs mb-2" />
+                    <p className="text-sm text-muted-foreground">New CPA tasks will appear here when the admin publishes them.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {tasksWithRecords.map((task: any) => {
+                      const isCompleted = task.record?.status === "completed";
+                      const isActive = engineBActiveTask?.id === task.id && engineBPhase !== "idle";
+                      const pkrReward = parseFloat(task.grossPkrPerCompletion || "0") * 0.60;
+                      return (
+                        <motion.div
+                          key={task.id}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={cn(
+                            "wireframe-border rounded-lg p-5 border-2 flex items-start gap-4 transition-all",
+                            isCompleted && "opacity-50",
+                            isActive && "border-primary"
+                          )}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 bg-foreground text-background rounded">
+                                {task.difficulty || "Standard"}
+                              </span>
+                              {isCompleted && (
+                                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 bg-primary text-black rounded">
+                                  ✓ Done
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="font-black tracking-tight text-base leading-tight">{task.title}</h4>
+                            {task.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>}
+                            <div className="flex items-center gap-4 mt-2">
+                              <span className="text-xs font-bold">
+                                ~{pkrReward.toFixed(2)} PKR
+                              </span>
+                              <span className="text-xs text-muted-foreground">+25 PS</span>
+                            </div>
+                          </div>
+                          <div className="shrink-0">
+                            {isCompleted ? (
+                              <CheckCircle2 className="w-6 h-6 text-primary" />
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setEngineBActiveTask(task);
+                                  setEngineBPhase("idle");
+                                  setEngineBCodeError("");
+                                  if (task.actionUrl) window.open(task.actionUrl, "_blank");
+                                  engineBClickMutation.mutate(task.id);
+                                }}
+                                disabled={engineBClickMutation.isPending && engineBActiveTask?.id === task.id}
+                                className="bg-primary text-black font-black text-xs uppercase tracking-wider"
+                              >
+                                {engineBClickMutation.isPending && engineBActiveTask?.id === task.id
+                                  ? <RefreshCw className="w-3 h-3 animate-spin" />
+                                  : "Start"}
+                              </Button>
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
