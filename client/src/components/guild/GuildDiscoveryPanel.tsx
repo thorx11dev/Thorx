@@ -32,6 +32,7 @@ interface GuildDiscovery {
   currentWeeklyPoints: number;
   weeklyTarget: number;
   successfulWeeks?: number;
+  inActiveWar?: boolean;
 }
 
 const RANK_ORDER = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
@@ -460,6 +461,11 @@ export function GuildDiscoveryPanel() {
                         <span className="text-[11px] text-zinc-400 font-mono">
                           {guild.guildPerformanceScore.toLocaleString()} GPS
                         </span>
+                        {guild.inActiveWar && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 rounded-full px-1.5 py-0.5">
+                            <Swords size={9} /> War
+                          </span>
+                        )}
                       </div>
                       {guild.description && (
                         <p className="text-xs text-zinc-500 mt-0.5 truncate">{guild.description}</p>

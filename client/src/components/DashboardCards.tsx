@@ -15,7 +15,6 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Zap, Wallet, Users, Gift, Shield, Crown, Clock, UserCog, Bell } from "lucide-react";
-import { RankBadge } from "@/components/RankBadge";
 import { PSProgressCard } from "@/components/PSProgressCard";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -236,7 +235,6 @@ export function DashboardCards() {
   const active = members.filter((m: any) => m.status === "active");
   const inactive = active.filter((m: any) => (m.weeklyPointsContributed ?? 0) === 0);
   const pending = members.filter((m: any) => m.status === "pending");
-  const guildRankTier = guild?.guildRankTier ?? "E-Rank";
   const guildPerformanceScore = guild?.guildPerformanceScore ?? 0;
   const weeklyTarget = guild?.weeklyTarget ?? 0;
   const currentWeeklyPoints = guild?.currentWeeklyPoints ?? 0;
@@ -246,10 +244,12 @@ export function DashboardCards() {
   return (
     <div className={grid}>
       <CardShell testId="card-guild-gps-rank">
-        <CardHead icon={Crown} label="GUILD GPS RANK" />
-        <div className="mb-2"><RankBadge rank={guildRankTier} size="md" /></div>
+        <CardHead icon={Crown} label="GUILD GPS" />
+        <p className="text-2xl md:text-3xl font-black text-foreground mb-1">
+          {guildPerformanceScore.toLocaleString()}
+        </p>
         <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">
-          {guildPerformanceScore.toLocaleString()} GPS
+          Guild Performance Score
         </p>
       </CardShell>
 

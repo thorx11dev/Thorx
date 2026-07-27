@@ -260,7 +260,7 @@ export function GuildMemberPanel() {
           <div>
             <h2 className="font-black text-lg">{guild.name}</h2>
             <div className="flex items-center gap-2 mt-1">
-              <RankBadge rank={guild.guildRankTier || "E-Rank"} size="sm" />
+              <span className="text-xs font-semibold text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-full">{(guild.guildPerformanceScore || 0).toLocaleString()} GPS</span>
               <span className="text-xs text-zinc-500">{members.filter((m: any) => m.status === "active").length}/{guild.memberCapacity} members</span>
             </div>
           </div>

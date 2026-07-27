@@ -24,6 +24,7 @@ import {
   guildBadges,
   guilds,
   guildMembers,
+  guildWeeklyCycles,
   users,
   type GuildWarSeason,
   type GuildWar,
@@ -31,7 +32,7 @@ import {
   type GuildHallOfFame,
   type GuildBadge,
 } from "@shared/schema";
-import { eq, and, desc, sql, or, ne } from "drizzle-orm";
+import { eq, and, desc, sql, or, ne, gte, lte } from "drizzle-orm";
 import { storage } from "../storage";
 import { logger } from "../lib/logger";
 
@@ -416,6 +417,7 @@ export async function contributeWarPoints(
 export async function resolveWar(warId: string): Promise<{
   winnerId: string | null;
   isDraw: boolean;
+  poolTransferred?: string;
 }> {
   const [war] = await db.select().from(guildWars).where(eq(guildWars.id, warId)).limit(1);
   if (!war) throw new Error("War not found");
@@ -427,20 +429,95 @@ export async function resolveWar(warId: string): Promise<{
     : war.challengerScore > war.challengedScore
     ? war.challengerGuildId
     : war.challengedGuildId;
+  const loserId = isDraw
+    ? null
+    : winnerId === war.challengerGuildId
+    ? war.challengedGuildId
+    : war.challengerGuildId;
 
   await db
     .update(guildWars)
     .set({ status: "completed", winnerId, completedAt: new Date() })
     .where(eq(guildWars.id, warId));
 
-  if (winnerId) {
+  let poolTransferred = "0.00";
+
+  if (winnerId && loserId) {
+    // ── Master Plan Phase 6: Winner gets loser's current-week pool ────────────
+    // Find the current active week cycle for the losing guild and transfer its
+    // bonusPoolPkr into the winner's cycle (or accumulate in winner's cycle).
+    const now = new Date();
+    // Current week Monday 00:00 UTC
+    const day = now.getUTCDay(); // 0=Sun..6=Sat
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const weekStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    weekStart.setUTCDate(weekStart.getUTCDate() + diffToMonday);
+    weekStart.setUTCHours(0, 0, 0, 0);
+
+    const [loserCycle] = await db
+      .select()
+      .from(guildWeeklyCycles)
+      .where(and(eq(guildWeeklyCycles.guildId, loserId), eq(guildWeeklyCycles.weekStart, weekStart)))
+      .limit(1);
+
+    if (loserCycle && !loserCycle.resolved) {
+      const loserPool = new Decimal(loserCycle.bonusPoolPkr ?? "0");
+      if (loserPool.gt(0)) {
+        // Zero out loser's pool
+        await db.update(guildWeeklyCycles)
+          .set({ bonusPoolPkr: "0.0000" })
+          .where(eq(guildWeeklyCycles.id, loserCycle.id));
+
+        // Add to winner's cycle (upsert)
+        const [winnerCycle] = await db
+          .select()
+          .from(guildWeeklyCycles)
+          .where(and(eq(guildWeeklyCycles.guildId, winnerId), eq(guildWeeklyCycles.weekStart, weekStart)))
+          .limit(1);
+
+        if (winnerCycle) {
+          await db.update(guildWeeklyCycles)
+            .set({
+              bonusPoolPkr: sql`${guildWeeklyCycles.bonusPoolPkr} + ${loserPool.toFixed(4)}`,
+            })
+            .where(eq(guildWeeklyCycles.id, winnerCycle.id));
+        } else {
+          // Winner has no cycle yet this week — create one with the transferred pool.
+          // weekEnd = weekStart + 6 days (Sunday 23:59:59 UTC)
+          const weekEnd = new Date(weekStart);
+          weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
+          weekEnd.setUTCHours(23, 59, 59, 999);
+          await db.insert(guildWeeklyCycles).values({
+            guildId: winnerId,
+            weekStart,
+            weekEnd,
+            targetPoints: 0,
+            bonusPoolPkr: loserPool.toFixed(4),
+          }).onConflictDoNothing();
+        }
+
+        poolTransferred = loserPool.toFixed(2);
+        logger.info({ warId, winnerId, loserId, poolTransferred }, "[GuildWars] Pool transferred from loser to winner.");
+
+        // Notify guild members of the pool capture
+        try {
+          const { broadcastGuildEvent } = await import("../realtime");
+          broadcastGuildEvent(winnerId, "guild.war_pool_captured", {
+            warId,
+            poolPkr: poolTransferred,
+            message: `⚔️ War won! Rs.${poolTransferred} captured from the opposing guild's pool — will be distributed this Sunday!`,
+          });
+        } catch (_) { /* non-critical */ }
+      }
+    }
+
     await awardBadge(winnerId, "war_winner", "⚔️ War Victor", war.seasonId ?? undefined);
-    logger.info({ warId, winnerId }, "[GuildWars] War resolved — winner");
+    logger.info({ warId, winnerId, poolTransferred }, "[GuildWars] War resolved — winner");
   } else {
     logger.info({ warId }, "[GuildWars] War resolved — draw");
   }
 
-  return { winnerId, isDraw };
+  return { winnerId, isDraw, poolTransferred };
 }
 
 // ─── Season Resolution ────────────────────────────────────────────────────────

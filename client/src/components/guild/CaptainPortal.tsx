@@ -23,15 +23,6 @@ import { formatDistanceToNow } from "date-fns";
 
 type Tab = "requests" | "roster" | "chat" | "dm" | "stats" | "settings" | "wars" | "profile";
 
-// Points target per difficulty, mirroring server/storage.ts DatabaseStorage.DIFFICULTY_TARGETS
-const DIFFICULTY_TARGETS: Record<string, Record<string, number>> = {
-  "E-Rank": { low: 10_000,  medium: 25_000,  high:  50_000 },
-  "D-Rank": { low: 25_000,  medium: 50_000,  high: 100_000 },
-  "C-Rank": { low: 50_000,  medium: 100_000, high: 200_000 },
-  "B-Rank": { low: 100_000, medium: 200_000, high: 400_000 },
-  "A-Rank": { low: 200_000, medium: 400_000, high: 800_000 },
-  "S-Rank": { low: 400_000, medium: 800_000, high: 1_600_000 },
-};
 
 export function CaptainPortal() {
   const { user } = useAuth();
@@ -219,7 +210,6 @@ export function CaptainPortal() {
         minRankRequired: guild.minRankRequired || "E-Rank",
         recruitmentOpen: guild.recruitmentOpen ?? true,
         isPublic: guild.isPublic ?? true,
-        targetDifficulty: guild.targetDifficulty || "medium",
       });
     }
   }, [guild]);
@@ -295,11 +285,6 @@ export function CaptainPortal() {
 
   const RANK_ORDER = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
 
-  // Preview the weeklyTarget that would result from the currently-selected difficulty
-  const previewTarget = settingsForm
-    ? ((DIFFICULTY_TARGETS[guild.guildRankTier ?? "E-Rank"] ?? DIFFICULTY_TARGETS["E-Rank"])[settingsForm.targetDifficulty] ?? guild.weeklyTarget)
-    : guild.weeklyTarget;
-
   return (
     <div className="space-y-4">
       {/* Captain Header */}
@@ -309,13 +294,10 @@ export function CaptainPortal() {
           <div>
             <div className="font-black">{guild.name}</div>
             <div className="flex items-center gap-2 mt-0.5">
-              <RankBadge rank={guild.guildRankTier || "E-Rank"} size="sm" />
+              <span className="text-xs font-semibold text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-full">{(guild.guildPerformanceScore || 0).toLocaleString()} GPS</span>
               <span className="text-xs text-zinc-500">{active.length}/{guild.memberCapacity} members</span>
             </div>
           </div>
-        </div>
-        <div className="text-right text-xs text-zinc-500">
-          <div>{(guild.guildPerformanceScore || 0).toLocaleString()} GPS</div>
         </div>
       </div>
 

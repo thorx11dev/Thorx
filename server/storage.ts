@@ -124,6 +124,7 @@ import {
   engineBRecords,
   type EngineBRecord,
   type InsertEngineBRecord,
+  guildWars,
 } from "@shared/schema";
 import { drawThorxCard } from "./modules/thorx-card";
 import { awardTaskPS, processStreak } from "./modules/ps-engine";
@@ -564,9 +565,10 @@ export class DatabaseStorage implements IStorage {
       { key: "ENGINE_A_USER_CUT_PCT", value: 60, description: "Engine A: user payout % (100 - cut)" },
       { key: "ENGINE_B_THORX_CUT_PCT", value: 40, description: "Engine B (CPA offers): Thorx profit cut %" },
       { key: "ENGINE_B_USER_CUT_PCT", value: 60, description: "Engine B: user payout %" },
-      { key: "ENGINE_C_THORX_CUT_PCT", value: 20, description: "Engine C (guild tasks): Thorx profit cut %" },
-      { key: "ENGINE_C_GUILD_POOL_PCT", value: 35, description: "Engine C: % contributed to the guild weekly bonus pool" },
-      { key: "ENGINE_C_USER_CUT_PCT", value: 45, description: "Engine C: user payout %" },
+      { key: "ENGINE_C_THORX_CUT_PCT", value: 15, description: "Engine C (guild tasks): Thorx direct profit cut %" },
+      { key: "ENGINE_C_GUILD_POOL_PCT", value: 80, description: "Engine C: % locked in the guild weekly bonus pool (distributed Sunday)" },
+      { key: "ENGINE_C_BONUS_PCT", value: 5, description: "Engine C: % added to bonus pool — paid to guild on target hit, otherwise goes to treasury" },
+      { key: "ENGINE_C_USER_CUT_PCT", value: 0, description: "Engine C: user immediate payout % (0 — all PKR goes to pool, distributed Sunday)" },
       // ── Thorx Card ────────────────────────────────────────────────────────
       { key: "CARD_VARIANCE_MIN", value: 0.80, description: "Thorx Card random variance lower bound" },
       { key: "CARD_VARIANCE_MAX", value: 1.20, description: "Thorx Card random variance upper bound" },
@@ -4716,8 +4718,8 @@ export class DatabaseStorage implements IStorage {
   // ── THORX v3 (spec E.9): Guild discovery, applications, captain DM, roster/nudge ──
 
   async getGuildDiscoveryList(): Promise<any[]> {
-    // Spec F.6: include successfulWeeks count — shown as "24 weeks successful"; never PKR amount.
-    const [rows, successCounts] = await Promise.all([
+    // Spec F.6: include successfulWeeks + active war status (Phase 6 "War mein" badge).
+    const [rows, successCounts, activeWars] = await Promise.all([
       db.select()
         .from(guilds)
         .where(and(eq(guilds.status, "active"), eq(guilds.isPublic, true)))
@@ -4729,9 +4731,21 @@ export class DatabaseStorage implements IStorage {
         .from(guildWeeklySnapshots)
         .where(eq(guildWeeklySnapshots.wasSuccessful, true))
         .groupBy(guildWeeklySnapshots.guildId),
+      db.select({
+        challengerGuildId: guildWars.challengerGuildId,
+        challengedGuildId: guildWars.challengedGuildId,
+      })
+        .from(guildWars)
+        .where(eq(guildWars.status, "active")),
     ]);
     const countMap = new Map(successCounts.map(r => [r.guildId, r.count]));
-    return rows.map(g => ({ ...g, successfulWeeks: countMap.get(g.id) ?? 0 }));
+    const warGuildIds = new Set<string>();
+    activeWars.forEach(w => { warGuildIds.add(w.challengerGuildId); warGuildIds.add(w.challengedGuildId); });
+    return rows.map(g => ({
+      ...g,
+      successfulWeeks: countMap.get(g.id) ?? 0,
+      inActiveWar: warGuildIds.has(g.id),
+    }));
   }
 
   async getGuildApplicationStatus(userId: string): Promise<GuildMember | undefined> {

@@ -145,27 +145,28 @@ export async function checkAndUpdateGuildRankTier(guildId: string, tx?: DbClient
   const config = await fetchGpsConfig();
 
   const newRank = computeGuildRankTier(guild.guildPerformanceScore, config.rankMins);
-  if (newRank === guild.guildRankTier) return;
 
+  // guildRankTier column was removed (Master Plan §5.9 — GPS only, no rank label stored).
+  // We derive the tier from GPS at runtime; update capacity and weekly target accordingly.
   const memberCapacityByRank: Record<GuildRankTier, number> = {
     "E-Rank": 10, "D-Rank": 15, "C-Rank": 20, "B-Rank": 30, "A-Rank": 40, "S-Rank": 50,
   };
 
-  // guildRankTier is deprecated (Master Plan §4.9) — only update capacity and weekly target
-  // based on GPS thresholds. No rank tier is stored or logged anymore.
+  const currentRank = computeGuildRankTier(guild.guildPerformanceScore, config.rankMins);
+  if (newRank === currentRank &&
+      guild.memberCapacity === memberCapacityByRank[newRank] &&
+      guild.weeklyTarget === config.weeklyTargets[newRank]) return;
+
   await dbc.update(guilds).set({
     memberCapacity: memberCapacityByRank[newRank],
     weeklyTarget: config.weeklyTargets[newRank],
   }).where(eq(guilds.id, guildId));
 
   const { emitFeedEvent } = await import("./live-feed");
-  const isPromotion = GUILD_RANK_TIERS.indexOf(newRank) > GUILD_RANK_TIERS.indexOf(guild.guildRankTier as GuildRankTier);
   await emitFeedEvent({
     type: "guild_event",
     guildId,
-    displayMessage: isPromotion
-      ? `Guild '${guild.name}' GPS milestone reached (tier: ${newRank})! Capacity and target updated.`
-      : `Guild '${guild.name}' GPS tier adjusted to ${newRank}. Capacity and target updated.`,
-    data: { previousTier: guild.guildRankTier, newTier: newRank, guildPerformanceScore: guild.guildPerformanceScore },
+    displayMessage: `Guild '${guild.name}' GPS tier updated to ${newRank}. Capacity and weekly target adjusted.`,
+    data: { newTier: newRank, guildPerformanceScore: guild.guildPerformanceScore },
   });
 }
