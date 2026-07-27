@@ -926,7 +926,7 @@ export class DatabaseStorage implements IStorage {
       engineBThorxCutPct,
       engineCThorxCutPct,
       engineCGuildPoolPct,
-      engineCUserCutPct,
+      engineCBonusPct,
       globalConversionRate,
       engineAPlayersJson,
       referralEarnPct,
@@ -935,9 +935,9 @@ export class DatabaseStorage implements IStorage {
     ] = await Promise.all([
       this.getSystemConfigValue<number>("ENGINE_A_THORX_CUT_PCT", 40),
       this.getSystemConfigValue<number>("ENGINE_B_THORX_CUT_PCT", 40),
-      this.getSystemConfigValue<number>("ENGINE_C_THORX_CUT_PCT", 20),
-      this.getSystemConfigValue<number>("ENGINE_C_GUILD_POOL_PCT", 35),
-      this.getSystemConfigValue<number>("ENGINE_C_USER_CUT_PCT", 45),
+      this.getSystemConfigValue<number>("ENGINE_C_THORX_CUT_PCT", 15),  // 15% Thorx (was 20)
+      this.getSystemConfigValue<number>("ENGINE_C_GUILD_POOL_PCT", 80), // 80% main pool (was 35)
+      this.getSystemConfigValue<number>("ENGINE_C_BONUS_PCT", 5),       // 5% bonus pool (new)
       this.getSystemConfigValue<number>("CONVERSION_RATE", DEFAULT_CONVERSION_RATE),
       this.getSystemConfigValue<string>("ENGINE_A_PLAYERS_JSON", "[]"),
       this.getSystemConfigValue<number>("REFERRAL_EARN_PCT", 1),
@@ -1016,6 +1016,7 @@ export class DatabaseStorage implements IStorage {
     let userPkrShareD = new Decimal(0);
     let thorxProfitPkrD = new Decimal(0);
     let guildPoolPkrD = new Decimal(0);
+    let bonusPoolPkrD = new Decimal(0); // Engine C only: 5% bonus pool (Sunday gift on target hit)
 
     if (params.engineType === "Engine_A" || params.engineType === "Engine_B") {
       const thorxCut = params.engineType === "Engine_A" ? engineAThorxCutPct : engineBThorxCutPct;
@@ -1024,22 +1025,28 @@ export class DatabaseStorage implements IStorage {
       userPkrShareD = grossPkrD.times(userCut).div(100);
     } else if (params.engineType === "Engine_C") {
       if (!params.guildId) throw new Error("guildId is required for Engine_C earn events");
-      thorxProfitPkrD = grossPkrD.times(engineCThorxCutPct).div(100);
-      guildPoolPkrD = grossPkrD.times(engineCGuildPoolPct).div(100);
-      userPkrShareD = grossPkrD.times(engineCUserCutPct).div(100);
+      // New Engine C split (Master Plan Phase 4.5):
+      //   15% → Thorx direct profit
+      //   80% → Guild weekly bonus pool (locked until Sunday distribution)
+      //    5% → Bonus pool (added to Sunday payout only if target is hit)
+      //    0% → User immediate balance (pool is the reward; distributed Sunday)
+      thorxProfitPkrD = grossPkrD.times(engineCThorxCutPct).div(100);  // 15%
+      guildPoolPkrD   = grossPkrD.times(engineCGuildPoolPct).div(100);  // 80%
+      bonusPoolPkrD   = grossPkrD.times(engineCBonusPct).div(100);      // 5%
+      userPkrShareD   = new Decimal(0); // no immediate PKR — pool unlocks Sunday
     }
     // 'Indirect' — no PKR payout, only PS (userPkrShare/thorxProfitPkr stay 0).
 
-    // Step 2: Thorx Card draw (if the user has a PKR share to convert).
-    // Pass the Decimal as toFixed(4) string — drawThorxCard accepts number | string
-    // so we never convert to IEEE 754 float (F-02 audit fix).
-    // drawThorxCard owns the rank-tier variance adjustment. Pass the base bounds and
-    // configured bonus values exactly once; applying the bonus here as well
-    // would widen A/S variance ranges twice.
+    // Step 2: Thorx Card draw.
+    // For Engine A/B: base TX-Points on user's direct PKR share.
+    // For Engine C: base TX-Points on the 80% pool contribution so members see
+    //   their work counted even though the balance is locked until Sunday.
+    // drawThorxCard owns rank-tier variance. Pass bounds once (F-02 audit fix).
+    const txPointsBaseD = params.engineType === "Engine_C" ? guildPoolPkrD : userPkrShareD;
     let cardResult = { pointsCredited: 0, realPkrValue: "0.0000", cardVariance: 1.0, targetPoints: 0 };
-    if (userPkrShareD.gt(0)) {
+    if (txPointsBaseD.gt(0)) {
       cardResult = drawThorxCard({
-        userPkrShare: userPkrShareD.toFixed(4),
+        userPkrShare: txPointsBaseD.toFixed(4),
         conversionRate,
         userRankTier: user.userRankTier,
         varianceMin: baseVarianceMin,
@@ -1099,6 +1106,7 @@ export class DatabaseStorage implements IStorage {
           .update(guilds)
           .set({
             weeklyBonusPool: sql`${guilds.weeklyBonusPool} + ${guildPoolPkrD.toFixed(4)}`,
+            bonusPoolPkr: sql`${guilds.bonusPoolPkr} + ${bonusPoolPkrD.toFixed(4)}`,
             currentWeeklyPoints: sql`${guilds.currentWeeklyPoints} + ${grossPkrD.times(100).toDecimalPlaces(0).toString()}`,
           })
           .where(eq(guilds.id, params.guildId));
@@ -1125,7 +1133,9 @@ export class DatabaseStorage implements IStorage {
             userId: params.userId,
             type: params.engineType,
             amount: userPkrShareD.toFixed(2),
-            description: `${params.engineType} task completion`,
+            description: params.engineType === "Engine_C"
+              ? `Engine C pool contribution — Rs.${guildPoolPkrD.toFixed(2)} locked in guild pool (Sunday distribution)`
+              : `${params.engineType} task completion`,
             status: "completed",
           })
           .returning();
@@ -1201,8 +1211,10 @@ export class DatabaseStorage implements IStorage {
       type: "earn",
       userId: params.userId,
       guildId: params.guildId,
-      displayMessage: `User '${user.identity}' – ${params.engineType} | Real: Rs.${userPkrShareD.toFixed(2)} | Points: ${rankedPointsCredited} | Thorx: Rs.${thorxProfitPkrD.toFixed(2)} | EconMult: ${economyMult.toFixed(2)} | RankMult: ${rankMult.toFixed(2)}`,
-      data: { engineType: params.engineType, grossPkr: grossPkrD.toFixed(4), baseGrossPkr: baseGrossPkrD.toFixed(4), economyMult: economyMult.toFixed(4), rankMult, rankedPointsCredited, cardResult, thorxProfitPkr: thorxProfitPkrD.toFixed(4), guildPoolPkr: guildPoolPkrD.toFixed(4) },
+      displayMessage: params.engineType === "Engine_C"
+        ? `User '${user.identity}' – Engine C | Pool: Rs.${guildPoolPkrD.toFixed(2)} | Bonus: Rs.${bonusPoolPkrD.toFixed(2)} | Points: ${rankedPointsCredited} | Thorx: Rs.${thorxProfitPkrD.toFixed(2)}`
+        : `User '${user.identity}' – ${params.engineType} | Real: Rs.${userPkrShareD.toFixed(2)} | Points: ${rankedPointsCredited} | Thorx: Rs.${thorxProfitPkrD.toFixed(2)} | EconMult: ${economyMult.toFixed(2)} | RankMult: ${rankMult.toFixed(2)}`,
+      data: { engineType: params.engineType, grossPkr: grossPkrD.toFixed(4), baseGrossPkr: baseGrossPkrD.toFixed(4), economyMult: economyMult.toFixed(4), rankMult, rankedPointsCredited, cardResult, thorxProfitPkr: thorxProfitPkrD.toFixed(4), guildPoolPkr: guildPoolPkrD.toFixed(4), bonusPoolPkr: bonusPoolPkrD.toFixed(4) },
     });
 
     return { success: true, pointsCredited: rankedPointsCredited, realPkrValue: userPkrShareD.toFixed(4), earning };

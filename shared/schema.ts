@@ -43,6 +43,9 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   avatar: text("avatar").default("default"),
+  // DEPRECATED — legacy named rank (Nawa Aya → Chacha Supreme). Kept for read compatibility only;
+  // no new code should write this. Will be dropped in a future DB migration.
+  // The sole active rank system is `userRankTier` (E-Rank → S-Rank, PS-based).
   rank: text("rank").default("Nawa Aya"),
   rankLocked: boolean("rank_locked").default(false),
   // Trust Status: admin-assigned account trust classification, surfaced on the Leaderboard.
@@ -1094,7 +1097,6 @@ export const guilds = pgTable("guilds", {
   name: text("name").notNull().unique(),
   description: text("description"),
   captainId: varchar("captain_id").notNull().references(() => users.id, { onDelete: "restrict" }),
-  guildRank: text("guild_rank").notNull().default("E"), // E (lowest) .. S (highest)
   guildScore: integer("guild_score").notNull().default(0),
   strikes: integer("strikes").notNull().default(0),
   status: text("status").notNull().default("active"), // active | frozen | disbanded
@@ -1109,6 +1111,8 @@ export const guilds = pgTable("guilds", {
   avatarUrl: text("avatar_url"),
   // ── THORX v3: GPS & rank ─────────────────────────────────────────────────
   guildPerformanceScore: integer("guild_performance_score").notNull().default(0),
+  // DEPRECATED — GPS-based guild rank tier. No longer updated by gps-engine;
+  // kept for read compatibility only. Will be dropped in a future DB migration.
   guildRankTier: text("guild_rank_tier").notNull().default("E-Rank"),
   memberCapacity: integer("member_capacity").notNull().default(10),
   // ── THORX v3: Weekly mechanics (replaces vault-language columns) ────────
@@ -1120,14 +1124,16 @@ export const guilds = pgTable("guilds", {
   // ── Announcements ─────────────────────────────────────────────────────────
   latestAnnouncement: text("latest_announcement"),
   announcementPostedAt: timestamp("announcement_posted_at"),
+  // ── THORX v3: Weekly bonus pool — 80% main + 5% bonus tracked separately ─
+  bonusPoolPkr: decimal("bonus_pool_pkr", { precision: 12, scale: 4 }).notNull().default("0.0000"),
   // ── THORX v3: Governance ─────────────────────────────────────────────────
   assistantCaptainId: varchar("assistant_captain_id").references((): any => users.id, { onDelete: "set null" }),
+  // ── THORX v3: Assistant captain feature permissions (jsonb list of enabled features) ──
+  assistantPermissions: jsonb("assistant_permissions").default('[]'),
 }, (table) => [
   index("guilds_captain_id_idx").on(table.captainId),
   index("guilds_status_idx").on(table.status),
-  index("guilds_guild_rank_idx").on(table.guildRank),
   index("guilds_is_public_idx").on(table.isPublic),
-  index("guilds_guild_rank_tier_idx").on(table.guildRankTier),
   sql`CONSTRAINT check_guild_strikes_range CHECK (strikes >= 0)`,
 ]);
 
@@ -1601,19 +1607,25 @@ export type GuildWarSeason = typeof guildWarSeasons.$inferSelect;
 export const guildWars = pgTable("guild_wars", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   seasonId: varchar("season_id").references(() => guildWarSeasons.id, { onDelete: "set null" }),
-  guild1Id: varchar("guild1_id").notNull().references(() => guilds.id, { onDelete: "restrict" }),
-  guild2Id: varchar("guild2_id").notNull().references(() => guilds.id, { onDelete: "restrict" }),
-  status: text("status").notNull().default("scheduled"), // scheduled | active | completed
-  guild1Score: integer("guild1_score").notNull().default(0),
-  guild2Score: integer("guild2_score").notNull().default(0),
+  // challengerGuildId = the guild that initiated the challenge
+  challengerGuildId: varchar("challenger_guild_id").notNull().references(() => guilds.id, { onDelete: "restrict" }),
+  challengedGuildId: varchar("challenged_guild_id").notNull().references(() => guilds.id, { onDelete: "restrict" }),
+  // status flow: pending_challenger_approval → pending_challenged_approval → active → completed | cancelled
+  status: text("status").notNull().default("pending_challenger_approval"),
+  challengerScore: integer("challenger_score").notNull().default(0),
+  challengedScore: integer("challenged_score").notNull().default(0),
   winnerId: varchar("winner_id").references(() => guilds.id, { onDelete: "set null" }),
-  startDate: timestamp("start_date").notNull(),
-  endDate: timestamp("end_date").notNull(),
-  prizePoolPkr: decimal("prize_pool_pkr", { precision: 14, scale: 2 }).notNull().default("0.00"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  // Pool snapshots at completion time (for prize distribution)
+  challengerPoolAtEnd: decimal("challenger_pool_at_end", { precision: 14, scale: 4 }),
+  challengedPoolAtEnd: decimal("challenged_pool_at_end", { precision: 14, scale: 4 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
-  index("idx_gw_status").on(table.status, table.startDate),
+  index("idx_gw_status").on(table.status),
   index("idx_gw_season").on(table.seasonId),
+  index("idx_gw_challenger").on(table.challengerGuildId),
+  index("idx_gw_challenged").on(table.challengedGuildId),
 ]);
 export type GuildWar = typeof guildWars.$inferSelect;
 
@@ -1655,6 +1667,45 @@ export const guildBadges = pgTable("guild_badges", {
   index("idx_gb_guild").on(table.guildId, table.awardedAt),
 ]);
 export type GuildBadge = typeof guildBadges.$inferSelect;
+
+// ── Guild Wars: member approval votes ────────────────────────────────────────
+// Each member votes to approve/reject their guild's participation in a war.
+export const guildWarApprovals = pgTable("guild_war_approvals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  warId: varchar("war_id").notNull().references(() => guildWars.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  guildId: varchar("guild_id").notNull().references(() => guilds.id, { onDelete: "cascade" }),
+  approved: boolean("approved").notNull(),
+  approvedAt: timestamp("approved_at").notNull().defaultNow(),
+}, (table) => [
+  unique("guild_war_approvals_war_user_unique").on(table.warId, table.userId),
+  index("idx_gwa_war_id").on(table.warId),
+  index("idx_gwa_guild_id").on(table.guildId),
+]);
+export type GuildWarApproval = typeof guildWarApprovals.$inferSelect;
+
+// ── Guild Profiles — per-member identity inside a guild ──────────────────────
+// Each guild member can have a unique profile visible within their guild and on discovery.
+// Pre-filled from users table on creation; can be customised independently.
+export const guildProfiles = pgTable("guild_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  guildId: varchar("guild_id").notNull().references(() => guilds.id, { onDelete: "cascade" }),
+  username: varchar("username", { length: 50 }),
+  description: text("description"),
+  links: jsonb("links").default('[]'), // [{label: string, url: string}]
+  favoriteMemberId: varchar("favorite_member_id").references(() => users.id, { onDelete: "set null" }),
+  profilePicture: text("profile_picture"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  unique("guild_profiles_user_guild_unique").on(table.userId, table.guildId),
+  index("guild_profiles_guild_id_idx").on(table.guildId),
+  index("guild_profiles_user_id_idx").on(table.userId),
+]);
+export type GuildProfile = typeof guildProfiles.$inferSelect;
+export type InsertGuildProfile = typeof guildProfiles.$inferInsert;
+export const insertGuildProfileSchema = createInsertSchema(guildProfiles).omit({ id: true, createdAt: true, updatedAt: true });
 
 export const insertUserTransactionSchema = createInsertSchema(userTransactions).omit({ id: true, createdAt: true });
 export const insertReferralCommissionSchema = createInsertSchema(referralCommissions).omit({ id: true, createdAt: true });

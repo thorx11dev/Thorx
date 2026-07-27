@@ -1255,11 +1255,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // it breaks the TX-Points-only illusion (audit finding B). Replace with a
       // pre-computed `txPointsReward` / `txPointsRewardMax` range so the frontend
       // never does PKR math client-side.
-      const [conversionRate, userCutPct] = await Promise.all([
+      // TX-Points for Engine C are based on the 80% pool contribution (not user cut,
+      // which is now 0% — pool unlocks Sunday). This keeps gamification visible.
+      const [conversionRate, poolPct] = await Promise.all([
         storage.getSystemConfigValue<number>("CONVERSION_RATE", 100),
-        storage.getSystemConfigValue<number>("ENGINE_C_USER_CUT_PCT", 45),
+        storage.getSystemConfigValue<number>("ENGINE_C_GUILD_POOL_PCT", 80),
       ]);
-      const userCutPctD = new Decimal(userCutPct);
+      const poolPctD = new Decimal(poolPct);
 
       const safeTasks = (tasks as any[]).map((task) => {
         const { grossPkrPerCompletion, ...rest } = task;
@@ -1267,7 +1269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const isIndirect = task.taskCategory === "indirect" || grossPkrD.isZero();
         const txPointsReward = isIndirect
           ? 0
-          : grossPkrD.times(userCutPctD).div(100).times(conversionRate)
+          : grossPkrD.times(poolPctD).div(100).times(conversionRate)
               .toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber();
         const txPointsRewardMax = txPointsReward
           ? new Decimal(txPointsReward).times(1.2).toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber()
