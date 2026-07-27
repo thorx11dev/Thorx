@@ -43,11 +43,6 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   avatar: text("avatar").default("default"),
-  // DEPRECATED — legacy named rank (Nawa Aya → Chacha Supreme). Kept for read compatibility only;
-  // no new code should write this. Will be dropped in a future DB migration.
-  // The sole active rank system is `userRankTier` (E-Rank → S-Rank, PS-based).
-  rank: text("rank").default("Nawa Aya"),
-  rankLocked: boolean("rank_locked").default(false),
   // Trust Status: admin-assigned account trust classification, surfaced on the Leaderboard.
   // "Special" | "Trusted" | "Normal" | "Dangerous" — null means undeclared (shown as N/A).
   trustStatus: text("trust_status"),
@@ -56,7 +51,6 @@ export const users = pgTable("users", {
   permissions: jsonb("permissions").default('[]'),
   emailVerifiedAt: timestamp("email_verified_at"),
   // ── Guild System fields (Engine C) ──────────────────────────────────────
-  // Separate axis from the existing named `rank` (Nawa Aya → Chacha Supreme).
   // personalRank is the individual Guild-context tier, E (lowest) → S (highest).
   personalRank: text("personal_rank").default("E"),
   // Cumulative score driving personalRank progression; distinct from guild.guildScore.
@@ -345,50 +339,6 @@ export const userCredentials = pgTable("user_credentials", {
   index("user_credentials_platform_idx").on(table.platform),
   index("user_credentials_email_idx").on(table.email),
 ]);
-
-// Daily Tasks — LEGACY. Kept for DB-level FK integrity only; no new code reads this table.
-// Engine B CPA tasks have been migrated to engine_b_tasks / engine_b_records below.
-export const dailyTasks = pgTable("daily_tasks", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  title: text("title").notNull(),
-  type: text("type").notNull(),
-  actionUrl: text("action_url"),
-  secretCode: text("secret_code"),
-  instructions: text("instructions"),
-  targetRank: text("target_rank").default("E-Rank"),
-  difficulty: text("difficulty").default("Easy"),
-  isActive: boolean("is_active").default(true),
-  isMandatory: boolean("is_mandatory").default(false),
-  taskCategory: text("task_category").default("indirect"),
-  grossPkrPerCompletion: decimal("gross_pkr_per_completion", { precision: 10, scale: 4 }),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("daily_tasks_is_active_idx").on(table.isActive),
-  index("daily_tasks_target_rank_idx").on(table.targetRank),
-  index("daily_tasks_target_rank_is_active_idx").on(table.targetRank, table.isActive),
-  index("daily_tasks_difficulty_idx").on(table.difficulty),
-]);
-export type DailyTask = typeof dailyTasks.$inferSelect;
-export type InsertDailyTask = typeof dailyTasks.$inferInsert;
-
-// Legacy task records — kept for FK integrity
-export const taskRecords = pgTable("task_records", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
-  taskId: varchar("task_id").notNull().references(() => dailyTasks.id, { onDelete: "cascade" }),
-  status: text("status").default("completed"),
-  clickedAt: timestamp("clicked_at"),
-  completedAt: timestamp("completed_at").defaultNow(),
-}, (table) => [
-  index("task_records_user_id_idx").on(table.userId),
-  index("task_records_task_id_idx").on(table.taskId),
-  index("task_records_user_task_idx").on(table.userId, table.taskId),
-  index("task_records_user_completed_at_idx").on(table.userId, table.completedAt),
-  index("task_records_user_id_status_idx").on(table.userId, table.status),
-]);
-export type TaskRecord = typeof taskRecords.$inferSelect;
-export type InsertTaskRecord = typeof taskRecords.$inferInsert;
 
 // ── Engine B — CPA Tasks (replaces daily_tasks for CPA offers) ────────────────
 // Independent table so Engine B can evolve separately from legacy daily tasks.
@@ -996,24 +946,7 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
 
-export const insertDailyTaskSchema = createInsertSchema(dailyTasks, {
-  instructions: z.string().nullable().optional(),
-  actionUrl: z.string().nullable().optional(),
-  secretCode: z.string().nullable().optional(),
-  targetRank: z.string().default("E-Rank"),
-  isMandatory: z.boolean().default(false),
-  isActive: z.boolean().default(true),
-}).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-// Note: DailyTask / InsertDailyTask / TaskRecord / InsertTaskRecord declared near the table definitions above.
-
-export const insertTaskRecordSchema = createInsertSchema(taskRecords).omit({
-  id: true,
-  completedAt: true,
-});
+// insertDailyTaskSchema and insertTaskRecordSchema removed — daily_tasks system retired.
 
 // ── Feature 1: Founder Profit Ledger ──────────────────────────────────────────
 // Tracks every time the founder transfers money from the THORX bank account to
@@ -1108,9 +1041,6 @@ export const guilds = pgTable("guilds", {
   avatarUrl: text("avatar_url"),
   // ── THORX v3: GPS & rank ─────────────────────────────────────────────────
   guildPerformanceScore: integer("guild_performance_score").notNull().default(0),
-  // DEPRECATED — GPS-based guild rank tier. No longer updated by gps-engine;
-  // kept for read compatibility only. Will be dropped in a future DB migration.
-  guildRankTier: text("guild_rank_tier").notNull().default("E-Rank"),
   memberCapacity: integer("member_capacity").notNull().default(10),
   // ── THORX v3: Weekly mechanics (replaces vault-language columns) ────────
   // Internal name only — user-facing label is "Guild Weekly Bonus Pool"/"Sunday Bonus".

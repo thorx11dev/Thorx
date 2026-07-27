@@ -22,7 +22,6 @@ import {
   earnings,
   withdrawals,
   commissionLogs,
-  taskRecords,
   scoreHistory,
   type RiskCase,
 } from "@shared/schema";
@@ -219,33 +218,9 @@ async function signalCircularReferral(userId: string): Promise<RiskSignal> {
  *  instructions before completion. Repeated completions within
  *  a couple of seconds of being clicked are not physically plausible.
  */
-async function signalTaskCompletionSpeed(userId: string): Promise<RiskSignal> {
-  const recent = await db
-    .select({ clickedAt: taskRecords.clickedAt, completedAt: taskRecords.completedAt })
-    .from(taskRecords)
-    .where(and(eq(taskRecords.userId, userId), gte(taskRecords.completedAt, new Date(Date.now() - 14 * 86_400_000))))
-    .orderBy(desc(taskRecords.completedAt))
-    .limit(30);
-
-  const timed = recent.filter((r) => r.clickedAt && r.completedAt);
-  if (!timed.length) return { name: "Task Completion Speed", score: 0, detail: "No timed task completions to evaluate." };
-
-  const threshold = await storage.getSystemConfigValue<number>("RISK_TASK_SPEED_SECONDS", 3);
-  const tooFast = timed.filter((r) => {
-    const seconds = (new Date(r.completedAt!).getTime() - new Date(r.clickedAt!).getTime()) / 1000;
-    return seconds < threshold;
-  });
-
-  const ratio = tooFast.length / timed.length;
-  const score = ratio > 0.3 ? Math.min(10, ratio * 10) : 0;
-  return {
-    name: "Task Completion Speed",
-    score: Math.round(score),
-    detail:
-      tooFast.length > 0
-        ? `${tooFast.length}/${timed.length} recent tasks completed in under ${threshold}s (physically implausible).`
-        : "Task completion timing appears normal.",
-  };
+/** Signal 7 — Task Completion Speed: retired with daily_tasks system. Always returns 0. */
+async function signalTaskCompletionSpeed(_userId: string): Promise<RiskSignal> {
+  return { name: "Task Completion Speed", score: 0, detail: "Signal retired — daily_tasks system removed." };
 }
 
 /** Signal 5 — Cash-out Velocity (max 10 pts)
@@ -400,7 +375,6 @@ async function prefetchBatchSignalData(userIds: string[], configs: {
     fpRows,
     l1Rows,
     withdrawalRows,
-    taskRows,
     referralChainRows,
   ] = await Promise.all([
     // Signal 1: 24h earnings per user
@@ -430,11 +404,6 @@ async function prefetchBatchSignalData(userIds: string[], configs: {
     db.select({ userId: withdrawals.userId, createdAt: withdrawals.createdAt })
       .from(withdrawals)
       .where(and(inArray(withdrawals.userId, userIds), gte(withdrawals.createdAt, since7d))),
-
-    // Signal 7: recent task records per user (completion speed)
-    db.select({ userId: taskRecords.userId, clickedAt: taskRecords.clickedAt, completedAt: taskRecords.completedAt })
-      .from(taskRecords)
-      .where(and(inArray(taskRecords.userId, userIds), gte(taskRecords.completedAt as any, since14d))),
 
     // Signal 6 (chain walk): ALL active users' referredBy (for cycle detection in-memory)
     db.select({ id: users.id, referredBy: users.referredBy })
@@ -500,13 +469,8 @@ async function prefetchBatchSignalData(userIds: string[], configs: {
     withdrawalMap.set(r.userId, arr);
   }
 
-  // userId → recent task records
+  // Signal 7 (task records) retired — daily_tasks system removed. Empty map for batch compatibility.
   const taskMap = new Map<string, Array<{ clickedAt: Date | null; completedAt: Date | null }>>();
-  for (const r of taskRows) {
-    const arr = taskMap.get(r.userId) ?? [];
-    arr.push({ clickedAt: r.clickedAt ? new Date(r.clickedAt) : null, completedAt: r.completedAt ? new Date(r.completedAt) : null });
-    taskMap.set(r.userId, arr);
-  }
 
   // Global referredBy map (entire active user table) for cycle detection
   const referredByMap = new Map<string, string | null>(

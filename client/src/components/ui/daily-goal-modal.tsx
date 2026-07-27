@@ -7,7 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { QUERY_KEYS } from "@/lib/queryKeys";
-import { DailyTask, TaskRecord } from "@shared/schema";
+// DailyTask / TaskRecord types — inline stubs (daily_tasks system retired)
+type DailyTask = { id: string; title: string; type: string; actionUrl?: string | null; secretCode?: string | null; instructions?: string | null; targetRank?: string | null; grossPkrPerCompletion?: string | null; isActive?: boolean | null; isMandatory?: boolean | null; taskCategory?: string | null };
+type TaskRecord = { id: string; userId: string; taskId: string; status?: string | null; clickedAt?: Date | null; completedAt?: Date | null };
 import { motion, AnimatePresence } from "framer-motion";
 
 interface DailyGoalModalProps {

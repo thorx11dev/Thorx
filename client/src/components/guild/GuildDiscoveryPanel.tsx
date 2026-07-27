@@ -21,7 +21,6 @@ interface GuildDiscovery {
   id: string;
   name: string;
   description: string | null;
-  guildRankTier: string;
   guildPerformanceScore: number;
   memberCount: number;
   memberCapacity: number;
@@ -38,6 +37,16 @@ const RANK_COLORS: Record<string, string> = {
   "E-Rank": "#71717a", "D-Rank": "#16a34a", "C-Rank": "#2563eb",
   "B-Rank": "#7c3aed", "A-Rank": "#ea580c", "S-Rank": "#dc2626",
 };
+
+/** Derive a display tier from raw GPS score. Used for coloring only — no DB column needed. */
+function gpsTier(gps: number): string {
+  if (gps >= 15000) return "S-Rank";
+  if (gps >= 10000) return "A-Rank";
+  if (gps >= 5000)  return "B-Rank";
+  if (gps >= 1000)  return "C-Rank";
+  if (gps >= 200)   return "D-Rank";
+  return "E-Rank";
+}
 
 export function GuildDiscoveryPanel() {
   const { user } = useAuth();
@@ -81,7 +90,7 @@ export function GuildDiscoveryPanel() {
 
   const filtered = guilds.filter(g => {
     if (search && !g.name.toLowerCase().includes(search.toLowerCase())) return false;
-    if (rankFilter !== "All" && g.guildRankTier !== rankFilter) return false;
+    if (rankFilter !== "All" && gpsTier(g.guildPerformanceScore) !== rankFilter) return false;
     if (slotsOnly && g.memberCount >= g.memberCapacity) return false;
     return true;
   });
@@ -171,7 +180,7 @@ export function GuildDiscoveryPanel() {
             const minIdx = RANK_ORDER.indexOf(guild.minRankRequired || "E-Rank");
             const rankBlocked = userTierIdx < minIdx;
             const applied = appliedIds.has(guild.id);
-            const accentColor = RANK_COLORS[guild.guildRankTier] ?? "#71717a";
+            const accentColor = RANK_COLORS[gpsTier(guild.guildPerformanceScore)] ?? "#71717a";
 
             return (
               <div key={guild.id} className="rounded-xl border border-zinc-200 bg-white p-4 hover:shadow-sm transition-shadow">
@@ -193,7 +202,7 @@ export function GuildDiscoveryPanel() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-zinc-900 truncate">{guild.name}</span>
-                        <RankBadge rank={guild.guildRankTier} size="sm" />
+                        <RankBadge rank={gpsTier(guild.guildPerformanceScore)} size="sm" />
                         <span className="text-[11px] text-zinc-400 font-mono">
                           {guild.guildPerformanceScore.toLocaleString()} GPS
                         </span>
@@ -264,7 +273,7 @@ export function GuildDiscoveryPanel() {
             <div className="flex items-center gap-3">
               <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
-                style={{ backgroundColor: RANK_COLORS[applyingTo.guildRankTier] ?? "#71717a" }}
+                style={{ backgroundColor: RANK_COLORS[gpsTier(applyingTo.guildPerformanceScore)] ?? "#71717a" }}
               >
                 {applyingTo.name[0]}
               </div>

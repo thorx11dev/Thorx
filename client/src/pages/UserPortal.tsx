@@ -2510,7 +2510,7 @@ export default function UserPortal() {
                         firstName: displayUser.firstName,
                         lastName: displayUser.lastName,
                         name: displayUser.name,
-                        rank: displayUser.rank,
+                        userRankTier: displayUser.userRankTier,
                         avatar: displayUser.avatar,
                         profilePicture: displayUser.profilePicture
                       }}

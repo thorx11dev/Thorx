@@ -1324,7 +1324,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     memberCapacity: z.number().int().min(10).max(50).optional(),
     pinnedMemberId: z.string().optional().nullable(),
     avatarUrl: z.string().max(500).optional().nullable(),
-    targetDifficulty: z.enum(["easy", "low", "medium", "hard"]).optional(),
   });
 
   app.patch("/api/guilds/:id/settings", requireSessionAuth, async (req, res) => {
@@ -1334,7 +1333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!parsed.success) {
         return res.status(400).json({ message: "Invalid settings.", errors: parsed.error.flatten().fieldErrors });
       }
-      const { name, description, minRankRequired, recruitmentOpen, isPublic, pinnedMemberId, avatarUrl, targetDifficulty } = parsed.data;
+      const { name, description, minRankRequired, recruitmentOpen, isPublic, pinnedMemberId, avatarUrl } = parsed.data;
       const guild = await storage.updateGuildSettings(req.params.id, userId, {
         name,
         description: description ?? undefined,
@@ -1343,10 +1342,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isPublic,
         pinnedMemberId: pinnedMemberId ?? undefined,
         avatarUrl: avatarUrl ?? undefined,
-        targetDifficulty,
       });
-      // Notify all guild members of settings change (Phase 6.3)
-      broadcastGuildEvent(req.params.id, 'guild.settings_updated', { weeklyTarget: targetDifficulty, guildId: req.params.id });
+      // Notify all guild members of settings change
+      broadcastGuildEvent(req.params.id, 'guild.settings_updated', { guildId: req.params.id });
       res.json({ guild });
     } catch (error) {
       logger.error({ err: error }, "Update guild settings error:");
@@ -4208,7 +4206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const [updatedUser] = await db
         .update(users)
-        .set({ userRankTier: rank, rankLocked: !!locked, updatedAt: new Date() })
+        .set({ userRankTier: rank, updatedAt: new Date() })
         .where(eq(users.id, id))
         .returning();
 

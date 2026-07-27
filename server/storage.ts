@@ -67,12 +67,6 @@ import {
   notifications,
   type Notification,
   type InsertNotification,
-  dailyTasks,
-  type DailyTask,
-  type InsertDailyTask,
-  taskRecords,
-  type TaskRecord,
-  type InsertTaskRecord,
   leaderboardCache,
   type LeaderboardCache,
   type InsertLeaderboardCache,
@@ -457,7 +451,7 @@ export interface IStorage {
     search?: string;
     limit?: number;
     offset?: number;
-  }): Promise<{ cases: Array<RiskCase & { user: Pick<User, 'id' | 'firstName' | 'lastName' | 'email' | 'avatar' | 'rank' | 'profilePicture'> }>; total: number; severityCounts: { Critical: number; High: number; Medium: number; Low: number } }>;
+  }): Promise<{ cases: Array<RiskCase & { user: Pick<User, 'id' | 'firstName' | 'lastName' | 'email' | 'avatar' | 'userRankTier' | 'profilePicture'> }>; total: number; severityCounts: { Critical: number; High: number; Medium: number; Low: number } }>;
   getRiskCase(id: string): Promise<(RiskCase & { user: User }) | undefined>;
   updateRiskCase(id: string, updates: {
     status?: string;
@@ -511,7 +505,7 @@ export interface IStorage {
   adminReassignCaptain(guildId: string, newCaptainUserId: string, adminId: string): Promise<any>;
   adminSetGuildWeeklyTarget(guildId: string, weeklyTarget: number, adminId: string): Promise<any>;
   adminBulkSetWeeklyTargets(weeklyTarget: number, scope: 'all' | 'byDifficulty', difficulty: string | undefined, adminId: string): Promise<number>;
-  updateGuildSettings(guildId: string, captainId: string, settings: { name?: string; description?: string; minRankRequired?: string; recruitmentOpen?: boolean; isPublic?: boolean; pinnedMemberId?: string | null; avatarUrl?: string; targetDifficulty?: string; }): Promise<any>;
+  updateGuildSettings(guildId: string, captainId: string, settings: { name?: string; description?: string; minRankRequired?: string; recruitmentOpen?: boolean; isPublic?: boolean; pinnedMemberId?: string | null; avatarUrl?: string; }): Promise<any>;
   postGuildAnnouncement(guildId: string, captainId: string, text: string): Promise<any>;
   clearGuildAnnouncement(guildId: string, captainId: string): Promise<any>;
   adminGetInactiveCaptains(inactiveDays?: number): Promise<any[]>;
@@ -1405,7 +1399,7 @@ export class DatabaseStorage implements IStorage {
     return true; // Drizzle return count for delete is driver-dependent
   }
 
-  async getTeamEmails(type?: 'inbound' | 'outbound', limit = 50): Promise<(TeamEmail & { fromUserRank?: string | null })[]> {
+  async getTeamEmails(type?: 'inbound' | 'outbound', limit = 50): Promise<TeamEmail[]> {
     let query = db
       .select({
         id: teamEmails.id,
@@ -1418,7 +1412,6 @@ export class DatabaseStorage implements IStorage {
         type: teamEmails.type,
         attachments: teamEmails.attachments,
         createdAt: teamEmails.createdAt,
-        fromUserRank: users.rank
       })
       .from(teamEmails)
       .leftJoin(users, sql`LOWER(${teamEmails.fromEmail}) = LOWER(${users.email})`);
@@ -1489,8 +1482,6 @@ export class DatabaseStorage implements IStorage {
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
         avatar: users.avatar,
-        rank: users.rank,
-        rankLocked: users.rankLocked,
         trustStatus: users.trustStatus,
         trustReason: users.trustReason,
         profilePicture: users.profilePicture,
@@ -1597,8 +1588,6 @@ export class DatabaseStorage implements IStorage {
           createdAt: users.createdAt,
           updatedAt: users.updatedAt,
           avatar: users.avatar,
-          rank: users.rank,
-          rankLocked: users.rankLocked,
           trustStatus: users.trustStatus,
           trustReason: users.trustReason,
           profilePicture: users.profilePicture,
@@ -2542,7 +2531,7 @@ export class DatabaseStorage implements IStorage {
     return guild;
   }
 
-  async getGuildMembers(guildId: string): Promise<Array<GuildMember & { user: Pick<User, 'id' | 'firstName' | 'lastName' | 'avatar' | 'rank' | 'profilePicture'> }>> {
+  async getGuildMembers(guildId: string): Promise<Array<GuildMember & { user: Pick<User, 'id' | 'firstName' | 'lastName' | 'avatar' | 'userRankTier' | 'profilePicture'> }>> {
     return await db
       .select({
         id: guildMembers.id,
@@ -2564,7 +2553,7 @@ export class DatabaseStorage implements IStorage {
           firstName: users.firstName,
           lastName: users.lastName,
           avatar: users.avatar,
-          rank: users.rank,
+          userRankTier: users.userRankTier,
           profilePicture: users.profilePicture,
         },
       })
@@ -2915,7 +2904,7 @@ export class DatabaseStorage implements IStorage {
           lastName: users.lastName,
           email: users.email,
           avatar: users.avatar,
-          rank: users.rank,
+          userRankTier: users.userRankTier,
           createdAt: users.createdAt,
           referredBy: users.referredBy,
           totalEarnings: users.totalEarnings,
@@ -2944,7 +2933,7 @@ export class DatabaseStorage implements IStorage {
             lastName: users.lastName,
             email: users.email,
             avatar: users.avatar,
-            rank: users.rank,
+            userRankTier: users.userRankTier,
             createdAt: users.createdAt,
             referredBy: users.referredBy,
             totalEarnings: users.totalEarnings,
@@ -3107,7 +3096,7 @@ export class DatabaseStorage implements IStorage {
       firstName: users.firstName,
       lastName: users.lastName,
       email: users.email,
-      rank: users.rank,
+      userRankTier: users.userRankTier,
       totalEarnings: users.totalEarnings,
       availableBalance: users.availableBalance,
       isVerified: users.isVerified,
@@ -3137,7 +3126,7 @@ export class DatabaseStorage implements IStorage {
       firstName: users.firstName,
       lastName: users.lastName,
       email: users.email,
-      rank: users.rank,
+      userRankTier: users.userRankTier,
       avatar: users.avatar,
       totalEarnings: users.totalEarnings,
       trustStatus: users.trustStatus,
@@ -3166,7 +3155,7 @@ export class DatabaseStorage implements IStorage {
         firstName: users.firstName,
         lastName: users.lastName,
         email: users.email,
-        rank: users.rank,
+        userRankTier: users.userRankTier,
         avatar: users.avatar,
         totalEarnings: users.totalEarnings,
         createdAt: users.createdAt,
@@ -3194,7 +3183,7 @@ export class DatabaseStorage implements IStorage {
         firstName: c.firstName,
         lastName: c.lastName,
         email: c.email,
-        rank: c.rank,
+        userRankTier: c.userRankTier,
         avatar: c.avatar,
         totalEarnings: c.totalEarnings,
         riskScore: c.riskScore,
@@ -4399,7 +4388,7 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
     offset?: number;
   }): Promise<{
-    cases: Array<RiskCase & { user: Pick<User, 'id' | 'firstName' | 'lastName' | 'email' | 'avatar' | 'rank' | 'profilePicture'> }>;
+    cases: Array<RiskCase & { user: Pick<User, 'id' | 'firstName' | 'lastName' | 'email' | 'avatar' | 'userRankTier' | 'profilePicture'> }>;
     total: number;
     severityCounts: { Critical: number; High: number; Medium: number; Low: number };
   }> {
@@ -4440,7 +4429,7 @@ export class DatabaseStorage implements IStorage {
           lastName: users.lastName,
           email: users.email,
           avatar: users.avatar,
-          rank: users.rank,
+          userRankTier: users.userRankTier,
           profilePicture: users.profilePicture,
         },
       })
@@ -4575,7 +4564,7 @@ export class DatabaseStorage implements IStorage {
       ...msg,
       sender: sender ? {
         id: sender.id, firstName: sender.firstName, lastName: sender.lastName,
-        avatar: sender.avatar, rank: sender.rank, personalRank: sender.personalRank,
+        avatar: sender.avatar, userRankTier: sender.userRankTier, personalRank: sender.personalRank,
       } : null,
     };
   }
@@ -4591,7 +4580,7 @@ export class DatabaseStorage implements IStorage {
         firstName: users.firstName,
         lastName: users.lastName,
         avatar: users.avatar,
-        rank: users.rank,
+        userRankTier: users.userRankTier,
         personalRank: users.personalRank,
       })
       .from(engineCMessages)
@@ -4675,7 +4664,6 @@ export class DatabaseStorage implements IStorage {
   async updateGuildSettings(guildId: string, captainId: string, settings: {
     name?: string; description?: string; minRankRequired?: string;
     recruitmentOpen?: boolean; isPublic?: boolean; pinnedMemberId?: string | null; avatarUrl?: string;
-    targetDifficulty?: string;
   }): Promise<any> {
     const membership = await this.getUserGuildMembership(captainId);
     if (!membership || membership.guildId !== guildId || membership.role !== "captain") {
@@ -4689,23 +4677,7 @@ export class DatabaseStorage implements IStorage {
     if (settings.isPublic !== undefined) updates.isPublic = settings.isPublic; // R-26
     if ("pinnedMemberId" in settings) updates.pinnedMemberId = settings.pinnedMemberId;
     if (settings.avatarUrl !== undefined) updates.avatarUrl = settings.avatarUrl;
-
-    // Difficulty selection: automatically sets weeklyTarget based on guild rank tier.
-    // Admin overrides (adminSetGuildWeeklyTarget) always win — this only fires when
-    // the captain explicitly changes the difficulty knob.
-    if (settings.targetDifficulty !== undefined) {
-      const allowed = ["low", "medium", "high", "elite"];
-      if (!allowed.includes(settings.targetDifficulty)) {
-        throw new Error("targetDifficulty must be 'low', 'medium', 'high', or 'elite'.");
-      }
-      updates.targetDifficulty = settings.targetDifficulty;
-
-      // Look up the current rank tier to choose the right target range.
-      const [current] = await db.select({ guildRankTier: guilds.guildRankTier }).from(guilds).where(eq(guilds.id, guildId)).limit(1);
-      const rankTier = current?.guildRankTier ?? "E-Rank";
-      const tierMap = (DatabaseStorage as any).DIFFICULTY_TARGETS[rankTier] ?? (DatabaseStorage as any).DIFFICULTY_TARGETS["E-Rank"];
-      updates.weeklyTarget = tierMap[settings.targetDifficulty];
-    }
+    // Note: targetDifficulty is admin-only (Plan Phase 4, §5.6). Captains cannot change it.
 
     const [guild] = await db.update(guilds).set(updates).where(eq(guilds.id, guildId)).returning();
     return guild;

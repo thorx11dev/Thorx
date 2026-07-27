@@ -10,7 +10,7 @@ interface NetworkUser {
     firstName: string;
     lastName: string;
     email: string;
-    rank?: string;
+    userRankTier?: string;
     avatar?: string;
     profilePicture?: string;
     level: number;
@@ -24,7 +24,7 @@ interface ReferralTreeProps {
         firstName?: string;
         lastName?: string;
         name?: string;
-        rank?: string;
+        userRankTier?: string;
         avatar?: string;
         profilePicture?: string;
     };
@@ -43,10 +43,18 @@ function getAvatarUrl(avatar?: string, rank?: string): string {
   return resolveAvatarUrl(avatar, rank);
 }
 
-const getRankDetails = (rankTitle?: string) => {
-    const title = rankTitle?.toUpperCase() || "NAWA AYA";
-    // Force silver/zinc style for all ranks as requested
-    return { title: title, color: "text-zinc-500", border: "border-zinc-500", bg: "bg-zinc-500" };
+const getRankDetails = (rankTier?: string) => {
+    const title = rankTier || "E-Rank";
+    const colorMap: Record<string, { color: string; border: string; bg: string }> = {
+        "E-Rank": { color: "text-zinc-500", border: "border-zinc-500", bg: "bg-zinc-500" },
+        "D-Rank": { color: "text-green-600", border: "border-green-600", bg: "bg-green-600" },
+        "C-Rank": { color: "text-blue-600", border: "border-blue-600", bg: "bg-blue-600" },
+        "B-Rank": { color: "text-violet-600", border: "border-violet-600", bg: "bg-violet-600" },
+        "A-Rank": { color: "text-orange-500", border: "border-orange-500", bg: "bg-orange-500" },
+        "S-Rank": { color: "text-red-600", border: "border-red-600", bg: "bg-red-600" },
+    };
+    const colors = colorMap[title] ?? colorMap["E-Rank"];
+    return { title, ...colors };
 };
 
 export function ReferralTree({ currentUser, referrals }: ReferralTreeProps) {
@@ -230,11 +238,11 @@ function TreeNodeComponent({ node }: { node: TreeNode }) {
 function NodeCard({ node, isRoot }: { node: TreeNode; isRoot: boolean }) {
     const user = node.user as any;
 
-    const rank = getRankDetails(user.rank);
+    const rank = getRankDetails(user.userRankTier);
 
     const userAvatar = user.profilePicture
         ? user.profilePicture
-        : getAvatarUrl(user.avatar, user.rank);
+        : getAvatarUrl(user.avatar, user.userRankTier);
 
     const isCurrentUser = isRoot;
 

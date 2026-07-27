@@ -696,7 +696,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                         id: selectedUser!.id,
                         firstName: selectedUser!.firstName,
                         lastName: selectedUser!.lastName,
-                        rank: selectedUser!.rank,
+                        userRankTier: selectedUser!.userRankTier,
                         avatar: selectedUser!.avatar,
                         profilePicture: selectedUser!.profilePicture
                       }} 
