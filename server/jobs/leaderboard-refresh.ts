@@ -1,10 +1,12 @@
 /**
- * 5-minute leaderboard refresh cron job.
+ * 15-minute leaderboard refresh cron job.
  *
  * Decoupled from earn events (Q4 architectural decision 2026-07-17):
  * running refreshLeaderboardCache() on every earn event caused O(n) DB
  * reads blocking the earn path at scale. The cron approach gives a
- * maximum 5-minute staleness window with zero per-earn overhead.
+ * maximum 15-minute staleness window with zero per-earn overhead.
+ * (Interval changed from 5 → 15 min per Q6 decision: 66% DB load reduction
+ * + admin has force-refresh capability.)
  *
  * Also triggers a full risk scan on the same cadence so the risk
  * watchlist stays current alongside leaderboard data.
