@@ -76,6 +76,7 @@ export function FounderProfitCard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/founder/profit-summary"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/founder/withdrawals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/profit-ledger"] });
       toast({ title: "Withdrawal Logged", description: "Personal transfer recorded." });
       setShowLogModal(false);
       setAmount("");
