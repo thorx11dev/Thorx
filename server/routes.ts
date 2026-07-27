@@ -432,7 +432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // detect stalled background jobs without digging through logs.
       const { leaderboardRefreshLastRunMs } = await import("./jobs/leaderboard-refresh");
       const nowMs = Date.now();
-      const LEADERBOARD_INTERVAL_MS = 5 * 60 * 1000;   // 5 min
+      const LEADERBOARD_INTERVAL_MS = 15 * 60 * 1000;  // 15 min — matches leaderboard-refresh.ts INTERVAL_MS
       const jobs = {
         leaderboardRefresh: {
           lastRunMs: leaderboardRefreshLastRunMs,
@@ -938,7 +938,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const referrals = await storage.getUserReferrals(thorxPid);
       const stats = await storage.getReferralStats(thorxPid);
 
+      const user = await storage.getUserById(thorxPid);
       res.json({
+        referralCode: user?.referralCode ?? null,
         referrals,
         stats
       });

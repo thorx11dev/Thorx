@@ -2512,6 +2512,12 @@ export class DatabaseStorage implements IStorage {
         joinedAt: new Date(),
       });
 
+      // Keep users.guildId / users.guildRole in sync with guild_members
+      await tx.update(users).set({
+        guildId: guild.id,
+        guildRole: "captain",
+      }).where(eq(users.id, params.captainId));
+
       return guild;
     });
   }
@@ -2632,6 +2638,12 @@ export class DatabaseStorage implements IStorage {
           memberCount: sql`${guilds.memberCount} + 1`,
           updatedAt: new Date(),
         }).where(eq(guilds.id, guildId));
+
+        // Keep users.guildId / users.guildRole in sync with guild_members
+        await tx.update(users).set({
+          guildId,
+          guildRole: "member",
+        }).where(eq(users.id, memberUserId));
       }
 
       return updated;
@@ -2656,6 +2668,12 @@ export class DatabaseStorage implements IStorage {
         memberCount: sql`GREATEST(${guilds.memberCount} - 1, 0)`,
         updatedAt: new Date(),
       }).where(eq(guilds.id, guildId));
+
+      // Clear guild association from the user's record
+      await tx.update(users).set({
+        guildId: null,
+        guildRole: "simple",
+      }).where(eq(users.id, userId));
     });
   }
 
@@ -2677,6 +2695,12 @@ export class DatabaseStorage implements IStorage {
         memberCount: sql`GREATEST(${guilds.memberCount} - 1, 0)`,
         updatedAt: new Date(),
       }).where(eq(guilds.id, guildId));
+
+      // Clear guild association from the removed user's record
+      await tx.update(users).set({
+        guildId: null,
+        guildRole: "simple",
+      }).where(eq(users.id, targetUserId));
     });
   }
 
@@ -2706,9 +2730,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setGuildStatus(guildId: string, status: "active" | "frozen" | "disbanded"): Promise<Guild> {
-    const [guild] = await db.update(guilds).set({ status, updatedAt: new Date() }).where(eq(guilds.id, guildId)).returning();
-    if (!guild) throw new Error("Guild not found");
-    return guild;
+    return await db.transaction(async (tx) => {
+      const [guild] = await tx.update(guilds).set({ status, updatedAt: new Date() }).where(eq(guilds.id, guildId)).returning();
+      if (!guild) throw new Error("Guild not found");
+
+      // When disbanding, clear all active members' guild associations atomically
+      if (status === "disbanded") {
+        const activeMembers = await tx
+          .select({ userId: guildMembers.userId })
+          .from(guildMembers)
+          .where(and(eq(guildMembers.guildId, guildId), eq(guildMembers.status, "active")));
+
+        if (activeMembers.length > 0) {
+          for (const m of activeMembers) {
+            await tx.update(users).set({ guildId: null, guildRole: "simple" }).where(eq(users.id, m.userId));
+          }
+        }
+
+        await tx.update(guildMembers)
+          .set({ status: "left", leftAt: new Date() })
+          .where(and(eq(guildMembers.guildId, guildId), eq(guildMembers.status, "active")));
+      }
+
+      return guild;
+    });
   }
 
   async addManualGuildStrike(guildId: string, reason: string, addedBy: string): Promise<{ guild: Guild; strike: GuildStrike }> {
