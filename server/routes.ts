@@ -1449,7 +1449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     targetGuildRank: z.enum(["E", "D", "C", "B", "A", "S"]).optional(),
   });
 
-  app.patch("/api/admin/weekly-tasks/:id", requireTeamRole, async (req, res) => {
+  app.patch("/api/admin/weekly-tasks/:id", requirePermission("MANAGE_TASKS"), async (req, res) => {
     try {
       const updates = weeklyTaskUpdateSchema.parse(req.body);
       const task = await storage.updateWeeklyTask(req.params.id, updates);
@@ -3674,7 +3674,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // (requirePermission("MANAGE_SYSTEM")) before ever reaching the requireTeamRole versions
   // here. The allowedKeys safety list in the dead PATCH was never enforced. Both removed.
 
-  // --- Daily Tasks Management (Admin) ---
+  // --- Tasks Management (Admin) ---
   // ── Engine B Admin CRUD ───────────────────────────────────────────────────────
   app.get("/api/admin/engine-b-tasks", requireTeamRole, async (req, res) => {
     try {

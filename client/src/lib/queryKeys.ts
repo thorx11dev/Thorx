@@ -33,7 +33,7 @@ export const QUERY_KEYS = {
   transactionHistory:    ["transactions", "history"]           as const,
 
   // ── User-portal: Tasks ────────────────────────────────────────────────────
-  tasks:                 ["/api/tasks"]                        as const,
+  tasks:                 ["/api/engine-b/tasks"]               as const,
   tasksCompletedToday:   ["/api/tasks/completed/today"]        as const,
 
   // ── User-portal: Dashboard stats ──────────────────────────────────────────
@@ -74,7 +74,8 @@ export const QUERY_KEYS = {
   adminAuditLogs:        ["/api/admin/audit-logs"]             as const,
   adminReconciliation:   ["/api/admin/reconciliation"]         as const,
   adminSystemHealth:     ["/api/admin/system-health"]          as const,
-  adminTasks:            ["/api/admin/tasks"]                  as const,
+  adminTasks:            ["/api/admin/engine-b-tasks"]         as const,
+  adminWeeklyTasks:      ["/api/admin/weekly-tasks"]           as const,
   adminRiskCases:        ["/api/admin/risk-cases"]             as const,
   adminRiskSignalStats:  ["/api/admin/risk-cases/signal-stats"] as const,
   adminRiskScoreHistory: (userId: string) => [`/api/admin/risk-cases/user/${userId}/score-history`] as const,

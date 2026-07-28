@@ -179,7 +179,7 @@ export function GuildMemberPanel() {
     },
     onSuccess: () => {
       toast({ title: "Task Completed!", description: "Points and PS awarded." });
-      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "tasks"] });
+      if (guildId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildTasks(guildId) });
       // Refresh guild header + progress bar so weekly contribution updates immediately
       // (audit finding BB — these were previously missing causing stale progress display).
       queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId] });

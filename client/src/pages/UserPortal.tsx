@@ -751,7 +751,7 @@ export default function UserPortal() {
   });
 
   const { data: tasksWithRecords } = useQuery<any[]>({
-    queryKey: ["/api/engine-b/tasks"],
+    queryKey: QUERY_KEYS.tasks,
     enabled: !!user && user.id !== 'guest',
   });
 
@@ -870,7 +870,7 @@ export default function UserPortal() {
     },
     onSuccess: (data) => {
       setEngineBPhase("done");
-      queryClient.invalidateQueries({ queryKey: ["/api/engine-b/tasks"] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.tasks });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.sessionAuth });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earnings });
       toast({

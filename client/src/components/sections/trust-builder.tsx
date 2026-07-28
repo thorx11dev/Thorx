@@ -111,7 +111,7 @@ export default function TrustBuilder({ isActive, onAdvance }: TrustBuilderProps)
     const activityTexts = [
       "User watched video ads",
       "New member joined via referral",
-      "Daily tasks completed",
+      "Tasks completed",
       "Payout request processed",
       "User reached new level"
     ];
