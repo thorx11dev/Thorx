@@ -4712,6 +4712,10 @@ export class DatabaseStorage implements IStorage {
     return task;
   }
 
+  async deleteWeeklyTask(taskId: string): Promise<void> {
+    await db.delete(weeklyTasks).where(eq(weeklyTasks.id, taskId));
+  }
+
   // completeWeeklyTask() was removed — it directly updated txPointsBalance bypassing
   // the recordEarnEvent pipeline. Use completeWeeklyTaskAtomic() instead.
 

@@ -1280,6 +1280,7 @@ export const weeklyTasks = pgTable("weekly_tasks", {
   taskCategory: text("task_category").notNull().default("cpa_offer"), // cpa_offer | indirect | platform
   visibility: text("visibility").notNull().default("engine_c"), // engine_b | engine_c | both
   grossPkrPerCompletion: decimal("gross_pkr_per_completion", { precision: 10, scale: 4 }),
+  actionUrl: text("action_url"), // for indirect tasks (YouTube, TikTok, etc.)
 }, (table) => [
   index("weekly_tasks_week_start_idx").on(table.weekStart),
   index("weekly_tasks_is_active_idx").on(table.isActive),

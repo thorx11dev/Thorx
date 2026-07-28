@@ -1424,6 +1424,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     targetGuildRank:        z.enum(["E", "D", "C", "B", "A", "S"]).optional().default("E"),
     isActive:               z.boolean().optional().default(true),
     grossPkrPerCompletion:  z.string().regex(/^\d+(\.\d+)?$/, "grossPkrPerCompletion must be a positive decimal string").optional(),
+    taskCategory:           z.enum(["cpa_offer", "indirect", "platform"]).optional().default("cpa_offer"),
+    actionUrl:              z.string().url().max(500).optional().nullable(),
   });
 
   app.post("/api/admin/weekly-tasks", requirePermission("MANAGE_TASKS"), async (req, res) => {
@@ -1432,14 +1434,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!parsed.success) {
         return res.status(400).json({ message: parsed.error.errors[0]?.message || "Validation failed", error: "VALIDATION_ERROR" });
       }
-      const { title, description, pointReward, weekStart, weekEnd, targetGuildRank, isActive, grossPkrPerCompletion } = parsed.data;
+      const { title, description, pointReward, weekStart, weekEnd, targetGuildRank, isActive, grossPkrPerCompletion, taskCategory, actionUrl } = parsed.data;
       const task = await storage.createWeeklyTask({
         title, description, pointReward,
         weekStart: new Date(weekStart), weekEnd: new Date(weekEnd),
         targetGuildRank,
         createdBy: req.userProfile.id,
         isActive,
-        ...(grossPkrPerCompletion !== undefined ? { grossPkrPerCompletion } : {}),
+        taskCategory,
+        ...(actionUrl !== undefined ? { actionUrl } : {}),
+        // Indirect tasks never carry real PKR — force to "0" regardless of what was sent
+        ...(taskCategory === "indirect"
+          ? { grossPkrPerCompletion: "0" }
+          : grossPkrPerCompletion !== undefined ? { grossPkrPerCompletion } : {}),
       });
       res.status(201).json({ task });
     } catch (error) {
@@ -1457,6 +1464,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     weekStart:              z.string().datetime({ message: "weekStart must be an ISO datetime string" }).optional(),
     weekEnd:                z.string().datetime({ message: "weekEnd must be an ISO datetime string" }).optional(),
     grossPkrPerCompletion:  z.string().regex(/^\d+(\.\d+)?$/, "grossPkrPerCompletion must be a positive decimal string").optional().nullable(),
+    taskCategory:           z.enum(["cpa_offer", "indirect", "platform"]).optional(),
+    actionUrl:              z.string().url().max(500).optional().nullable(),
   });
 
   app.patch("/api/admin/weekly-tasks/:id", requirePermission("MANAGE_TASKS"), async (req, res) => {
@@ -1465,15 +1474,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!parsed.success) {
         return res.status(400).json({ message: parsed.error.errors[0]?.message || "Validation failed", error: "VALIDATION_ERROR" });
       }
-      const { weekStart, weekEnd, ...rest } = parsed.data;
-      const updates: Record<string, unknown> = { ...rest };
+      const { weekStart, weekEnd, taskCategory, ...rest } = parsed.data;
+      const updates: Record<string, unknown> = { ...rest, ...(taskCategory !== undefined ? { taskCategory } : {}) };
       if (weekStart !== undefined) updates.weekStart = new Date(weekStart);
       if (weekEnd !== undefined) updates.weekEnd = new Date(weekEnd);
+      // If switching to indirect, force grossPkr to 0
+      if (taskCategory === "indirect") updates.grossPkrPerCompletion = "0";
       const task = await storage.updateWeeklyTask(req.params.id, updates as any);
       res.json({ task });
     } catch (error) {
       logger.error({ err: error }, "Update weekly task error:");
       res.status(500).json({ message: "Failed to update weekly task" });
+    }
+  });
+
+  app.delete("/api/admin/weekly-tasks/:id", requirePermission("MANAGE_TASKS"), async (req, res) => {
+    try {
+      await storage.deleteWeeklyTask(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      logger.error({ err: error }, "Delete weekly task error:");
+      res.status(500).json({ message: "Failed to delete weekly task" });
     }
   });
 
