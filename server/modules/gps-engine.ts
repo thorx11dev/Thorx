@@ -9,7 +9,7 @@ import { guilds, rankLogs } from "@shared/schema";
 import { storage } from "../storage";
 import Decimal from "decimal.js";
 
-const GUILD_RANK_TIERS = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"] as const;
+export const GUILD_RANK_TIERS = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"] as const;
 export type GuildRankTier = (typeof GUILD_RANK_TIERS)[number];
 
 // `tx` (optional) lets recordEarnEvent run this inside its own transaction —
@@ -18,7 +18,10 @@ type DbClient = any;
 
 // Batch-fetch all GPS / weekly-target config keys in a single DB round-trip.
 // Replaces 11 sequential `await cfg()` calls in checkAndUpdateGuildRankTier.
-async function fetchGpsConfig(): Promise<{
+// Exported so admin surfaces (e.g. GuildManager) can derive the same rank
+// tiers / weekly-target defaults the engine itself uses, instead of duplicating
+// or guessing at thresholds.
+export async function fetchGpsConfig(): Promise<{
   pct: number;
   milestone: number;
   mvpBonus: number;
@@ -119,7 +122,12 @@ export async function awardMVPGPS(guildId: string, tx?: DbClient): Promise<numbe
   return bonus;
 }
 
-function computeGuildRankTier(gps: number, thresholds: Record<string, number>): GuildRankTier {
+// guildRankTier has no backing column (Master Plan §5.9 — GPS only, no rank
+// label stored); this is the SOLE source of truth for deriving a guild's rank
+// tier from its GPS. Exported so any surface displaying/filtering by guild
+// rank (e.g. admin GuildManager) reuses these exact thresholds instead of
+// re-deriving them and risking drift.
+export function computeGuildRankTier(gps: number, thresholds: Record<string, number>): GuildRankTier {
   if (gps >= thresholds.GPS_RANK_S_MIN) return "S-Rank";
   if (gps >= thresholds.GPS_RANK_A_MIN) return "A-Rank";
   if (gps >= thresholds.GPS_RANK_B_MIN) return "B-Rank";

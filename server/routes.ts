@@ -1559,19 +1559,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Ecosystem-wide KPI header for the admin Guild Manager (counts by status,
+  // aggregate weekly pool, average GPS, pending creation requests).
+  app.get("/api/admin/guilds/stats", requireTeamRole, async (req, res) => {
+    try {
+      const [guildStats, [{ count: pendingCreationRequests }]] = await Promise.all([
+        storage.getGuildEcosystemStats(),
+        db.select({ count: sql<number>`count(*)` }).from(guildCreationRequests).where(eq(guildCreationRequests.status, "pending")),
+      ]);
+      res.json({ ...guildStats, pendingCreationRequests: Number(pendingCreationRequests) });
+    } catch (error) {
+      logger.error({ err: error }, "Guild ecosystem stats error:");
+      res.status(500).json({ message: "Failed to fetch guild stats" });
+    }
+  });
+
   app.post("/api/admin/guilds/bulk-targets", requireTeamRole, async (req, res) => {
     try {
       const adminId = getThorxPrincipalId(req) as string;
       const bulkTargetsSchema = z.object({
-        weeklyTarget: z.number().finite().positive("weeklyTarget must be a positive number."),
-        scope: z.enum(["all", "byDifficulty"]).optional(),
-        difficulty: z.string().max(50).optional(),
+        targets: z.record(z.string(), z.number().finite().positive()).refine(
+          obj => Object.keys(obj).length > 0,
+          { message: "At least one rank target must be provided." }
+        ),
       });
       const parsed = bulkTargetsSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input", errors: parsed.error.flatten() });
-      const { weeklyTarget, scope, difficulty } = parsed.data;
-      const count = await storage.adminBulkSetWeeklyTargets(weeklyTarget, scope ?? "all", difficulty, adminId);
-      res.json({ updated: count });
+      const updatedCounts = await storage.adminBulkSetWeeklyTargetsByRank(parsed.data.targets as any, adminId);
+      res.json({ updatedCounts, updated: Object.values(updatedCounts).reduce((a, b) => a + b, 0) });
     } catch (error) {
       logger.error({ err: error }, "Bulk set weekly targets error:");
       const msg = error instanceof Error ? error.message : "Failed to bulk set targets";
@@ -1654,6 +1669,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error({ err: error }, "Admin clear guild strikes error:");
       res.status(500).json({ message: "Failed to clear guild strikes" });
+    }
+  });
+
+  // Full strike audit trail (reason/source/who/when/cleared) — previously only
+  // the live aggregate count was visible to admins with no way to see history.
+  app.get("/api/admin/guilds/:id/strikes", requireTeamRole, async (req, res) => {
+    try {
+      const strikes = await storage.getGuildStrikeHistory(req.params.id);
+      res.json({ strikes });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch strike history" });
+    }
+  });
+
+  // Admin-scoped member kick — distinct from the captain-scoped
+  // DELETE /api/guilds/:id/members/:userId, which hard-requires the caller to
+  // be that guild's captain and has no admin override.
+  app.delete("/api/admin/guilds/:id/members/:userId", requireTeamRole, adminActionRateLimiter, async (req, res) => {
+    try {
+      const adminId = getThorxPrincipalId(req) as string;
+      await storage.adminRemoveGuildMember(req.params.id, req.params.userId, adminId);
+      broadcastUserUpdated(req.params.userId, "guild_removed");
+      broadcastGuildEvent(req.params.id, 'guild.member_removed', { userId: req.params.userId, guildId: req.params.id });
+      res.json({ success: true });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to remove member";
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  // Admin-only per-guild target difficulty (low|medium|high) — schema/storage
+  // already documented this as "admin-only, captains cannot change it" but no
+  // route ever existed to actually set it.
+  app.patch("/api/admin/guilds/:id/target-difficulty", requireTeamRole, async (req, res) => {
+    try {
+      const adminId = getThorxPrincipalId(req) as string;
+      const parsed = z.object({ difficulty: z.enum(["low", "medium", "high"]) }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "difficulty must be one of: low, medium, high" });
+      const guild = await storage.adminSetGuildTargetDifficulty(req.params.id, parsed.data.difficulty, adminId);
+      res.json({ guild });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to set target difficulty";
+      res.status(400).json({ message: msg });
     }
   });
 

@@ -129,7 +129,7 @@ import {
 import { drawThorxCard } from "./modules/thorx-card";
 import { awardTaskPS, processStreak } from "./modules/ps-engine";
 import { checkAndUpdateRankTier } from "./modules/ps-engine";
-import { awardMemberGPS, awardMVPGPS, checkAndUpdateGuildRankTier } from "./modules/gps-engine";
+import { awardMemberGPS, awardMVPGPS, checkAndUpdateGuildRankTier, computeGuildRankTier, fetchGpsConfig, GUILD_RANK_TIERS, type GuildRankTier } from "./modules/gps-engine";
 import { emitFeedEvent } from "./modules/live-feed";
 import { db } from "./db";
 import { eq, desc, asc, and, or, sql, inArray, ilike, gte, lte, lt, ne, isNotNull } from "drizzle-orm";
@@ -2725,7 +2725,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // ── Admin/team guild moderation ──────────────────────────────────────────────
-  async listGuildsAdmin(filters?: { status?: string; search?: string; limit?: number; offset?: number }): Promise<{ guilds: Guild[]; total: number }> {
+  async listGuildsAdmin(filters?: { status?: string; search?: string; limit?: number; offset?: number }): Promise<{ guilds: (Guild & { guildRank: GuildRankTier; nextRankMinGps: number | null })[]; total: number }> {
     const limit = filters?.limit ?? 20;
     const offset = filters?.offset ?? 0;
     const conditions = [];
@@ -2734,7 +2734,19 @@ export class DatabaseStorage implements IStorage {
     const where = conditions.length > 0 ? and(...conditions) : undefined;
     const rows = await db.select().from(guilds).where(where).orderBy(desc(guilds.createdAt)).limit(limit).offset(offset);
     const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(guilds).where(where);
-    return { guilds: rows, total: Number(total) };
+
+    // guildRank has no backing column (GPS-derived only — see gps-engine.ts).
+    // Compute it here so the admin UI never has to guess/re-derive thresholds.
+    const config = await fetchGpsConfig();
+    const rankOrder = GUILD_RANK_TIERS;
+    const guildsWithRank = rows.map(g => {
+      const guildRank = computeGuildRankTier(g.guildPerformanceScore, config.rankMins);
+      const nextTier = rankOrder[rankOrder.indexOf(guildRank) + 1];
+      const nextRankMinGps = nextTier ? config.rankMins[`GPS_RANK_${nextTier[0]}_MIN`] : null;
+      return { ...g, guildRank, nextRankMinGps: nextRankMinGps ?? null };
+    });
+
+    return { guilds: guildsWithRank, total: Number(total) };
   }
 
   async setGuildStatus(guildId: string, status: "active" | "frozen" | "disbanded"): Promise<Guild> {
@@ -5242,23 +5254,150 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async adminBulkSetWeeklyTargets(weeklyTarget: number, scope: "all" | "byDifficulty", difficulty: string | undefined, adminId: string): Promise<number> {
-    if (!Number.isFinite(weeklyTarget) || weeklyTarget <= 0) {
-      throw new Error("Weekly target must be a positive number.");
+  // Bulk-assigns a weekly target to every ACTIVE guild currently at a given GPS
+  // rank tier. Rank has no backing column, so this computes each guild's tier
+  // in-process (same thresholds as gps-engine.ts) and batches one UPDATE per
+  // rank rather than filtering on the unrelated `targetDifficulty` column
+  // (which only ever holds low|medium|high — a documented bug: that filter
+  // matched zero rows for every "by rank" request). Returns a per-rank count
+  // so the admin UI can report exactly what changed instead of a blind toast.
+  async adminBulkSetWeeklyTargetsByRank(targets: Partial<Record<GuildRankTier, number>>, adminId: string): Promise<Record<string, number>> {
+    const entries = (Object.entries(targets) as [GuildRankTier, number][])
+      .filter(([rank, val]) => GUILD_RANK_TIERS.includes(rank) && Number.isFinite(val) && val > 0);
+    if (entries.length === 0) {
+      throw new Error("At least one rank must have a valid positive weekly target.");
     }
+
     return await db.transaction(async (tx) => {
-      const whereClause = scope === "byDifficulty" && difficulty
-        ? and(eq(guilds.status, "active"), eq(guilds.targetDifficulty, difficulty))
-        : eq(guilds.status, "active");
-      const updated = await tx.update(guilds).set({ weeklyTarget, updatedAt: new Date() })
-        .where(whereClause).returning({ id: guilds.id });
+      const activeGuilds = await tx.select({ id: guilds.id, gps: guilds.guildPerformanceScore })
+        .from(guilds).where(eq(guilds.status, "active"));
+      const config = await fetchGpsConfig();
+
+      const idsByRank = new Map<GuildRankTier, string[]>();
+      for (const g of activeGuilds) {
+        const tier = computeGuildRankTier(g.gps, config.rankMins);
+        const list = idsByRank.get(tier);
+        if (list) list.push(g.id); else idsByRank.set(tier, [g.id]);
+      }
+
+      const updatedCounts: Record<string, number> = {};
+      for (const [rank, target] of entries) {
+        const ids = idsByRank.get(rank) ?? [];
+        updatedCounts[rank] = ids.length;
+        if (ids.length === 0) continue;
+        await tx.update(guilds).set({ weeklyTarget: target, updatedAt: new Date() })
+          .where(inArray(guilds.id, ids));
+      }
 
       await tx.insert(auditLogs).values({
-        adminId, action: "ADMIN_BULK_WEEKLY_TARGET_SET", targetType: "guild", targetId: "bulk",
-        details: { weeklyTarget, scope, difficulty, affected: updated.length },
+        adminId, action: "ADMIN_BULK_WEEKLY_TARGET_BY_RANK_SET", targetType: "guild", targetId: "bulk",
+        details: { targets, updatedCounts },
       });
-      return updated.length;
+      return updatedCounts;
     });
+  }
+
+  // Documented in the schema as "admin-only" (captains cannot change it — see
+  // targetDifficulty comment below) but no route ever implemented it until now.
+  async adminSetGuildTargetDifficulty(guildId: string, difficulty: "low" | "medium" | "high", adminId: string): Promise<Guild> {
+    return await db.transaction(async (tx) => {
+      const [updated] = await tx.update(guilds).set({ targetDifficulty: difficulty, updatedAt: new Date() })
+        .where(eq(guilds.id, guildId)).returning();
+      if (!updated) throw new Error("Guild not found");
+      await tx.insert(auditLogs).values({
+        adminId, action: "ADMIN_TARGET_DIFFICULTY_SET", targetType: "guild", targetId: guildId,
+        details: { difficulty },
+      });
+      return updated;
+    });
+  }
+
+  // Admin-scoped member removal — mirrors removeGuildMember but is invoked by
+  // a team/admin account rather than the guild's own captain, and refuses to
+  // remove the captain (admins must reassign the captain first so the guild
+  // is never left without one).
+  async adminRemoveGuildMember(guildId: string, targetUserId: string, adminId: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      const [guild] = await tx.select().from(guilds).where(eq(guilds.id, guildId));
+      if (!guild) throw new Error("Guild not found");
+      if (guild.captainId === targetUserId) {
+        throw new Error("Cannot kick the guild captain — reassign the captain first.");
+      }
+
+      const result = await tx
+        .update(guildMembers)
+        .set({ status: "left", leftAt: new Date() })
+        .where(and(eq(guildMembers.guildId, guildId), eq(guildMembers.userId, targetUserId), eq(guildMembers.status, "active")))
+        .returning();
+      if (result.length === 0) throw new Error("This user is not an active member of this guild.");
+
+      await tx.update(guilds).set({
+        memberCount: sql`GREATEST(${guilds.memberCount} - 1, 0)`,
+        updatedAt: new Date(),
+      }).where(eq(guilds.id, guildId));
+
+      await tx.update(users).set({ guildId: null, guildRole: "simple" }).where(eq(users.id, targetUserId));
+
+      await tx.insert(auditLogs).values({
+        adminId, action: "ADMIN_GUILD_MEMBER_KICKED", targetType: "guild", targetId: guildId,
+        details: { removedUserId: targetUserId },
+      });
+
+      await tx.insert(notifications).values({
+        userId: targetUserId,
+        title: "Removed from Guild",
+        message: `You have been removed from ${guild.name} by an administrator.`,
+        type: "system",
+      });
+    });
+  }
+
+  // Full audit trail behind a guild's strike count — who added each strike,
+  // why, and whether/when it was cleared. The admin UI previously only ever
+  // showed the live aggregate count with no way to see history.
+  async getGuildStrikeHistory(guildId: string): Promise<Array<GuildStrike & { addedByName: string | null; clearedByName: string | null }>> {
+    const strikeRows = await db.select().from(guildStrikes)
+      .where(eq(guildStrikes.guildId, guildId)).orderBy(desc(guildStrikes.createdAt));
+
+    const adminIds = Array.from(new Set(
+      strikeRows.flatMap(s => [s.addedBy, s.clearedBy]).filter((id): id is string => !!id)
+    ));
+    const admins = adminIds.length
+      ? await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName }).from(users).where(inArray(users.id, adminIds))
+      : [];
+    const nameMap = new Map(admins.map(a => [a.id, `${a.firstName ?? ""} ${a.lastName ?? ""}`.trim() || "Unknown"]));
+
+    return strikeRows.map(s => ({
+      ...s,
+      addedByName: s.addedBy ? nameMap.get(s.addedBy) ?? "Unknown" : null,
+      clearedByName: s.clearedBy ? nameMap.get(s.clearedBy) ?? "Unknown" : null,
+    }));
+  }
+
+  // Ecosystem-wide KPIs for the admin Guild Manager header — aggregated in SQL
+  // rather than pulled client-side, so the numbers stay correct regardless of
+  // the paginated guild list's current page/filter.
+  async getGuildEcosystemStats(): Promise<{
+    totalGuilds: number; active: number; frozen: number; disbanded: number;
+    totalWeeklyBonusPoolPkr: string; avgGps: number;
+  }> {
+    const [row] = await db.select({
+      total: sql<number>`count(*)`,
+      active: sql<number>`count(*) FILTER (WHERE ${guilds.status} = 'active')`,
+      frozen: sql<number>`count(*) FILTER (WHERE ${guilds.status} = 'frozen')`,
+      disbanded: sql<number>`count(*) FILTER (WHERE ${guilds.status} = 'disbanded')`,
+      totalPool: sql<string>`COALESCE(SUM(${guilds.weeklyBonusPool}) FILTER (WHERE ${guilds.status} = 'active'), 0)`,
+      avgGps: sql<string>`COALESCE(AVG(${guilds.guildPerformanceScore}) FILTER (WHERE ${guilds.status} = 'active'), 0)`,
+    }).from(guilds);
+
+    return {
+      totalGuilds: Number(row.total),
+      active: Number(row.active),
+      frozen: Number(row.frozen),
+      disbanded: Number(row.disbanded),
+      totalWeeklyBonusPoolPkr: new Decimal(row.totalPool || 0).toFixed(2),
+      avgGps: Math.round(Number(row.avgGps) || 0),
+    };
   }
 
   async adminGetInactiveCaptains(inactiveDays = 3): Promise<any[]> {
