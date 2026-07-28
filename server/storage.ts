@@ -3657,7 +3657,7 @@ export class DatabaseStorage implements IStorage {
         SELECT
           COALESCE(SUM((thorx_fee_share)::numeric), 0) AS fee_revenue,
           COALESCE(SUM((referral_commission_paid)::numeric), 0) AS ref_paid
-        FROM withdrawals WHERE status = 'approved'
+        FROM withdrawals WHERE status IN ('approved', 'completed')
       `),
 
       db.execute(sql`

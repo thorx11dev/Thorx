@@ -144,8 +144,12 @@ export function PayoutControl() {
     mutationFn: async ({ id, status, transactionId, rejectionReason }: { id: string; status: string; transactionId?: string; rejectionReason?: string }) => {
       return await apiRequest("PATCH", `/api/admin/withdrawals/${id}`, { status, transactionId, rejectionReason });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/withdrawals'] });
+      // Invalidate ledger validation so stale mismatch alert clears after action
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/ledger/validate', selectedWithdrawal?.userId] });
+      // Invalidate audit trail so the new action appears immediately
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/withdrawals', variables.id, 'audit-trail'] });
       toast({ title: "Operation Successful", description: "Withdrawal queue synchronized with ledger." });
       closeModal();
     },
@@ -292,7 +296,7 @@ export function PayoutControl() {
             <option value="all">All</option>
             <option value="pending">Pending</option>
             <option value="completed">Completed</option>
-            <option value="rejected">Cancelled</option>
+            <option value="rejected">Rejected</option>
           </select>
         </div>
       </div>
@@ -598,7 +602,7 @@ export function PayoutControl() {
                        return (
                          <>
                            <div className="flex justify-between"><span className="text-zinc-400">Real PKR (ledger):</span><span className="text-white font-black">Rs. {gross.toFixed(2)}</span></div>
-                           <div className="flex justify-between"><span className="text-zinc-400">Platform Fee (15%):</span><span className="text-red-400">− Rs. {fee.toFixed(2)}</span></div>
+                           <div className="flex justify-between"><span className="text-zinc-400">Platform Fee ({gross.isZero() ? "0" : fee.div(gross).times(100).toDecimalPlaces(1).toString()}%):</span><span className="text-red-400">− Rs. {fee.toFixed(2)}</span></div>
                            <div className="border-t border-zinc-700 pt-1.5 flex justify-between"><span className="text-zinc-300 font-black">USER RECEIVES:</span><span className="text-emerald-400 font-black">Rs. {net.toFixed(2)}</span></div>
                          </>
                        );
@@ -618,7 +622,7 @@ export function PayoutControl() {
                        <div>Points mismatch: <span className="font-black">+{ledgerCheck.pointsMismatch} TX-Points</span> (possible exploit)</div>
                      )}
                      {ledgerCheck.pkrMismatch !== undefined && (
-                       <div>PKR mismatch: <span className="font-black">Rs. {Number(ledgerCheck.pkrMismatch).toFixed(2)}</span></div>
+                       <div>PKR mismatch: <span className="font-black">Rs. {new Decimal(ledgerCheck.pkrMismatch ?? 0).toFixed(2)}</span></div>
                      )}
                      <div className="mt-2">Severity: <span className="font-black uppercase">{ledgerCheck.severity || "CRITICAL"}</span></div>
                    </div>
@@ -652,15 +656,23 @@ export function PayoutControl() {
                      <div className="divide-y divide-zinc-50 max-h-40 overflow-y-auto">
                        {auditTrailData.trail.map(entry => {
                          const actionLabel: Record<string, string> = {
-                           APPROVE_WITHDRAWAL: "Approved",
-                           REJECT_WITHDRAWAL: "Rejected",
-                           PROCESS_WITHDRAWAL: "Processed",
-                           BULK_APPROVE_WITHDRAWALS: "Bulk Approved",
-                           BULK_REJECT_WITHDRAWALS: "Bulk Rejected",
+                           // Current backend action names (WITHDRAWAL_${status.toUpperCase()})
+                           WITHDRAWAL_COMPLETED:      "Approved",
+                           WITHDRAWAL_REJECTED:       "Rejected",
+                           WITHDRAWAL_PENDING:        "Reset to Pending",
+                           BULK_WITHDRAWAL_COMPLETED: "Bulk Approved",
+                           BULK_WITHDRAWAL_REJECTED:  "Bulk Rejected",
+                           BULK_WITHDRAWAL_PENDING:   "Bulk Reset to Pending",
+                           // Legacy fallbacks
+                           APPROVE_WITHDRAWAL:        "Approved",
+                           REJECT_WITHDRAWAL:         "Rejected",
+                           PROCESS_WITHDRAWAL:        "Processed",
+                           BULK_APPROVE_WITHDRAWALS:  "Bulk Approved",
+                           BULK_REJECT_WITHDRAWALS:   "Bulk Rejected",
                          };
                          const label = actionLabel[entry.action] ?? entry.action.replace(/_/g, " ");
-                         const isApprove = entry.action.includes("APPROVE");
-                         const isReject = entry.action.includes("REJECT");
+                         const isApprove = entry.action.includes("APPROVE") || entry.action === "WITHDRAWAL_COMPLETED" || entry.action === "BULK_WITHDRAWAL_COMPLETED";
+                         const isReject  = entry.action.includes("REJECT")  || entry.action === "WITHDRAWAL_REJECTED"  || entry.action === "BULK_WITHDRAWAL_REJECTED";
                          const txId = entry.metadata?.transactionId;
                          return (
                            <div key={entry.id} className="flex items-start gap-3 px-4 py-3">
