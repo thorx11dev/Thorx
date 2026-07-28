@@ -4759,11 +4759,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
           updates.resolution = resolution || `${status} by admin`;
         }
       }
+
+      // updateRiskCase now throws "Risk case not found" if the ID doesn't match
+      // any row, which surfaces as a clean 400 rather than a cryptic 500.
       const updated = await storage.updateRiskCase(req.params.id, updates);
 
+      // ── Audit log — every risk case update is recorded ───────────────────
+      // This was previously absent, leaving no trace of who changed status,
+      // assignment, or notes. All risk-case decisions must be auditable.
+      await storage.createAuditLog({
+        adminId: adminId as string,
+        action: "RISK_CASE_UPDATED",
+        targetType: "user",
+        targetId: updated.userId,
+        details: {
+          riskCaseId: updated.id,
+          ...(status        && { statusChange: status }),
+          ...(assignedTo !== undefined && { assignedTo: assignedTo ?? null }),
+          ...(notes !== undefined      && { notesUpdated: true }),
+          ...(resolution               && { resolution }),
+          ...(trustStatusOutcome       && { trustStatusOutcome }),
+        },
+        ipAddress: req.ip,
+      });
+
+      // ── Trust Status outcome ─────────────────────────────────────────────
       // Trust Status is the resolution of a risk case: an admin investigates
       // a case, then the outcome (Cleared/Actioned) can set the account's
       // Trust Status, logged with the case resolution as the "why".
+      // Previously, failures were silently swallowed (caught + only logged),
+      // so admins received a "Case updated" success toast even when the trust
+      // status change never applied. Now we surface the failure in the response
+      // so the frontend can show a targeted warning.
+      let trustStatusApplied = false;
+      let trustStatusError: string | null = null;
       if (trustStatusOutcome && adminId && (status === "Cleared" || status === "Actioned")) {
         const TRUST_STATUSES = ["Special", "Trusted", "Normal", "Dangerous"];
         if (TRUST_STATUSES.includes(trustStatusOutcome)) {
@@ -4774,25 +4803,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
               `Risk case ${status.toLowerCase()}: ${resolution || `${status} by admin`}`,
               adminId
             );
+            trustStatusApplied = true;
           } catch (trustErr) {
             logger.error({ err: trustErr }, "[RiskCases] setUserTrustStatus error:");
+            trustStatusError = trustErr instanceof Error ? trustErr.message : "Trust status update failed";
           }
         }
       }
 
-      res.json(updated);
+      res.json({
+        ...updated,
+        // Include these fields only when a trust status change was attempted
+        // so the frontend can show a targeted warning if it silently failed.
+        ...(trustStatusOutcome ? { trustStatusApplied, trustStatusError } : {}),
+      });
     } catch (err) {
-      logger.error({ err: err }, "[RiskCases] updateRiskCase error:");
-      res.status(500).json({ message: "Failed to update case" });
+      const msg = err instanceof Error ? err.message : "Failed to update case";
+      // updateRiskCase throws "Risk case not found" — surface as 404 not 500
+      const statusCode = msg === "Risk case not found" ? 404 : 500;
+      logger.error({ err }, "[RiskCases] updateRiskCase error:");
+      res.status(statusCode).json({ message: msg });
     }
   });
 
   app.post("/api/admin/risk-scan", requirePermission("VIEW_ANALYTICS"), async (req, res) => {
     try {
+      const adminId = getThorxPrincipalId(req);
       const { runFullRiskScan } = await import("./modules/risk-engine");
       const result = await runFullRiskScan({ broadcastAlerts: true });
       // Refresh leaderboard cache so anomaly counts reflect the new risk scores immediately
       await storage.refreshLeaderboardCache();
+
+      // ── Audit log — full risk scans affect every user's risk score ───────
+      // Previously unlogged; admins had no record of who triggered scans or
+      // how many users were flagged/critical at each point in time.
+      await storage.createAuditLog({
+        adminId: adminId as string,
+        action: "RISK_SCAN_TRIGGERED",
+        targetType: "system",
+        targetId: "risk_engine",
+        details: { scanned: (result as any).scanned, flagged: (result as any).flagged, critical: (result as any).critical },
+        ipAddress: req.ip,
+      });
+
       res.json({ ok: true, ...result });
     } catch (err) {
       logger.error({ err: err }, "[RiskCases] runFullRiskScan error:");

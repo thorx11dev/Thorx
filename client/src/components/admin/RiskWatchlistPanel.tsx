@@ -728,8 +728,9 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
 
   const scanMutation = useMutation({
     mutationFn: async () => {
+      // apiRequest already throws via throwIfResNotOk on any non-2xx response,
+      // so the previous `if (!res.ok)` guard after this call was unreachable dead code.
       const res = await apiRequest("POST", "/api/admin/risk-scan");
-      if (!res.ok) throw new Error("Scan failed");
       return res.json();
     },
     onSuccess: (d) => {

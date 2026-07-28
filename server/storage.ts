@@ -4630,6 +4630,10 @@ export class DatabaseStorage implements IStorage {
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(riskCases.id, id))
       .returning();
+    // Guard: if ID doesn't exist, returning() yields an empty array and `updated`
+    // is undefined. Accessing updated.userId in the route would throw a cryptic
+    // "Cannot read properties of undefined" 500 instead of a clean 404.
+    if (!updated) throw new Error("Risk case not found");
     return updated;
   }
 
