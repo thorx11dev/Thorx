@@ -315,7 +315,10 @@ function CaseDetailDrawer({
   const handleStatus = (status: string) =>
     updateMutation.mutate({
       status,
-      notes,
+      // Only send notes if the admin actually changed them — avoids incorrectly
+      // re-attributing authorship (notesBy / notesUpdatedAt) to whoever clicked
+      // a status button without editing the notes field.
+      ...(notes !== (riskCase.notes ?? "") ? { notes } : {}),
       resolution,
       assignedTo: assignedTo || null,
       ...(trustStatusOutcome ? { trustStatusOutcome } : {}),
@@ -732,8 +735,15 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
     onSuccess: (d) => {
       // Invalidate all paginated risk-cases pages, signal-stats precision, and
       // leaderboard insights so the anomaly count reflects the new risk scores.
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminRiskCases });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminRiskSignalStats });
+      // NOTE: predicate is required because the main list query key is dynamic
+      // (includes limit/offset/filters as query string), so exact-key invalidation
+      // against QUERY_KEYS.adminRiskCases ("/api/admin/risk-cases") would miss it.
+      queryClient.invalidateQueries({
+        predicate: (q) => {
+          const k = q.queryKey[0];
+          return typeof k === "string" && k.startsWith("/api/admin/risk-cases");
+        },
+      });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminLeaderboard });
       toast({
         title: "Risk Scan Complete",
