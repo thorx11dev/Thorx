@@ -15,9 +15,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Crown, UserMinus, ShieldAlert, Users2, Trash2, Wallet, Target, History, Download, Activity, type LucideIcon } from "lucide-react";
-import { RankOrUnknown, formatPkr, formatPersonName, formatDate, formatDateTime, explainDisposition } from "./guild-format";
-import { downloadFromUrl } from "@/lib/downloadFromUrl";
-import { apiAbsolutePath } from "@/lib/apiOrigin";
+import { RankOrUnknown, formatPkr, formatPersonName, formatDate, formatDateTime, daysOffline, downloadCsvSafely, explainDisposition } from "./guild-format";
 import type { AdminGuild, GuildMemberRow, GuildStrikeRow, GuildWeeklySnapshotRow, GuildChatMessageRow, GuildAuditLogRow } from "./types";
 
 interface GuildDetailDrawerProps {
@@ -234,11 +232,14 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
                     <TableHead>Role</TableHead>
                     <TableHead className="text-right">Weekly Pts</TableHead>
                     <TableHead>Joined</TableHead>
+                    <TableHead>Last Active</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {members.map((m) => (
+                  {members.map((m) => {
+                    const offlineDays = daysOffline(m.lastActiveAt);
+                    return (
                     <TableRow key={m.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -262,6 +263,15 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
                       </TableCell>
                       <TableCell className="text-right font-bold text-sm">{m.weeklyPointsContributed.toLocaleString()}</TableCell>
                       <TableCell className="text-xs text-zinc-400">{formatDate(m.joinedAt)}</TableCell>
+                      <TableCell className="text-xs">
+                        {offlineDays == null ? (
+                          <span className="text-zinc-400 italic">Unknown</span>
+                        ) : offlineDays >= 2 ? (
+                          <span className="text-red-500 font-bold">{offlineDays}d ago</span>
+                        ) : (
+                          <span className="text-zinc-500">{offlineDays === 0 ? "Today" : "1d ago"}</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         <Button
                           size="sm" variant="outline"
@@ -274,7 +284,8 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
@@ -285,7 +296,11 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
               <Button
                 size="sm" variant="outline"
                 className="h-7 text-[10px] font-black border-2 border-black"
-                onClick={() => downloadFromUrl(apiAbsolutePath(`/api/admin/guilds/${guild.id}/strikes/export`), `${guild.name}-strikes.csv`)}
+                onClick={() => downloadCsvSafely(
+                  `/api/admin/guilds/${guild.id}/strikes/export`,
+                  `${guild.name}-strikes.csv`,
+                  (message) => toast({ title: "Export failed", description: message, variant: "destructive" }),
+                )}
               >
                 <Download size={11} className="mr-1" /> Export CSV
               </Button>

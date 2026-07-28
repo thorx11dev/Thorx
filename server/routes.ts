@@ -4952,8 +4952,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Shared guard for player-facing guild-roster routes (captain/member portal +
+  // weekly history). Visible to: team/founder/admin (moderation), the guild's
+  // own active members (their own roster), and anyone previewing a *public*
+  // guild (Guild Discovery lets a prospective applicant see the roster before
+  // applying — see GuildDiscoveryPanel.tsx). A private, non-member guild's
+  // roster/history must stay hidden even though the route only requires login.
+  async function assertGuildRosterVisible(req: Request, guildId: string): Promise<{ ok: true } | { ok: false; status: number; message: string }> {
+    const guild = await storage.getGuildById(guildId);
+    if (!guild) return { ok: false, status: 404, message: "Guild not found" };
+    const role = req.userProfile?.role;
+    if (role === "team" || role === "founder" || role === "admin") return { ok: true };
+    if (guild.isPublic) return { ok: true };
+    const userId = getThorxPrincipalId(req) as string | undefined;
+    const isMember = userId ? await storage.isActiveGuildMember(guildId, userId) : false;
+    if (isMember) return { ok: true };
+    return { ok: false, status: 403, message: "This guild is private." };
+  }
+
   app.get("/api/guilds/:id/weekly-history", requireSessionAuth, async (req, res) => {
     try {
+      const gate = await assertGuildRosterVisible(req, req.params.id);
+      if (!gate.ok) return res.status(gate.status).json({ message: gate.message });
       const history = await storage.getGuildWeeklyHistory(req.params.id);
       res.json({ history });
     } catch (error) {
@@ -4964,6 +4984,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ── THORX v3 (spec E.9): Captain Portal — roster management ──────────────
   app.get("/api/guilds/:id/members", requireSessionAuth, async (req, res) => {
     try {
+      const gate = await assertGuildRosterVisible(req, req.params.id);
+      if (!gate.ok) return res.status(gate.status).json({ message: gate.message });
       const roster = await storage.getGuildRosterForCaptain(req.params.id);
       res.json({ members: roster });
     } catch (error) {

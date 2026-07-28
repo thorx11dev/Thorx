@@ -18,18 +18,19 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
-import { downloadFromUrl } from "@/lib/downloadFromUrl";
-import { apiAbsolutePath } from "@/lib/apiOrigin";
 import { GuildKpiHeader } from "./guild-manager/GuildKpiHeader";
 import { GuildDetailDrawer } from "./guild-manager/GuildDetailDrawer";
-import { RankOrUnknown, formatPkr, daysOffline, formatPersonName, formatDateTime } from "./guild-manager/guild-format";
-import type { AdminGuild, GuildApplicationRow } from "./guild-manager/types";
+import { RankOrUnknown, formatPkr, daysOffline, formatPersonName, formatDateTime, downloadCsvSafely } from "./guild-manager/guild-format";
+import type { AdminGuild, GuildApplicationRow, GuildCreationRequestRow } from "./guild-manager/types";
+
+const GUILD_PAGE_SIZE = 20;
 
 export function GuildManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [page, setPage] = useState(0);
   const [strikeReason, setStrikeReason] = useState<Record<string, string>>({});
   const [gpsAdjust, setGpsAdjust] = useState<Record<string, { delta: string; reason: string }>>({});
   const [weeklyTarget, setWeeklyTarget] = useState<Record<string, string>>({});
@@ -61,17 +62,27 @@ export function GuildManager() {
   const [rejectAppReason, setRejectAppReason] = useState("");
 
   const { data, isLoading } = useQuery<{ guilds: AdminGuild[]; total: number }>({
-    queryKey: ["/api/admin/guilds", search, statusFilter],
+    queryKey: ["/api/admin/guilds", search, statusFilter, page],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
       if (statusFilter) params.set("status", statusFilter);
+      params.set("limit", String(GUILD_PAGE_SIZE));
+      params.set("offset", String(page * GUILD_PAGE_SIZE));
       const res = await apiRequest("GET", `/api/admin/guilds?${params.toString()}`);
       return res.json();
     },
     refetchInterval: 20000,
   });
   const guildList = data?.guilds ?? [];
+  const guildTotal = data?.total ?? 0;
+  const pageCount = Math.max(1, Math.ceil(guildTotal / GUILD_PAGE_SIZE));
+
+  // Reset to page 1 whenever the filters change — a stale offset on a
+  // narrowed result set would otherwise show "No guilds found" even when
+  // matches exist on an earlier page.
+  const updateSearch = (value: string) => { setSearch(value); setPage(0); };
+  const updateStatusFilter = (value: string) => { setStatusFilter(value); setPage(0); };
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["/api/admin/guilds"] });
   const invalidateStats = () => queryClient.invalidateQueries({ queryKey: ["/api/admin/guilds/stats"] });
@@ -89,7 +100,11 @@ export function GuildManager() {
     if (statusFilter) params.set("status", statusFilter);
     if (search) params.set("search", search);
     if (selectedGuildIds.size > 0) params.set("ids", Array.from(selectedGuildIds).join(","));
-    downloadFromUrl(apiAbsolutePath(`/api/admin/guilds/export?${params.toString()}`), `THORX-Guild-Directory-${new Date().toISOString().split("T")[0]}.csv`);
+    downloadCsvSafely(
+      `/api/admin/guilds/export?${params.toString()}`,
+      `THORX-Guild-Directory-${new Date().toISOString().split("T")[0]}.csv`,
+      (message) => toast({ title: "Export failed", description: message, variant: "destructive" }),
+    );
   };
 
   const statusMutation = useMutation({
@@ -250,13 +265,16 @@ export function GuildManager() {
   const applications = applicationsData?.applications ?? [];
 
   const decideApplicationMutation = useMutation({
-    mutationFn: async ({ id, action, rejectionReason }: { id: string; action: "accept" | "reject"; rejectionReason?: string }) =>
+    mutationFn: async ({ id, action, rejectionReason }: { id: string; guildId: string; action: "accept" | "reject"; rejectionReason?: string }) =>
       (await apiRequest("POST", `/api/admin/guild-applications/${id}/decide`, { action, rejectionReason })).json(),
     onSuccess: (_data, vars) => {
       toast({ title: vars.action === "accept" ? "Application accepted" : "Application rejected" });
       setRejectAppId(null);
       setRejectAppReason("");
       queryClient.invalidateQueries({ queryKey: ["/api/admin/guild-applications"] });
+      // An accepted application changes that guild's roster — refresh it so an
+      // already-open detail drawer doesn't keep showing the pre-accept member list.
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", vars.guildId, "members"] });
       invalidate(); // member counts changed
       invalidateStats();
     },
@@ -268,12 +286,13 @@ export function GuildManager() {
     onSuccess: (data: any) => {
       toast({ title: "Weekly resolution run", description: `${data?.distributed ?? 0} distributed, ${data?.voided ?? 0} voided, ${data?.skipped ?? 0} already resolved.` });
       invalidate();
+      invalidateStats(); // resolution redistributes/voids bonus pools, which shifts the KPI header's totals
     },
     onError: (err: any) => toast({ title: "Failed to run resolution", description: err?.message, variant: "destructive" }),
   });
 
   // ── Guild Creation Requests ─────────────────────────────────────────────
-  const { data: creationRequestsData, isLoading: requestsLoading } = useQuery<{ requests: any[] }>({
+  const { data: creationRequestsData, isLoading: requestsLoading } = useQuery<{ requests: GuildCreationRequestRow[] }>({
     queryKey: ["/api/admin/guild-creation-requests", requestStatusFilter],
     queryFn: async () => {
       const r = await apiRequest("GET", `/api/admin/guild-creation-requests?status=${requestStatusFilter}`);
@@ -301,7 +320,7 @@ export function GuildManager() {
   });
 
   const creationRequests = creationRequestsData?.requests ?? [];
-  const pendingCount = creationRequests.filter((r: any) => r.status === "pending").length;
+  const pendingCount = creationRequests.filter((r) => r.status === "pending").length;
 
   return (
     <div className="space-y-6 pb-24 w-full animate-in slide-in-from-bottom-2 duration-500">
@@ -364,7 +383,7 @@ export function GuildManager() {
               </div>
             ) : (
               <div className="space-y-3">
-                {creationRequests.map((req: any) => (
+                {creationRequests.map((req) => (
                   <div key={req.id} className="rounded-xl border border-zinc-200 bg-white p-4 space-y-2">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
@@ -452,7 +471,7 @@ export function GuildManager() {
                           size="sm"
                           className="h-8 text-[10px] font-black bg-emerald-600 hover:bg-emerald-700 text-white border-0"
                           disabled={decideApplicationMutation.isPending}
-                          onClick={() => decideApplicationMutation.mutate({ id: app.id, action: "accept" })}
+                          onClick={() => decideApplicationMutation.mutate({ id: app.id, guildId: app.guildId, action: "accept" })}
                         >
                           <CheckCircle2 size={11} className="mr-1" /> Accept
                         </Button>
@@ -536,7 +555,12 @@ export function GuildManager() {
             <Button
               className="font-black text-xs bg-red-600 hover:bg-red-700"
               disabled={rejectAppReason.trim().length < 10 || decideApplicationMutation.isPending}
-              onClick={() => decideApplicationMutation.mutate({ id: rejectAppId!, action: "reject", rejectionReason: rejectAppReason.trim() })}
+              onClick={() => decideApplicationMutation.mutate({
+                id: rejectAppId!,
+                guildId: applications.find(a => a.id === rejectAppId)?.guildId ?? "",
+                action: "reject",
+                rejectionReason: rejectAppReason.trim(),
+              })}
             >
               Confirm Rejection
             </Button>
@@ -547,13 +571,13 @@ export function GuildManager() {
       <div className="flex flex-col md:flex-row gap-3">
         <div className="flex items-center gap-2 flex-1">
           <Search className="w-4 h-4 text-zinc-400" />
-          <Input placeholder="Search guilds..." value={search} onChange={(e) => setSearch(e.target.value)} className="border-2 border-black h-10" />
+          <Input placeholder="Search guilds..." value={search} onChange={(e) => updateSearch(e.target.value)} className="border-2 border-black h-10" />
         </div>
         <div className="flex gap-2">
           {["", "active", "frozen", "disbanded"].map((s) => (
             <button
               key={s || "all"}
-              onClick={() => setStatusFilter(s)}
+              onClick={() => updateStatusFilter(s)}
               className={cn(
                 "px-3 h-10 border-2 border-black font-black text-xs uppercase rounded-md",
                 statusFilter === s ? "bg-black text-white" : "bg-white text-black"
@@ -882,6 +906,34 @@ export function GuildManager() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ── PAGINATION ── */}
+      {!isLoading && guildTotal > 0 && (
+        <div className="flex items-center justify-between gap-3 pt-2">
+          <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
+            Showing {page * GUILD_PAGE_SIZE + 1}–{Math.min(guildTotal, (page + 1) * GUILD_PAGE_SIZE)} of {guildTotal}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm" variant="outline"
+              className="h-8 text-[10px] font-black border-2 border-black disabled:opacity-30"
+              disabled={page === 0}
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+            >
+              Previous
+            </Button>
+            <span className="text-[11px] font-bold text-zinc-400">Page {page + 1} of {pageCount}</span>
+            <Button
+              size="sm" variant="outline"
+              className="h-8 text-[10px] font-black border-2 border-black disabled:opacity-30"
+              disabled={page + 1 >= pageCount}
+              onClick={() => setPage(p => Math.min(pageCount - 1, p + 1))}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
       {/* ── REPLACE CAPTAIN DIALOG ── */}

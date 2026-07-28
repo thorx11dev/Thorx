@@ -3,6 +3,7 @@
 // default (e.g. an unknown rank must never render as "E-Rank", a missing
 // timestamp must never render as "0" or "?" — always an explicit "Unknown"/"—").
 import { RankBadge } from "@/components/RankBadge";
+import { apiRequest } from "@/lib/queryClient";
 
 /** Format a PKR decimal-string/number safely. Never emits "NaN". */
 export function formatPkr(value: string | number | null | undefined): string {
@@ -58,6 +59,36 @@ export function RankOrUnknown({ rank, size = "sm" }: { rank?: string | null; siz
  * bonus forfeited; 0% -> voided) so admins don't have to infer intent from the
  * raw code + numbers alone.
  */
+/**
+ * Downloads a CSV export through the authenticated API client (cookies +
+ * CSRF header, same as every other admin request) instead of a bare <a href>
+ * navigation. A bare navigation can't see HTTP errors — a failed export
+ * (expired session, 500, etc.) would silently download an HTML/JSON error
+ * page disguised as a ".csv" file. This surfaces failures via `onError`
+ * instead.
+ */
+export async function downloadCsvSafely(
+  url: string,
+  filename: string,
+  onError: (message: string) => void,
+): Promise<void> {
+  try {
+    const res = await apiRequest("GET", url);
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = filename;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(objectUrl);
+  } catch (err) {
+    onError(err instanceof Error ? err.message : "Export failed");
+  }
+}
+
 export function explainDisposition(h: { poolDisposition: string; achievementPct: string | number | null | undefined }): string {
   const pct = formatPkr(h.achievementPct);
   switch (h.poolDisposition) {

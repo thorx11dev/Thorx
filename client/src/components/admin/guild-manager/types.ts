@@ -101,6 +101,25 @@ export interface GuildAuditLogRow {
   createdAt: string;
 }
 
+// A request to found a brand-new guild, awaiting admin approval — distinct
+// from GuildApplicationRow, which is a request to join an *existing* guild.
+export interface GuildCreationRequestRow {
+  id: string;
+  guildName: string;
+  description: string | null;
+  reason: string;
+  status: string; // pending | approved | rejected
+  userId: string;
+  userFirstName: string | null;
+  userLastName: string | null;
+  userEmail: string | null;
+  userRankTier: string | null;
+  adminNote: string | null;
+  decidedBy: string | null;
+  decidedAt: string | null;
+  createdAt: string;
+}
+
 // A pending join request against an existing guild (guild_members row with
 // status="pending") — distinct from GuildCreationRequest, which is a request
 // to found a brand-new guild.

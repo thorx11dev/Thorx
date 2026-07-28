@@ -5276,6 +5276,18 @@ export class DatabaseStorage implements IStorage {
       .limit(8);
   }
 
+  // Used to gate the player-facing roster/history routes (see server/routes.ts
+  // assertGuildRosterVisible): distinct from getActiveGuildMembershipTx, which
+  // is transaction-scoped and private to the earn-event pipeline.
+  async isActiveGuildMember(guildId: string, userId: string): Promise<boolean> {
+    const [row] = await db
+      .select({ id: guildMembers.id })
+      .from(guildMembers)
+      .where(and(eq(guildMembers.guildId, guildId), eq(guildMembers.userId, userId), eq(guildMembers.status, "active")))
+      .limit(1);
+    return !!row;
+  }
+
   async getGuildRosterForCaptain(guildId: string): Promise<any[]> {
     return await db
       .select({
@@ -5601,17 +5613,21 @@ export class DatabaseStorage implements IStorage {
       }
 
       const updatedCounts: Record<string, number> = {};
+      const guildIdsByRank: Record<string, string[]> = {};
       for (const [rank, target] of entries) {
         const ids = idsByRank.get(rank) ?? [];
         updatedCounts[rank] = ids.length;
+        guildIdsByRank[rank] = ids;
         if (ids.length === 0) continue;
         await tx.update(guilds).set({ weeklyTarget: target, updatedAt: new Date() })
           .where(inArray(guilds.id, ids));
       }
 
+      // Record the actual affected guild IDs, not just per-rank counts, so the
+      // audit trail can answer "which guilds exactly" after the fact.
       await tx.insert(auditLogs).values({
         adminId, action: "ADMIN_BULK_WEEKLY_TARGET_BY_RANK_SET", targetType: "guild", targetId: "bulk",
-        details: { targets, updatedCounts },
+        details: { targets, updatedCounts, guildIdsByRank },
       });
       return updatedCounts;
     });
