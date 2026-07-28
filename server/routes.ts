@@ -618,7 +618,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } else if (action === "adjust_balance" && payload && payload.amount !== undefined) {
         // Route through adjustUserBalance so every balance change creates an audit log (Finding 1-D)
-        const amount = new Decimal(String(payload.amount));
+        const amountStr = String(payload.amount).trim();
+        if (!amountStr || isNaN(Number(amountStr))) {
+          return res.status(400).json({ message: "Invalid amount: must be a non-empty number." });
+        }
+        const amount = new Decimal(amountStr);
         const type = amount.isNegative() ? "subtract" : "add";
         const adminId = getThorxPrincipalId(req) as string;
         await storage.adjustUserBalance(id, amount.abs().toFixed(4), type, adminId, payload.reason ?? "Admin balance adjustment");

@@ -55,7 +55,7 @@ import { ReferralTree } from "@/components/ui/referral-tree";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDebounce } from "@/hooks/use-debounce";
-import { resolveAvatarUrl, getRankDef } from "@/lib/rankAvatars";
+import { resolveAvatarUrl, resolveAvatarUrlByTier, getRankDef } from "@/lib/rankAvatars";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -84,6 +84,8 @@ interface UserProfile {
   lastActiveAt?: string;
   balanceCashPkr?: string;
   performanceScore?: number;
+  isActive?: boolean;
+  isVerified?: boolean;
 }
 
 interface InternalNote {
@@ -233,8 +235,10 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
     mutationFn: async (userId: string) => {
       return await apiRequest("DELETE", `/api/admin/users/${userId}`);
     },
-    onSuccess: () => {
+    onSuccess: (_data, userId) => {
       queryClient.invalidateQueries({ queryKey: ['/api/team/users'] });
+      queryClient.removeQueries({ queryKey: [`/api/admin/users/${userId}/network`] });
+      queryClient.removeQueries({ queryKey: [`/api/admin/notes/user/${userId}`] });
       toast({ title: "Node Terminated", description: "User has been permanently removed from the directory." });
       closeModal();
     }
@@ -385,6 +389,16 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                     </td>
                   </tr>
                 ))
+              ) : usersList.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="p-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <Users className="w-12 h-12 text-zinc-200" />
+                      <div className="text-sm font-black tracking-widest uppercase text-zinc-400">No users found</div>
+                      {debouncedSearch && <div className="text-xs text-zinc-400">No results for &ldquo;{debouncedSearch}&rdquo;</div>}
+                    </div>
+                  </td>
+                </tr>
               ) : (
                 usersList.map((user, idx) => (
                   <motion.tr 
@@ -408,7 +422,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 min-w-[3rem] shrink-0 bg-white border-[1.5px] border-[#111] rounded-[1rem] overflow-hidden group-hover:border-primary transition-all">
                           <img
-                            src={user.profilePicture || resolveAvatarUrl(user.avatar, user.rank)}
+                            src={user.profilePicture || resolveAvatarUrlByTier(user.avatar, user.userRankTier)}
                             alt={`${user.firstName} ${user.lastName}`}
                             className="w-full h-full object-cover"
                           />
@@ -437,6 +451,9 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                              {(user.userRankTier ?? 'E-Rank')}
                              {user.rankLocked && <Lock size={10} className="text-black" />}
                            </span>
+                           {user.isActive === false && (
+                             <span className="text-[8px] font-black px-1.5 py-0.5 bg-red-100 text-red-600 border border-red-300 rounded-full uppercase tracking-widest">Suspended</span>
+                           )}
                         </div>
                     </td>
                     {/* Guild Role */}
@@ -550,16 +567,32 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                 Previous Protocol
               </Button>
               <div className="flex items-center gap-1 px-4">
-                {[...Array(totalPages)].map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handlePageChange(i + 1)}
-                    className={cn(
-                      "w-2 h-2 rounded-full transition-all",
-                      currentPage === i + 1 ? "w-8 bg-[#111]" : "bg-[#111]/20 hover:bg-[#111]/40"
-                    )}
-                  />
-                ))}
+                {(() => {
+                  // Cap visible dots to avoid overflow on large page counts
+                  const window = 2;
+                  const pages: (number | 'gap')[] = [];
+                  for (let p = 1; p <= totalPages; p++) {
+                    if (p === 1 || p === totalPages || Math.abs(p - currentPage) <= window) {
+                      pages.push(p);
+                    } else if (pages[pages.length - 1] !== 'gap') {
+                      pages.push('gap');
+                    }
+                  }
+                  return pages.map((p, i) =>
+                    p === 'gap' ? (
+                      <span key={`gap-${i}`} className="text-[10px] text-zinc-300 font-black leading-none px-0.5">·</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => handlePageChange(p)}
+                        className={cn(
+                          "w-2 h-2 rounded-full transition-all",
+                          currentPage === p ? "w-8 bg-[#111]" : "bg-[#111]/20 hover:bg-[#111]/40"
+                        )}
+                      />
+                    )
+                  );
+                })()}
               </div>
               <Button
                 variant="ghost"
@@ -606,7 +639,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                     <div key={note.id} className="bg-white border border-zinc-200 rounded-2xl p-5 space-y-3 relative hover:border-[#111]/50 transition-colors">
                        <div className="flex items-center justify-between border-b border-zinc-100/5 pb-3">
                           <TechnicalLabel 
-                            text={`Author: ${note.admin ? `${note.admin.firstName} ${note.admin.lastName}` : note.adminId.substring(0, 8)}`} 
+                            text={`Author: ${note.admin ? `${note.admin.firstName} ${note.admin.lastName}` : (note.adminId || "").substring(0, 8)}`} 
                             className="text-zinc-400 text-[9px] uppercase tracking-wider font-black" 
                           />
                           <TechnicalLabel text={new Date(note.createdAt).toLocaleString()} className="text-zinc-400 text-[9px] tracking-wider" />
@@ -625,16 +658,16 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                     value={newNote}
                     onChange={(e) => setNewNote(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && newNote) {
-                        createNoteMutation.mutate({ targetType: 'user', targetId: selectedUser!.id, content: newNote });
+                      if (e.key === 'Enter' && newNote && selectedUser) {
+                        createNoteMutation.mutate({ targetType: 'user', targetId: selectedUser.id, content: newNote });
                       }
                     }}
                   />
                   <Button 
                     className="h-12 w-12 rounded-full bg-[#111] text-white hover:bg-primary hover:text-white border border-zinc-200 transition-colors p-0 flex items-center justify-center shrink-0 shadow-sm"
                     onClick={() => {
-                      if (!newNote) return;
-                      createNoteMutation.mutate({ targetType: 'user', targetId: selectedUser!.id, content: newNote });
+                      if (!newNote || !selectedUser) return;
+                      createNoteMutation.mutate({ targetType: 'user', targetId: selectedUser.id, content: newNote });
                     }}
                     disabled={createNoteMutation.isPending}
                   >
@@ -811,11 +844,12 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
             <Button 
                className="w-full h-14 rounded-2xl bg-[#111] text-white hover:bg-black font-black uppercase tracking-widest text-[11px] transition-colors shadow-sm"
                onClick={() => {
-                 if (!adjustmentAmount) return;
+                 if (!adjustmentAmount || isNaN(parseFloat(adjustmentAmount))) return;
                  if (adjustmentType === 'add' && !creditIntent) return;
+                 if (!selectedUser) return;
                  adjustBalanceMutation.mutate({
-                   userId: selectedUser!.id,
-                   realPkrDelta: parseFloat(adjustmentAmount) || 0,
+                   userId: selectedUser.id,
+                   realPkrDelta: parseFloat(adjustmentAmount),
                    txPointsDelta: parseInt(adjustmentTxPoints) || 0,
                    type: adjustmentType === 'subtract' ? 'deduct' : 'add',
                    reason: adjustmentReason || "No reason provided",
@@ -1126,7 +1160,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                 <Button 
                   className="flex-1 h-14 bg-red-500 text-white border border-zinc-200 rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-red-600 disabled:opacity-50"
                   disabled={confirmText !== 'TERMINATE' || deleteUserMutation.isPending}
-                  onClick={() => deleteUserMutation.mutate(selectedUser!.id)}
+                  onClick={() => { if (selectedUser) deleteUserMutation.mutate(selectedUser.id); }}
                 >
                   {deleteUserMutation.isPending ? "Executing..." : "Confirm"}
                 </Button>

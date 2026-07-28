@@ -1458,7 +1458,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTeamMembers(): Promise<Array<User & { teamKey: TeamKey | null }>> {
-    return await db
+    const rows = await db
       .select({
         id: users.id,
         firstName: users.firstName,
@@ -1506,6 +1506,14 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(teamKeys, eq(users.id, teamKeys.userId))
       .where(inArray(users.role, ['team', 'admin', 'founder']))
       .orderBy(desc(users.createdAt));
+    // LEFT JOIN on teamKeys produces one row per key — deduplicate to one row per user
+    // keeping the first occurrence (latest teamKey by join order).
+    const seen = new Set<string>();
+    return rows.filter(row => {
+      if (seen.has(row.id)) return false;
+      seen.add(row.id);
+      return true;
+    });
   }
 
   // User credentials storage for team data management
