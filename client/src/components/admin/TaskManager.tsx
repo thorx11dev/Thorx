@@ -296,7 +296,7 @@ function EngineBTasksTab() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-sm">{task.title}</span>
                     <span className="text-xs bg-primary/10 text-primary rounded px-1.5 py-0.5 font-mono">
-                      Rs. {(parseFloat(task.grossPkrPerCompletion) || 0).toFixed(2)}
+                      Rs. {safePkr(task.grossPkrPerCompletion)}
                     </span>
                     <span className="text-xs border rounded px-1.5 py-0.5 text-muted-foreground">
                       {task.difficulty}
@@ -1015,7 +1015,7 @@ function IndirectTasksTab() {
                         <Coins className="w-3 h-3" /> {task.pointReward} TX-pts
                       </span>
                       <span className="text-xs bg-zinc-100 text-zinc-500 border border-zinc-200 rounded px-1.5 py-0.5 font-mono">
-                        PKR 0.00
+                        PKR {safePkr(task.grossPkrPerCompletion)}
                       </span>
                       <span className="text-xs border rounded px-1.5 py-0.5 text-muted-foreground">
                         {rankDisplay}+
