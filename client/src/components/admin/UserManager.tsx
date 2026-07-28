@@ -83,7 +83,7 @@ interface UserProfile {
   guildId?: string;
   lastActiveAt?: string;
   balanceCashPkr?: string;
-  performanceScore?: string;
+  performanceScore?: number;
 }
 
 interface InternalNote {
@@ -135,7 +135,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
   const { data, isLoading } = useQuery<{ users: UserProfile[], totalCount: number }>({
     queryKey: ['/api/team/users', { page: currentPage, search: debouncedSearch }],
     queryFn: async ({ queryKey }) => {
-      const [_url, params] = queryKey as [string, any];
+      const [_url, params] = queryKey as [string, { page: number; search: string }];
       const searchParam = params.search ? `&search=${encodeURIComponent(params.search)}` : '';
       const response = await apiRequest("GET", `/api/team/users?page=${params.page}&limit=${itemsPerPage}${searchParam}`);
       return await response.json();
@@ -165,8 +165,9 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
     mutationFn: async ({ userId, realPkrDelta, txPointsDelta, type, reason, creditIntent }: { userId: string, realPkrDelta: number, txPointsDelta: number, type: string, reason: string, creditIntent?: string }) => {
       return await apiRequest("POST", `/api/admin/users/${userId}/adjust-balance`, { realPkrDelta, txPointsDelta, type, reason, creditIntent });
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/team/users'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${variables.userId}/network`] });
       toast({ title: "Balance Adjusted", description: "User's financial ledger has been updated." });
       closeModal();
     },
@@ -179,8 +180,9 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
       const res = await apiRequest("PATCH", `/api/admin/users/${userId}/ps`, { delta, reason });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/team/users'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${variables.userId}/network`] });
       toast({ title: "PS Adjusted", description: "Performance score updated." });
       setPsDelta(""); setPsReason("");
       closeModal();
@@ -192,8 +194,9 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
     mutationFn: async ({ userId, status, reason }: { userId: string, status: string | null, reason: string }) => {
       return await apiRequest("PATCH", `/api/admin/users/${userId}/trust-status`, { status, reason });
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/team/users'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${variables.userId}/network`] });
       toast({ title: "Trust Status Updated", description: "User's trust status has been saved." });
       closeModal();
     },
@@ -449,15 +452,16 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                       {(() => {
                         if(!user.lastActiveAt) return <span className="text-[10px] text-zinc-400 font-bold">—</span>;
                         const hrs = (Date.now()-new Date(user.lastActiveAt).getTime())/3600000;
+                        if(isNaN(hrs)) return <span className="text-[10px] text-zinc-400 font-bold">—</span>;
                         const label = hrs<1?'Just now':hrs<24?`${Math.floor(hrs)}h ago`:`${Math.floor(hrs/24)}d ago`;
                         return <span className={`text-[10px] font-black ${hrs>48?'text-red-500':'text-zinc-500'}`}>{label}</span>;
                       })()}
                     </td>
                     <td className="p-6">
-                      <div className="font-black text-base text-[#111] mb-1 leading-none">{Number(user.availableBalance || "0").toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                      <div className="font-black text-base text-[#111] mb-1 leading-none">{new Decimal(user.availableBalance || "0").toNumber().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                       <div className="flex items-center gap-1.5">
                          <span className="text-[9px] uppercase tracking-widest text-zinc-400 font-bold">Total:</span>
-                         <span className="text-[10px] font-black text-[#111]/50">{Number(user.totalEarnings || "0").toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                         <span className="text-[10px] font-black text-[#111]/50">{new Decimal(user.totalEarnings || "0").toNumber().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     </td>
                     <td className="p-6 text-right">
@@ -967,7 +971,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
               Adjust PS
             </DialogTitle>
             <DialogDescription className="text-zinc-500 font-bold text-[10px] tracking-widest mt-1 uppercase">
-              {selectedUser?.firstName} {selectedUser?.lastName} · Current PS: {(selectedUser as any)?.performanceScore ?? "—"}
+              {selectedUser?.firstName} {selectedUser?.lastName} · Current PS: {selectedUser?.performanceScore ?? "—"}
             </DialogDescription>
           </DialogHeader>
           <div className="p-8 space-y-6">
@@ -994,12 +998,16 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
             {psConfirming ? (
               <div className="space-y-3">
                 <div className="rounded-xl bg-purple-50 border border-purple-200 px-4 py-3 text-sm font-semibold text-purple-800 text-center">
-                  Apply <span className="font-black">{parseFloat(psDelta) > 0 ? "+" : ""}{psDelta} PS</span> to <span className="font-black">{selectedUser?.firstName}</span>?
+                  Apply <span className="font-black">{Number(psDelta) > 0 ? "+" : ""}{psDelta} PS</span> to <span className="font-black">{selectedUser?.firstName}</span>?
                 </div>
                 <button
                   className="w-full bg-purple-600 text-white font-black text-sm tracking-widest uppercase py-4 rounded-2xl hover:bg-purple-700 transition-colors disabled:opacity-40"
                   disabled={psAdjustMutation.isPending}
-                  onClick={() => selectedUser && psAdjustMutation.mutate({ userId: selectedUser.id, delta: parseFloat(psDelta), reason: psReason })}
+                  onClick={() => {
+                    const parsedDelta = parseFloat(psDelta);
+                    if (!selectedUser || isNaN(parsedDelta)) return;
+                    psAdjustMutation.mutate({ userId: selectedUser.id, delta: parsedDelta, reason: psReason });
+                  }}
                 >
                   {psAdjustMutation.isPending ? "Applying…" : "Confirm"}
                 </button>
@@ -1009,7 +1017,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
               <>
                 <button
                   className="w-full bg-purple-600 text-white font-black text-sm tracking-widest uppercase py-4 rounded-2xl hover:bg-purple-700 transition-colors disabled:opacity-40"
-                  disabled={!psDelta || psReason.length < 5}
+                  disabled={!psDelta || isNaN(parseFloat(psDelta)) || psReason.length < 5}
                   onClick={() => setPsConfirming(true)}
                 >
                   Review PS Adjustment

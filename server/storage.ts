@@ -4141,7 +4141,20 @@ export class DatabaseStorage implements IStorage {
     }
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
     const [countResult] = await db.select({ count: sql<number>`COUNT(*)` }).from(users).where(whereClause);
-    const results = await db.select().from(users).where(whereClause).limit(params.limit).offset(offset).orderBy(desc(users.createdAt));
+
+    // Whitelist sortable columns to prevent SQL injection
+    const SORTABLE: Record<string, typeof users[keyof typeof users]> = {
+      createdAt: users.createdAt,
+      availableBalance: users.availableBalance,
+      totalEarnings: users.totalEarnings,
+      performanceScore: users.performanceScore,
+      firstName: users.firstName,
+      lastName: users.lastName,
+    };
+    const sortCol = (params.sort && SORTABLE[params.sort]) ? SORTABLE[params.sort] : users.createdAt;
+    const orderExpr = params.sortOrder === 'asc' ? asc(sortCol as any) : desc(sortCol as any);
+
+    const results = await db.select().from(users).where(whereClause).limit(params.limit).offset(offset).orderBy(orderExpr);
     return { users: results, totalCount: Number(countResult?.count || 0) };
   }
 

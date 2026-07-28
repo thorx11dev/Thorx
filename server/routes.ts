@@ -2225,7 +2225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         const parsed = dualSchema.safeParse(req.body);
         if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Validation failed" });
-        pkrAmount = Math.abs(realPkrDelta).toFixed(2);
+        pkrAmount = new Decimal(realPkrDelta).abs().toFixed(2);
         adjustType = req.body.type === 'deduct' ? 'subtract' : 'add';
         pointsDelta = txPointsDelta;
       } else {
@@ -2558,11 +2558,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader("Content-Disposition", `attachment; filename=${filename}-${new Date().toISOString().split('T')[0]}.csv`);
 
       // R-20: Stream in 500-row batches — avoids loading 10K rows into memory.
-      const headers = ["ID", "First Name", "Last Name", "Email", "Phone", "Identity", "Role", "Rank", "Available Balance", "Total Earnings", "Referral Code", "Created At"];
+      const headers = ["ID", "First Name", "Last Name", "Email", "Phone", "Identity", "Role", "Rank", "Available Balance", "Total Earnings", "Performance Score", "Trust Status", "Referral Code", "Created At"];
       res.write(headers.map(h => `"${h}"`).join(",") + "\n");
 
-      const toCsvRow = (cells: (string | null | undefined)[]) =>
-        cells.map(c => `"${String(c || "").replace(/"/g, '""')}"`).join(",");
+      const toCsvRow = (cells: (string | number | null | undefined)[]) =>
+        cells.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",");
 
       const BATCH = 500;
       let page = 1;
@@ -2573,6 +2573,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           res.write(toCsvRow([
             u.id, u.firstName, u.lastName, u.email, u.phone ?? "", u.identity ?? "",
             u.role ?? "user", u.userRankTier ?? "E-Rank", u.availableBalance, u.totalEarnings,
+            u.performanceScore ?? 0, u.trustStatus ?? "Normal",
             u.referralCode ?? "", new Date(u.createdAt ?? new Date()).toISOString(),
           ]) + "\n");
         }
