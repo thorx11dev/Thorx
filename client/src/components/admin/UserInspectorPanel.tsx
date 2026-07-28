@@ -158,25 +158,14 @@ export function UserInspectorPanel({ user, isOpen, onClose, onViewInCRM }: UserI
             <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-2.5">
               Referrals
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center justify-between p-3.5 bg-white border border-zinc-100 rounded-xl">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <Users size={13} />
-                  </div>
-                  <span className="text-xs font-medium text-zinc-500">Direct (L1)</span>
+            <div className="flex items-center justify-between p-3.5 bg-white border border-zinc-100 rounded-xl">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Users size={13} />
                 </div>
-                <span className="text-base font-semibold tabular-nums text-zinc-900">{user.level1Count || 0}</span>
+                <span className="text-xs font-medium text-zinc-500">Direct Referrals</span>
               </div>
-              <div className="flex items-center justify-between p-3.5 bg-white border border-zinc-100 rounded-xl">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
-                    <Users size={13} />
-                  </div>
-                  <span className="text-xs font-medium text-zinc-500">Network (L2)</span>
-                </div>
-                <span className="text-base font-semibold tabular-nums text-zinc-900">{user.level2Count || 0}</span>
-              </div>
+              <span className="text-base font-semibold tabular-nums text-zinc-900">{user.level1Count || user.referralCount || 0}</span>
             </div>
           </div>
 

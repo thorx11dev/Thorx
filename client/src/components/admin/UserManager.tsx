@@ -940,20 +940,11 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                 </div>
 
                 <div>
-                  <div className="p-4 bg-white border border-zinc-200 rounded-xl grid grid-cols-2 gap-4">
-                    <div className="border-r border-zinc-100">
-                      <div className="text-[9px] font-medium text-zinc-400 uppercase tracking-wide mb-1">Level 1</div>
-                      <div className="text-xl font-bold text-zinc-900">
-                        {networkData?.referrals?.filter((r: any) => r.level === 1).length || 0}
-                        <span className="text-[10px] ml-1 text-zinc-400 font-medium">Nodes</span>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[9px] font-medium text-zinc-400 uppercase tracking-wide mb-1">Level 2</div>
-                      <div className="text-xl font-bold text-zinc-900">
-                        {networkData?.referrals?.filter((r: any) => r.level === 2).length || 0}
-                        <span className="text-[10px] ml-1 text-zinc-400 font-medium">Nodes</span>
-                      </div>
+                  <div className="p-4 bg-white border border-zinc-200 rounded-xl">
+                    <div className="text-[9px] font-medium text-zinc-400 uppercase tracking-wide mb-1">Direct Referrals</div>
+                    <div className="text-xl font-bold text-zinc-900">
+                      {networkData?.referrals?.filter((r: any) => r.level === 1).length ?? selectedUser?.referralCount ?? 0}
+                      <span className="text-[10px] ml-1 text-zinc-400 font-medium">Users</span>
                     </div>
                   </div>
                 </div>
