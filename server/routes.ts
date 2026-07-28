@@ -1412,12 +1412,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const weeklyTaskCreateSchema = z.object({
-    title:           z.string().min(3).max(200),
-    description:     z.string().max(1000).optional(),
-    pointReward:     z.number().int().min(1).max(100000),
-    weekStart:       z.string().datetime({ message: "weekStart must be an ISO datetime string" }),
-    weekEnd:         z.string().datetime({ message: "weekEnd must be an ISO datetime string" }),
-    targetGuildRank: z.enum(["E", "D", "C", "B", "A", "S"]).optional().default("E"),
+    title:                  z.string().min(3).max(200),
+    description:            z.string().max(1000).optional(),
+    pointReward:            z.number().int().min(1).max(100000),
+    weekStart:              z.string().datetime({ message: "weekStart must be an ISO datetime string" }),
+    weekEnd:                z.string().datetime({ message: "weekEnd must be an ISO datetime string" }),
+    targetGuildRank:        z.enum(["E", "D", "C", "B", "A", "S"]).optional().default("E"),
+    isActive:               z.boolean().optional().default(true),
+    grossPkrPerCompletion:  z.string().regex(/^\d+(\.\d+)?$/, "grossPkrPerCompletion must be a positive decimal string").optional(),
   });
 
   app.post("/api/admin/weekly-tasks", requirePermission("MANAGE_TASKS"), async (req, res) => {
@@ -1426,13 +1428,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!parsed.success) {
         return res.status(400).json({ message: parsed.error.errors[0]?.message || "Validation failed", error: "VALIDATION_ERROR" });
       }
-      const { title, description, pointReward, weekStart, weekEnd, targetGuildRank } = parsed.data;
+      const { title, description, pointReward, weekStart, weekEnd, targetGuildRank, isActive, grossPkrPerCompletion } = parsed.data;
       const task = await storage.createWeeklyTask({
         title, description, pointReward,
         weekStart: new Date(weekStart), weekEnd: new Date(weekEnd),
         targetGuildRank,
         createdBy: req.userProfile.id,
-        isActive: true,
+        isActive,
+        ...(grossPkrPerCompletion !== undefined ? { grossPkrPerCompletion } : {}),
       });
       res.status(201).json({ task });
     } catch (error) {
@@ -1442,19 +1445,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const weeklyTaskUpdateSchema = z.object({
-    title: z.string().min(1).max(200).optional(),
-    description: z.string().max(1000).optional().nullable(),
-    pointReward: z.number().int().min(0).optional(),
-    isActive: z.boolean().optional(),
-    targetGuildRank: z.enum(["E", "D", "C", "B", "A", "S"]).optional(),
+    title:                  z.string().min(1).max(200).optional(),
+    description:            z.string().max(1000).optional().nullable(),
+    pointReward:            z.number().int().min(1).optional(),
+    isActive:               z.boolean().optional(),
+    targetGuildRank:        z.enum(["E", "D", "C", "B", "A", "S"]).optional(),
+    weekStart:              z.string().datetime({ message: "weekStart must be an ISO datetime string" }).optional(),
+    weekEnd:                z.string().datetime({ message: "weekEnd must be an ISO datetime string" }).optional(),
+    grossPkrPerCompletion:  z.string().regex(/^\d+(\.\d+)?$/, "grossPkrPerCompletion must be a positive decimal string").optional().nullable(),
   });
 
   app.patch("/api/admin/weekly-tasks/:id", requirePermission("MANAGE_TASKS"), async (req, res) => {
     try {
-      const updates = weeklyTaskUpdateSchema.parse(req.body);
-      const task = await storage.updateWeeklyTask(req.params.id, updates);
+      const parsed = weeklyTaskUpdateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.errors[0]?.message || "Validation failed", error: "VALIDATION_ERROR" });
+      }
+      const { weekStart, weekEnd, ...rest } = parsed.data;
+      const updates: Record<string, unknown> = { ...rest };
+      if (weekStart !== undefined) updates.weekStart = new Date(weekStart);
+      if (weekEnd !== undefined) updates.weekEnd = new Date(weekEnd);
+      const task = await storage.updateWeeklyTask(req.params.id, updates as any);
       res.json({ task });
     } catch (error) {
+      logger.error({ err: error }, "Update weekly task error:");
       res.status(500).json({ message: "Failed to update weekly task" });
     }
   });

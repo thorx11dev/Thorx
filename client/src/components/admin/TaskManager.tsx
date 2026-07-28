@@ -52,6 +52,7 @@ interface WeeklyTask {
   /** Single-char DB value: "E" | "D" | "C" | "B" | "A" | "S" */
   targetGuildRank: string;
   isActive: boolean;
+  grossPkrPerCompletion?: string | null;
   createdBy?: string;
   createdAt?: string;
 }
@@ -90,6 +91,7 @@ const DEFAULT_WEEKLY_FORM = {
   weekEnd: "",
   targetGuildRank: "E-Rank",
   isActive: true,
+  grossPkrPerCompletion: "0.50",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -427,6 +429,7 @@ function GuildWeeklyTasksTab() {
         weekEnd: new Date(data.weekEnd).toISOString(),
         targetGuildRank: GUILD_RANK_CODE[data.targetGuildRank] ?? "E",
         isActive: data.isActive,
+        grossPkrPerCompletion: data.grossPkrPerCompletion || undefined,
       };
       return apiRequest("POST", "/api/admin/weekly-tasks", payload).then(r => r.json());
     },
@@ -451,6 +454,9 @@ function GuildWeeklyTasksTab() {
       if (data.pointReward !== undefined) payload.pointReward = data.pointReward;
       if (data.isActive !== undefined) payload.isActive = data.isActive;
       if (data.targetGuildRank !== undefined) payload.targetGuildRank = GUILD_RANK_CODE[data.targetGuildRank] ?? "E";
+      if (data.weekStart !== undefined) payload.weekStart = new Date(data.weekStart).toISOString();
+      if (data.weekEnd !== undefined) payload.weekEnd = new Date(data.weekEnd).toISOString();
+      if (data.grossPkrPerCompletion !== undefined) payload.grossPkrPerCompletion = data.grossPkrPerCompletion || null;
       return apiRequest("PATCH", `/api/admin/weekly-tasks/${id}`, payload).then(r => r.json());
     },
     onSuccess: () => {
@@ -496,6 +502,7 @@ function GuildWeeklyTasksTab() {
       weekEnd: toISOLocal(new Date(task.weekEnd)),
       targetGuildRank: GUILD_RANK_DISPLAY[task.targetGuildRank] ?? "E-Rank",
       isActive: task.isActive,
+      grossPkrPerCompletion: task.grossPkrPerCompletion ?? "0.00",
     });
     setIsDialogOpen(true);
   };
@@ -515,6 +522,11 @@ function GuildWeeklyTasksTab() {
     }
     if (form.pointReward < 1) {
       toast({ title: "Invalid reward", description: "Point reward must be at least 1.", variant: "destructive" });
+      return;
+    }
+    const pkr = parseFloat(form.grossPkrPerCompletion);
+    if (isNaN(pkr) || pkr < 0) {
+      toast({ title: "Invalid PKR amount", description: "Must be a non-negative number.", variant: "destructive" });
       return;
     }
     if (editingTask) {
@@ -597,6 +609,11 @@ function GuildWeeklyTasksTab() {
                       <span className="text-xs bg-primary/10 text-primary rounded px-1.5 py-0.5 font-mono flex items-center gap-1">
                         <Coins className="w-3 h-3" /> {task.pointReward} pts
                       </span>
+                      {task.grossPkrPerCompletion && parseFloat(task.grossPkrPerCompletion) > 0 && (
+                        <span className="text-xs bg-emerald-100 text-emerald-700 border border-emerald-200 rounded px-1.5 py-0.5 font-mono">
+                          Rs. {parseFloat(task.grossPkrPerCompletion).toFixed(2)}
+                        </span>
+                      )}
                       <span className="text-xs border rounded px-1.5 py-0.5 text-muted-foreground">
                         {rankDisplay}+
                       </span>
@@ -652,13 +669,24 @@ function GuildWeeklyTasksTab() {
                 rows={2}
               />
             </div>
-            <div>
-              <Label>TX Points Reward *</Label>
-              <Input
-                type="number" step="1" min="1" max="100000"
-                value={form.pointReward}
-                onChange={e => setForm(f => ({ ...f, pointReward: parseInt(e.target.value) || 0 }))}
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>TX Points Reward *</Label>
+                <Input
+                  type="number" step="1" min="1" max="100000"
+                  value={form.pointReward}
+                  onChange={e => setForm(f => ({ ...f, pointReward: parseInt(e.target.value) || 0 }))}
+                />
+              </div>
+              <div>
+                <Label>Gross PKR per Completion *</Label>
+                <Input
+                  type="number" step="0.01" min="0"
+                  value={form.grossPkrPerCompletion}
+                  onChange={e => setForm(f => ({ ...f, grossPkrPerCompletion: e.target.value }))}
+                  placeholder="0.50"
+                />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
