@@ -86,3 +86,33 @@ export interface GuildChatMessageRow {
   userRankTier: string | null;
   personalRank: number | null;
 }
+
+// Guild-scoped slice of the system-wide audit_logs table — same shape the
+// system Audit Log Viewer consumes, just pre-filtered server-side by guild.
+export interface GuildAuditLogRow {
+  id: string;
+  adminId: string;
+  admin?: { firstName: string; lastName: string } | null;
+  action: string;
+  targetType: string;
+  targetId: string;
+  details: any;
+  ipAddress: string | null;
+  createdAt: string;
+}
+
+// A pending join request against an existing guild (guild_members row with
+// status="pending") — distinct from GuildCreationRequest, which is a request
+// to found a brand-new guild.
+export interface GuildApplicationRow {
+  id: string;
+  guildId: string;
+  guildName: string;
+  userId: string;
+  userFirstName: string | null;
+  userLastName: string | null;
+  userEmail: string | null;
+  userRankTier: string | null;
+  coverLetter: string | null;
+  requestedAt: string | null;
+}

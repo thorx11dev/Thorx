@@ -50,3 +50,24 @@ export function RankOrUnknown({ rank, size = "sm" }: { rank?: string | null; siz
   }
   return <RankBadge rank={rank} size={size} />;
 }
+
+/**
+ * Human-readable "why" behind a weekly pool disposition code — mirrors the
+ * exact payout rules in server/modules/guild-reset.ts (100% -> pool + 5% bonus
+ * split captain 30% / members 70%; partial progress -> pool split evenly with
+ * bonus forfeited; 0% -> voided) so admins don't have to infer intent from the
+ * raw code + numbers alone.
+ */
+export function explainDisposition(h: { poolDisposition: string; achievementPct: string | number | null | undefined }): string {
+  const pct = formatPkr(h.achievementPct);
+  switch (h.poolDisposition) {
+    case "distributed":
+      return `Target fully met (${pct}%) — pool + bonus distributed: captain 30%, members 70%.`;
+    case "partial":
+      return `Reached ${pct}% of target — pool distributed equally among members; bonus forfeited.`;
+    case "voided":
+      return `0% progress — pool voided, nothing distributed.`;
+    default:
+      return `Disposition: ${h.poolDisposition} (${pct}% achieved).`;
+  }
+}

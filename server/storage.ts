@@ -4719,13 +4719,14 @@ export class DatabaseStorage implements IStorage {
   async deleteEngineCMessage(messageId: string, guildId: string, adminId: string): Promise<void> {
     await db.transaction(async (tx) => {
       const [message] = await tx.select().from(engineCMessages).where(eq(engineCMessages.id, messageId)).limit(1);
+      if (!message) throw new Error("Message not found — it may have already been deleted.");
       await tx.delete(engineCMessages).where(eq(engineCMessages.id, messageId));
       await tx.insert(auditLogs).values({
         adminId,
         action: "GUILD_CHAT_MESSAGE_DELETED",
         targetType: "guild",
         targetId: guildId,
-        details: { messageId, senderId: message?.senderId ?? null, messagePreview: message?.message?.slice(0, 200) ?? null },
+        details: { messageId, senderId: message.senderId, messagePreview: message.message?.slice(0, 200) ?? null },
       });
     });
   }

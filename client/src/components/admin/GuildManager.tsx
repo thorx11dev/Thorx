@@ -6,16 +6,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Search, ShieldAlert, ShieldCheck, Snowflake, Play, RefreshCw, TrendingUp, Target, AlertTriangle, Crown, UserCog, Users2, ClipboardList, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp, Eye } from "lucide-react";
+import { Search, ShieldAlert, ShieldCheck, Snowflake, Play, RefreshCw, TrendingUp, Target, AlertTriangle, Crown, UserCog, Users2, ClipboardList, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp, Eye, Download, Send, Trash2, Inbox } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
+import { downloadFromUrl } from "@/lib/downloadFromUrl";
+import { apiAbsolutePath } from "@/lib/apiOrigin";
 import { GuildKpiHeader } from "./guild-manager/GuildKpiHeader";
 import { GuildDetailDrawer } from "./guild-manager/GuildDetailDrawer";
 import { RankOrUnknown, formatPkr, daysOffline, formatPersonName } from "./guild-manager/guild-format";
-import type { AdminGuild } from "./guild-manager/types";
+import type { AdminGuild, GuildApplicationRow } from "./guild-manager/types";
 
 export function GuildManager() {
   const { toast } = useToast();
@@ -41,6 +49,16 @@ export function GuildManager() {
   const [adminNote, setAdminNote] = useState("");
   // Guild detail drawer (Overview/Members/Strikes/Weekly History/Chat)
   const [selectedGuildId, setSelectedGuildId] = useState<string | null>(null);
+  // Bulk row selection + actions
+  const [selectedGuildIds, setSelectedGuildIds] = useState<Set<string>>(new Set());
+  const [bulkMessageOpen, setBulkMessageOpen] = useState(false);
+  const [bulkMessageText, setBulkMessageText] = useState("");
+  const [bulkDisbandConfirmOpen, setBulkDisbandConfirmOpen] = useState(false);
+  // Cross-guild pending applications queue (requests to JOIN an existing guild —
+  // distinct from Guild Creation Requests, which are requests to found a new one)
+  const [applicationsOpen, setApplicationsOpen] = useState(true);
+  const [rejectAppId, setRejectAppId] = useState<string | null>(null);
+  const [rejectAppReason, setRejectAppReason] = useState("");
 
   const { data, isLoading } = useQuery<{ guilds: AdminGuild[]; total: number }>({
     queryKey: ["/api/admin/guilds", search, statusFilter],
@@ -51,7 +69,9 @@ export function GuildManager() {
       const res = await apiRequest("GET", `/api/admin/guilds?${params.toString()}`);
       return res.json();
     },
+    refetchInterval: 20000,
   });
+  const guildList = data?.guilds ?? [];
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["/api/admin/guilds"] });
   const invalidateStats = () => queryClient.invalidateQueries({ queryKey: ["/api/admin/guilds/stats"] });

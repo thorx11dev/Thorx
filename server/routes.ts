@@ -1518,7 +1518,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       broadcastGuildMessage(req.params.id, { type: "engine_c:message_deleted", messageId: req.params.messageId });
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ message: "Failed to delete message" });
+      const message = error instanceof Error ? error.message : "Failed to delete message";
+      res.status(400).json({ message });
     }
   });
 
@@ -1678,6 +1679,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ── Admin: CSV export for the guild directory — small in-memory CSV (guild
+  // counts are orders of magnitude smaller than the user base) mirroring the
+  // exact header/quoting/audit pattern used by the users and audit-log exports.
+  app.get("/api/admin/guilds/export", requireTeamRole, async (req, res) => {
+    try {
+      const status = typeof req.query.status === "string" ? req.query.status : undefined;
+      const search = typeof req.query.search === "string" ? req.query.search : undefined;
+      const ids = req.query.ids ? (req.query.ids as string).split(",") : undefined;
+      const adminId = getThorxPrincipalId(req) as string;
+
+      const { guilds: allGuilds } = await storage.listGuildsAdmin({ status, search, limit: 100000 });
+      const rows = ids && ids.length > 0 ? allGuilds.filter(g => ids.includes(g.id)) : allGuilds;
+
+      const headers = ["ID", "Name", "Status", "Guild Rank", "GPS", "Members", "Capacity", "Weekly Points", "Weekly Target", "Weekly Bonus Pool (PKR)", "Bonus Pool (PKR)", "Strikes", "Target Difficulty", "Recruitment", "Created At"];
+      const csvRows = rows.map(g => [
+        g.id, g.name, g.status, g.guildRank, g.guildPerformanceScore,
+        g.memberCount, g.memberCapacity, g.currentWeeklyPoints, g.weeklyTarget,
+        g.weeklyBonusPool, g.bonusPoolPkr, g.strikes, g.targetDifficulty,
+        g.recruitmentOpen ? "Open" : "Closed",
+        new Date(g.createdAt ?? new Date()).toISOString(),
+      ]);
+      const csvContent = [
+        headers.join(","),
+        ...csvRows.map(row => row.map(cell => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
+      ].join("\n");
+
+      res.setHeader("Content-Type", "text/csv");
+      const filename = ids ? "THORX-Selected-Guilds" : "THORX-Guild-Directory";
+      res.setHeader("Content-Disposition", `attachment; filename=${filename}-${new Date().toISOString().split('T')[0]}.csv`);
+
+      await storage.createAuditLog({
+        adminId,
+        action: "GUILD_DIRECTORY_EXPORTED",
+        targetType: "system",
+        targetId: ids ? "selected_guilds" : "guild_directory",
+        details: { count: rows.length, status: status ?? null, search: search ?? null, ids: ids ?? null },
+        ipAddress: req.ip,
+      });
+
+      res.send(csvContent);
+    } catch (error) {
+      logger.error({ err: error }, "Guild export error:");
+      res.status(500).json({ message: "Failed to export guilds" });
+    }
+  });
+
   // ── Admin: Ledger validation (scan before :userId to avoid Express conflict) ──
   app.get("/api/admin/ledger/validate/scan", requireTeamRole, async (req, res) => {
     try {
@@ -1765,6 +1812,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ strikes });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch strike history" });
+    }
+  });
+
+  // Per-guild strike history export — tiny dataset (one guild), same in-memory CSV pattern.
+  app.get("/api/admin/guilds/:id/strikes/export", requireTeamRole, async (req, res) => {
+    try {
+      const adminId = getThorxPrincipalId(req) as string;
+      const strikes = await storage.getGuildStrikeHistory(req.params.id);
+
+      const headers = ["ID", "Reason", "Source", "Added By", "Created At", "Status", "Cleared By", "Cleared At"];
+      const csvRows = strikes.map(s => [
+        s.id, s.reason, s.source, s.addedByName ?? "Unknown",
+        new Date(s.createdAt ?? new Date()).toISOString(),
+        s.clearedAt ? "Cleared" : "Active",
+        s.clearedByName ?? "",
+        s.clearedAt ? new Date(s.clearedAt).toISOString() : "",
+      ]);
+      const csvContent = [
+        headers.join(","),
+        ...csvRows.map(row => row.map(cell => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
+      ].join("\n");
+
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", `attachment; filename=THORX-Guild-Strikes-${req.params.id.slice(0, 8)}-${new Date().toISOString().split('T')[0]}.csv`);
+
+      await storage.createAuditLog({
+        adminId,
+        action: "GUILD_STRIKE_HISTORY_EXPORTED",
+        targetType: "guild",
+        targetId: req.params.id,
+        details: { count: strikes.length },
+        ipAddress: req.ip,
+      });
+
+      res.send(csvContent);
+    } catch (error) {
+      logger.error({ err: error }, "Guild strike history export error:");
+      res.status(500).json({ message: "Failed to export strike history" });
+    }
+  });
+
+  // Guild-scoped activity/audit log — reuses the same paginated audit query as
+  // the system-wide Audit Log Viewer, scoped via targetType/targetId, so every
+  // existing GUILD_* audit action (status, strikes, GPS, captain, chat moderation,
+  // creation approval) surfaces here automatically with zero duplicated logic.
+  app.get("/api/admin/guilds/:id/audit-log", requireTeamRole, async (req, res) => {
+    try {
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 25;
+      const result = await storage.getAuditLogsPaginated({ page, limit, targetType: "guild", targetId: req.params.id });
+      res.json(result);
+    } catch (error) {
+      logger.error({ err: error }, "Guild activity log fetch error:");
+      res.status(500).json({ message: "Failed to fetch guild activity log" });
     }
   });
 
@@ -5351,6 +5452,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: "info",
         });
         broadcastToUser(request.userId, 'guild.creation_approved', { guildId: guild.id, guildName: guild.name });
+        // Every other admin action against a guild writes an audit_logs row keyed
+        // to that guild — this was the one exception (a guild being CREATED via
+        // this path had no record at all), which also meant it never showed up
+        // in that guild's own activity log below.
+        await storage.createAuditLog({
+          adminId,
+          action: "GUILD_CREATION_REQUEST_APPROVED",
+          targetType: "guild",
+          targetId: guild.id,
+          details: { requestId: request.id, guildName: guild.name, captainId: request.userId, adminNote: parsed.data.adminNote ?? null },
+          ipAddress: req.ip,
+        });
         res.json({ success: true, guild });
       } else {
         await db.update(guildCreationRequests)
@@ -5363,6 +5476,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: "info",
         });
         broadcastToUser(request.userId, 'guild.creation_rejected', { reason: parsed.data.adminNote });
+        await storage.createAuditLog({
+          adminId,
+          action: "GUILD_CREATION_REQUEST_REJECTED",
+          targetType: "guild_creation_request",
+          targetId: request.id,
+          details: { guildName: request.guildName, requestedBy: request.userId, adminNote: parsed.data.adminNote ?? null },
+          ipAddress: req.ip,
+        });
         res.json({ success: true });
       }
     } catch (error) {

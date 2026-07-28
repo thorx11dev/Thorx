@@ -14,9 +14,11 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Crown, UserMinus, ShieldAlert, Users2, Trash2, Wallet, Target, History, type LucideIcon } from "lucide-react";
-import { RankOrUnknown, formatPkr, formatPersonName, formatDate, formatDateTime } from "./guild-format";
-import type { AdminGuild, GuildMemberRow, GuildStrikeRow, GuildWeeklySnapshotRow, GuildChatMessageRow } from "./types";
+import { Crown, UserMinus, ShieldAlert, Users2, Trash2, Wallet, Target, History, Download, Activity, type LucideIcon } from "lucide-react";
+import { RankOrUnknown, formatPkr, formatPersonName, formatDate, formatDateTime, explainDisposition } from "./guild-format";
+import { downloadFromUrl } from "@/lib/downloadFromUrl";
+import { apiAbsolutePath } from "@/lib/apiOrigin";
+import type { AdminGuild, GuildMemberRow, GuildStrikeRow, GuildWeeklySnapshotRow, GuildChatMessageRow, GuildAuditLogRow } from "./types";
 
 interface GuildDetailDrawerProps {
   guild: AdminGuild | null;
@@ -84,6 +86,13 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
   });
   const messages = chatQuery.data?.messages ?? [];
 
+  const auditQuery = useQuery<{ logs: GuildAuditLogRow[]; totalCount: number }>({
+    queryKey: ["/api/admin/guilds", guild.id, "audit-log"],
+    queryFn: async () => (await apiRequest("GET", `/api/admin/guilds/${guild.id}/audit-log?limit=50`)).json(),
+    enabled: tab === "activity",
+  });
+  const auditEntries = auditQuery.data?.logs ?? [];
+
   const kickMutation = useMutation({
     mutationFn: async (userId: string) => (await apiRequest("DELETE", `/api/admin/guilds/${guild.id}/members/${userId}`)).json(),
     onSuccess: () => {
@@ -140,12 +149,13 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
       </SheetHeader>
 
       <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col min-h-0">
-        <TabsList className="mx-6 mt-4 grid grid-cols-5 shrink-0">
+        <TabsList className="mx-6 mt-4 grid grid-cols-6 shrink-0">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="members">Members</TabsTrigger>
           <TabsTrigger value="strikes">Strikes</TabsTrigger>
           <TabsTrigger value="history">Weekly</TabsTrigger>
           <TabsTrigger value="chat">Chat</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -271,6 +281,15 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
           </TabsContent>
 
           <TabsContent value="strikes" className="mt-0">
+            <div className="flex justify-end mb-2">
+              <Button
+                size="sm" variant="outline"
+                className="h-7 text-[10px] font-black border-2 border-black"
+                onClick={() => downloadFromUrl(apiAbsolutePath(`/api/admin/guilds/${guild.id}/strikes/export`), `${guild.name}-strikes.csv`)}
+              >
+                <Download size={11} className="mr-1" /> Export CSV
+              </Button>
+            </div>
             {strikesQuery.isLoading ? (
               <div className="space-y-2">{[1, 2].map((i) => <Skeleton key={i} className="h-16 rounded-lg" />)}</div>
             ) : strikes.length === 0 ? (
@@ -332,6 +351,7 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
                         ) : (
                           <Badge variant="destructive" className="text-[9px] font-black">Missed</Badge>
                         )}
+                        <div className="text-[10px] text-zinc-400 font-normal mt-1 max-w-[200px] leading-snug">{explainDisposition(h)}</div>
                       </TableCell>
                       <TableCell className="text-right text-sm font-bold">
                         Rs {formatPkr(h.bonusPoolPkr)} <span className="text-[10px] text-zinc-400 font-normal">({h.poolDisposition})</span>
@@ -369,6 +389,41 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
                     </Button>
                   </div>
                 ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="activity" className="mt-0">
+            {auditQuery.isLoading ? (
+              <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 rounded-lg" />)}</div>
+            ) : auditEntries.length === 0 ? (
+              <div className="text-center py-12 text-xs font-bold text-zinc-400 uppercase tracking-widest">No activity recorded yet</div>
+            ) : (
+              <div className="space-y-2">
+                {auditEntries.map((log) => {
+                  const detailEntries = log.details && typeof log.details === "object"
+                    ? Object.entries(log.details).filter(([, v]) => v !== null && v !== undefined && v !== "")
+                    : [];
+                  return (
+                    <div key={log.id} className="rounded-xl border border-zinc-200 p-3 space-y-1.5">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <Badge variant="outline" className="text-[9px] font-black uppercase tracking-wide">
+                          <Activity size={10} className="mr-1" />
+                          {log.action.replace(/_/g, " ")}
+                        </Badge>
+                        <span className="text-[10px] text-zinc-400">{formatDateTime(log.createdAt)}</span>
+                      </div>
+                      <div className="text-xs text-zinc-600">
+                        By {formatPersonName(log.admin ? `${log.admin.firstName} ${log.admin.lastName}` : null)}
+                      </div>
+                      {detailEntries.length > 0 && (
+                        <div className="text-[11px] text-zinc-400 font-mono break-words bg-zinc-50 rounded-lg p-2">
+                          {detailEntries.map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`).join(" · ")}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
