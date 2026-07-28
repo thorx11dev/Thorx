@@ -1609,6 +1609,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dormant Guild Watchlist — active guilds where every member has gone quiet,
+  // not just the captain (see adminGetInactiveCaptains above for that narrower signal).
+  app.get("/api/admin/guilds/dormant", requireTeamRole, async (req, res) => {
+    try {
+      const inactiveDays = req.query.days ? parseInt(req.query.days as string) : 7;
+      const guilds = await storage.adminGetDormantGuilds(Number.isFinite(inactiveDays) && inactiveDays > 0 ? inactiveDays : 7);
+      res.json({ guilds });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch dormant guilds" });
+    }
+  });
+
   // Ecosystem-wide KPI header for the admin Guild Manager (counts by status,
   // aggregate weekly pool, average GPS, pending creation requests).
   app.get("/api/admin/guilds/stats", requireTeamRole, async (req, res) => {

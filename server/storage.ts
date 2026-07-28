@@ -520,6 +520,7 @@ export interface IStorage {
   postGuildAnnouncement(guildId: string, captainId: string, text: string): Promise<any>;
   clearGuildAnnouncement(guildId: string, captainId: string): Promise<any>;
   adminGetInactiveCaptains(inactiveDays?: number): Promise<any[]>;
+  adminGetDormantGuilds(inactiveDays?: number): Promise<any[]>;
   adminGetReferralStats(): Promise<any>;
   adminGetReferralLeaderboard(limit?: number): Promise<any[]>;
 }
@@ -5753,6 +5754,71 @@ export class DatabaseStorage implements IStorage {
       // instead of silently excluding never-logged-in captains from this alert.
       .where(and(eq(guilds.status, "active"), or(lt(users.lastActiveAt, cutoff), isNull(users.lastActiveAt))))
       .orderBy(asc(users.lastActiveAt));
+  }
+
+  /**
+   * Guild-wide dormancy watchlist — distinct from adminGetInactiveCaptains
+   * (which only looks at the captain). A guild can have an active captain but
+   * a fully checked-out roster, or vice versa, so this looks at every active
+   * member's lastActiveAt and flags guilds where NOT ONE of them has been
+   * seen since the cutoff (or the guild has no recorded activity at all).
+   */
+  async adminGetDormantGuilds(inactiveDays = 7): Promise<(Guild & {
+    guildRank: GuildRankTier;
+    nextRankMinGps: number | null;
+    captainName: string;
+    lastActivityAt: Date | null;
+    activeMemberCount: number;
+  })[]> {
+    const cutoff = new Date(Date.now() - inactiveDays * 24 * 60 * 60 * 1000);
+
+    const activity = await db
+      .select({
+        guildId: guildMembers.guildId,
+        lastActivityAt: sql<Date | null>`MAX(${users.lastActiveAt})`,
+        activeMemberCount: sql<number>`COUNT(*)`,
+      })
+      .from(guildMembers)
+      .innerJoin(users, eq(users.id, guildMembers.userId))
+      .where(eq(guildMembers.status, "active"))
+      .groupBy(guildMembers.guildId);
+
+    const activityByGuildId = new Map(activity.map((a) => [a.guildId, a]));
+    const dormantGuildIds = activity
+      .filter((a) => a.lastActivityAt == null || new Date(a.lastActivityAt) < cutoff)
+      .map((a) => a.guildId);
+    if (dormantGuildIds.length === 0) return [];
+
+    const rows = await db
+      .select({ guild: guilds, captainFirstName: users.firstName, captainLastName: users.lastName })
+      .from(guilds)
+      .leftJoin(users, eq(users.id, guilds.captainId))
+      .where(and(eq(guilds.status, "active"), inArray(guilds.id, dormantGuildIds)));
+
+    const config = await fetchGpsConfig();
+    const rankOrder = GUILD_RANK_TIERS;
+
+    return rows
+      .map(({ guild, captainFirstName, captainLastName }) => {
+        const guildRank = computeGuildRankTier(guild.guildPerformanceScore, config.rankMins);
+        const nextTier = rankOrder[rankOrder.indexOf(guildRank) + 1];
+        const nextRankMinGps = nextTier ? (config.rankMins[`GPS_RANK_${nextTier[0]}_MIN`] ?? null) : null;
+        const a = activityByGuildId.get(guild.id);
+        return {
+          ...guild,
+          guildRank,
+          nextRankMinGps,
+          captainName: `${captainFirstName ?? ""} ${captainLastName ?? ""}`.trim() || "Unknown",
+          lastActivityAt: a?.lastActivityAt ?? null,
+          activeMemberCount: Number(a?.activeMemberCount ?? 0),
+        };
+      })
+      .sort((x, y) => {
+        // Guilds with zero recorded activity float to the top (most urgent).
+        const ax = x.lastActivityAt ? new Date(x.lastActivityAt).getTime() : -1;
+        const ay = y.lastActivityAt ? new Date(y.lastActivityAt).getTime() : -1;
+        return ax - ay;
+      });
   }
 
   async adminGetReferralStats(): Promise<{

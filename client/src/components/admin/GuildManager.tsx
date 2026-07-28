@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Search, ShieldAlert, ShieldCheck, Snowflake, Play, RefreshCw, TrendingUp, Target, AlertTriangle, Crown, UserCog, Users2, ClipboardList, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp, Eye, Download, Send, Trash2, Inbox } from "lucide-react";
+import { Search, ShieldAlert, ShieldCheck, Snowflake, Play, RefreshCw, TrendingUp, Target, AlertTriangle, Crown, UserCog, Users2, ClipboardList, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp, Eye, Download, Send, Trash2, Inbox, Moon } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { GuildKpiHeader } from "./guild-manager/GuildKpiHeader";
 import { GuildDetailDrawer } from "./guild-manager/GuildDetailDrawer";
 import { RankOrUnknown, formatPkr, daysOffline, formatPersonName, formatDateTime, downloadCsvSafely } from "./guild-manager/guild-format";
-import type { AdminGuild, GuildApplicationRow, GuildCreationRequestRow } from "./guild-manager/types";
+import type { AdminGuild, GuildApplicationRow, GuildCreationRequestRow, DormantGuildRow } from "./guild-manager/types";
 
 const GUILD_PAGE_SIZE = 20;
 
@@ -50,6 +50,8 @@ export function GuildManager() {
   const [adminNote, setAdminNote] = useState("");
   // Guild detail drawer (Overview/Members/Strikes/Weekly History/Chat)
   const [selectedGuildId, setSelectedGuildId] = useState<string | null>(null);
+  // Dormant Guild Watchlist
+  const [dormantOpen, setDormantOpen] = useState(true);
   // Bulk row selection + actions
   const [selectedGuildIds, setSelectedGuildIds] = useState<Set<string>>(new Set());
   const [bulkMessageOpen, setBulkMessageOpen] = useState(false);
@@ -107,6 +109,11 @@ export function GuildManager() {
     );
   };
 
+  const invalidateWatchlists = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/guilds/inactive-captains"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/guilds/dormant"] });
+  };
+
   const statusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) =>
       (await apiRequest("POST", `/api/admin/guilds/${id}/status`, { status })).json(),
@@ -114,6 +121,9 @@ export function GuildManager() {
       toast({ title: "Guild status updated" });
       invalidate();
       invalidateStats();
+      // Both watchlists only show guilds with status="active" — a freeze/disband
+      // here must drop the guild out of them immediately, not just on next reload.
+      invalidateWatchlists();
     },
     onError: (err: any) => toast({ title: "Failed", description: err?.message, variant: "destructive" }),
   });
@@ -126,6 +136,7 @@ export function GuildManager() {
       setStrikeReason(prev => ({ ...prev, [vars.id]: "" }));
       invalidate();
       invalidateStats(); // 3rd strike auto-freezes the guild, which shifts the KPI counts
+      invalidateWatchlists(); // ...and the same auto-freeze should drop it from both watchlists
     },
     onError: (err: any) => toast({ title: "Failed", description: err?.message, variant: "destructive" }),
   });
@@ -170,6 +181,18 @@ export function GuildManager() {
       const r = await apiRequest("GET", "/api/admin/guilds/inactive-captains?days=48");
       const d = await r.json();
       return d.captains ?? [];
+    },
+  });
+
+  // Dormant Guild Watchlist — guilds where every active member (not just the
+  // captain) has gone quiet for 7+ days. Complements Inactive Captains above,
+  // which only catches a checked-out captain sitting on an otherwise-active roster.
+  const { data: dormantGuilds = [] } = useQuery<DormantGuildRow[]>({
+    queryKey: ["/api/admin/guilds/dormant"],
+    queryFn: async () => {
+      const r = await apiRequest("GET", "/api/admin/guilds/dormant?days=7");
+      const d = await r.json();
+      return d.guilds ?? [];
     },
   });
 
@@ -240,6 +263,7 @@ export function GuildManager() {
       setBulkDisbandConfirmOpen(false);
       invalidate();
       invalidateStats();
+      invalidateWatchlists();
     },
     onError: (err: any) => toast({ title: "Bulk update failed", description: err?.message, variant: "destructive" }),
   });
@@ -630,6 +654,70 @@ export function GuildManager() {
           </div>
         </div>
       )}
+
+      {/* ── DORMANT GUILD WATCHLIST ── */}
+      <div className="rounded-xl border-[1.5px] border-[#111] overflow-hidden">
+        <button
+          className="w-full flex items-center justify-between px-5 py-4 bg-white hover:bg-zinc-50 transition-colors"
+          onClick={() => setDormantOpen(o => !o)}
+        >
+          <div className="flex items-center gap-2">
+            <Moon size={16} className="text-zinc-600" />
+            <span className="font-black text-sm uppercase tracking-tight">Dormant Guild Watchlist</span>
+            {dormantGuilds.length > 0 && (
+              <Badge className="bg-amber-500 text-white border-0 font-black text-[10px] px-2">{dormantGuilds.length}</Badge>
+            )}
+          </div>
+          {dormantOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+
+        {dormantOpen && (
+          <div className="border-t border-[#111]/10 p-4 bg-zinc-50">
+            <div className="text-xs text-zinc-500 mb-3">
+              Active guilds where every member — not just the captain — has been offline 7+ days. Good candidates for a nudge, a freeze, or disbanding if truly abandoned.
+            </div>
+            {dormantGuilds.length === 0 ? (
+              <div className="text-center py-8 text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                No dormant guilds — everyone's active
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {dormantGuilds.map((g) => {
+                  const offlineDays = daysOffline(g.lastActivityAt);
+                  const achievementPct = g.weeklyTarget > 0 ? Math.round((g.currentWeeklyPoints / g.weeklyTarget) * 100) : 0;
+                  return (
+                    <div key={g.id} className="flex items-center justify-between gap-3 bg-white border border-zinc-200 rounded-lg px-3 py-2.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Moon size={12} className="text-amber-500 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-xs font-black text-[#111] truncate">{g.name}</div>
+                          <div className="text-[10px] text-zinc-500">
+                            Captain: {g.captainName} · {g.activeMemberCount} member{g.activeMemberCount === 1 ? "" : "s"} · {achievementPct}% of weekly target ·{" "}
+                            {offlineDays != null ? <span className="text-amber-600 font-bold">Quiet {offlineDays}d</span> : <span className="italic">Never active</span>}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 shrink-0">
+                        <Button size="sm" variant="outline" className="h-7 text-[10px] font-black" onClick={() => setSelectedGuildId(g.id)}>
+                          <Eye size={10} className="mr-1" /> View
+                        </Button>
+                        <Button
+                          size="sm" variant="outline"
+                          className="h-7 text-[10px] font-black border-blue-300 text-blue-700 hover:bg-blue-50"
+                          disabled={statusMutation.isPending}
+                          onClick={() => statusMutation.mutate({ id: g.id, status: "frozen" })}
+                        >
+                          <Snowflake size={10} className="mr-1" /> Freeze
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* ── BULK WEEKLY TARGET ASSIGNER ── */}
       <div className="rounded-xl bg-background border-[1.5px] border-[#111] p-5 space-y-4">
@@ -1029,7 +1117,7 @@ export function GuildManager() {
       </AlertDialog>
 
       <GuildDetailDrawer
-        guild={guildList.find(g => g.id === selectedGuildId) ?? null}
+        guild={guildList.find(g => g.id === selectedGuildId) ?? dormantGuilds.find(g => g.id === selectedGuildId) ?? null}
         onClose={() => setSelectedGuildId(null)}
       />
     </div>

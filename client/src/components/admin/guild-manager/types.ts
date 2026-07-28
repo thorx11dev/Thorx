@@ -31,6 +31,16 @@ export interface AdminGuild {
   nextRankMinGps: number | null;
 }
 
+// A guild-wide dormancy signal — distinct from the "inactive captain" alert,
+// since a guild can have every member gone quiet even with an active captain
+// (or the reverse). Extends AdminGuild with the aggregated activity fields
+// the dormant-guilds endpoint adds on top of the normal guild row.
+export interface DormantGuildRow extends AdminGuild {
+  captainName: string;
+  lastActivityAt: string | null;
+  activeMemberCount: number;
+}
+
 export interface GuildMemberRow {
   id: string;
   userId: string;

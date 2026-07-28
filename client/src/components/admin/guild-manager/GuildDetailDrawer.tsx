@@ -14,7 +14,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Crown, UserMinus, ShieldAlert, Users2, Trash2, Wallet, Target, History, Download, Activity, type LucideIcon } from "lucide-react";
+import { Crown, UserMinus, ShieldAlert, Shield, Users2, Trash2, Wallet, Target, History, Download, Activity, type LucideIcon } from "lucide-react";
 import { RankOrUnknown, formatPkr, formatPersonName, formatDate, formatDateTime, daysOffline, downloadCsvSafely, explainDisposition } from "./guild-format";
 import type { AdminGuild, GuildMemberRow, GuildStrikeRow, GuildWeeklySnapshotRow, GuildChatMessageRow, GuildAuditLogRow } from "./types";
 
@@ -62,6 +62,7 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
   });
   const members = membersQuery.data?.members ?? [];
   const captain = members.find((m) => m.role === "captain") ?? null;
+  const assistantCaptain = members.find((m) => m.userId === guild.assistantCaptainId) ?? null;
 
   const strikesQuery = useQuery<{ strikes: GuildStrikeRow[] }>({
     queryKey: ["/api/admin/guilds", guild.id, "strikes"],
@@ -162,6 +163,11 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
 
             <div className="grid grid-cols-2 gap-3">
               <OverviewStat label="Captain" value={membersQuery.isLoading ? "Loading…" : formatPersonName(captain?.name)} icon={Crown} />
+              <OverviewStat
+                label="Assistant Captain"
+                value={membersQuery.isLoading ? "Loading…" : guild.assistantCaptainId ? formatPersonName(assistantCaptain?.name) : "None assigned"}
+                icon={Shield}
+              />
               <OverviewStat label="Rank / GPS" value={`${guild.guildRank || "Unknown"} · ${guild.guildPerformanceScore} GPS`} icon={Target} />
               <OverviewStat
                 label="Next Rank"
@@ -257,6 +263,8 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
                       <TableCell>
                         {m.role === "captain" ? (
                           <Badge className="bg-black text-white border-0 text-[9px] font-black"><Crown size={9} className="mr-1" />CAPTAIN</Badge>
+                        ) : m.userId === guild.assistantCaptainId ? (
+                          <Badge variant="outline" className="border-blue-300 text-blue-700 bg-blue-50 text-[9px] font-black"><Shield size={9} className="mr-1" />ASSISTANT</Badge>
                         ) : (
                           <span className="text-xs text-zinc-500 font-bold">Member</span>
                         )}
