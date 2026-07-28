@@ -506,6 +506,20 @@ export interface IStorage {
   adminReassignCaptain(guildId: string, newCaptainUserId: string, adminId: string): Promise<any>;
   adminSetGuildWeeklyTarget(guildId: string, weeklyTarget: number, adminId: string): Promise<any>;
   adminBulkSetWeeklyTargetsByRank(targets: Partial<Record<GuildRankTier, number>>, adminId: string): Promise<Record<string, number>>;
+  // ── Bulk guild admin operations ──────────────────────────────────────────
+  adminBulkSetGuildStatus(guildIds: string[], status: "active" | "frozen" | "disbanded", adminId: string): Promise<{ updated: number; failed: Array<{ guildId: string; reason: string }> }>;
+  adminBulkMessageGuilds(guildIds: string[], message: string, adminId: string): Promise<string[]>;
+  // ── Cross-guild join applications queue ──────────────────────────────────
+  getAllPendingGuildApplications(): Promise<Array<{
+    id: string; guildId: string; guildName: string; userId: string;
+    userFirstName: string | null; userLastName: string | null; userEmail: string | null;
+    userRankTier: string | null; coverLetter: string | null; requestedAt: Date | null;
+  }>>;
+  adminDecideGuildApplication(applicationId: string, adminId: string, action: "accept" | "reject", rejectionReason?: string): Promise<any>;
+  // ── Guild target difficulty ───────────────────────────────────────────────
+  adminSetGuildTargetDifficulty(guildId: string, difficulty: "low" | "medium" | "high", adminId: string): Promise<any>;
+  // ── Ecosystem-wide KPI stats ─────────────────────────────────────────────
+  getGuildEcosystemStats(): Promise<{ totalGuilds: number; active: number; frozen: number; disbanded: number; totalWeeklyBonusPoolPkr: string; avgGps: number }>;
   updateGuildSettings(guildId: string, captainId: string, settings: { name?: string; description?: string; minRankRequired?: string; recruitmentOpen?: boolean; isPublic?: boolean; pinnedMemberId?: string | null; avatarUrl?: string; }): Promise<any>;
   postGuildAnnouncement(guildId: string, captainId: string, text: string): Promise<any>;
   clearGuildAnnouncement(guildId: string, captainId: string): Promise<any>;

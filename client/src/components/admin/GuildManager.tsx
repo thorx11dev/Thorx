@@ -860,7 +860,7 @@ export function GuildManager() {
                   <div className="flex gap-1.5">
                     <Input
                       type="number"
-                      placeholder="target pts (0 = auto)"
+                      placeholder="target pts (positive)"
                       value={weeklyTarget[g.id] || ""}
                       onChange={(e) => setWeeklyTarget(prev => ({ ...prev, [g.id]: e.target.value }))}
                       className="border-2 border-black h-8 text-sm flex-1"
