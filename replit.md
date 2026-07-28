@@ -241,6 +241,8 @@ an explicit request. See `IMPORT_SETUP.md` for the optional commands.
   5. Founder account (Thorx X / thorx11dev@gmail.com, role: founder, permissions: `["all"]`) provisioned via `POST /api/bootstrap-founder` (201, "Founder account created successfully").
   6. Auth verified: unauthenticated `/api/user` → 401, founder login → 200 (role: founder), `/api/admin/config` → 200, `/api/team/members` → 200. HilltopAds sync unavailable until `HILLTOPADS_API_KEY` secret is set (non-blocking).
 
+- 2026-07-28 (re-import, this session): Bootstrap script ran automatically on `npm run dev` — dependencies installed, schema applied ("Changes applied", 74 system_config keys seeded), workflow running on port 5000. Restored `postgresql-16` to `.replit` modules (dropped by import auto-generation — required for drizzle-kit schema operations). Founder account (Thorx X / thorx11dev@gmail.com, role: founder, permissions: `["all"]`) provisioned via `POST /api/bootstrap-founder` (201, "Founder account created successfully"). Auth regression passed against live HTTPS dev domain: unauthenticated `/api/user` (401 NO_SESSION) → QA register (201, role: user) → logout (200) → 401 confirmed → wrong-password rejected (401 UNAUTHORIZED) → correct-password login (200, Login successful) → duplicate email rejected (400 DUPLICATE_EMAIL) → QA account deleted from DB → founder login (200, role: founder, permissions: ["all"]) → `/api/admin/config` (200) → `/api/team/members` (200, 1 member: Thorx X, accessLevel: founder) → founder logout (200) → 401 confirmed. Only founder account remains in `users` table.
+
 ## User preferences
 
 - Use Replit's built-in PostgreSQL (no external auth or storage providers)
