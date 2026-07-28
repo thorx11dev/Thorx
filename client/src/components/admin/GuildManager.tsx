@@ -519,7 +519,7 @@ export function GuildManager() {
 
               <div className="flex flex-col md:flex-row gap-2 items-stretch md:items-center pt-3 border-t border-dashed border-black/10">
                 <Input
-                  placeholder="Strike reason..."
+                  placeholder="Strike reason (5+ chars)..."
                   value={strikeReason[g.id] || ""}
                   onChange={(e) => setStrikeReason(prev => ({ ...prev, [g.id]: e.target.value }))}
                   className="border-2 border-black h-9 text-sm flex-1"
@@ -529,7 +529,7 @@ export function GuildManager() {
                     size="sm"
                     variant="outline"
                     className="border-2 border-black font-black text-xs"
-                    disabled={!strikeReason[g.id]?.trim() || strikeMutation.isPending}
+                    disabled={(strikeReason[g.id]?.trim().length ?? 0) < 5 || strikeMutation.isPending}
                     onClick={() => strikeMutation.mutate({ id: g.id, reason: strikeReason[g.id] })}
                   >
                     <ShieldAlert className="w-3 h-3 mr-1" /> Add Strike

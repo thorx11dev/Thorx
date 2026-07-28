@@ -505,7 +505,7 @@ export interface IStorage {
   adminAdjustGuildGPS(guildId: string, delta: number, reason: string, adminId: string): Promise<any>;
   adminReassignCaptain(guildId: string, newCaptainUserId: string, adminId: string): Promise<any>;
   adminSetGuildWeeklyTarget(guildId: string, weeklyTarget: number, adminId: string): Promise<any>;
-  adminBulkSetWeeklyTargets(weeklyTarget: number, scope: 'all' | 'byDifficulty', difficulty: string | undefined, adminId: string): Promise<number>;
+  adminBulkSetWeeklyTargetsByRank(targets: Partial<Record<GuildRankTier, number>>, adminId: string): Promise<Record<string, number>>;
   updateGuildSettings(guildId: string, captainId: string, settings: { name?: string; description?: string; minRankRequired?: string; recruitmentOpen?: boolean; isPublic?: boolean; pinnedMemberId?: string | null; avatarUrl?: string; }): Promise<any>;
   postGuildAnnouncement(guildId: string, captainId: string, text: string): Promise<any>;
   clearGuildAnnouncement(guildId: string, captainId: string): Promise<any>;
