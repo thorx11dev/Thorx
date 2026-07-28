@@ -7,25 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Search, ShieldAlert, ShieldCheck, Snowflake, Play, RefreshCw, TrendingUp, Target, AlertTriangle, Crown, UserCog, Users2, ClipboardList, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp } from "lucide-react";
-import { RankBadge } from "@/components/RankBadge";
+import { Search, ShieldAlert, ShieldCheck, Snowflake, Play, RefreshCw, TrendingUp, Target, AlertTriangle, Crown, UserCog, Users2, ClipboardList, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp, Eye } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-
-interface AdminGuild {
-  id: string;
-  name: string;
-  description: string | null;
-  guildRank: string;
-  guildScore: number;
-  strikes: number;
-  status: string;
-  memberCount: number;
-  weeklyBonusPool?: string;
-  createdAt: string;
-}
+import { GuildKpiHeader } from "./guild-manager/GuildKpiHeader";
+import { GuildDetailDrawer } from "./guild-manager/GuildDetailDrawer";
+import { RankOrUnknown, formatPkr, daysOffline, formatPersonName } from "./guild-manager/guild-format";
+import type { AdminGuild } from "./guild-manager/types";
 
 export function GuildManager() {
   const { toast } = useToast();
@@ -49,6 +39,8 @@ export function GuildManager() {
   const [decideDialogId, setDecideDialogId] = useState<string | null>(null);
   const [decideAction, setDecideAction] = useState<"approve" | "reject">("approve");
   const [adminNote, setAdminNote] = useState("");
+  // Guild detail drawer (Overview/Members/Strikes/Weekly History/Chat)
+  const [selectedGuildId, setSelectedGuildId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<{ guilds: AdminGuild[]; total: number }>({
     queryKey: ["/api/admin/guilds", search, statusFilter],
@@ -62,6 +54,7 @@ export function GuildManager() {
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["/api/admin/guilds"] });
+  const invalidateStats = () => queryClient.invalidateQueries({ queryKey: ["/api/admin/guilds/stats"] });
 
   const statusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) =>
@@ -69,6 +62,7 @@ export function GuildManager() {
     onSuccess: () => {
       toast({ title: "Guild status updated" });
       invalidate();
+      invalidateStats();
     },
     onError: (err: any) => toast({ title: "Failed", description: err?.message, variant: "destructive" }),
   });
@@ -80,6 +74,7 @@ export function GuildManager() {
       toast({ title: "Strike added" });
       setStrikeReason(prev => ({ ...prev, [vars.id]: "" }));
       invalidate();
+      invalidateStats(); // 3rd strike auto-freezes the guild, which shifts the KPI counts
     },
     onError: (err: any) => toast({ title: "Failed", description: err?.message, variant: "destructive" }),
   });
@@ -100,13 +95,16 @@ export function GuildManager() {
       toast({ title: "GPS adjusted" });
       setGpsAdjust(prev => ({ ...prev, [vars.id]: { delta: "", reason: "" } }));
       invalidate();
+      invalidateStats(); // avgGps + possibly guildRank shift
     },
     onError: (err: any) => toast({ title: "Failed", description: err?.message, variant: "destructive" }),
   });
 
   const weeklyTargetMutation = useMutation({
-    mutationFn: async ({ id, target }: { id: string; target: number }) =>
-      (await apiRequest("PATCH", `/api/admin/guilds/${id}/weekly-target`, { target })).json(),
+    // Backend expects `weeklyTarget` in the body (not `target`) — the old field name
+    // meant this request body never matched the zod schema and every call 400'd.
+    mutationFn: async ({ id, weeklyTarget }: { id: string; weeklyTarget: number }) =>
+      (await apiRequest("PATCH", `/api/admin/guilds/${id}/weekly-target`, { weeklyTarget })).json(),
     onSuccess: (_, vars) => {
       toast({ title: "Weekly target updated" });
       setWeeklyTarget(prev => ({ ...prev, [vars.id]: "" }));
@@ -138,8 +136,12 @@ export function GuildManager() {
   const replaceCaptainMutation = useMutation({
     mutationFn: async ({ guildId, newCaptainUserId }: { guildId: string; newCaptainUserId: string }) =>
       (await apiRequest("PATCH", `/api/admin/guilds/${guildId}/captain`, { newCaptainUserId })).json(),
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       toast({ title: "Captain replaced", description: "Guild leadership transferred." });
+      // The member list's `role` field changes for both the old and new captain,
+      // and a replaced inactive captain should drop off that alert immediately.
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", vars.guildId, "members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/guilds/inactive-captains"] });
       setReplaceCaptainGuildId(null);
       setNewCaptainUserId("");
       invalidate();
@@ -148,21 +150,23 @@ export function GuildManager() {
   });
 
   const bulkTargetsMutation = useMutation({
-    mutationFn: async (targets: Record<string, number>) => {
-      const ranks = ['E-Rank', 'D-Rank', 'C-Rank', 'B-Rank', 'A-Rank', 'S-Rank'];
-      const results = await Promise.all(
-        ranks.map(rank =>
-          apiRequest("POST", "/api/admin/guilds/bulk-targets", {
-            weeklyTarget: targets[rank],
-            scope: "byDifficulty",
-            difficulty: rank,
-          }).then(r => r.json())
-        )
-      );
-      return results;
-    },
-    onSuccess: () => {
-      toast({ title: "Bulk targets set", description: "Weekly targets applied to all active guilds by rank." });
+    // Single batched call matching the real backend contract: POST { targets: Record<rank, number> }.
+    // The previous implementation looped 6 times sending a {weeklyTarget, scope, difficulty} body
+    // that endpoint never accepted (it expects `targets`) — bulk targets silently failed every time.
+    mutationFn: async (targets: Record<string, number>) =>
+      (await apiRequest("POST", "/api/admin/guilds/bulk-targets", { targets })).json() as Promise<{
+        updatedCounts: Record<string, number>;
+        updated: number;
+      }>,
+    onSuccess: (data) => {
+      const breakdown = Object.entries(data.updatedCounts)
+        .filter(([, count]) => count > 0)
+        .map(([rank, count]) => `${rank}: ${count}`)
+        .join(", ");
+      toast({
+        title: `Bulk targets set — ${data.updated} guild(s) updated`,
+        description: breakdown || "No active guilds matched the provided ranks.",
+      });
       invalidate();
     },
     onError: (err: any) => toast({ title: "Failed", description: err?.message, variant: "destructive" }),
@@ -199,6 +203,8 @@ export function GuildManager() {
       setDecideDialogId(null);
       setAdminNote("");
       queryClient.invalidateQueries({ queryKey: ["/api/admin/guild-creation-requests"] });
+      invalidateStats(); // pendingCreationRequests drops either way
+      if (vars.action === "approve") invalidate(); // approval creates a new guild
     },
     onError: (err: any) => toast({ title: "Failed", description: err?.message, variant: "destructive" }),
   });
@@ -222,6 +228,8 @@ export function GuildManager() {
           Run Weekly Resolution Now
         </Button>
       </div>
+
+      <GuildKpiHeader />
 
       {/* ── GUILD CREATION REQUESTS ── */}
       <div className="rounded-xl border-[1.5px] border-[#111] overflow-hidden">
@@ -275,8 +283,8 @@ export function GuildManager() {
                           {req.status === "approved" && <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50 text-[10px] font-black"><CheckCircle2 size={10} className="mr-1" />APPROVED</Badge>}
                           {req.status === "rejected" && <Badge variant="outline" className="text-red-500 border-red-200 bg-red-50 text-[10px] font-black"><XCircle size={10} className="mr-1" />REJECTED</Badge>}
                         </div>
-                        <div className="text-xs text-zinc-500 mt-0.5">
-                          By: <strong>{req.userFirstName || ""} {req.userLastName || ""}</strong> ({req.userEmail}) · <span className="font-bold" style={{ color: req.userRankTier === "B-Rank" ? "#7c3aed" : req.userRankTier === "A-Rank" ? "#ea580c" : "#111" }}>{req.userRankTier}</span>
+                        <div className="text-xs text-zinc-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                          By: <strong>{formatPersonName(`${req.userFirstName ?? ""} ${req.userLastName ?? ""}`)}</strong> ({req.userEmail}) · <RankOrUnknown rank={req.userRankTier} />
                         </div>
                         {req.description && <div className="text-xs text-zinc-400 mt-1 italic">"{req.description}"</div>}
                         <div className="text-xs text-zinc-600 mt-1 line-clamp-2">{req.reason}</div>
@@ -380,14 +388,14 @@ export function GuildManager() {
             </div>
             <div className="space-y-2 mt-2">
               {inactiveCaptains.map((c: any) => {
-                const offlineDays = c.lastActiveAt ? Math.floor((Date.now() - new Date(c.lastActiveAt).getTime()) / 86400000) : '?';
+                const offlineDays = daysOffline(c.lastActiveAt);
                 return (
                   <div key={c.captainId || c.userId} className="flex items-center justify-between gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                     <div className="flex items-center gap-2">
                       <Crown size={12} className="text-red-500 shrink-0" />
                       <div>
                         <div className="text-xs font-black text-red-800">{c.guildName}</div>
-                        <div className="text-[10px] text-red-600">Captain: {c.captainName || c.email || c.captainId?.slice(0, 8)} · Offline {offlineDays}d</div>
+                        <div className="text-[10px] text-red-600">Captain: {c.captainName || c.email || c.captainId?.slice(0, 8)} · Offline {offlineDays != null ? `${offlineDays}d` : "Unknown"}</div>
                       </div>
                     </div>
                     <Button size="sm" variant="outline"
@@ -426,12 +434,15 @@ export function GuildManager() {
         <Button
           size="sm"
           className="font-black text-xs flex items-center gap-2"
-          disabled={bulkTargetsMutation.isPending}
+          disabled={
+            bulkTargetsMutation.isPending ||
+            !Object.values(bulkTargets).some(v => Number.isFinite(parseFloat(v)) && parseFloat(v) > 0)
+          }
           onClick={() => {
             const targets: Record<string, number> = {};
             Object.entries(bulkTargets).forEach(([rank, val]) => {
               const n = parseFloat(val);
-              if (n > 0) targets[rank] = n;
+              if (Number.isFinite(n) && n > 0) targets[rank] = n;
             });
             bulkTargetsMutation.mutate(targets);
           }}
@@ -476,16 +487,19 @@ export function GuildManager() {
                   <div>
                     <div className="font-black text-lg text-[#111] flex items-center gap-2">
                       {g.name}
-                      <span className="text-[9px] bg-black text-white px-1.5 py-0.5 rounded-sm">RANK {g.guildRank}</span>
+                      <RankOrUnknown rank={g.guildRank} />
                       {g.status === "frozen" && <span className="text-[9px] bg-red-500 text-white px-1.5 py-0.5 rounded-sm">FROZEN</span>}
                       {g.status === "disbanded" && <span className="text-[9px] bg-zinc-400 text-white px-1.5 py-0.5 rounded-sm">DISBANDED</span>}
                     </div>
                     <div className="text-[11px] text-zinc-400 font-bold">
-                      {g.memberCount} members · {g.guildScore} pts · Rs {parseFloat(g.weeklyBonusPool ?? "0").toFixed(2)} pool · {g.strikes} strike(s)
+                      {g.memberCount} members · {g.guildScore} pts · Rs {formatPkr(g.weeklyBonusPool)} pool · {g.strikes} strike(s)
                     </div>
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  <Button size="sm" className="bg-black text-white hover:bg-black/80 font-black text-xs" onClick={() => setSelectedGuildId(g.id)}>
+                    <Eye className="w-3 h-3 mr-1" /> Details
+                  </Button>
                   {g.status !== "frozen" ? (
                     <Button size="sm" variant="outline" className="border-2 border-black font-black text-xs" onClick={() => statusMutation.mutate({ id: g.id, status: "frozen" })}>
                       <Snowflake className="w-3 h-3 mr-1" /> Freeze
@@ -556,7 +570,11 @@ export function GuildManager() {
                     <Button
                       size="sm"
                       className="h-8 text-xs font-black"
-                      disabled={!gpsAdjust[g.id]?.delta || (gpsAdjust[g.id]?.reason?.length ?? 0) < 5 || gpsMutation.isPending}
+                      disabled={
+                        !Number.isFinite(parseFloat(gpsAdjust[g.id]?.delta ?? "")) ||
+                        (gpsAdjust[g.id]?.reason?.trim().length ?? 0) < 5 ||
+                        gpsMutation.isPending
+                      }
                       onClick={() => gpsMutation.mutate({ id: g.id, delta: parseFloat(gpsAdjust[g.id].delta), reason: gpsAdjust[g.id].reason })}
                     >
                       Apply
@@ -579,8 +597,12 @@ export function GuildManager() {
                     <Button
                       size="sm"
                       className="h-8 text-xs font-black"
-                      disabled={!weeklyTarget[g.id] || weeklyTargetMutation.isPending}
-                      onClick={() => weeklyTargetMutation.mutate({ id: g.id, target: parseFloat(weeklyTarget[g.id]) })}
+                      disabled={
+                        !Number.isFinite(parseFloat(weeklyTarget[g.id] ?? "")) ||
+                        parseFloat(weeklyTarget[g.id] ?? "") <= 0 ||
+                        weeklyTargetMutation.isPending
+                      }
+                      onClick={() => weeklyTargetMutation.mutate({ id: g.id, weeklyTarget: parseFloat(weeklyTarget[g.id]) })}
                     >
                       Set
                     </Button>
@@ -609,7 +631,7 @@ export function GuildManager() {
                 <option value="">Choose a member...</option>
                 {captainMembers.filter((m: any) => m.status === 'active').map((m: any) => (
                   <option key={m.userId} value={m.userId}>
-                    {m.firstName && m.lastName ? `${m.firstName} ${m.lastName}` : m.userId.slice(0, 8)} ({m.userRankTier || 'E-Rank'})
+                    {formatPersonName(m.name)} ({m.userRankTier || 'Unknown'})
                   </option>
                 ))}
               </select>
@@ -627,6 +649,11 @@ export function GuildManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <GuildDetailDrawer
+        guild={data?.guilds.find(g => g.id === selectedGuildId) ?? null}
+        onClose={() => setSelectedGuildId(null)}
+      />
     </div>
   );
 }
