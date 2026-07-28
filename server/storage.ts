@@ -264,8 +264,8 @@ export interface IStorage {
   // Scalable Data Architecture methods
   getUsersPaginated(params: { page: number, limit: number, search?: string, sort?: string, sortOrder?: 'asc' | 'desc', ids?: string[] }): Promise<{ users: User[], totalCount: number }>;
   getAuditLogsPaginated(params: { page: number, limit: number, search?: string, ids?: string[], period?: string }): Promise<{ logs: AuditLog[], totalCount: number }>;
-  getWithdrawalsPaginated(params: { page: number, limit: number, search?: string, status?: string, ids?: string[] }): Promise<{ withdrawals: Array<Withdrawal & { user: User }>, totalCount: number }>;
-  bulkUpdateWithdrawalStatus(ids: string[], status: string, adminId: string): Promise<void>;
+  getWithdrawalsPaginated(params: { page: number, limit: number, search?: string, status?: string, ids?: string[], sort?: string }): Promise<{ withdrawals: Array<Withdrawal & { user: User }>, totalCount: number }>;
+  bulkUpdateWithdrawalStatus(ids: string[], status: string, adminId: string): Promise<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }>;
   
   // System Config
   getSystemConfig(key: string): Promise<SystemConfig | undefined>;
@@ -312,7 +312,6 @@ export interface IStorage {
   // Withdrawals
   createWithdrawal(withdrawal: InsertWithdrawal): Promise<Withdrawal>;
   getWithdrawalsByUserId(userId: string, limit?: number, offset?: number): Promise<Withdrawal[]>;
-  getWithdrawalById(withdrawalId: string): Promise<Withdrawal | undefined>;
   getCheckPendingWithdrawal(userId: string): Promise<Withdrawal | undefined>;
   processWithdrawal(withdrawalId: string, adminId: string, transactionId?: string): Promise<Withdrawal>;
   rejectWithdrawal(withdrawalId: string, adminId: string, reason: string): Promise<Withdrawal>;
@@ -362,7 +361,6 @@ export interface IStorage {
     lastUpdated: Date;
   }>;
   refreshLeaderboardCache(): Promise<void>;
-  getAdminWithdrawals(limit?: number, offset?: number): Promise<Array<Withdrawal & { user: User }>>;
   updateWithdrawalStatus(id: string, status: string, adminId: string, transactionId?: string, rejectionReason?: string): Promise<Withdrawal>;
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
   getAuditLogs(limit?: number): Promise<AuditLog[]>;
@@ -2278,11 +2276,6 @@ export class DatabaseStorage implements IStorage {
       .offset(offset);
   }
 
-  async getWithdrawalById(withdrawalId: string): Promise<Withdrawal | undefined> {
-    const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, withdrawalId));
-    return withdrawal;
-  }
-
   async getCheckPendingWithdrawal(userId: string): Promise<Withdrawal | undefined> {
     const [withdrawal] = await db
       .select()
@@ -2318,11 +2311,13 @@ export class DatabaseStorage implements IStorage {
         .for("update");
 
       if (!withdrawal) throw new Error("Withdrawal not found");
-      // Accept both 'pending' (normal flow) and 'approved' (S-Rank fast-track —
+      // Accept 'pending' (normal flow), 'approved' (S-Rank fast-track —
       // createWithdrawal sets status='approved' for S-Rank users to skip the admin
       // approval queue, but the financial settlement — FIFO ledger consumption,
-      // balance debit, referral commission — still happens here at processing time).
-      if (withdrawal.status !== "pending" && withdrawal.status !== "approved") {
+      // balance debit, referral commission — still happens here at processing time),
+      // and 'processing' (admin-set non-terminal marker, no ledger effect yet —
+      // must still be completable or it becomes a dead end).
+      if (withdrawal.status !== "pending" && withdrawal.status !== "approved" && withdrawal.status !== "processing") {
         throw new Error("Withdrawal is not in a processable state");
       }
 
@@ -2490,7 +2485,13 @@ export class DatabaseStorage implements IStorage {
         .for("update");
 
       if (!withdrawal) throw new Error("Withdrawal not found");
-      if (withdrawal.status !== "pending") throw new Error("Withdrawal is not pending");
+      // Accept 'pending', 'approved' (S-Rank fast-track — admins must still be able
+      // to block a fast-tracked payout flagged by the ledger-mismatch check), and
+      // 'processing'. Mirrors the guard in processWithdrawal so neither terminal
+      // action ever dead-ends on a non-pending, non-terminal status.
+      if (withdrawal.status !== "pending" && withdrawal.status !== "approved" && withdrawal.status !== "processing") {
+        throw new Error("Withdrawal is not in a rejectable state");
+      }
 
       const [updatedWithdrawal] = await tx
         .update(withdrawals)
@@ -3541,24 +3542,6 @@ export class DatabaseStorage implements IStorage {
     return Number(result[0]?.count || 0);
   }
 
-  async getAdminWithdrawals(limit = 100, offset = 0): Promise<Array<Withdrawal & { user: User }>> {
-    const results = await db
-      .select({
-        withdrawal: withdrawals,
-        user: users
-      })
-      .from(withdrawals)
-      .innerJoin(users, eq(withdrawals.userId, users.id))
-      .orderBy(desc(withdrawals.createdAt))
-      .limit(limit)
-      .offset(offset);
-
-    return results.map(r => ({
-      ...r.withdrawal,
-      user: r.user
-    }));
-  }
-
   async updateWithdrawalStatus(
     id: string,
     status: string,
@@ -4368,7 +4351,7 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getWithdrawalsPaginated(params: { page: number, limit: number, search?: string, status?: string, ids?: string[] }): Promise<{ withdrawals: Array<Withdrawal & { user: User }>, totalCount: number }> {
+  async getWithdrawalsPaginated(params: { page: number, limit: number, search?: string, status?: string, ids?: string[], sort?: string }): Promise<{ withdrawals: Array<Withdrawal & { user: User }>, totalCount: number }> {
     const offset = (params.page - 1) * params.limit;
     const conditions = [];
     
@@ -4398,6 +4381,23 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(users, eq(withdrawals.userId, users.id))
       .where(whereClause);
 
+    // Payout Operations audit: sorting used to happen client-side on the current
+    // page only, so "prioritize S-Rank withdrawals" only ever reordered the 8
+    // rows already fetched. Sort is now a server-side param applied across the
+    // full filtered dataset, before pagination.
+    const orderByClauses = params.sort === 'rank'
+      ? [asc(sql`CASE ${users.userRankTier}
+          WHEN 'S-Rank' THEN 1
+          WHEN 'A-Rank' THEN 2
+          WHEN 'B-Rank' THEN 3
+          WHEN 'C-Rank' THEN 4
+          WHEN 'D-Rank' THEN 5
+          WHEN 'E-Rank' THEN 6
+          ELSE 7 END`), desc(withdrawals.createdAt)]
+      : params.sort === 'deadtime'
+      ? [asc(withdrawals.createdAt)]
+      : [desc(withdrawals.createdAt)];
+
     const results = await db
       .select({
         withdrawal: withdrawals,
@@ -4408,7 +4408,7 @@ export class DatabaseStorage implements IStorage {
       .where(whereClause)
       .limit(params.limit)
       .offset(offset)
-      .orderBy(desc(withdrawals.createdAt));
+      .orderBy(...orderByClauses);
 
     return {
       withdrawals: results.map(r => ({ ...r.withdrawal, user: r.user })),
@@ -4416,7 +4416,7 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async bulkUpdateWithdrawalStatus(ids: string[], status: string, adminId: string): Promise<void> {
+  async bulkUpdateWithdrawalStatus(ids: string[], status: string, adminId: string): Promise<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }> {
     // 'completed'/'rejected' must go through updateWithdrawalStatus so they hit
     // processWithdrawal/rejectWithdrawal — the sole code paths that consume the
     // user_transactions FIFO ledger, mark rows withdrawn, deduct txPointsBalance,
@@ -4424,40 +4424,59 @@ export class DatabaseStorage implements IStorage {
     // A raw UPDATE here (the old behavior) flipped status without touching the
     // ledger at all — a real double-spend risk. Non-terminal statuses (e.g.
     // 'processing') still use a plain update since there's no ledger effect yet.
+    //
+    // Each item is isolated in its own try/catch (Payout Operations audit finding):
+    // previously one bad id (e.g. already completed/rejected by a race, or a stale
+    // selection spanning pages) threw and silently aborted every remaining id in
+    // the batch with no indication of which ones had already succeeded.
+    const succeeded: string[] = [];
+    const failed: Array<{ id: string; error: string }> = [];
+
     if (status === 'completed' || status === 'rejected') {
       for (const id of ids) {
-        await this.updateWithdrawalStatus(id, status, adminId, undefined, status === 'rejected' ? 'Bulk rejection by administrator' : undefined);
-        await db.insert(auditLogs).values({
-          adminId,
-          action: `BULK_WITHDRAWAL_${status.toUpperCase()}`,
-          targetType: "withdrawal",
-          targetId: id,
-          details: { action: 'bulk_status_update', status, bulkOperation: true }
-        });
+        try {
+          await this.updateWithdrawalStatus(id, status, adminId, undefined, status === 'rejected' ? 'Bulk rejection by administrator' : undefined);
+          await db.insert(auditLogs).values({
+            adminId,
+            action: `BULK_WITHDRAWAL_${status.toUpperCase()}`,
+            targetType: "withdrawal",
+            targetId: id,
+            details: { action: 'bulk_status_update', status, bulkOperation: true }
+          });
+          succeeded.push(id);
+        } catch (error) {
+          failed.push({ id, error: error instanceof Error ? error.message : String(error) });
+        }
       }
-      return;
+      return { succeeded, failed };
     }
 
-    await db.transaction(async (tx) => {
-      for (const id of ids) {
-        await tx
-          .update(withdrawals)
-          .set({ 
-            status: status as any, 
-            processedAt: null,
-            updatedAt: new Date()
-          })
-          .where(eq(withdrawals.id, id));
-        
-        await tx.insert(auditLogs).values({
-          adminId,
-          action: `BULK_WITHDRAWAL_${status.toUpperCase()}`,
-          targetType: "withdrawal",
-          targetId: id,
-          details: { action: 'bulk_status_update', status, bulkOperation: true }
+    for (const id of ids) {
+      try {
+        await db.transaction(async (tx) => {
+          await tx
+            .update(withdrawals)
+            .set({ 
+              status: status as any, 
+              processedAt: null,
+              updatedAt: new Date()
+            })
+            .where(eq(withdrawals.id, id));
+
+          await tx.insert(auditLogs).values({
+            adminId,
+            action: `BULK_WITHDRAWAL_${status.toUpperCase()}`,
+            targetType: "withdrawal",
+            targetId: id,
+            details: { action: 'bulk_status_update', status, bulkOperation: true }
+          });
         });
+        succeeded.push(id);
+      } catch (error) {
+        failed.push({ id, error: error instanceof Error ? error.message : String(error) });
       }
-    });
+    }
+    return { succeeded, failed };
   }
 
   // System Config

@@ -168,6 +168,30 @@ export const adminActionRateLimiter = rateLimit({
   validate: false,
 });
 
+/**
+ * Rate limiter for bulk admin actions (e.g. /api/admin/withdrawals/bulk).
+ * A single bulk request can mutate many rows at once, so this must be
+ * tighter than adminActionRateLimiter (single-item admin actions), not
+ * looser — 10 requests per admin session per 15 minutes. Keyed by userId
+ * like adminActionRateLimiter, not by IP: the withdrawal-submission
+ * limiter it replaced here was IP-keyed, which is the wrong dimension for
+ * an authenticated admin action (Payout Operations audit finding).
+ */
+export const adminBulkActionRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many bulk admin actions. Try again in 15 minutes.", error: "RATE_LIMITED" },
+  skip: skipLocalhost,
+  keyGenerator: (req: Request) => {
+    const userId = (req.session as any)?.userId;
+    if (userId) return `admin-bulk-action:${userId}`;
+    return `admin-bulk-action-ip:${ipKeyGenerator(req)}`;
+  },
+  validate: false,
+});
+
 // ─── Bootstrap rate limiter ───────────────────────────────────────────────────
 /**
  * Rate limiter for /api/bootstrap-founder.

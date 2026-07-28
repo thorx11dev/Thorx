@@ -57,7 +57,7 @@ interface Withdrawal {
   method: string;
   accountName: string;
   accountNumber: string;
-  status: 'pending' | 'completed' | 'rejected' | 'processing';
+  status: 'pending' | 'approved' | 'completed' | 'rejected' | 'processing';
   fee?: string;
   netAmount?: string;
   createdAt: string;
@@ -66,10 +66,13 @@ interface Withdrawal {
     lastName: string;
     email: string;
     phone: string;
-    rank?: string;
     userRankTier?: string;
   };
 }
+
+// Statuses an admin can still act on (complete or reject). Terminal statuses
+// ('completed', 'rejected') get no action affordances.
+const ACTIONABLE_STATUSES: Withdrawal['status'][] = ['pending', 'approved', 'processing'];
 
 export function PayoutControl() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -89,30 +92,24 @@ export function PayoutControl() {
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery<{ withdrawals: Withdrawal[], totalCount: number }>({
-    queryKey: ['/api/admin/withdrawals', { page: currentPage, status: filterStatus, search: debouncedSearch }],
+    queryKey: ['/api/admin/withdrawals', { page: currentPage, status: filterStatus, search: debouncedSearch, sort: sortType }],
     queryFn: async ({ queryKey }) => {
       const [_url, params] = queryKey as [string, any];
       const statusParam = params.status !== 'all' ? `&status=${params.status}` : '';
       const searchParam = params.search ? `&search=${encodeURIComponent(params.search)}` : '';
-      const response = await apiRequest("GET", `/api/admin/withdrawals?page=${params.page}&limit=${itemsPerPage}${statusParam}${searchParam}`);
+      const sortParam = params.sort ? `&sort=${params.sort}` : '';
+      const response = await apiRequest("GET", `/api/admin/withdrawals?page=${params.page}&limit=${itemsPerPage}${statusParam}${searchParam}${sortParam}`);
       return await response.json();
     },
     refetchInterval: 5000, 
   });
 
-  const rawWithdrawals = data?.withdrawals || [];
+  // Sorting (latest/rank/deadtime) is now applied server-side across the full
+  // filtered dataset, not just the current page — see the `sort` query param
+  // above. The list is already in the right order; no client-side re-sort.
+  const withdrawalsList = data?.withdrawals || [];
   const totalCount = data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
-
-  // THORX v3 (spec G.3): sort by userRankTier (E-S system), not old Urdu names
-  const rankPriority: Record<string, number> = {
-    "S-RANK": 1,
-    "A-RANK": 2,
-    "B-RANK": 3,
-    "C-RANK": 4,
-    "D-RANK": 5,
-    "E-RANK": 6,
-  };
 
   const getDeadtimeLeft = (createdAt: string) => {
     const deadline = new Date(createdAt).getTime() + 48 * 60 * 60 * 1000;
@@ -126,20 +123,6 @@ export function PayoutControl() {
     return `${hours}h ${mins}m`;
   };
 
-  const withdrawalsList = [...rawWithdrawals].sort((a, b) => {
-    if (sortType === 'rank') {
-      const pA = rankPriority[(a.user.userRankTier ?? a.user.rank ?? 'E-Rank').toUpperCase()] || 7;
-      const pB = rankPriority[(b.user.userRankTier ?? b.user.rank ?? 'E-Rank').toUpperCase()] || 7;
-      if (pA !== pB) return pA - pB;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    }
-    if (sortType === 'deadtime') {
-      return getDeadtimeLeft(a.createdAt) - getDeadtimeLeft(b.createdAt);
-    }
-    // Default: latest
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
-
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status, transactionId, rejectionReason }: { id: string; status: string; transactionId?: string; rejectionReason?: string }) => {
       return await apiRequest("PATCH", `/api/admin/withdrawals/${id}`, { status, transactionId, rejectionReason });
@@ -150,6 +133,13 @@ export function PayoutControl() {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/ledger/validate', selectedWithdrawal?.userId] });
       // Invalidate audit trail so the new action appears immediately
       queryClient.invalidateQueries({ queryKey: ['/api/admin/withdrawals', variables.id, 'audit-trail'] });
+      // Payout Operations audit: these panels derive live stats from the same
+      // withdrawals table (pending liability, pending count, completed fees)
+      // but weren't invalidated on payout actions, so they showed stale
+      // numbers until their own timed refetch caught up.
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/reconciliation'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/team/metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/founder/profit-summary'] });
       toast({ title: "Operation Successful", description: "Withdrawal queue synchronized with ledger." });
       closeModal();
     },
@@ -160,11 +150,20 @@ export function PayoutControl() {
 
   const bulkUpdateMutation = useMutation({
     mutationFn: async ({ ids, status }: { ids: string[]; status: string }) => {
-      return await apiRequest("POST", "/api/admin/withdrawals/bulk", { ids, status });
+      const res = await apiRequest("POST", "/api/admin/withdrawals/bulk", { ids, status });
+      return await res.json() as { message: string; succeeded: string[]; failed: Array<{ id: string; error: string }> };
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/withdrawals'] });
-      toast({ title: "Atomic Batch Complete", description: `Successfully processed ${selectedIds.length} withdrawals.` });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/reconciliation'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/team/metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/founder/profit-summary'] });
+      const failedCount = response?.failed?.length ?? 0;
+      toast({
+        title: failedCount > 0 ? "Batch Partially Complete" : "Atomic Batch Complete",
+        description: response?.message ?? `Successfully processed ${selectedIds.length} withdrawals.`,
+        variant: failedCount > 0 ? "destructive" : undefined,
+      });
       setSelectedIds([]);
     },
     onError: (error: Error) => {
@@ -240,6 +239,9 @@ export function PayoutControl() {
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-primary/10 text-primary border-primary/20';
+      // 'approved' = S-Rank fast-track (skips the admin queue, still awaiting
+      // settlement) — distinct amber tone so it reads as "in flight", not new.
+      case 'approved': return 'bg-amber-50 text-amber-600 border-amber-200';
       case 'completed': return 'bg-primary/20 text-primary border-primary/40';
       case 'rejected': return 'bg-red-50 text-red-600 border-red-200';
       case 'processing': return 'bg-blue-50 text-blue-600 border-blue-200';
@@ -296,6 +298,8 @@ export function PayoutControl() {
           >
             <option value="all">All</option>
             <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="processing">Processing</option>
             <option value="completed">Completed</option>
             <option value="rejected">Rejected</option>
           </select>
@@ -308,7 +312,7 @@ export function PayoutControl() {
             {(['latest', 'rank', 'deadtime'] as const).map((s) => (
               <button
                 key={s}
-                onClick={() => setSortType(s)}
+                onClick={() => { setSortType(s); setCurrentPage(1); }}
                 className={cn(
                   "py-1.5 px-4 rounded-full text-[9px] font-black uppercase tracking-widest transition-all min-w-[80px]",
                   sortType === s ? "bg-black text-white shadow-sm" : "hover:bg-black/10 text-zinc-400"
@@ -326,7 +330,33 @@ export function PayoutControl() {
         {selectedIds.length > 0 && (
           <div className="bg-[#111] px-8 py-3 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
             <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest italic">
-              {selectedIds.length} {selectedIds.length === 1 ? 'item' : 'items'} ready for export...
+              {selectedIds.length} {selectedIds.length === 1 ? 'item' : 'items'} selected
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                disabled={bulkUpdateMutation.isPending}
+                className="h-8 px-4 rounded-full bg-white text-[#111] font-black text-[9px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all disabled:opacity-50"
+                onClick={() => {
+                  if (confirm(`Approve ${selectedIds.length} selected withdrawal(s)? This finalizes payout and cannot be undone.`)) {
+                    bulkUpdateMutation.mutate({ ids: selectedIds, status: 'completed' });
+                  }
+                }}
+              >
+                Approve Selected
+              </Button>
+              <Button
+                size="sm"
+                disabled={bulkUpdateMutation.isPending}
+                className="h-8 px-4 rounded-full bg-transparent border-[1.5px] border-red-500/60 text-red-400 font-black text-[9px] uppercase tracking-widest hover:bg-red-500 hover:text-white hover:border-red-500 transition-all disabled:opacity-50"
+                onClick={() => {
+                  if (confirm(`Reject ${selectedIds.length} selected withdrawal(s)?`)) {
+                    bulkUpdateMutation.mutate({ ids: selectedIds, status: 'rejected' });
+                  }
+                }}
+              >
+                Reject Selected
+              </Button>
             </div>
           </div>
         )}
@@ -409,7 +439,7 @@ export function PayoutControl() {
                       <td className="p-6 text-center">
                         <div className="flex flex-col items-center gap-1">
                           <span className="text-[8px] font-black text-black bg-zinc-500 border-2 border-black px-2 py-0.5 tracking-widest uppercase shadow-sm">
-                            {(withdrawal.user.userRankTier ?? withdrawal.user.rank ?? 'E-Rank')}
+                            {(withdrawal.user.userRankTier ?? 'E-Rank')}
                           </span>
                           {sortType === 'deadtime' && (
                             <div className={cn(
@@ -442,6 +472,7 @@ export function PayoutControl() {
                       <td className="p-6">
                         <div className={cn("px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border-[1.5px] inline-flex items-center gap-2 shadow-sm", getStatusStyle(withdrawal.status))}>
                            {withdrawal.status === 'pending' && <Clock size={10} />}
+                           {withdrawal.status === 'approved' && <ShieldCheck size={10} />}
                            {withdrawal.status === 'completed' && <CheckCircle size={10} />}
                            {withdrawal.status === 'rejected' && <XCircle size={10} />}
                            {withdrawal.status === 'processing' && <Loader2 size={10} className="animate-spin" />}
@@ -450,7 +481,7 @@ export function PayoutControl() {
                       </td>
                       <td className="p-6 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {withdrawal.status === 'pending' && (
+                          {ACTIONABLE_STATUSES.includes(withdrawal.status) && (
                             <>
                               <Button 
                                 size="sm" 
@@ -549,7 +580,7 @@ export function PayoutControl() {
                       <div className="text-xs text-zinc-400 mt-1">{selectedWithdrawal?.user.email}</div>
                       <div className="mt-2.5">
                         <span className="text-[9px] font-bold text-zinc-600 bg-zinc-200 px-2 py-0.5 rounded-full uppercase tracking-wide">
-                          {selectedWithdrawal?.user.userRankTier ?? selectedWithdrawal?.user.rank ?? 'E-Rank'}
+                          {selectedWithdrawal?.user.userRankTier ?? 'E-Rank'}
                         </span>
                       </div>
                     </div>
@@ -629,8 +660,17 @@ export function PayoutControl() {
                      <div className="mt-2">Severity: <span className="font-black uppercase">{ledgerCheck.severity || "CRITICAL"}</span></div>
                    </div>
                    <div className="flex gap-2 mt-3">
-                     <Button size="sm" className="h-7 text-[10px] font-black bg-white text-red-600 hover:bg-red-50" onClick={closeModal}>
-                       <ShieldX size={12} className="mr-1" /> Block Withdrawal
+                     <Button
+                       size="sm"
+                       className="h-7 text-[10px] font-black bg-white text-red-600 hover:bg-red-50 disabled:opacity-60"
+                       disabled={updateStatusMutation.isPending}
+                       onClick={() => selectedWithdrawal && updateStatusMutation.mutate({
+                         id: selectedWithdrawal.id,
+                         status: 'rejected',
+                         rejectionReason: `Blocked by administrator — ledger mismatch detected (severity: ${ledgerCheck?.severity || 'CRITICAL'})`,
+                       })}
+                     >
+                       {updateStatusMutation.isPending ? <Loader2 size={12} className="mr-1 animate-spin" /> : <ShieldX size={12} className="mr-1" />} Block Withdrawal
                      </Button>
                    </div>
                  </div>
@@ -710,7 +750,7 @@ export function PayoutControl() {
                  </div>
                )}
             <DialogFooter className="px-7 py-5 bg-white border-t border-zinc-100 flex flex-col gap-2">
-               {selectedWithdrawal?.status === 'pending' ? (
+               {selectedWithdrawal && ACTIONABLE_STATUSES.includes(selectedWithdrawal.status) ? (
                  <div className="flex gap-3 w-full">
                    <Button variant="outline" className="flex-1 h-11 rounded-xl border border-red-200 text-red-500 font-medium text-sm hover:bg-red-50 hover:border-red-300 transition-all" onClick={() => setActionType('reject')}>Reject</Button>
                    <Button className="flex-1 h-11 rounded-xl bg-zinc-900 text-white font-semibold text-sm hover:bg-black transition-all" onClick={() => setActionType('approve')}>Approve Payout</Button>

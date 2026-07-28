@@ -16,7 +16,7 @@ import { hilltopAdsService } from "./hilltopads-service";
 import { runtimeConfig } from "./config/runtime";
 import { handleProxyRequest } from "./modules/proxy/proxy-handler";
 import { processProfilePicture } from "./utils/local-profile-picture";
-import { authRateLimiter, withdrawalRateLimiter, profileRateLimiter, earnRateLimiter, guildInteractionRateLimiter, contactRateLimiter, contactEmailRateLimiter, chatbotRateLimiter, adminActionRateLimiter, bootstrapRateLimiter, publicApiRateLimiter } from "./middleware/auth-rate-limit";
+import { authRateLimiter, withdrawalRateLimiter, profileRateLimiter, earnRateLimiter, guildInteractionRateLimiter, contactRateLimiter, contactEmailRateLimiter, chatbotRateLimiter, adminActionRateLimiter, adminBulkActionRateLimiter, bootstrapRateLimiter, publicApiRateLimiter } from "./middleware/auth-rate-limit";
 import { sanitizeUser } from "./utils/sanitize-user";
 import { debugLog } from "./utils/debug-log";
 import { simulateThorxCards } from "./modules/thorx-card";
@@ -2356,9 +2356,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = parseInt(req.query.limit as string) || 8;
       const search = req.query.search as string;
       const status = req.query.status as string;
+      const sort = req.query.sort as string | undefined;
 
-      const result = await storage.getWithdrawalsPaginated({ page, limit, search, status });
-      res.json(result);
+      const result = await storage.getWithdrawalsPaginated({ page, limit, search, status, sort });
+      // Payout Operations audit: never send the raw users row to the client —
+      // it carries passwordHash/verificationToken. Always pass through sanitizeUser.
+      res.json({
+        ...result,
+        withdrawals: result.withdrawals.map(w => ({ ...w, user: sanitizeUser(w.user) })),
+      });
     } catch (error) {
       logger.error({ err: error }, "Fetch withdrawals error");
       res.status(500).json({ message: "Failed to fetch withdrawals" });
@@ -2445,19 +2451,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/withdrawals/bulk", requirePermission("MANAGE_PAYOUTS"), withdrawalRateLimiter, async (req, res) => {
+  app.post("/api/admin/withdrawals/bulk", requirePermission("MANAGE_PAYOUTS"), adminBulkActionRateLimiter, async (req, res) => {
     try {
       const bulkWithdrawalSchema = z.object({
         ids:    z.array(z.string().uuid()).min(1, "At least one withdrawal ID required"),
-        status: z.enum(["completed", "rejected", "pending"]),
+        status: z.enum(["completed", "rejected", "pending", "approved", "processing"]),
       });
       const parsed = bulkWithdrawalSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input" });
       const { ids, status } = parsed.data;
 
-      await storage.bulkUpdateWithdrawalStatus(ids, status, req.userProfile.id);
+      const result = await storage.bulkUpdateWithdrawalStatus(ids, status, req.userProfile.id);
       broadcastTeamRefresh("withdrawals_bulk_updated");
-      res.json({ message: `Successfully updated ${ids.length} withdrawals to ${status}` });
+      if (result.failed.length > 0) {
+        logger.warn({ failed: result.failed }, "Bulk withdrawal update had partial failures");
+      }
+      res.json({
+        message: result.failed.length === 0
+          ? `Successfully updated ${result.succeeded.length} withdrawals to ${status}`
+          : `Updated ${result.succeeded.length} of ${ids.length} withdrawals to ${status}; ${result.failed.length} failed`,
+        succeeded: result.succeeded,
+        failed: result.failed,
+      });
     } catch (error) {
       logger.error({ err: error }, "Bulk update withdrawals error");
       res.status(500).json({ message: "Failed to update withdrawals" });
@@ -2914,12 +2929,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Update withdrawal status (Admin Action)
   const withdrawalUpdateSchema = z.object({
-    status:           z.enum(["completed", "rejected", "pending"]),
+    status:           z.enum(["completed", "rejected", "pending", "approved", "processing"]),
     transactionId:    z.string().max(200).optional(),
     rejectionReason:  z.string().max(500).optional(),
   });
 
-  app.patch("/api/admin/withdrawals/:id", requirePermission("MANAGE_PAYOUTS"), async (req, res) => {
+  app.patch("/api/admin/withdrawals/:id", requirePermission("MANAGE_PAYOUTS"), adminActionRateLimiter, async (req, res) => {
     try {
       const parsedBody = withdrawalUpdateSchema.safeParse(req.body);
       if (!parsedBody.success) {
