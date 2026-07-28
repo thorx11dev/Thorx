@@ -26,6 +26,12 @@ conflict on a fresh import, and applies the critical ledger indexes idempotently
 It never creates a founder account or runs the full authentication QA suite without
 an explicit request. See `IMPORT_SETUP.md` for the optional commands.
 
+### Founder account
+
+A founder-level account has been provisioned via `POST /api/bootstrap-founder` (dev-only endpoint).
+Login email: `thorx11dev@gmail.com` — role: `founder` with `permissions: ["all"]`.
+The bootstrap endpoint is disabled in production (`NODE_ENV=production`).
+
 ## Production build
 
 - Build: `npm run build`
