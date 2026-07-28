@@ -22,7 +22,7 @@ import { downloadFromUrl } from "@/lib/downloadFromUrl";
 import { apiAbsolutePath } from "@/lib/apiOrigin";
 import { GuildKpiHeader } from "./guild-manager/GuildKpiHeader";
 import { GuildDetailDrawer } from "./guild-manager/GuildDetailDrawer";
-import { RankOrUnknown, formatPkr, daysOffline, formatPersonName } from "./guild-manager/guild-format";
+import { RankOrUnknown, formatPkr, daysOffline, formatPersonName, formatDateTime } from "./guild-manager/guild-format";
 import type { AdminGuild, GuildApplicationRow } from "./guild-manager/types";
 
 export function GuildManager() {
@@ -75,6 +75,22 @@ export function GuildManager() {
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["/api/admin/guilds"] });
   const invalidateStats = () => queryClient.invalidateQueries({ queryKey: ["/api/admin/guilds/stats"] });
+
+  const toggleGuildSelected = (id: string) => {
+    setSelectedGuildIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const exportGuilds = () => {
+    const params = new URLSearchParams();
+    if (statusFilter) params.set("status", statusFilter);
+    if (search) params.set("search", search);
+    if (selectedGuildIds.size > 0) params.set("ids", Array.from(selectedGuildIds).join(","));
+    downloadFromUrl(apiAbsolutePath(`/api/admin/guilds/export?${params.toString()}`), `THORX-Guild-Directory-${new Date().toISOString().split("T")[0]}.csv`);
+  };
 
   const statusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) =>
@@ -188,6 +204,61 @@ export function GuildManager() {
         description: breakdown || "No active guilds matched the provided ranks.",
       });
       invalidate();
+    },
+    onError: (err: any) => toast({ title: "Failed", description: err?.message, variant: "destructive" }),
+  });
+
+  // ── Bulk guild actions (freeze/unfreeze/disband + broadcast message) ──────
+  const bulkStatusMutation = useMutation({
+    mutationFn: async ({ guildIds, status }: { guildIds: string[]; status: string }) =>
+      (await apiRequest("POST", "/api/admin/guilds/bulk-status", { guildIds, status })).json() as Promise<{
+        updated: number;
+        failed: Array<{ guildId: string; reason: string }>;
+      }>,
+    onSuccess: (data, vars) => {
+      toast({
+        title: `${data.updated} guild${data.updated === 1 ? "" : "s"} set to ${vars.status}`,
+        description: data.failed.length > 0 ? `${data.failed.length} failed to update — they may no longer exist.` : undefined,
+        variant: data.failed.length > 0 ? "destructive" : undefined,
+      });
+      setSelectedGuildIds(new Set());
+      setBulkDisbandConfirmOpen(false);
+      invalidate();
+      invalidateStats();
+    },
+    onError: (err: any) => toast({ title: "Bulk update failed", description: err?.message, variant: "destructive" }),
+  });
+
+  const bulkMessageMutation = useMutation({
+    mutationFn: async ({ guildIds, message }: { guildIds: string[]; message: string }) =>
+      (await apiRequest("POST", "/api/admin/guilds/bulk-message", { guildIds, message })).json() as Promise<{ notified: number }>,
+    onSuccess: (data) => {
+      toast({ title: "Message sent", description: `${data.notified} member(s) notified.` });
+      setBulkMessageOpen(false);
+      setBulkMessageText("");
+      setSelectedGuildIds(new Set());
+    },
+    onError: (err: any) => toast({ title: "Failed to send message", description: err?.message, variant: "destructive" }),
+  });
+
+  // ── Cross-guild join applications queue ────────────────────────────────
+  const { data: applicationsData, isLoading: applicationsLoading } = useQuery<{ applications: GuildApplicationRow[] }>({
+    queryKey: ["/api/admin/guild-applications"],
+    queryFn: async () => (await apiRequest("GET", "/api/admin/guild-applications")).json(),
+    refetchInterval: 30000,
+  });
+  const applications = applicationsData?.applications ?? [];
+
+  const decideApplicationMutation = useMutation({
+    mutationFn: async ({ id, action, rejectionReason }: { id: string; action: "accept" | "reject"; rejectionReason?: string }) =>
+      (await apiRequest("POST", `/api/admin/guild-applications/${id}/decide`, { action, rejectionReason })).json(),
+    onSuccess: (_data, vars) => {
+      toast({ title: vars.action === "accept" ? "Application accepted" : "Application rejected" });
+      setRejectAppId(null);
+      setRejectAppReason("");
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/guild-applications"] });
+      invalidate(); // member counts changed
+      invalidateStats();
     },
     onError: (err: any) => toast({ title: "Failed", description: err?.message, variant: "destructive" }),
   });
@@ -338,6 +409,71 @@ export function GuildManager() {
         )}
       </div>
 
+      {/* ── CROSS-GUILD JOIN APPLICATIONS ── */}
+      <div className="rounded-xl border-[1.5px] border-[#111] overflow-hidden">
+        <button
+          className="w-full flex items-center justify-between px-5 py-4 bg-white hover:bg-zinc-50 transition-colors"
+          onClick={() => setApplicationsOpen(o => !o)}
+        >
+          <div className="flex items-center gap-2">
+            <Inbox size={16} className="text-zinc-600" />
+            <span className="font-black text-sm uppercase tracking-tight">Guild Join Applications</span>
+            {applications.length > 0 && (
+              <Badge className="bg-amber-500 text-white border-0 font-black text-[10px] px-2">{applications.length} pending</Badge>
+            )}
+          </div>
+          {applicationsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+
+        {applicationsOpen && (
+          <div className="border-t border-[#111]/10 p-4 space-y-3 bg-zinc-50">
+            {applicationsLoading ? (
+              <div className="space-y-2">{[1, 2].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}</div>
+            ) : applications.length === 0 ? (
+              <div className="text-center py-8 text-xs font-bold text-zinc-400 uppercase tracking-widest">No pending applications</div>
+            ) : (
+              <div className="space-y-3">
+                {applications.map((app) => (
+                  <div key={app.id} className="rounded-xl border border-zinc-200 bg-white p-4 space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-black text-sm">{formatPersonName(`${app.userFirstName ?? ""} ${app.userLastName ?? ""}`)}</span>
+                          <RankOrUnknown rank={app.userRankTier} />
+                        </div>
+                        <div className="text-xs text-zinc-500 mt-0.5">
+                          {app.userEmail} · applying to <strong>{app.guildName}</strong>
+                        </div>
+                        {app.coverLetter && <div className="text-xs text-zinc-600 mt-1 italic">"{app.coverLetter}"</div>}
+                        <div className="text-[10px] text-zinc-400 mt-1">Requested {formatDateTime(app.requestedAt)}</div>
+                      </div>
+                      <div className="flex gap-1.5 shrink-0">
+                        <Button
+                          size="sm"
+                          className="h-8 text-[10px] font-black bg-emerald-600 hover:bg-emerald-700 text-white border-0"
+                          disabled={decideApplicationMutation.isPending}
+                          onClick={() => decideApplicationMutation.mutate({ id: app.id, action: "accept" })}
+                        >
+                          <CheckCircle2 size={11} className="mr-1" /> Accept
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-[10px] font-black border-red-400 text-red-600 hover:bg-red-50"
+                          onClick={() => { setRejectAppId(app.id); setRejectAppReason(""); }}
+                        >
+                          <XCircle size={11} className="mr-1" /> Reject
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Approve/Reject Dialog */}
       <Dialog open={!!decideDialogId} onOpenChange={(open) => !open && setDecideDialogId(null)}>
         <DialogContent className="max-w-sm rounded-2xl">
@@ -376,6 +512,38 @@ export function GuildManager() {
         </DialogContent>
       </Dialog>
 
+      {/* Reject Application Dialog */}
+      <Dialog open={!!rejectAppId} onOpenChange={(open) => { if (!open) { setRejectAppId(null); setRejectAppReason(""); } }}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-black text-lg uppercase text-red-600">Reject Application</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-zinc-500">The applicant will be notified with this reason.</p>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Reason (10+ characters)</Label>
+              <Textarea
+                placeholder="e.g. Guild is currently at capacity."
+                value={rejectAppReason}
+                onChange={(e) => setRejectAppReason(e.target.value)}
+                className="border-2 border-black"
+                maxLength={500}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" className="border-2 border-black font-black text-xs" onClick={() => setRejectAppId(null)}>Cancel</Button>
+            <Button
+              className="font-black text-xs bg-red-600 hover:bg-red-700"
+              disabled={rejectAppReason.trim().length < 10 || decideApplicationMutation.isPending}
+              onClick={() => decideApplicationMutation.mutate({ id: rejectAppId!, action: "reject", rejectionReason: rejectAppReason.trim() })}
+            >
+              Confirm Rejection
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex flex-col md:flex-row gap-3">
         <div className="flex items-center gap-2 flex-1">
           <Search className="w-4 h-4 text-zinc-400" />
@@ -394,6 +562,14 @@ export function GuildManager() {
               {s || "All"}
             </button>
           ))}
+          <Button
+            variant="outline"
+            className="h-10 px-3 border-2 border-black font-black text-xs flex items-center gap-1.5"
+            onClick={exportGuilds}
+            title={selectedGuildIds.size > 0 ? `Export ${selectedGuildIds.size} selected guild(s)` : "Export all guilds matching current filters"}
+          >
+            <Download className="w-3.5 h-3.5" /> Export{selectedGuildIds.size > 0 ? ` (${selectedGuildIds.size})` : ""}
+          </Button>
         </div>
       </div>
 
@@ -471,6 +647,75 @@ export function GuildManager() {
         </Button>
       </div>
 
+      {/* ── BULK ACTIONS TOOLBAR ── */}
+      {selectedGuildIds.size > 0 && (
+        <div className="rounded-xl border-[1.5px] border-[#111] bg-[#111] text-white p-4 flex flex-wrap items-center justify-between gap-3 sticky top-2 z-10">
+          <div className="font-black text-sm flex items-center gap-2">
+            <Users2 size={16} />
+            {selectedGuildIds.size} guild{selectedGuildIds.size === 1 ? "" : "s"} selected
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm" variant="outline"
+              className="h-8 text-[10px] font-black border-2 border-white bg-transparent text-white hover:bg-white hover:text-black"
+              disabled={bulkStatusMutation.isPending}
+              onClick={() => bulkStatusMutation.mutate({ guildIds: Array.from(selectedGuildIds), status: "active" })}
+            >
+              <Play className="w-3 h-3 mr-1" /> Activate
+            </Button>
+            <Button
+              size="sm" variant="outline"
+              className="h-8 text-[10px] font-black border-2 border-white bg-transparent text-white hover:bg-white hover:text-black"
+              disabled={bulkStatusMutation.isPending}
+              onClick={() => bulkStatusMutation.mutate({ guildIds: Array.from(selectedGuildIds), status: "frozen" })}
+            >
+              <Snowflake className="w-3 h-3 mr-1" /> Freeze
+            </Button>
+            <Button
+              size="sm" variant="outline"
+              className="h-8 text-[10px] font-black border-2 border-white bg-transparent text-white hover:bg-white hover:text-black"
+              onClick={() => setBulkMessageOpen(true)}
+            >
+              <Send className="w-3 h-3 mr-1" /> Message
+            </Button>
+            <Button
+              size="sm"
+              className="h-8 text-[10px] font-black bg-red-600 hover:bg-red-700 text-white border-0"
+              onClick={() => setBulkDisbandConfirmOpen(true)}
+            >
+              <Trash2 className="w-3 h-3 mr-1" /> Disband
+            </Button>
+            <Button
+              size="sm" variant="ghost"
+              className="h-8 text-[10px] font-black text-white hover:bg-white/10"
+              onClick={() => setSelectedGuildIds(new Set())}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {!isLoading && guildList.length > 0 && (
+        <div className="flex items-center gap-2 -mb-2">
+          <button
+            type="button"
+            className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-black"
+            onClick={() => setSelectedGuildIds(new Set(guildList.map(g => g.id)))}
+          >
+            Select all visible
+          </button>
+          <span className="text-zinc-300">·</span>
+          <button
+            type="button"
+            className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-black"
+            onClick={() => setSelectedGuildIds(new Set())}
+          >
+            Clear selection
+          </button>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -494,13 +739,19 @@ export function GuildManager() {
         </div>
       ) : (
         <div className="space-y-4">
-          {(data?.guilds || []).length === 0 && (
+          {guildList.length === 0 && (
             <div className="text-center py-16 text-sm font-bold text-zinc-400 uppercase tracking-widest">No guilds found</div>
           )}
-          {(data?.guilds || []).map((g) => (
-            <div key={g.id} className="bg-background border-[1.5px] border-[#111] rounded-2xl p-5 md:p-6 flex flex-col gap-4">
+          {guildList.map((g) => (
+            <div key={g.id} className={cn("bg-background border-[1.5px] rounded-2xl p-5 md:p-6 flex flex-col gap-4", selectedGuildIds.has(g.id) ? "border-black ring-2 ring-black/10" : "border-[#111]")}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={selectedGuildIds.has(g.id)}
+                    onCheckedChange={() => toggleGuildSelected(g.id)}
+                    className="border-2 border-black data-[state=checked]:bg-black shrink-0"
+                    aria-label={`Select ${g.name}`}
+                  />
                   <div className="w-10 h-10 bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center rounded-full">
                     <Users2 className="w-5 h-5 text-zinc-500" />
                   </div>
@@ -670,8 +921,63 @@ export function GuildManager() {
         </DialogContent>
       </Dialog>
 
+      {/* ── BULK MESSAGE DIALOG ── */}
+      <Dialog open={bulkMessageOpen} onOpenChange={(open) => { setBulkMessageOpen(open); if (!open) setBulkMessageText(""); }}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-black text-lg uppercase">
+              Message {selectedGuildIds.size} Guild{selectedGuildIds.size === 1 ? "" : "s"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-zinc-500">Sent as an in-app notification to every active member of the selected guild(s).</p>
+            <Textarea
+              placeholder="Message to send..."
+              value={bulkMessageText}
+              onChange={(e) => setBulkMessageText(e.target.value)}
+              className="border-2 border-black min-h-[100px]"
+              maxLength={1000}
+            />
+            <div className="text-[10px] text-zinc-400 text-right">{bulkMessageText.length}/1000</div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" className="border-2 border-black font-black text-xs" onClick={() => setBulkMessageOpen(false)}>Cancel</Button>
+            <Button
+              className="font-black text-xs"
+              disabled={bulkMessageText.trim().length === 0 || bulkMessageMutation.isPending}
+              onClick={() => bulkMessageMutation.mutate({ guildIds: Array.from(selectedGuildIds), message: bulkMessageText.trim() })}
+            >
+              {bulkMessageMutation.isPending ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : <Send className="w-3 h-3 mr-1" />}
+              Send
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── BULK DISBAND CONFIRMATION ── */}
+      <AlertDialog open={bulkDisbandConfirmOpen} onOpenChange={setBulkDisbandConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disband {selectedGuildIds.size} guild{selectedGuildIds.size === 1 ? "" : "s"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              All active members of the selected guild(s) will be removed from their guild immediately and their guild role reset. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              disabled={bulkStatusMutation.isPending}
+              onClick={() => bulkStatusMutation.mutate({ guildIds: Array.from(selectedGuildIds), status: "disbanded" })}
+            >
+              Disband {selectedGuildIds.size} Guild{selectedGuildIds.size === 1 ? "" : "s"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <GuildDetailDrawer
-        guild={data?.guilds.find(g => g.id === selectedGuildId) ?? null}
+        guild={guildList.find(g => g.id === selectedGuildId) ?? null}
         onClose={() => setSelectedGuildId(null)}
       />
     </div>

@@ -1648,11 +1648,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: z.enum(["active", "frozen", "disbanded"], { errorMap: () => ({ message: "status must be one of: active, frozen, disbanded" }) }),
       }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input" });
-      const updated = await storage.adminBulkSetGuildStatus(parsed.data.guildIds, parsed.data.status, adminId);
+      const { updated, failed } = await storage.adminBulkSetGuildStatus(parsed.data.guildIds, parsed.data.status, adminId);
+      const failedIds = new Set(failed.map(f => f.guildId));
       for (const guildId of parsed.data.guildIds) {
-        broadcastGuildEvent(guildId, 'guild.status_changed', { guildId, status: parsed.data.status });
+        if (!failedIds.has(guildId)) broadcastGuildEvent(guildId, 'guild.status_changed', { guildId, status: parsed.data.status });
       }
-      res.json({ updated });
+      res.json({ updated, failed });
     } catch (error) {
       logger.error({ err: error }, "Bulk set guild status error:");
       const msg = error instanceof Error ? error.message : "Failed to bulk update guild status";

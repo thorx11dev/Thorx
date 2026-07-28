@@ -132,7 +132,7 @@ import { checkAndUpdateRankTier } from "./modules/ps-engine";
 import { awardMemberGPS, awardMVPGPS, checkAndUpdateGuildRankTier, computeGuildRankTier, fetchGpsConfig, GUILD_RANK_TIERS, type GuildRankTier } from "./modules/gps-engine";
 import { emitFeedEvent } from "./modules/live-feed";
 import { db } from "./db";
-import { eq, desc, asc, and, or, sql, inArray, ilike, gte, lte, lt, ne, isNotNull } from "drizzle-orm";
+import { eq, desc, asc, and, or, sql, inArray, ilike, gte, lte, lt, ne, isNotNull, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import bcrypt from "bcrypt";
 import { encryptCredential, decryptCredential, isEncrypted } from "./utils/credential-crypto";
@@ -5003,21 +5003,24 @@ export class DatabaseStorage implements IStorage {
   // Admin: bulk freeze/unfreeze/disband across a selected set of guilds in one action.
   // Reuses setGuildStatus per guild (same disband cleanup + per-guild audit log entry)
   // rather than duplicating that logic, then adds one roll-up audit entry for the batch.
-  async adminBulkSetGuildStatus(guildIds: string[], status: "active" | "frozen" | "disbanded", adminId: string): Promise<number> {
+  async adminBulkSetGuildStatus(guildIds: string[], status: "active" | "frozen" | "disbanded", adminId: string): Promise<{ updated: number; failed: Array<{ guildId: string; reason: string }> }> {
     let updated = 0;
+    const failed: Array<{ guildId: string; reason: string }> = [];
     for (const guildId of guildIds) {
       try {
         await this.setGuildStatus(guildId, status, adminId);
         updated++;
-      } catch {
-        // Skip guilds that no longer exist rather than failing the whole batch.
+      } catch (err) {
+        // Don't fail the whole batch on one bad id — but surface which ones
+        // failed and why so the admin isn't left guessing which guilds didn't update.
+        failed.push({ guildId, reason: err instanceof Error ? err.message : "Unknown error" });
       }
     }
     await db.insert(auditLogs).values({
       adminId, action: "ADMIN_GUILD_BULK_STATUS_SET", targetType: "guild", targetId: "bulk",
-      details: { guildIds, status, updatedCount: updated },
+      details: { guildIds, status, updatedCount: updated, failed },
     });
-    return updated;
+    return { updated, failed };
   }
 
   // Admin: broadcast a message to every active member of a selected set of guilds.
@@ -5038,12 +5041,15 @@ export class DatabaseStorage implements IStorage {
       });
     }
 
+    const notifiedUserIds = members.map(m => m.userId);
     await db.insert(auditLogs).values({
       adminId, action: "ADMIN_GUILD_BULK_MESSAGE_SENT", targetType: "guild", targetId: "bulk",
-      details: { guildIds, message, recipientCount: members.length },
+      // Keep the actual recipient list in the audit trail (not just the count) so a
+      // disputed "who got this message" question can be answered without guesswork.
+      details: { guildIds, message, recipientCount: members.length, notifiedUserIds },
     });
 
-    return members.map(m => m.userId);
+    return notifiedUserIds;
   }
 
   async getAllPendingGuildApplications(): Promise<Array<{
@@ -5608,7 +5614,10 @@ export class DatabaseStorage implements IStorage {
       })
       .from(guilds)
       .innerJoin(users, eq(users.id, guilds.captainId))
-      .where(and(eq(guilds.status, "active"), lt(users.lastActiveAt, cutoff)))
+      // A captain who has never been active (lastActiveAt IS NULL) is at least as
+      // stale as one who was last seen before the cutoff — treat both as inactive
+      // instead of silently excluding never-logged-in captains from this alert.
+      .where(and(eq(guilds.status, "active"), or(lt(users.lastActiveAt, cutoff), isNull(users.lastActiveAt))))
       .orderBy(asc(users.lastActiveAt));
   }
 
