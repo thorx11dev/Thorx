@@ -59,6 +59,7 @@ import { resolveAvatarUrl, resolveAvatarUrlByTier, getRankDef } from "@/lib/rank
 
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { TRUST_STATUSES } from "@shared/constants";
 
 interface UserProfile {
   id: string;
@@ -123,7 +124,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
   const [selectedTrustStatus, setSelectedTrustStatus] = useState<string | null>(null);
   const [trustReason, setTrustReason] = useState("");
 
-  const TRUST_STATUS_OPTIONS = ["Special", "Trusted", "Normal", "Dangerous"];
+  const TRUST_STATUS_OPTIONS = TRUST_STATUSES;
 
   
   const { toast } = useToast();

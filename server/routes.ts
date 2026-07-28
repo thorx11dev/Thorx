@@ -8,6 +8,7 @@ import { storage } from "./storage";
 import { pool, db } from "./db";
 import { initRealtime, broadcastUserUpdated, broadcastTeamRefresh, broadcastGuildMessage, broadcastGuildEvent, broadcastToUser, closeUserSockets } from "./realtime";
 import { insertRegistrationSchema, insertUserSchema, insertWithdrawalSchema, users, teamKeys, adViews, systemConfig, weeklyTasks, auditLogs, insertHilltopAdsConfigSchema, insertHilltopAdsZoneSchema, passwordResetTokens, insertEngineBTaskSchema, engineBRecords, guildCreationRequests, guildMembers, guildProfiles, guildWars, guilds, captainMessages } from "@shared/schema";
+import { TRUST_STATUSES } from "@shared/constants";
 import { eq, sql, and, desc, or } from "drizzle-orm";
 import { z } from "zod";
 import { validateEmailServer, validatePhoneServer, normalizePhoneNumber } from "./validation";
@@ -4516,8 +4517,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const TRUST_STATUSES = ["Special", "Trusted", "Normal", "Dangerous"];
-
   // Set (or clear) a user's Trust Status — an admin-assigned account
   // classification surfaced on the Leaderboard. A reason is mandatory
   // whenever a status is being set (not required when clearing to null).
@@ -4525,7 +4524,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const trustSchema = z.object({
-        status: z.enum(TRUST_STATUSES as [string, ...string[]]).nullable(),
+        status: z.enum(TRUST_STATUSES).nullable(),
         reason: z.string().max(500).optional(),
       });
       const parsedTrust = trustSchema.safeParse(req.body);
@@ -4692,13 +4691,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/admin/risk-cases", requirePermission("VIEW_ANALYTICS"), async (req, res) => {
     try {
-      const { severity, status, search, limit = "50", offset = "0" } = req.query as Record<string, string>;
+      const { severity, status, search, limit = "50", offset = "0", sortDir } = req.query as Record<string, string>;
       const result = await storage.listRiskCases({
         severity: severity || undefined,
         status: status || undefined,
         search: search || undefined,
         limit: parseInt(limit),
         offset: parseInt(offset),
+        sortDir: sortDir === "asc" ? "asc" : "desc",
       });
       res.json(result);
     } catch (err) {
@@ -4735,7 +4735,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         assignedTo:         z.string().uuid().nullable().optional(),
         notes:              z.string().max(5000).optional(),
         resolution:         z.string().max(1000).optional(),
-        trustStatusOutcome: z.enum(["Special", "Trusted", "Normal", "Dangerous"]).optional(),
+        trustStatusOutcome: z.enum(TRUST_STATUSES).optional(),
       });
       const parsed = riskCaseUpdateSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input" });
@@ -4794,8 +4794,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let trustStatusApplied = false;
       let trustStatusError: string | null = null;
       if (trustStatusOutcome && adminId && (status === "Cleared" || status === "Actioned")) {
-        const TRUST_STATUSES = ["Special", "Trusted", "Normal", "Dangerous"];
-        if (TRUST_STATUSES.includes(trustStatusOutcome)) {
+        if ((TRUST_STATUSES as readonly string[]).includes(trustStatusOutcome)) {
           try {
             await storage.setUserTrustStatus(
               updated.userId,

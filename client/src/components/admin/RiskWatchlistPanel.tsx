@@ -39,6 +39,7 @@ import { Button } from "@/components/ui/button";
 import { format, formatDistanceToNow } from "date-fns";
 import { resolveAvatarUrlByTier } from "@/lib/rankAvatars";
 import { QUERY_KEYS } from "@/lib/queryKeys";
+import { TRUST_STATUSES } from "@shared/constants";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -137,8 +138,6 @@ const MAX_BY_SIGNAL: Record<string, number> = {
   "Task Completion Speed": 10,
 };
 
-const TRUST_STATUSES = ["Special", "Trusted", "Normal", "Dangerous"] as const;
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function SeverityBadge({ severity }: { severity: RiskCase["severity"] }) {
@@ -236,7 +235,7 @@ function ScoreHistoryChart({ userId }: { userId: string }) {
             risk >= 50 ? "bg-orange-400" :
             risk >= 25 ? "bg-amber-300" : "bg-emerald-400";
           return (
-            <div key={i} className="flex-1 flex flex-col items-center gap-0.5 group relative">
+            <div key={pt.snapshotAt} className="flex-1 flex flex-col items-center gap-0.5 group relative">
               <div className={cn("w-full rounded-sm transition-all", barColor)} style={{ height: `${h}px` }} />
               <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center z-10 pointer-events-none">
                 <div className="bg-[#111] text-white rounded-lg px-2 py-1 text-[9px] font-black whitespace-nowrap shadow-lg">
@@ -415,8 +414,8 @@ function CaseDetailDrawer({
           <div className="bg-white border-2 border-[#111] rounded-2xl p-5 shadow-sm space-y-4">
             <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Signal Breakdown</p>
             {Array.isArray(riskCase.signals) && riskCase.signals.length > 0 ? (
-              riskCase.signals.map((sig, i) => (
-                <SignalBar key={i} signal={sig} maxPossible={MAX_BY_SIGNAL[sig.name] ?? 30} />
+              riskCase.signals.map((sig) => (
+                <SignalBar key={sig.name} signal={sig} maxPossible={MAX_BY_SIGNAL[sig.name] ?? 30} />
               ))
             ) : (
               <p className="text-[11px] text-zinc-400 font-bold">No signals recorded.</p>
@@ -689,8 +688,8 @@ function SignalAccuracyPanel() {
             <span className="w-14 shrink-0 text-right text-[10px] font-black tabular-nums text-zinc-500">
               {s.precision === null ? "—" : `${s.precision}%`}
             </span>
-            <span className="w-20 shrink-0 text-right text-[9px] font-bold text-zinc-300 uppercase tracking-widest">
-              {s.timesTriggered} cases
+            <span className="w-32 shrink-0 text-right text-[9px] font-bold text-zinc-300 uppercase tracking-widest">
+              {s.actioned} actioned · {s.cleared} cleared
             </span>
           </div>
         ))}
@@ -709,6 +708,7 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
   const [search, setSearch] = useState("");
   const [severityFilter, setSeverityFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(0);
   const [selectedCase, setSelectedCase] = useState<RiskCase | null>(null);
 
@@ -719,7 +719,12 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
   });
   const teamMembers: TeamMember[] = teamData?.members ?? [];
 
-  const queryKey = `/api/admin/risk-cases?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}${severityFilter ? `&severity=${severityFilter}` : ""}${statusFilter ? `&status=${statusFilter}` : ""}${search ? `&search=${encodeURIComponent(search)}` : ""}`;
+  const toggleSort = () => {
+    setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    setPage(0);
+  };
+
+  const queryKey = `/api/admin/risk-cases?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}&sortDir=${sortDir}${severityFilter ? `&severity=${severityFilter}` : ""}${statusFilter ? `&status=${statusFilter}` : ""}${search ? `&search=${encodeURIComponent(search)}` : ""}`;
 
   const { data, isLoading, isError } = useQuery<RiskCasesResponse>({
     queryKey: [queryKey],
@@ -879,10 +884,15 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
               <tr className="border-b-[1.5px] border-[#111]/10 bg-zinc-50">
                 <th className="px-4 py-3 text-left text-[9px] font-black text-zinc-400 uppercase tracking-widest pl-6">User</th>
                 <th className="px-4 py-3 text-left text-[9px] font-black text-zinc-400 uppercase tracking-widest">
-                  <div className="flex items-center gap-1">
+                  <button
+                    onClick={toggleSort}
+                    className="flex items-center gap-1 hover:text-[#111] transition-colors"
+                    aria-label={`Sort by risk score, currently ${sortDir === "desc" ? "highest first" : "lowest first"}`}
+                    title={sortDir === "desc" ? "Highest risk first" : "Lowest risk first"}
+                  >
                     Risk Score
-                    <ArrowUpDown size={10} className="text-zinc-300" />
-                  </div>
+                    <ArrowUpDown size={10} className={sortDir === "asc" ? "rotate-180 transition-transform" : "transition-transform"} />
+                  </button>
                 </th>
                 <th className="px-4 py-3 text-left text-[9px] font-black text-zinc-400 uppercase tracking-widest">Severity</th>
                 <th className="px-4 py-3 text-left text-[9px] font-black text-zinc-400 uppercase tracking-widest">Status</th>

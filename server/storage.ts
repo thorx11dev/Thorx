@@ -4548,6 +4548,7 @@ export class DatabaseStorage implements IStorage {
     search?: string;
     limit?: number;
     offset?: number;
+    sortDir?: "asc" | "desc";
   }): Promise<{
     cases: Array<RiskCase & { user: Pick<User, 'id' | 'firstName' | 'lastName' | 'email' | 'avatar' | 'userRankTier' | 'profilePicture'> }>;
     total: number;
@@ -4580,7 +4581,11 @@ export class DatabaseStorage implements IStorage {
 
     const where = and(...conditions);
 
-    // Sort by risk score descending (highest risk first), then by most recently updated for ties
+    // Sort by risk score (highest risk first by default), then by most recently updated for ties
+    const sortDir = filters?.sortDir ?? "desc";
+    const scoreOrder = sortDir === "asc"
+      ? asc(sql<number>`CAST(${riskCases.riskScore} AS NUMERIC)`)
+      : desc(sql<number>`CAST(${riskCases.riskScore} AS NUMERIC)`);
     const rows = await db
       .select({
         riskCase: riskCases,
@@ -4597,7 +4602,7 @@ export class DatabaseStorage implements IStorage {
       .from(riskCases)
       .innerJoin(users, eq(riskCases.userId, users.id))
       .where(where)
-      .orderBy(desc(sql<number>`CAST(${riskCases.riskScore} AS NUMERIC)`), desc(riskCases.updatedAt))
+      .orderBy(scoreOrder, desc(riskCases.updatedAt))
       .limit(limit)
       .offset(offset);
 

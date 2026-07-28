@@ -363,6 +363,7 @@ async function prefetchBatchSignalData(userIds: string[], configs: {
   velocityThreshold: number;
   cashoutWindowHours: number;
   taskSpeedSeconds: number;
+  botThreshold: number;
 }) {
   const since24h  = new Date(Date.now() - 86_400_000);
   const since7d   = new Date(Date.now() - 7  * 86_400_000);
@@ -488,6 +489,7 @@ async function prefetchBatchSignalData(userIds: string[], configs: {
     cashoutWindowMs: configs.cashoutWindowHours * 3_600_000,
     taskSpeedSeconds: configs.taskSpeedSeconds,
     velocityThreshold: configs.velocityThreshold,
+    botThreshold: configs.botThreshold,
   };
 }
 
@@ -500,7 +502,7 @@ function scoreUserFromBatch(
     earnings24hMap, userInfoMap, userFpMap, hashSharingMap,
     l1ChildrenMap, l2CountMap, withdrawalMap, taskMap,
     referredByMap, fpRows, fpHashSet,
-    cashoutWindowMs, taskSpeedSeconds, velocityThreshold,
+    cashoutWindowMs, taskSpeedSeconds, velocityThreshold, botThreshold,
   } = batch;
 
   const info = userInfoMap.get(u.id);
@@ -522,8 +524,10 @@ function scoreUserFromBatch(
     sig2 = { name: "Bot Network", score: 0, detail: "Too few referrals to evaluate." };
   } else {
     const earningsPerRef = totalEarnings / referralCount;
-    // Use cached config default (50) — same as signalBotNetwork's RISK_BOT_EARNINGS_PER_REF default
-    const botThreshold = 100;
+    // botThreshold comes from the same RISK_BOT_EARNINGS_PER_REF config the
+    // single-user path (signalBotNetwork) reads live — pre-fetched once per
+    // batch so a config change takes effect on the next scan instead of
+    // silently diverging from on-demand single-user scoring.
     const botScore = earningsPerRef < botThreshold
       ? Math.min(20, ((botThreshold - earningsPerRef) / botThreshold) * 20) : 0;
     sig2 = {
@@ -633,14 +637,15 @@ async function runBatchedScan(
 
   const userIds = targetUsers.map(u => u.id);
 
-  // Fetch all configurable thresholds up-front (3 config lookups)
-  const [velocityThreshold, cashoutWindowHours, taskSpeedSeconds] = await Promise.all([
+  // Fetch all configurable thresholds up-front (4 config lookups)
+  const [velocityThreshold, cashoutWindowHours, taskSpeedSeconds, botThreshold] = await Promise.all([
     storage.getSystemConfigValue<number>("RISK_VELOCITY_THRESHOLD", 5000),
     storage.getSystemConfigValue<number>("RISK_CASHOUT_WINDOW_HOURS", 1),
     storage.getSystemConfigValue<number>("RISK_TASK_SPEED_SECONDS", 3),
+    storage.getSystemConfigValue<number>("RISK_BOT_EARNINGS_PER_REF", 100),
   ]);
 
-  const batch = await prefetchBatchSignalData(userIds, { velocityThreshold, cashoutWindowHours, taskSpeedSeconds });
+  const batch = await prefetchBatchSignalData(userIds, { velocityThreshold, cashoutWindowHours, taskSpeedSeconds, botThreshold });
 
   let flagged = 0;
   let critical = 0;
