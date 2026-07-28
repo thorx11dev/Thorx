@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
+import Decimal from "decimal.js";
 import { TrendingUp, Plus, History, AlertTriangle, CheckCircle, DollarSign, X, Calendar, BarChart2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +15,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Display-only, Decimal-guarded conversion for PKR string values — mirrors
+// the safePkr helper used in AdminDashboard.tsx so a malformed/missing value
+// renders as 0 instead of a literal "NaN".
+const safePkr = (v: string | number | null | undefined) => { try { return new Decimal(String(v ?? "0")).toNumber(); } catch { return 0; } };
+
 interface ProfitSummary {
   totalProfitEarned: string;
   thisMonthProfitEarned: string;
@@ -23,7 +29,9 @@ interface ProfitSummary {
   monthlyBalance: string;
   isOverWithdrawn: boolean;
   overWithdrawnAmount: string;
-  currentFeeRate: string;
+  // null when the platform fee rate isn't configured — do not fabricate a
+  // fallback percentage, show an explicit "not configured" state instead.
+  currentFeeRate: string | null;
   lastWithdrawalDate: string | null;
   daysSinceLastWithdrawal: number | null;
 }
@@ -53,7 +61,7 @@ export function FounderProfitCard() {
     refetchInterval: 60000,
   });
 
-  const { data: profitLedger } = useQuery<any>({
+  const { data: profitLedger, isLoading: profitLedgerLoading, isError: profitLedgerError } = useQuery<any>({
     queryKey: ["/api/admin/profit-ledger"],
     enabled: showProfitLedger,
     refetchInterval: showProfitLedger ? 120000 : false,
@@ -87,7 +95,7 @@ export function FounderProfitCard() {
 
   if (user?.role !== "founder") return null;
 
-  const safe = parseFloat(summary?.safeToWithdrawNow ?? "0");
+  const safe = safePkr(summary?.safeToWithdrawNow);
   const isOver = summary?.isOverWithdrawn ?? false;
   const stale = summary?.daysSinceLastWithdrawal !== null && (summary?.daysSinceLastWithdrawal ?? 0) > 14;
 
@@ -126,7 +134,7 @@ export function FounderProfitCard() {
           ) : (
             <div className={cn("text-3xl font-black mb-1", isOver ? "text-red-600" : "text-emerald-700")}>
               {isOver
-                ? `−₨${parseFloat(summary?.overWithdrawnAmount ?? "0").toLocaleString()}`
+                ? `−₨${safePkr(summary?.overWithdrawnAmount).toLocaleString()}`
                 : `₨${safe.toLocaleString()}`
               }
             </div>
@@ -140,21 +148,23 @@ export function FounderProfitCard() {
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="p-3 bg-white/60 rounded-2xl">
             <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">This Month Profit</p>
-            <p className="font-black text-sm text-foreground">₨{parseFloat(summary?.thisMonthProfitEarned ?? "0").toLocaleString()}</p>
+            <p className="font-black text-sm text-foreground">₨{safePkr(summary?.thisMonthProfitEarned).toLocaleString()}</p>
           </div>
           <div className="p-3 bg-white/60 rounded-2xl">
             <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">This Month Taken</p>
-            <p className="font-black text-sm text-foreground">₨{parseFloat(summary?.thisMonthWithdrawn ?? "0").toLocaleString()}</p>
+            <p className="font-black text-sm text-foreground">₨{safePkr(summary?.thisMonthWithdrawn).toLocaleString()}</p>
           </div>
           <div className="p-3 bg-white/60 rounded-2xl">
             <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Monthly Balance</p>
-            <p className={cn("font-black text-sm", parseFloat(summary?.monthlyBalance ?? "0") >= 0 ? "text-emerald-600" : "text-red-500")}>
-              ₨{parseFloat(summary?.monthlyBalance ?? "0").toLocaleString()}
+            <p className={cn("font-black text-sm", safePkr(summary?.monthlyBalance) >= 0 ? "text-emerald-600" : "text-red-500")}>
+              ₨{safePkr(summary?.monthlyBalance).toLocaleString()}
             </p>
           </div>
           <div className="p-3 bg-white/60 rounded-2xl">
             <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Platform Fee Rate</p>
-            <p className="font-black text-sm text-foreground">{summary?.currentFeeRate ?? "10"}%</p>
+            <p className="font-black text-sm text-foreground">
+              {summary?.currentFeeRate != null ? `${summary.currentFeeRate}%` : <span className="text-zinc-300">Not configured</span>}
+            </p>
           </div>
         </div>
 

@@ -2676,8 +2676,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/founder/withdrawals", requirePermission("VIEW_PROFIT_LEDGER"), withdrawalRateLimiter, async (req, res) => {
     try {
+      // Founder withdrawals are a founder-only financial action — matches the
+      // explicit founder-only check already enforced on the sibling GET route
+      // below. VIEW_PROFIT_LEDGER alone is not sufficient here since it can be
+      // granted to non-founder team members purely for read-only visibility.
+      if (req.userProfile!.role !== 'founder') {
+        return res.status(403).json({ message: "Founder access required" });
+      }
       const founderWithdrawalSchema = z.object({
-        amount:          z.string().regex(/^\d+(\.\d{1,4})?$/, "amount must be a positive decimal string"),
+        amount:          z.string().regex(/^\d+(\.\d{1,2})?$/, "amount must be a positive decimal string with up to 2 decimal places"),
         withdrawalDate:  z.string().datetime({ message: "withdrawalDate must be an ISO datetime string" }),
         description:     z.string().max(500).optional(),
       });

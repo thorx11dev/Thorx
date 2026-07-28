@@ -48,14 +48,16 @@ interface ExtendedMetrics {
 interface AnalyticsPoint {
   date: string;
   count: number;
-  amount: number;
+  amount: string;
 }
 
+// H-04/H-05: engine revenue is PKR money — the server returns Decimal-fixed
+// strings, never plain numbers. Convert via Decimal for display/arithmetic.
 interface EngineRevenue {
-  Engine_A: number;
-  Engine_B: number;
-  Engine_C: number;
-  Indirect: number;
+  Engine_A: string;
+  Engine_B: string;
+  Engine_C: string;
+  Indirect: string;
 }
 
 // ── Metric card ──────────────────────────────────────────────────────────────
@@ -263,6 +265,7 @@ export function AdminDashboard() {
       if (!res.ok) throw new Error("Failed to fetch analytics");
       return res.json();
     },
+    refetchInterval: 60000,
   });
 
   const { data: engineRevenue, isError: engineRevenueError } = useQuery<EngineRevenue>({
@@ -347,6 +350,32 @@ export function AdminDashboard() {
           <span>⚠ Failed to load platform metrics.</span>
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/team/metrics"] })}
+            className="ml-auto underline underline-offset-2 hover:opacity-80"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Analytics error banner — previously computed but never surfaced */}
+      {analyticsError && (
+        <div className="flex items-center gap-3 rounded-lg border-2 border-destructive/40 bg-destructive/5 px-4 py-3 text-sm font-bold text-destructive">
+          <span>⚠ Failed to load registration/revenue analytics.</span>
+          <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminAnalytics(dateRange) })}
+            className="ml-auto underline underline-offset-2 hover:opacity-80"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Engine revenue error banner — previously computed but never surfaced */}
+      {engineRevenueError && (
+        <div className="flex items-center gap-3 rounded-lg border-2 border-destructive/40 bg-destructive/5 px-4 py-3 text-sm font-bold text-destructive">
+          <span>⚠ Failed to load engine revenue breakdown.</span>
+          <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminEngineRevenue(dateRange) })}
             className="ml-auto underline underline-offset-2 hover:opacity-80"
           >
             Retry
@@ -478,9 +507,16 @@ export function AdminDashboard() {
             { key: "Engine_B" as const, label: "Engine B · CPA Offers",  color: "#7c3aed", sub: "C-Rank+ CPA completions" },
             { key: "Engine_C" as const, label: "Engine C · Guild Tasks", color: "#16a34a", sub: "Guild weekly task pool" },
           ]).map(({ key, label, color, sub }) => {
-            const rev = engineRevenue?.[key] ?? null;
-            const total = (engineRevenue?.Engine_A ?? 0) + (engineRevenue?.Engine_B ?? 0) + (engineRevenue?.Engine_C ?? 0);
-            const sharePct = total > 0 && rev !== null ? ((rev / total) * 100).toFixed(0) : null;
+            // H-04/H-05: engineRevenue values are Decimal-fixed strings — sum
+            // and share-of-total math must go through Decimal.js, never raw
+            // JS +/÷ on parsed numbers.
+            const revStr = engineRevenue?.[key] ?? null;
+            const totalD = new Decimal(engineRevenue?.Engine_A ?? "0")
+              .plus(engineRevenue?.Engine_B ?? "0")
+              .plus(engineRevenue?.Engine_C ?? "0");
+            const rev = revStr !== null ? safePkr(revStr) : null;
+            const shareD = revStr !== null && totalD.greaterThan(0) ? new Decimal(revStr).dividedBy(totalD).times(100) : null;
+            const sharePct = shareD ? shareD.toFixed(0) : null;
             return (
               <motion.div
                 key={key}
@@ -496,9 +532,9 @@ export function AdminDashboard() {
                   <div className="text-[10px] text-zinc-400 font-medium">{sub}</div>
                   {sharePct && <div className="text-[10px] font-black" style={{ color }}>{sharePct}%</div>}
                 </div>
-                {rev !== null && total > 0 && (
+                {shareD && (
                   <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${(rev / total) * 100}%`, backgroundColor: color }} />
+                    <div className="h-full rounded-full transition-all" style={{ width: `${shareD.toNumber()}%`, backgroundColor: color }} />
                   </div>
                 )}
               </motion.div>
@@ -509,7 +545,8 @@ export function AdminDashboard() {
           <div className="flex items-center justify-end gap-2">
             <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total user earnings {rangeLabel}:</span>
             <span className="text-sm font-black text-[#111]">
-              ₨{((engineRevenue.Engine_A || 0) + (engineRevenue.Engine_B || 0) + (engineRevenue.Engine_C || 0)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              ₨{new Decimal(engineRevenue.Engine_A ?? "0").plus(engineRevenue.Engine_B ?? "0").plus(engineRevenue.Engine_C ?? "0")
+                .toNumber().toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </span>
           </div>
         )}

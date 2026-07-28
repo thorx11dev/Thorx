@@ -259,7 +259,7 @@ export interface IStorage {
   getUsersCountInRange(since: Date): Promise<number>;
   getEarningsSumInRange(since: Date): Promise<string>;
   getAnalyticsData(since: Date): Promise<any[]>;
-  getEngineRevenue(since: Date): Promise<{ Engine_A: number; Engine_B: number; Engine_C: number; Indirect: number }>;
+  getEngineRevenue(since: Date): Promise<{ Engine_A: string; Engine_B: string; Engine_C: string; Indirect: string }>;
 
   // Scalable Data Architecture methods
   getUsersPaginated(params: { page: number, limit: number, search?: string, sort?: string, sortOrder?: 'asc' | 'desc', ids?: string[] }): Promise<{ users: User[], totalCount: number }>;
@@ -385,7 +385,7 @@ export interface IStorage {
     monthlyBalance: string;
     isOverWithdrawn: boolean;
     overWithdrawnAmount: string;
-    currentFeeRate: string;
+    currentFeeRate: string | null;
     lastWithdrawalDate: string | null;
     daysSinceLastWithdrawal: number | null;
   }>;
@@ -425,8 +425,6 @@ export interface IStorage {
     userGrowthLastWeek: number;
     userGrowthRate: number;
     networkL1Total: number;
-    networkL2Total: number;
-    networkRatio: number;
     totalReferrals: number;
     totalCommissionsPaid: string;
     teamActivity24h: number;
@@ -1735,21 +1733,25 @@ export class DatabaseStorage implements IStorage {
     // Merge datasets into a unified timeline
     const mergedMap = new Map<string, any>();
     registrations.forEach(r => {
-      mergedMap.set(r.date, { date: r.date, count: Number(r.count), amount: 0 });
+      mergedMap.set(r.date, { date: r.date, count: Number(r.count), amount: "0.0000" });
     });
     
+    // H-04/H-05: keep PKR revenue as a Decimal-serialized string end-to-end —
+    // never .toNumber()/Number() a financial value on the server. The
+    // frontend already Decimal-wraps this field before display.
     revenue.forEach(rev => {
+      const amountStr = new Decimal(rev.amount ?? "0").toFixed(4);
       if (mergedMap.has(rev.date)) {
-        mergedMap.get(rev.date).amount = Number(rev.amount);
+        mergedMap.get(rev.date).amount = amountStr;
       } else {
-        mergedMap.set(rev.date, { date: rev.date, count: 0, amount: Number(rev.amount) });
+        mergedMap.set(rev.date, { date: rev.date, count: 0, amount: amountStr });
       }
     });
 
     return Array.from(mergedMap.values()).sort((a,b) => a.date.localeCompare(b.date));
   }
 
-  async getEngineRevenue(since: Date): Promise<{ Engine_A: number; Engine_B: number; Engine_C: number; Indirect: number }> {
+  async getEngineRevenue(since: Date): Promise<{ Engine_A: string; Engine_B: string; Engine_C: string; Indirect: string }> {
     // user_transactions are all credits; filter by date window only
     const condition = since.getTime() > 0
       ? gte(userTransactions.createdAt, since)
@@ -1762,12 +1764,16 @@ export class DatabaseStorage implements IStorage {
       .from(userTransactions)
       .where(condition)
       .groupBy(userTransactions.engineType);
-    const result: Record<string, number> = { Engine_A: 0, Engine_B: 0, Engine_C: 0, Indirect: 0 };
+    // H-04/H-05: serialize as Decimal-fixed strings — never .toNumber() a
+    // financial value on the server. The frontend does the sum/share math
+    // via Decimal.js too, using the same safePkr-style guarded pattern
+    // already established for the other dashboard cards.
+    const result: Record<string, string> = { Engine_A: "0.0000", Engine_B: "0.0000", Engine_C: "0.0000", Indirect: "0.0000" };
     for (const row of rows) {
       const key = row.engineType;
-      if (key && key in result) result[key] = new Decimal(row.total ?? "0").toNumber();
+      if (key && key in result) result[key] = new Decimal(row.total ?? "0").toFixed(4);
     }
-    return result as { Engine_A: number; Engine_B: number; Engine_C: number; Indirect: number };
+    return result as { Engine_A: string; Engine_B: string; Engine_C: string; Indirect: string };
   }
 
   async createChatMessage(insertChatMessage: InsertChatMessage): Promise<ChatMessage> {
@@ -3738,7 +3744,7 @@ export class DatabaseStorage implements IStorage {
   }> {
     const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const [cutRows, wdRow, daily] = await Promise.all([
+    const [cutRows, wdRow, daily, dailyFee] = await Promise.all([
       db.select({
         engine: userTransactions.engineType,
         cut: sql<number>`COALESCE(SUM(${userTransactions.thorxProfitPkr}::numeric), 0)`,
@@ -3757,6 +3763,19 @@ export class DatabaseStorage implements IStorage {
           COALESCE(SUM(thorx_profit_pkr::numeric), 0) AS engine_cut
         FROM user_transactions
         WHERE created_at >= ${since30}
+        GROUP BY 1
+        ORDER BY 1
+      `),
+
+      // Per-day withdrawal fee share, keyed by the same processedAt date axis
+      // used for the monthly founder-profit figures — previously hardcoded to
+      // "0.0000" below with a TODO-style comment; this closes that gap.
+      db.execute(sql`
+        SELECT
+          date_trunc('day', processed_at)::date AS day,
+          COALESCE(SUM((thorx_fee_share)::numeric), 0) AS fee_share
+        FROM withdrawals
+        WHERE status IN ('approved', 'completed') AND processed_at >= ${since30}
         GROUP BY 1
         ORDER BY 1
       `),
@@ -3786,12 +3805,21 @@ export class DatabaseStorage implements IStorage {
     const netWithdrawalFeeShare   = feeRevenueD.toFixed(4);
 
     const dailyRows = ((daily as unknown) as { rows: any[] }).rows ?? [];
-    const daily30Days = dailyRows.map((r: any) => ({
-      date: String(r.day).slice(0, 10),
-      engineCut: new Decimal(r.engine_cut ?? 0).toFixed(4),
-      feeShare: "0.0000", // per-day fee share requires withdrawal-date join — aggregated at top
-      total: new Decimal(r.engine_cut ?? 0).toFixed(4),
-    }));
+    const dailyFeeRows = ((dailyFee as unknown) as { rows: any[] }).rows ?? [];
+    const feeShareByDay = new Map<string, string>(
+      dailyFeeRows.map((r: any) => [String(r.day).slice(0, 10), String(r.fee_share ?? 0)])
+    );
+    const daily30Days = dailyRows.map((r: any) => {
+      const date = String(r.day).slice(0, 10);
+      const engineCutD = new Decimal(r.engine_cut ?? 0);
+      const feeShareD = new Decimal(feeShareByDay.get(date) ?? 0);
+      return {
+        date,
+        engineCut: engineCutD.toFixed(4),
+        feeShare: feeShareD.toFixed(4),
+        total: engineCutD.plus(feeShareD).toFixed(4),
+      };
+    });
 
     return {
       engineCuts,
@@ -3942,7 +3970,10 @@ export class DatabaseStorage implements IStorage {
     const [monthOutRow] = await db.select({ total: sql<string>`COALESCE(SUM(CAST(amount AS DECIMAL)), 0)::text` }).from(founderWithdrawals).where(gte(founderWithdrawals.createdAt, monthStart));
     const [lastWd] = await db.select().from(founderWithdrawals).orderBy(desc(founderWithdrawals.createdAt)).limit(1);
     const feeConfigs = await db.select().from(systemConfig).where(eq(systemConfig.key, 'WITHDRAWAL_FEE_PCT'));
-    const feeRate = feeConfigs[0]?.value ?? 15;
+    // Do not fabricate a plausible-looking fee rate when config is missing —
+    // a guessed default here would misrepresent the real platform fee to the
+    // founder. Leave it undefined so the response reports it as unavailable.
+    const feeRate = feeConfigs[0]?.value;
 
     // Audit finding 1-G: replace parseFloat with Decimal arithmetic to prevent
     // IEEE 754 drift in PKR aggregations shown in the founder reconciliation panel.
@@ -3965,7 +3996,7 @@ export class DatabaseStorage implements IStorage {
       monthlyBalance: monthBalanceD.toFixed(2),
       isOverWithdrawn: safeD.isNegative(),
       overWithdrawnAmount: safeD.isNegative() ? safeD.abs().toFixed(2) : "0",
-      currentFeeRate: String(feeRate),
+      currentFeeRate: (feeRate === undefined || feeRate === null) ? null : String(feeRate),
       lastWithdrawalDate: lastWd?.withdrawalDate?.toISOString() ?? null,
       daysSinceLastWithdrawal: daysSinceLast,
     };
@@ -3984,8 +4015,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getHealthHistory(hours = 24): Promise<HealthSnapshot[]> {
-    const since = new Date(Date.now() - hours * 60 * 60 * 1000);
-    return db.select().from(healthSnapshots).where(gte(healthSnapshots.recordedAt, since)).orderBy(desc(healthSnapshots.recordedAt)).limit(Math.min(hours, 48));
+    // Snapshots are recorded roughly hourly. The row limit must scale with
+    // the requested window — it was previously hardcoded to 48 regardless of
+    // `hours`, silently truncating any request for more than 48h of history.
+    // Clamp the window itself to a sane maximum (30 days) to bound the query.
+    const clampedHours = Math.min(Math.max(hours, 1), 24 * 30);
+    const since = new Date(Date.now() - clampedHours * 60 * 60 * 1000);
+    return db.select().from(healthSnapshots).where(gte(healthSnapshots.recordedAt, since)).orderBy(desc(healthSnapshots.recordedAt)).limit(clampedHours + 24);
   }
 
   // ── Financial Reconciliation ────────────────────────────────────────────────
@@ -4084,11 +4120,17 @@ export class DatabaseStorage implements IStorage {
     const ago14d = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
     const ago24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    // Pending withdrawals — capped at 1000 rows for aggregation safety (2-E)
-    const pendingRows = await db.select({ id: withdrawals.id, amount: withdrawals.amount, createdAt: withdrawals.createdAt }).from(withdrawals).where(eq(withdrawals.status, 'pending')).limit(1000);
-    const pendingTotal = pendingRows.reduce((s, w) => s.plus(new Decimal(w.amount ?? "0")), new Decimal(0));
-    const oldestPending = pendingRows.reduce((oldest, w) => (!w.createdAt ? oldest : !oldest || w.createdAt < oldest ? w.createdAt : oldest), null as Date | null);
-    const oldestPendingDays = oldestPending ? Math.floor((now.getTime() - oldestPending.getTime()) / (1000 * 60 * 60 * 24)) : null;
+    // Pending withdrawals — aggregated directly in SQL (previously fetched up
+    // to 1000 raw rows and summed in JS, silently under-reporting the true
+    // total/count/oldest-age once more than 1000 pending withdrawals exist).
+    const [pendingAgg] = await db.select({
+      total: sql<string>`COALESCE(SUM(CAST(${withdrawals.amount} AS DECIMAL)), 0)::text`,
+      cnt: sql<number>`COUNT(*)`,
+      oldest: sql<string | null>`MIN(${withdrawals.createdAt})`,
+    }).from(withdrawals).where(eq(withdrawals.status, 'pending'));
+    const pendingTotal = new Decimal(pendingAgg?.total ?? '0');
+    const pendingCount = Number(pendingAgg?.cnt ?? 0);
+    const oldestPendingDays = pendingAgg?.oldest ? Math.floor((now.getTime() - new Date(pendingAgg.oldest).getTime()) / (1000 * 60 * 60 * 24)) : null;
 
     // Unverified credits
     const [unverRow] = await db.select({ total: sql<string>`COALESCE(SUM(CAST(amount AS DECIMAL)), 0)::text`, cnt: sql<number>`COUNT(*)` }).from(earnings).where(eq(earnings.type, 'admin_credit'));
@@ -4100,18 +4142,16 @@ export class DatabaseStorage implements IStorage {
     const lastWeek = Number(lastWeekRow?.cnt ?? 0);
     const growthRate = lastWeek > 0 ? Math.round(((thisWeek - lastWeek) / lastWeek) * 1000) / 10 : (thisWeek > 0 ? 100 : 0);
 
-    // Referral network depth
+    // Referral network depth — L1 only. THORX v3 froze the referral system at
+    // a single level, so an L2/depth-ratio metric here would surface a legacy
+    // multilevel-referral concept that is no longer part of the product; it
+    // has been removed (it was computed but never rendered anywhere).
     // L1: number of platform users who have earned at least one direct referral commission
-    // L2: number of platform users who have earned at least one second-tier commission
     // totalReferrals: total user accounts that were referred by someone (referredBy IS NOT NULL)
     const [l1Row] = await db.select({ cnt: sql<number>`COUNT(DISTINCT ${commissionLogs.beneficiaryId})` }).from(commissionLogs).where(and(eq(commissionLogs.level, 1), eq(commissionLogs.status, 'paid')));
-    const [l2Row] = await db.select({ cnt: sql<number>`COUNT(DISTINCT ${commissionLogs.beneficiaryId})` }).from(commissionLogs).where(and(eq(commissionLogs.level, 2), eq(commissionLogs.status, 'paid')));
     const [referralRow] = await db.select({ cnt: sql<number>`COUNT(*)` }).from(users).where(and(eq(users.role, 'user'), sql`${users.referredBy} IS NOT NULL`));
     const [commPaidRow] = await db.select({ total: sql<string>`COALESCE(SUM(CAST(${commissionLogs.amount} AS DECIMAL)), 0)::text` }).from(commissionLogs).where(eq(commissionLogs.status, 'paid'));
     const l1Total = Number(l1Row?.cnt ?? 0);
-    const l2Total = Number(l2Row?.cnt ?? 0);
-    // Depth ratio: for every L1 earner, how many L2 earners does their network produce?
-    const networkRatio = l1Total > 0 ? Math.round((l2Total / l1Total) * 100) / 100 : 0;
 
     // Team activity
     const [day1Row] = await db.select({ cnt: sql<number>`COUNT(*)` }).from(auditLogs).where(gte(auditLogs.createdAt, ago24h));
@@ -4138,7 +4178,7 @@ export class DatabaseStorage implements IStorage {
 
     return {
       pendingWithdrawalTotal: pendingTotal.toFixed(2),
-      pendingWithdrawalCount: pendingRows.length,
+      pendingWithdrawalCount: pendingCount,
       oldestPendingDays,
       unverifiedCreditTotal: unverRow?.total ?? '0',
       unverifiedCreditCount: Number(unverRow?.cnt ?? 0),
@@ -4146,8 +4186,6 @@ export class DatabaseStorage implements IStorage {
       userGrowthLastWeek: lastWeek,
       userGrowthRate: growthRate,
       networkL1Total: l1Total,
-      networkL2Total: l2Total,
-      networkRatio,
       totalReferrals: Number(referralRow?.cnt ?? 0),
       totalCommissionsPaid: commPaidRow?.total ?? '0',
       teamActivity24h: activity24h,
