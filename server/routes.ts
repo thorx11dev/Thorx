@@ -2097,7 +2097,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .select({
           id: auditLogs.id,
           action: auditLogs.action,
-          details: auditLogs.details,
+          metadata: auditLogs.details,
           createdAt: auditLogs.createdAt,
           adminFirstName: users.firstName,
           adminLastName: users.lastName,

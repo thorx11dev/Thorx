@@ -4282,7 +4282,7 @@ export class DatabaseStorage implements IStorage {
           action: `BULK_WITHDRAWAL_${status.toUpperCase()}`,
           targetType: "withdrawal",
           targetId: id,
-          details: `Bulk status update to ${status}`
+          details: { action: 'bulk_status_update', status, bulkOperation: true }
         });
       }
       return;
@@ -4304,7 +4304,7 @@ export class DatabaseStorage implements IStorage {
           action: `BULK_WITHDRAWAL_${status.toUpperCase()}`,
           targetType: "withdrawal",
           targetId: id,
-          details: `Bulk status update to ${status}`
+          details: { action: 'bulk_status_update', status, bulkOperation: true }
         });
       }
     });

@@ -66,7 +66,7 @@ interface Withdrawal {
     lastName: string;
     email: string;
     phone: string;
-    rank: string;
+    rank?: string;
     userRankTier?: string;
   };
 }
@@ -242,6 +242,7 @@ export function PayoutControl() {
       case 'pending': return 'bg-primary/10 text-primary border-primary/20';
       case 'completed': return 'bg-primary/20 text-primary border-primary/40';
       case 'rejected': return 'bg-red-50 text-red-600 border-red-200';
+      case 'processing': return 'bg-blue-50 text-blue-600 border-blue-200';
       default: return 'bg-zinc-50 text-zinc-500 border-zinc-200';
     }
   };
@@ -443,6 +444,7 @@ export function PayoutControl() {
                            {withdrawal.status === 'pending' && <Clock size={10} />}
                            {withdrawal.status === 'completed' && <CheckCircle size={10} />}
                            {withdrawal.status === 'rejected' && <XCircle size={10} />}
+                           {withdrawal.status === 'processing' && <Loader2 size={10} className="animate-spin" />}
                            {withdrawal.status}
                         </div>
                       </td>
