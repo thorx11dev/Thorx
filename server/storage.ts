@@ -5250,34 +5250,109 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(users.lastActiveAt));
   }
 
-  async adminGetReferralStats(): Promise<{ totalCommissionsPaid: string; totalReferrers: number; totalCommissionCount: number }> {
-    const [row] = await db
+  async adminGetReferralStats(): Promise<{
+    totalReferrals: number;
+    activeReferrals: number;
+    totalCommissionPaid: string;
+    pendingCommission: string;
+    thisWeekCommission: string;
+    thisMonthCommission: string;
+    avgCommissionPerReferral: string;
+  }> {
+    const now = new Date();
+    const weekAgo  = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000);
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // All-time aggregate
+    const [allTime] = await db
       .select({
-        total: sql<string>`COALESCE(SUM(${referralCommissions.commissionAmountPkr}), 0)`,
-        count: sql<number>`COUNT(*)`,
+        total:    sql<string>`COALESCE(SUM(${referralCommissions.commissionAmountPkr}), 0)`,
+        count:    sql<number>`COUNT(*)`,
         referrers: sql<number>`COUNT(DISTINCT ${referralCommissions.referrerId})`,
+        invitees:  sql<number>`COUNT(DISTINCT ${referralCommissions.inviteeId})`,
       })
       .from(referralCommissions);
+
+    // Active referrers = referrers with ≥1 commission in last 30 days
+    const [activeRow] = await db
+      .select({ cnt: sql<number>`COUNT(DISTINCT ${referralCommissions.referrerId})` })
+      .from(referralCommissions)
+      .where(gte(referralCommissions.createdAt, monthAgo));
+
+    // This week
+    const [weekRow] = await db
+      .select({ total: sql<string>`COALESCE(SUM(${referralCommissions.commissionAmountPkr}), 0)` })
+      .from(referralCommissions)
+      .where(gte(referralCommissions.createdAt, weekAgo));
+
+    // This month
+    const [monthRow] = await db
+      .select({ total: sql<string>`COALESCE(SUM(${referralCommissions.commissionAmountPkr}), 0)` })
+      .from(referralCommissions)
+      .where(gte(referralCommissions.createdAt, monthAgo));
+
+    const totalPaid  = new Decimal(allTime?.total ?? "0");
+    const referrers  = Number(allTime?.referrers) || 0;
+    const avgPerRef  = referrers > 0 ? totalPaid.div(referrers).toFixed(2) : "0.00";
+
     return {
-      totalCommissionsPaid: new Decimal(row?.total ?? "0").toFixed(2), // H-04: string, not float
-      totalReferrers: Number(row?.referrers) || 0,
-      totalCommissionCount: Number(row?.count) || 0,
+      totalReferrals:        Number(allTime?.invitees) || 0,
+      activeReferrals:       Number(activeRow?.cnt)    || 0,
+      totalCommissionPaid:   totalPaid.toFixed(2),
+      pendingCommission:     "0.00",          // commissions are auto-paid on withdrawal processing; no pending state
+      thisWeekCommission:    new Decimal(weekRow?.total  ?? "0").toFixed(2),
+      thisMonthCommission:   new Decimal(monthRow?.total ?? "0").toFixed(2),
+      avgCommissionPerReferral: avgPerRef,
     };
   }
 
   async adminGetReferralLeaderboard(limit = 20): Promise<any[]> {
-    return await db
+    const rows = await db
       .select({
-        referrerId: referralCommissions.referrerId,
-        referrerName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
-        totalCommissionPkr: sql<string>`SUM(${referralCommissions.commissionAmountPkr})`,
-        commissionCount: sql<number>`COUNT(*)`,
+        userId:          referralCommissions.referrerId,
+        email:           users.email,
+        firstName:       users.firstName,
+        userRankTier:    users.userRankTier,
+        totalCommission: sql<string>`SUM(${referralCommissions.commissionAmountPkr})`,
+        referralCount:   sql<number>`COUNT(DISTINCT ${referralCommissions.inviteeId})`,
+        lastReferralAt:  sql<string>`MAX(${referralCommissions.createdAt})`,
       })
       .from(referralCommissions)
       .innerJoin(users, eq(users.id, referralCommissions.referrerId))
-      .groupBy(referralCommissions.referrerId, users.firstName, users.lastName)
+      .groupBy(
+        referralCommissions.referrerId,
+        users.email,
+        users.firstName,
+        users.userRankTier,
+      )
       .orderBy(desc(sql`SUM(${referralCommissions.commissionAmountPkr})`))
       .limit(limit);
+
+    // activeCount: how many of each referrer's invitees are still active users
+    // Computed per row via a correlated count to keep the main query clean.
+    if (rows.length === 0) return [];
+
+    const activeRows = await db
+      .select({
+        referrerId: referralCommissions.referrerId,
+        activeCount: sql<number>`COUNT(DISTINCT ${referralCommissions.inviteeId})`,
+      })
+      .from(referralCommissions)
+      .innerJoin(users, eq(users.id, referralCommissions.inviteeId))
+      .where(and(
+        inArray(referralCommissions.referrerId, rows.map(r => r.userId)),
+        eq(users.isActive, true),
+      ))
+      .groupBy(referralCommissions.referrerId);
+
+    const activeMap = new Map(activeRows.map(r => [r.referrerId, Number(r.activeCount)]));
+
+    return rows.map(r => ({
+      ...r,
+      totalCommission: new Decimal(r.totalCommission ?? "0").toFixed(2),
+      referralCount:   Number(r.referralCount) || 0,
+      activeCount:     activeMap.get(r.userId) ?? 0,
+    }));
   }
 
   // ── THORX v3 (spec E.9): Captain DM, weekly task preparation, activity feed ──
@@ -5406,14 +5481,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActivityFeedEvents(limit = 50, eventType?: string): Promise<any[]> {
-    const conditions = eventType ? eq(activityFeed.eventType, eventType) : undefined;
+    const safeLimit = Math.min(limit, 200);
     const query = db
-      .select()
+      .select({
+        id:            activityFeed.id,
+        eventType:     activityFeed.eventType,
+        userId:        activityFeed.userId,
+        guildId:       activityFeed.guildId,
+        displayMessage: activityFeed.displayMessage,
+        data:          activityFeed.data,
+        createdAt:     activityFeed.createdAt,
+        // Joined enrichment
+        userEmail:     users.email,
+        userRankTier:  users.userRankTier,
+        guildName:     guilds.name,
+        // Extracted from data JSONB
+        engineType:    sql<string | null>`(${activityFeed.data}->>'engineType')`,
+        pkrAmount:     sql<string | null>`(${activityFeed.data}->>'grossPkr')`,
+        pointsAmount:  sql<number | null>`(${activityFeed.data}->>'rankedPointsCredited')::int`,
+      })
       .from(activityFeed)
+      .leftJoin(users,  eq(users.id,  activityFeed.userId))
+      .leftJoin(guilds, eq(guilds.id, activityFeed.guildId))
       .orderBy(desc(activityFeed.createdAt))
-      .limit(Math.min(limit, 200));
-    if (conditions) {
-      return await query.where(conditions);
+      .limit(safeLimit);
+
+    if (eventType) {
+      return await query.where(eq(activityFeed.eventType, eventType));
     }
     return await query;
   }

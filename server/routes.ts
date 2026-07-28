@@ -4444,7 +4444,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/admin/risk-cases/:id", requirePermission("MANAGE_USERS"), adminActionRateLimiter, async (req, res) => {
     try {
       const riskCaseUpdateSchema = z.object({
-        status:             z.enum(["Open", "Under Review", "Cleared", "Actioned"]).optional(),
+        status:             z.enum(["Open", "Investigating", "Cleared", "Actioned"]).optional(),
         assignedTo:         z.string().uuid().nullable().optional(),
         notes:              z.string().max(5000).optional(),
         resolution:         z.string().max(1000).optional(),

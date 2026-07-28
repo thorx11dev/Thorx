@@ -499,7 +499,7 @@ function EconomicControl({ label, value, onChange, onSave, isLoading, step }: an
 interface AdPlayer {
   id: string;
   name: string;
-  pkrToTxRatio: number;
+  pkrToPointsRatio: number;
   variancePct: number;
 }
 
@@ -526,7 +526,7 @@ function AdPlayersSection() {
   const [editVariance, setEditVariance] = useState("");
 
   const addMutation = useMutation({
-    mutationFn: async (payload: { name: string; pkrToTxRatio: number; variancePct: number }) => {
+    mutationFn: async (payload: { name: string; pkrToPointsRatio: number; variancePct: number }) => {
       const r = await apiRequest("POST", "/api/admin/engine-a/players", payload);
       return r.json();
     },
@@ -540,7 +540,7 @@ function AdPlayersSection() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, ...payload }: { id: string; name: string; pkrToTxRatio: number; variancePct: number }) => {
+    mutationFn: async ({ id, ...payload }: { id: string; name: string; pkrToPointsRatio: number; variancePct: number }) => {
       const r = await apiRequest("PATCH", `/api/admin/engine-a/players/${id}`, payload);
       return r.json();
     },
@@ -567,7 +567,7 @@ function AdPlayersSection() {
   const startEdit = (p: AdPlayer) => {
     setEditingId(p.id);
     setEditName(p.name);
-    setEditRatio(String(p.pkrToTxRatio));
+    setEditRatio(String(p.pkrToPointsRatio));
     setEditVariance(String(p.variancePct));
   };
 
@@ -604,7 +604,7 @@ function AdPlayersSection() {
             <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowAddForm(false)}>Cancel</Button>
             <Button size="sm" className="h-7 text-xs bg-zinc-900 text-white hover:bg-black"
               disabled={!newName.trim() || !newRatio || !newVariance || addMutation.isPending}
-              onClick={() => addMutation.mutate({ name: newName.trim(), pkrToTxRatio: parseFloat(newRatio), variancePct: parseFloat(newVariance) })}
+              onClick={() => addMutation.mutate({ name: newName.trim(), pkrToPointsRatio: parseFloat(newRatio), variancePct: parseFloat(newVariance) })}
             >
               {addMutation.isPending ? "Adding…" : "Save Player"}
             </Button>
@@ -648,7 +648,7 @@ function AdPlayersSection() {
                       <Button size="sm" variant="ghost" className="h-6 text-xs px-2" onClick={() => setEditingId(null)}>Cancel</Button>
                       <Button size="sm" className="h-6 text-xs px-2 bg-zinc-900 text-white hover:bg-black"
                         disabled={updateMutation.isPending}
-                        onClick={() => updateMutation.mutate({ id: p.id, name: editName.trim(), pkrToTxRatio: parseFloat(editRatio), variancePct: parseFloat(editVariance) })}
+                        onClick={() => updateMutation.mutate({ id: p.id, name: editName.trim(), pkrToPointsRatio: parseFloat(editRatio), variancePct: parseFloat(editVariance) })}
                       >
                         {updateMutation.isPending ? "…" : "Save"}
                       </Button>
@@ -658,7 +658,7 @@ function AdPlayersSection() {
               ) : (
                 <tr key={p.id} className="hover:bg-zinc-50 transition-colors">
                   <td className="px-6 py-3 font-semibold text-zinc-900">{p.name}</td>
-                  <td className="px-4 py-3 text-zinc-600 font-mono">{p.pkrToTxRatio.toLocaleString()}×</td>
+                  <td className="px-4 py-3 text-zinc-600 font-mono">{p.pkrToPointsRatio.toLocaleString()}×</td>
                   <td className="px-4 py-3 text-zinc-600 font-mono">±{p.variancePct}%</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1 justify-end">
