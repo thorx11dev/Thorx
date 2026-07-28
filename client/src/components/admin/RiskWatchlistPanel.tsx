@@ -37,7 +37,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { format, formatDistanceToNow } from "date-fns";
-import { resolveAvatarUrl } from "@/lib/rankAvatars";
+import { resolveAvatarUrlByTier } from "@/lib/rankAvatars";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -53,7 +53,7 @@ interface RiskCaseUser {
   lastName: string;
   email: string;
   avatar?: string | null;
-  rank?: string | null;
+  userRankTier?: string | null;
   profilePicture?: string | null;
 }
 
@@ -166,7 +166,7 @@ function StatusBadge({ status }: { status: RiskCase["status"] }) {
 
 function UserAvatar({ user, size = 9 }: { user: RiskCaseUser; size?: number }) {
   const [failed, setFailed] = useState(false);
-  const src = user.profilePicture || resolveAvatarUrl(user.avatar, user.rank);
+  const src = user.profilePicture || resolveAvatarUrlByTier(user.avatar, user.userRankTier);
   const dim = `w-${size} h-${size}`;
   if (src && !failed) {
     return (
@@ -228,8 +228,8 @@ function ScoreHistoryChart({ userId }: { userId: string }) {
       </p>
       <div className="flex items-end gap-1 h-16">
         {sorted.map((pt, i) => {
-          const h = Math.max(4, (parseFloat(pt.performanceScore) / 100) * 64);
-          const risk = parseFloat(pt.riskScore);
+          const h = Math.max(4, ((parseFloat(pt.performanceScore ?? "0") || 0) / 100) * 64);
+          const risk = parseFloat(pt.riskScore ?? "0") || 0;
           const barColor =
             risk >= 75 ? "bg-red-500" :
             risk >= 50 ? "bg-orange-400" :
@@ -239,8 +239,8 @@ function ScoreHistoryChart({ userId }: { userId: string }) {
               <div className={cn("w-full rounded-sm transition-all", barColor)} style={{ height: `${h}px` }} />
               <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center z-10 pointer-events-none">
                 <div className="bg-[#111] text-white rounded-lg px-2 py-1 text-[9px] font-black whitespace-nowrap shadow-lg">
-                  Perf: {parseFloat(pt.performanceScore).toFixed(1)}<br />
-                  Risk: {parseFloat(pt.riskScore).toFixed(1)}
+                  Perf: {(parseFloat(pt.performanceScore ?? "0") || 0).toFixed(1)}<br />
+                  Risk: {(parseFloat(pt.riskScore ?? "0") || 0).toFixed(1)}
                 </div>
               </div>
             </div>
@@ -296,7 +296,13 @@ function CaseDetailDrawer({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/risk-cases"] });
+      // Invalidate all paginated risk-cases pages + signal-stats (precision changes on resolve)
+      queryClient.invalidateQueries({
+        predicate: (q) => {
+          const k = q.queryKey[0];
+          return typeof k === "string" && k.startsWith("/api/admin/risk-cases");
+        },
+      });
       onUpdated();
       toast({ title: "Case updated" });
     },
@@ -322,7 +328,7 @@ function CaseDetailDrawer({
     updateMutation.mutate({ assignedTo: newAssignee || null });
   };
 
-  const score = parseFloat(riskCase.riskScore);
+  const score = parseFloat(riskCase.riskScore ?? "0") || 0;
   const sc = SEVERITY_CONFIG[riskCase.severity] ?? SEVERITY_CONFIG.Low;
   const isPending = updateMutation.isPending;
 
@@ -858,7 +864,7 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
             </thead>
             <tbody>
               {data.cases.map((rc) => {
-                const score = parseFloat(rc.riskScore);
+                const score = parseFloat(rc.riskScore ?? "0") || 0;
                 const barColor =
                   score >= 75 ? "bg-red-500" :
                   score >= 50 ? "bg-orange-400" :
@@ -963,7 +969,13 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
           teamMembers={teamMembers}
           onClose={() => setSelectedCase(null)}
           onUpdated={() => {
-            queryClient.invalidateQueries({ queryKey: [queryKey] });
+            // Wipe all paginated risk-cases caches so every page reflects the change
+            queryClient.invalidateQueries({
+              predicate: (q) => {
+                const k = q.queryKey[0];
+                return typeof k === "string" && k.startsWith("/api/admin/risk-cases");
+              },
+            });
             setSelectedCase(null);
           }}
         />
