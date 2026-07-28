@@ -149,10 +149,10 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
 
   const forceSyncMutation = useMutation({
     mutationFn: async () => {
+      // apiRequest throws for non-OK responses (see throwIfResNotOk in queryClient.ts),
+      // so we only reach res.json() when the request succeeded.
       const res = await apiRequest("POST", "/api/admin/leaderboard/force-sync");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || data.message || "Unknown server error");
-      return data;
+      return res.json();
     },
     onSuccess: () => {
       // Prefix match so every paginated insights page gets invalidated, not
@@ -166,11 +166,14 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
       toast({ title: "Rankings Updated", description: "All scores have been recalculated." });
     },
     onError: (error: any) => {
-      toast({
-        title: "Update Failed",
-        description: error?.message || "Could not refresh rankings.",
-        variant: "destructive"
-      });
+      // apiRequest throws with format "STATUS: {json body}" — parse to extract
+      // the user-friendly message (e.g. rate-limit 429 "Please wait 60 seconds").
+      let description = "Could not refresh rankings.";
+      try {
+        const match = error?.message?.match(/^\d+:\s*([\s\S]+)$/);
+        if (match) description = JSON.parse(match[1])?.message ?? description;
+      } catch { /* fall through to default */ }
+      toast({ title: "Update Failed", description, variant: "destructive" });
     }
   });
 
@@ -445,7 +448,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
                           <td className="p-5">
                             {/* PS column — raw performance score with rank indicator */}
                             <div className="flex flex-col gap-0.5">
-                              <span className="font-black text-sm tabular-nums text-[#111]">{(user.performanceScore || 0).toLocaleString()}</span>
+                              <span className="font-black text-sm tabular-nums text-[#111]">{Number(user.performanceScore || 0).toLocaleString()}</span>
                               <span className="text-[9px] text-zinc-400 uppercase tracking-widest">PS</span>
                             </div>
                           </td>
