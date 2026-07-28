@@ -288,10 +288,15 @@ export function useRealtimeSync(user: User | null, guildId?: string | null) {
         // user:updated path for generic cache flush.
 
         // ── 3.2: Leaderboard broadcast — invalidate cache for all clients ─────
+        // Audit fix: predicate previously matched "/api/leaderboard", but the
+        // admin Leaderboard Insights panel actually queries
+        // "/api/admin/leaderboard/insights?..." — that substring never
+        // matched, so this push-based refresh silently never invalidated the
+        // admin panel; it only updated after a manual page reload.
         if (msg.type === "leaderboard.refreshed") {
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.referralsLeaderboard });
           queryClient.invalidateQueries({
-            predicate: (q) => typeof q.queryKey[0] === "string" && (q.queryKey[0] as string).includes("/api/leaderboard"),
+            predicate: (q) => typeof q.queryKey[0] === "string" && (q.queryKey[0] as string).includes("/api/admin/leaderboard"),
           });
         }
 

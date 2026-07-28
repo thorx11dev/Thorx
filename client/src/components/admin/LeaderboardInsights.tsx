@@ -43,7 +43,9 @@ interface LeaderboardData {
   topReferrers: any[];
   anomalies: any[];
   totalCount: number;
+  totalActiveUsers: number;
   lastUpdated: string;
+  isStale: boolean;
 }
 
 function getAvatarSrc(user: any) {
@@ -267,9 +269,20 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
         <div>
           <h2 className="text-4xl font-black tracking-tighter uppercase text-[#111]">Rankings</h2>
           {insights?.lastUpdated && (
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">
-              Last updated: {format(new Date(insights.lastUpdated), "MMM d, yyyy · h:mm a")}
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                Last updated: {format(new Date(insights.lastUpdated), "MMM d, yyyy · h:mm a")}
+              </p>
+              {insights.isStale && (
+                <span
+                  className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-amber-700 bg-amber-100 border-[1.5px] border-amber-300 rounded-full px-2 py-0.5"
+                  title="The refresh cron hasn't run recently — data may be behind. Hit Refresh Rankings for the latest."
+                >
+                  <AlertTriangle size={10} />
+                  Stale
+                </span>
+              )}
+            </div>
           )}
         </div>
         <div className="flex items-center gap-3">
@@ -296,7 +309,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Total Members", value: insights?.totalCount ?? "—", icon: <Users size={18} /> },
+          { label: "Total Members", value: insights?.totalActiveUsers ?? "—", icon: <Users size={18} /> },
           { label: "Top Earner", value: insights?.globalRanking?.[0] ? `PKR ${new Decimal(insights.globalRanking[0].totalEarnings || "0").toFixed(2)}` : "—", icon: <TrendingUp size={18} /> },
           { label: "Top Referrer", value: insights?.topReferrers?.[0] ? `${insights.topReferrers[0].level1Count || 0} direct` : "—", icon: <Trophy size={18} /> },
           { label: "Watchlist", value: insights?.anomalies?.length ?? 0, icon: <AlertTriangle size={18} /> },

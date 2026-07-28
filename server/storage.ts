@@ -3176,7 +3176,9 @@ export class DatabaseStorage implements IStorage {
     topReferrers: any[]; 
     anomalies: any[]; 
     totalCount: number;
+    totalActiveUsers: number;
     lastUpdated: Date;
+    isStale: boolean;
   }> {
     // Check for existing cache to determine if refresh is needed
     const lastCacheEntry = await db.select({ recordedAt: leaderboardCache.recordedAt })
@@ -3186,13 +3188,20 @@ export class DatabaseStorage implements IStorage {
     
     const now = new Date();
     // Q4 architectural decision (2026-07-17): leaderboard refresh is now driven
-    // exclusively by the 5-minute cron in server/jobs/leaderboard-refresh.ts.
+    // exclusively by the 15-minute cron in server/jobs/leaderboard-refresh.ts
+    // (interval raised from 5 -> 15 min per Q6 decision — see that file).
     // Triggering refresh on every getLeaderboard() call (or earn event) caused
     // full-table heap allocation at scale — a memory bomb. The cron approach
-    // gives a maximum 5-minute staleness window with zero per-request overhead.
-    const isStale = !lastCacheEntry.length || (now.getTime() - new Date(lastCacheEntry[0].recordedAt!).getTime() > 3600000);
+    // gives a bounded staleness window with zero per-request overhead.
+    // Audit fix: threshold was a stale 1-hour magic number left over from
+    // before the Q6 interval change. Now 2x the real cron interval (30 min),
+    // matching the same convention already used by the leaderboardRefresh
+    // health check in routes.ts (LEADERBOARD_INTERVAL_MS * 2) — keep both in
+    // sync if the cron interval ever changes again.
+    const LEADERBOARD_STALE_THRESHOLD_MS = 15 * 60 * 1000 * 2;
+    const isStale = !lastCacheEntry.length || (now.getTime() - new Date(lastCacheEntry[0].recordedAt!).getTime() > LEADERBOARD_STALE_THRESHOLD_MS);
     if (isStale) {
-      logger.warn("[Leaderboard] Cache is stale — cron will refresh within 5 minutes.");
+      logger.warn("[Leaderboard] Cache is stale — cron may be behind schedule or has not run yet.");
     }
 
     // Search filters at the DB level so it applies across the *entire*
@@ -3310,20 +3319,37 @@ export class DatabaseStorage implements IStorage {
 
     // Count must reflect the same search filter as globalRanking, otherwise
     // pagination controls would imply more pages of results exist than the
-    // filtered query can actually return.
+    // filtered query can actually return. Scoped to leaderboardCache (capped
+    // at TOP_N=10,000 — see refreshLeaderboardCache) since that's what's
+    // actually paginated here.
     const totalCountQuery = db.select({ count: sql<number>`count(*)` })
       .from(leaderboardCache)
       .innerJoin(users, eq(leaderboardCache.userId, users.id));
-    const totalCountResult = await (searchCondition ? totalCountQuery.where(searchCondition) : totalCountQuery);
+
+    // Audit fix: true platform-wide member count, deliberately NOT scoped to
+    // leaderboardCache. The "Total Members" stat card was silently reading
+    // totalCount above, which plateaus at 10,000 once the userbase exceeds
+    // the cache cap — misrepresenting real scale to admins.
+    const totalActiveUsersQuery = db.select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(and(eq(users.isActive, true), eq(users.role, "user")));
+
+    const [totalCountResult, totalActiveUsersResult] = await Promise.all([
+      searchCondition ? totalCountQuery.where(searchCondition) : totalCountQuery,
+      totalActiveUsersQuery,
+    ]);
 
     return { 
       globalRanking, 
       topReferrers, 
       anomalies: mappedAnomalies, 
       totalCount: Number(totalCountResult[0]?.count) || 0,
-      // If we just rebuilt the cache, report the current timestamp — not the
-      // pre-refresh value captured before refreshLeaderboardCache() ran.
-      lastUpdated: isStale ? now : (lastCacheEntry[0]?.recordedAt || now)
+      totalActiveUsers: Number(totalActiveUsersResult[0]?.count) || 0,
+      // Audit fix: always report the TRUE last-recorded timestamp. This used
+      // to substitute "now" whenever isStale was true, which hid the exact
+      // condition (a broken/delayed cron) the timestamp exists to reveal.
+      lastUpdated: lastCacheEntry[0]?.recordedAt || now,
+      isStale,
     };
   }
 
