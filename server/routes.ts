@@ -4504,6 +4504,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { runFullRiskScan } = await import("./modules/risk-engine");
       const result = await runFullRiskScan({ broadcastAlerts: true });
+      // Refresh leaderboard cache so anomaly counts reflect the new risk scores immediately
+      await storage.refreshLeaderboardCache();
       res.json({ ok: true, ...result });
     } catch (err) {
       logger.error({ err: err }, "[RiskCases] runFullRiskScan error:");

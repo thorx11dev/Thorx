@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { format, formatDistanceToNow } from "date-fns";
 import { resolveAvatarUrlByTier } from "@/lib/rankAvatars";
+import { QUERY_KEYS } from "@/lib/queryKeys";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -211,7 +212,7 @@ function SignalBar({ signal, maxPossible }: { signal: RiskSignal; maxPossible: n
 
 function ScoreHistoryChart({ userId }: { userId: string }) {
   const { data: history = [], isLoading } = useQuery<ScoreHistoryPoint[]>({
-    queryKey: [`/api/admin/risk-cases/user/${userId}/score-history`],
+    queryKey: QUERY_KEYS.adminRiskScoreHistory(userId),
     staleTime: 60_000,
   });
 
@@ -248,8 +249,8 @@ function ScoreHistoryChart({ userId }: { userId: string }) {
         })}
       </div>
       <div className="flex justify-between text-[8px] font-bold text-zinc-300 uppercase tracking-widest">
-        <span>{sorted.length > 0 ? format(new Date(sorted[0].snapshotAt), "MMM d") : ""}</span>
-        <span>{sorted.length > 0 ? format(new Date(sorted[sorted.length - 1].snapshotAt), "MMM d") : ""}</span>
+        <span>{sorted[0]?.snapshotAt ? format(new Date(sorted[0].snapshotAt), "MMM d") : ""}</span>
+        <span>{sorted[sorted.length - 1]?.snapshotAt ? format(new Date(sorted[sorted.length - 1].snapshotAt), "MMM d") : ""}</span>
       </div>
     </div>
   );
@@ -617,12 +618,25 @@ interface SignalStat {
 }
 
 function SignalAccuracyPanel() {
-  const { data: stats = [], isLoading } = useQuery<SignalStat[]>({
-    queryKey: ["/api/admin/risk-cases/signal-stats"],
+  const { data: stats = [], isLoading, isError } = useQuery<SignalStat[]>({
+    queryKey: QUERY_KEYS.adminRiskSignalStats,
     staleTime: 60_000,
   });
 
   if (isLoading) return <div className="h-24 bg-zinc-50 rounded-[1.5rem] animate-pulse" />;
+  if (isError) return (
+    <div className="bg-white border-[1.5px] border-red-200 rounded-[1.5rem] p-5">
+      <div className="flex items-center gap-2 mb-2">
+        <ShieldX size={16} className="text-red-400" />
+        <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">
+          Signal Accuracy — Failed to load
+        </p>
+      </div>
+      <p className="text-[11px] text-zinc-400">
+        Could not fetch signal accuracy stats. Try refreshing the page.
+      </p>
+    </div>
+  );
   // Audit finding 3-F: returning null on empty data made admins unable to
   // distinguish "no resolved cases yet" from "panel failed to load".
   if (!stats.length) {
@@ -697,7 +711,7 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
 
   // Fetch team members for assignment dropdown — cached for the session
   const { data: teamData } = useQuery<{ members: TeamMember[] }>({
-    queryKey: ["/api/team/members"],
+    queryKey: QUERY_KEYS.adminTeamMembers,
     staleTime: 5 * 60 * 1000,
   });
   const teamMembers: TeamMember[] = teamData?.members ?? [];
@@ -716,7 +730,11 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
       return res.json();
     },
     onSuccess: (d) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/risk-cases"] });
+      // Invalidate all paginated risk-cases pages, signal-stats precision, and
+      // leaderboard insights so the anomaly count reflects the new risk scores.
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminRiskCases });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminRiskSignalStats });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminLeaderboard });
       toast({
         title: "Risk Scan Complete",
         description: `${d.scanned} users scanned — ${d.flagged} flagged, ${d.critical} critical.`,

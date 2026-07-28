@@ -604,26 +604,15 @@ function scoreUserFromBatch(
     detail: circParts.length ? circParts.join("; ") : "No circular or self-funded referral pattern detected.",
   };
 
-  // ── Signal 7: Task completion speed (max 10 pts) ──────────────────────────
-  const userTasks = taskMap.get(u.id) ?? [];
-  const timed = userTasks.filter(r => r.clickedAt && r.completedAt);
-  let sig7: RiskSignal;
-  if (!timed.length) {
-    sig7 = { name: "Task Completion Speed", score: 0, detail: "No timed task completions to evaluate." };
-  } else {
-    const tooFast = timed.filter(r =>
-      (r.completedAt!.getTime() - r.clickedAt!.getTime()) / 1000 < taskSpeedSeconds
-    );
-    const ratio = tooFast.length / timed.length;
-    const taskScore = ratio > 0.3 ? Math.min(10, ratio * 10) : 0;
-    sig7 = {
-      name: "Task Completion Speed",
-      score: Math.round(taskScore),
-      detail: tooFast.length > 0
-        ? `${tooFast.length}/${timed.length} tasks completed in under ${taskSpeedSeconds}s.`
-        : "Task completion timing appears normal.",
-    };
-  }
+  // ── Signal 7: Task completion speed — retired, zeroed for consistency ────
+  // This signal is retired in the individual scoreUser() path. Zeroing it here
+  // in the batch path keeps both paths consistent and prevents stale scores
+  // from appearing in the drawer's signal breakdown.
+  const sig7: RiskSignal = {
+    name: "Task Completion Speed",
+    score: 0,
+    detail: "Signal retired — task timing is no longer used in risk scoring.",
+  };
 
   const signals = [sig1, sig2, sig3, sig4, sig5, sig6, sig7];
   const riskScore = Math.min(100, signals.reduce((sum, s) => sum + s.score, 0));
