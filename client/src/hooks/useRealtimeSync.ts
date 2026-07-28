@@ -268,7 +268,7 @@ export function useRealtimeSync(user: User | null, guildId?: string | null) {
         }
 
         // ── Audit fix Z: Guild chat WS push → invalidate chat cache ──────────
-        if (msg.type === "engine_c:message") {
+        if (msg.type === "engine_c:message" || msg.type === "engine_c:message_deleted") {
           const chatGuildId = (msg as any).guildId as string | undefined;
           if (chatGuildId) {
             queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildChat(chatGuildId) });

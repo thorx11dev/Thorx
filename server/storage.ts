@@ -2749,8 +2749,9 @@ export class DatabaseStorage implements IStorage {
     return { guilds: guildsWithRank, total: Number(total) };
   }
 
-  async setGuildStatus(guildId: string, status: "active" | "frozen" | "disbanded"): Promise<Guild> {
+  async setGuildStatus(guildId: string, status: "active" | "frozen" | "disbanded", adminId: string): Promise<Guild> {
     return await db.transaction(async (tx) => {
+      const before = await tx.select({ status: guilds.status }).from(guilds).where(eq(guilds.id, guildId)).limit(1);
       const [guild] = await tx.update(guilds).set({ status, updatedAt: new Date() }).where(eq(guilds.id, guildId)).returning();
       if (!guild) throw new Error("Guild not found");
 
@@ -2772,6 +2773,14 @@ export class DatabaseStorage implements IStorage {
           .where(and(eq(guildMembers.guildId, guildId), eq(guildMembers.status, "active")));
       }
 
+      await tx.insert(auditLogs).values({
+        adminId,
+        action: "GUILD_STATUS_CHANGED",
+        targetType: "guild",
+        targetId: guildId,
+        details: { from: before[0]?.status ?? null, to: status, guildName: guild.name },
+      });
+
       return guild;
     });
   }
@@ -2787,14 +2796,36 @@ export class DatabaseStorage implements IStorage {
       const updates: Record<string, any> = { strikes: strikeCount, updatedAt: new Date() };
       if (strikeCount >= 3) updates.status = "frozen";
       const [guild] = await tx.update(guilds).set(updates).where(eq(guilds.id, guildId)).returning();
+
+      await tx.insert(auditLogs).values({
+        adminId: addedBy,
+        action: "GUILD_STRIKE_ADDED",
+        targetType: "guild",
+        targetId: guildId,
+        details: { reason, strikeCount, autoFrozen: strikeCount >= 3, guildName: guild.name },
+      });
+
       return { guild, strike };
     });
   }
 
   async clearGuildStrikes(guildId: string, clearedBy: string): Promise<Guild> {
     return await db.transaction(async (tx) => {
-      await tx.update(guildStrikes).set({ clearedAt: new Date(), clearedBy }).where(and(eq(guildStrikes.guildId, guildId), sql`${guildStrikes.clearedAt} IS NULL`));
+      const cleared = await tx
+        .update(guildStrikes)
+        .set({ clearedAt: new Date(), clearedBy })
+        .where(and(eq(guildStrikes.guildId, guildId), sql`${guildStrikes.clearedAt} IS NULL`))
+        .returning({ id: guildStrikes.id });
       const [guild] = await tx.update(guilds).set({ strikes: 0, updatedAt: new Date() }).where(eq(guilds.id, guildId)).returning();
+
+      await tx.insert(auditLogs).values({
+        adminId: clearedBy,
+        action: "GUILD_STRIKES_CLEARED",
+        targetType: "guild",
+        targetId: guildId,
+        details: { clearedCount: cleared.length, guildName: guild?.name },
+      });
+
       return guild;
     });
   }
@@ -4178,7 +4209,7 @@ export class DatabaseStorage implements IStorage {
     return { users: results, totalCount: Number(countResult?.count || 0) };
   }
 
-  async getAuditLogsPaginated(params: { page: number, limit: number, search?: string, ids?: string[], period?: string }): Promise<{ logs: any[], totalCount: number }> {
+  async getAuditLogsPaginated(params: { page: number, limit: number, search?: string, ids?: string[], period?: string, targetType?: string, targetId?: string }): Promise<{ logs: any[], totalCount: number }> {
     const offset = (params.page - 1) * params.limit;
     const conditions = [];
 
@@ -4193,6 +4224,14 @@ export class DatabaseStorage implements IStorage {
 
     if (params.ids && params.ids.length > 0) {
       conditions.push(inArray(auditLogs.id, params.ids));
+    }
+
+    if (params.targetType) {
+      conditions.push(eq(auditLogs.targetType, params.targetType));
+    }
+
+    if (params.targetId) {
+      conditions.push(eq(auditLogs.targetId, params.targetId));
     }
 
     if (params.period && params.period !== 'all_time') {
@@ -4677,8 +4716,18 @@ export class DatabaseStorage implements IStorage {
     return rows.reverse();
   }
 
-  async deleteEngineCMessage(messageId: string): Promise<void> {
-    await db.delete(engineCMessages).where(eq(engineCMessages.id, messageId));
+  async deleteEngineCMessage(messageId: string, guildId: string, adminId: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      const [message] = await tx.select().from(engineCMessages).where(eq(engineCMessages.id, messageId)).limit(1);
+      await tx.delete(engineCMessages).where(eq(engineCMessages.id, messageId));
+      await tx.insert(auditLogs).values({
+        adminId,
+        action: "GUILD_CHAT_MESSAGE_DELETED",
+        targetType: "guild",
+        targetId: guildId,
+        details: { messageId, senderId: message?.senderId ?? null, messagePreview: message?.message?.slice(0, 200) ?? null },
+      });
+    });
   }
 
   // ── Engine C: Weekly Tasks ───────────────────────────────────────────────────
@@ -4944,6 +4993,152 @@ export class DatabaseStorage implements IStorage {
 
         return updated;
       }
+    });
+  }
+
+  // Admin: cross-guild queue of every pending join request/application, regardless
+  // of which flow created it (requestToJoinGuild vs applyToGuildWithCoverLetter both
+  // land in guild_members with status="pending" — there is no separate table to query).
+  // Admin: bulk freeze/unfreeze/disband across a selected set of guilds in one action.
+  // Reuses setGuildStatus per guild (same disband cleanup + per-guild audit log entry)
+  // rather than duplicating that logic, then adds one roll-up audit entry for the batch.
+  async adminBulkSetGuildStatus(guildIds: string[], status: "active" | "frozen" | "disbanded", adminId: string): Promise<number> {
+    let updated = 0;
+    for (const guildId of guildIds) {
+      try {
+        await this.setGuildStatus(guildId, status, adminId);
+        updated++;
+      } catch {
+        // Skip guilds that no longer exist rather than failing the whole batch.
+      }
+    }
+    await db.insert(auditLogs).values({
+      adminId, action: "ADMIN_GUILD_BULK_STATUS_SET", targetType: "guild", targetId: "bulk",
+      details: { guildIds, status, updatedCount: updated },
+    });
+    return updated;
+  }
+
+  // Admin: broadcast a message to every active member of a selected set of guilds.
+  // Reuses the same notifications table + broadcastToUser delivery path as every
+  // other in-app notification — no new mechanism required.
+  async adminBulkMessageGuilds(guildIds: string[], message: string, adminId: string): Promise<string[]> {
+    const members = await db
+      .select({ userId: guildMembers.userId, guildId: guildMembers.guildId })
+      .from(guildMembers)
+      .where(and(inArray(guildMembers.guildId, guildIds), eq(guildMembers.status, "active")));
+
+    for (const m of members) {
+      await this.createNotification({
+        userId: m.userId,
+        title: "Message from Guild Admin",
+        message,
+        type: "system",
+      });
+    }
+
+    await db.insert(auditLogs).values({
+      adminId, action: "ADMIN_GUILD_BULK_MESSAGE_SENT", targetType: "guild", targetId: "bulk",
+      details: { guildIds, message, recipientCount: members.length },
+    });
+
+    return members.map(m => m.userId);
+  }
+
+  async getAllPendingGuildApplications(): Promise<Array<{
+    id: string; guildId: string; guildName: string; userId: string;
+    userFirstName: string | null; userLastName: string | null; userEmail: string | null;
+    userRankTier: string | null; coverLetter: string | null; requestedAt: Date | null;
+  }>> {
+    const rows = await db
+      .select({
+        id: guildMembers.id,
+        guildId: guildMembers.guildId,
+        guildName: guilds.name,
+        userId: guildMembers.userId,
+        userFirstName: users.firstName,
+        userLastName: users.lastName,
+        userEmail: users.email,
+        userRankTier: users.userRankTier,
+        coverLetter: guildMembers.coverLetter,
+        requestedAt: guildMembers.requestedAt,
+      })
+      .from(guildMembers)
+      .innerJoin(guilds, eq(guildMembers.guildId, guilds.id))
+      .leftJoin(users, eq(guildMembers.userId, users.id))
+      .where(eq(guildMembers.status, "pending"))
+      .orderBy(guildMembers.requestedAt);
+    return rows;
+  }
+
+  // Admin-authorized version of decideGuildApplication/decideGuildJoinRequest — same
+  // effects (member activation + notification), but bypasses the captain-ownership
+  // check since an admin may act on behalf of any guild, and logs to audit_logs.
+  async adminDecideGuildApplication(
+    applicationId: string,
+    adminId: string,
+    action: "accept" | "reject",
+    rejectionReason?: string,
+  ): Promise<GuildMember> {
+    return await db.transaction(async (tx) => {
+      const [membership] = await tx
+        .select()
+        .from(guildMembers)
+        .where(and(eq(guildMembers.id, applicationId), eq(guildMembers.status, "pending")))
+        .limit(1);
+      if (!membership) throw new Error("No pending application found.");
+
+      const [guild] = await tx.select().from(guilds).where(eq(guilds.id, membership.guildId));
+      if (!guild) throw new Error("Guild not found");
+
+      let updated: GuildMember;
+      if (action === "accept") {
+        [updated] = await tx.update(guildMembers).set({
+          status: "active",
+          joinedAt: new Date(),
+        }).where(eq(guildMembers.id, membership.id)).returning();
+
+        await tx.update(guilds).set({
+          memberCount: sql`${guilds.memberCount} + 1`,
+          updatedAt: new Date(),
+        }).where(eq(guilds.id, membership.guildId));
+
+        await tx.update(users).set({
+          guildId: membership.guildId,
+          guildRole: "member",
+        }).where(eq(users.id, membership.userId));
+
+        await this.createNotification({
+          userId: membership.userId,
+          title: "Guild Application Accepted!",
+          message: `You've joined ${guild.name}.`,
+          type: "system",
+        });
+      } else {
+        if (!rejectionReason || rejectionReason.trim().length < 10) {
+          throw new Error("A rejection reason of at least 10 characters is required.");
+        }
+        [updated] = await tx.update(guildMembers).set({
+          status: "rejected",
+        }).where(eq(guildMembers.id, membership.id)).returning();
+
+        await this.createNotification({
+          userId: membership.userId,
+          title: "Guild Application Declined",
+          message: rejectionReason.trim(),
+          type: "system",
+        });
+      }
+
+      await tx.insert(auditLogs).values({
+        adminId,
+        action: action === "accept" ? "ADMIN_GUILD_APPLICATION_ACCEPTED" : "ADMIN_GUILD_APPLICATION_REJECTED",
+        targetType: "guild",
+        targetId: membership.guildId,
+        details: { applicationId, applicantUserId: membership.userId, guildName: guild.name, rejectionReason: rejectionReason ?? null },
+      });
+
+      return updated;
     });
   }
 

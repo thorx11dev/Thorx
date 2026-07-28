@@ -1511,10 +1511,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/admin/guilds/:id/chat/:messageId", requireTeamRole, async (req, res) => {
     try {
-      await storage.deleteEngineCMessage(req.params.messageId);
+      const adminId = getThorxPrincipalId(req) as string;
+      await storage.deleteEngineCMessage(req.params.messageId, req.params.id, adminId);
+      // Push a live update to any member/captain currently viewing this guild's chat,
+      // mirroring the same channel used for new messages (engine_c:message).
+      broadcastGuildMessage(req.params.id, { type: "engine_c:message_deleted", messageId: req.params.messageId });
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete message" });
+    }
+  });
+
+  // ── Admin: cross-guild pending applications queue ─────────────────────────────
+  // Unlike guild-creation-requests (requests to found a NEW guild), these are
+  // requests to JOIN an existing guild — normally triaged per-guild by that guild's
+  // captain. This gives admins a single aggregate view/decide action across all guilds.
+  app.get("/api/admin/guild-applications", requireTeamRole, async (req, res) => {
+    try {
+      const applications = await storage.getAllPendingGuildApplications();
+      res.json({ applications });
+    } catch (error) {
+      logger.error({ err: error }, "Admin fetch pending guild applications error:");
+      res.status(500).json({ message: "Failed to fetch pending guild applications" });
+    }
+  });
+
+  const adminGuildApplicationDecideSchema = z.object({
+    action: z.enum(["accept", "reject"]),
+    rejectionReason: z.string().min(10).max(500).optional(),
+  });
+
+  app.post("/api/admin/guild-applications/:id/decide", requireTeamRole, adminActionRateLimiter, async (req, res) => {
+    try {
+      const adminId = getThorxPrincipalId(req) as string;
+      const parsed = adminGuildApplicationDecideSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid request." });
+      }
+      const membership = await storage.adminDecideGuildApplication(req.params.id, adminId, parsed.data.action, parsed.data.rejectionReason);
+      // Mirror the exact broadcast pair used by the captain-facing decide route (Line ~4711)
+      // so the existing client listeners (which key off this shape) pick it up unchanged.
+      broadcastToUser(membership.userId, 'guild.application_decided', { action: parsed.data.action, guildId: membership.guildId });
+      broadcastGuildEvent(membership.guildId, 'guild.application_decided_notify', { action: parsed.data.action, guildId: membership.guildId });
+      res.json({ membership });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to decide guild application";
+      res.status(400).json({ message });
     }
   });
 
@@ -1594,6 +1636,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  const bulkGuildIdsSchema = z.object({
+    guildIds: z.array(z.string().uuid()).min(1, "Select at least one guild.").max(200),
+  });
+
+  app.post("/api/admin/guilds/bulk-status", requireTeamRole, async (req, res) => {
+    try {
+      const adminId = getThorxPrincipalId(req) as string;
+      const parsed = bulkGuildIdsSchema.extend({
+        status: z.enum(["active", "frozen", "disbanded"], { errorMap: () => ({ message: "status must be one of: active, frozen, disbanded" }) }),
+      }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input" });
+      const updated = await storage.adminBulkSetGuildStatus(parsed.data.guildIds, parsed.data.status, adminId);
+      for (const guildId of parsed.data.guildIds) {
+        broadcastGuildEvent(guildId, 'guild.status_changed', { guildId, status: parsed.data.status });
+      }
+      res.json({ updated });
+    } catch (error) {
+      logger.error({ err: error }, "Bulk set guild status error:");
+      const msg = error instanceof Error ? error.message : "Failed to bulk update guild status";
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  app.post("/api/admin/guilds/bulk-message", requireTeamRole, adminActionRateLimiter, async (req, res) => {
+    try {
+      const adminId = getThorxPrincipalId(req) as string;
+      const parsed = bulkGuildIdsSchema.extend({
+        message: z.string().min(1, "Message cannot be empty.").max(1000),
+      }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input" });
+      const notifiedUserIds = await storage.adminBulkMessageGuilds(parsed.data.guildIds, parsed.data.message.trim(), adminId);
+      for (const userId of notifiedUserIds) {
+        broadcastToUser(userId, 'notification.created', { title: "Message from Guild Admin" });
+      }
+      res.json({ notified: notifiedUserIds.length });
+    } catch (error) {
+      logger.error({ err: error }, "Bulk message guilds error:");
+      const msg = error instanceof Error ? error.message : "Failed to send bulk message";
+      res.status(400).json({ message: msg });
+    }
+  });
+
   // ── Admin: Ledger validation (scan before :userId to avoid Express conflict) ──
   app.get("/api/admin/ledger/validate/scan", requireTeamRole, async (req, res) => {
     try {
@@ -1624,11 +1708,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/guilds/:id/status", requireTeamRole, async (req, res) => {
     try {
+      const adminId = getThorxPrincipalId(req) as string;
       const parsed = adminGuildStatusSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid status." });
       }
-      const guild = await storage.setGuildStatus(req.params.id, parsed.data.status);
+      const guild = await storage.setGuildStatus(req.params.id, parsed.data.status, adminId);
       // H-02: Broadcast status change so all guild members' portals update in real-time
       // (critical for 'disbanded' — members must be evicted from the guild UI immediately).
       broadcastGuildEvent(req.params.id, 'guild.status_changed', { guildId: req.params.id, status: parsed.data.status });
@@ -2768,8 +2853,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const search = req.query.search as string;
       const period = req.query.period as string;
       const ids = req.query.ids ? (req.query.ids as string).split(',') : undefined;
+      const targetType = req.query.targetType as string | undefined;
+      const targetId = req.query.targetId as string | undefined;
 
-      const result = await storage.getAuditLogsPaginated({ page, limit, search, period, ids });
+      const result = await storage.getAuditLogsPaginated({ page, limit, search, period, ids, targetType, targetId });
       res.json(result);
     } catch (error) {
       logger.error({ err: error }, "Fetch audit logs error:");
