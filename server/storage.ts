@@ -3156,7 +3156,8 @@ export class DatabaseStorage implements IStorage {
       activeScore: leaderboardCache.activeScore,
       healthScore: leaderboardCache.healthScore,
       level1Count: leaderboardCache.level1Count,
-      level2Count: leaderboardCache.level2Count
+      level2Count: leaderboardCache.level2Count,
+      profilePicture: users.profilePicture,
     })
     .from(leaderboardCache)
     .innerJoin(users, eq(leaderboardCache.userId, users.id));
@@ -3179,7 +3180,8 @@ export class DatabaseStorage implements IStorage {
       trustStatus: users.trustStatus,
       level1Count: leaderboardCache.level1Count,
       level2Count: leaderboardCache.level2Count,
-      referralCount: leaderboardCache.level1Count
+      referralCount: leaderboardCache.level1Count,
+      profilePicture: users.profilePicture,
     })
     .from(users)
     .innerJoin(leaderboardCache, eq(leaderboardCache.userId, users.id))
@@ -3253,7 +3255,7 @@ export class DatabaseStorage implements IStorage {
       globalRanking, 
       topReferrers, 
       anomalies: mappedAnomalies, 
-      totalCount: totalCountResult[0]?.count || 0,
+      totalCount: Number(totalCountResult[0]?.count) || 0,
       // If we just rebuilt the cache, report the current timestamp — not the
       // pre-refresh value captured before refreshLeaderboardCache() ran.
       lastUpdated: isStale ? now : (lastCacheEntry[0]?.recordedAt || now)
@@ -5307,6 +5309,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async adminGetReferralLeaderboard(limit = 20): Promise<any[]> {
+    try {
     const rows = await db
       .select({
         userId:          referralCommissions.referrerId,
@@ -5353,6 +5356,10 @@ export class DatabaseStorage implements IStorage {
       referralCount:   Number(r.referralCount) || 0,
       activeCount:     activeMap.get(r.userId) ?? 0,
     }));
+    } catch (err) {
+      logger.error({ err }, "adminGetReferralLeaderboard error");
+      return [];
+    }
   }
 
   // ── THORX v3 (spec E.9): Captain DM, weekly task preparation, activity feed ──

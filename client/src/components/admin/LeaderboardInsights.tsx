@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { resolveAvatarUrl } from "@/lib/rankAvatars";
+import { resolveAvatarUrlByTier } from "@/lib/rankAvatars";
 import { RankBadge } from "@/components/RankBadge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -49,8 +49,8 @@ interface LeaderboardData {
 function getAvatarSrc(user: any) {
   // profilePicture (custom upload) takes priority over rank avatar ID
   if (user.profilePicture && user.profilePicture !== "") return user.profilePicture;
-  // resolveAvatarUrl handles all IDs including -2/-3 variants and legacy IDs
-  return resolveAvatarUrl(user.avatar, user.rank);
+  // resolveAvatarUrlByTier bridges E-S rank tier to legacy avatar key
+  return resolveAvatarUrlByTier(user.avatar, user.userRankTier);
 }
 
 function UserAvatar({ user, size = 10 }: { user: any; size?: number }) {
