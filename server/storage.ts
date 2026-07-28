@@ -4834,13 +4834,25 @@ export class DatabaseStorage implements IStorage {
       )
       .orderBy(weeklyTasks.weekStart);
 
+    // Audit finding (Task & Ad Management, 2026-07-28): targetGuildRank is labeled
+    // "minimum rank required" in the admin UI (TaskManager.tsx) but was never
+    // enforced here — every guild member saw every weekly task regardless of their
+    // guild's GPS-derived rank tier. Gate visibility the same way Engine B gates
+    // its own targetRank against the completing user's rank.
+    const [guild] = await db.select().from(guilds).where(eq(guilds.id, guildId));
+    const gpsConfig = await fetchGpsConfig();
+    const guildRankTier = guild ? computeGuildRankTier(guild.guildPerformanceScore, gpsConfig.rankMins) : "E-Rank";
+    const RANK_LETTERS = ["E", "D", "C", "B", "A", "S"];
+    const guildRankIdx = RANK_LETTERS.indexOf(guildRankTier[0]);
+    const eligibleTasks = tasks.filter(t => guildRankIdx >= RANK_LETTERS.indexOf(t.targetGuildRank ?? "E"));
+
     const records = await db
       .select()
       .from(weeklyTaskRecords)
       .where(and(eq(weeklyTaskRecords.userId, userId), eq(weeklyTaskRecords.guildId, guildId)));
 
     const recordMap = new Map(records.map(r => [r.taskId, r]));
-    return tasks.map(t => ({
+    return eligibleTasks.map(t => ({
       ...t,
       completedByUser: recordMap.has(t.id),
       completionRecord: recordMap.get(t.id) ?? null,
@@ -5908,6 +5920,18 @@ export class DatabaseStorage implements IStorage {
       if (!task || !task.isActive) throw new Error("Task not found or inactive.");
       const now = new Date();
       if (now < task.weekStart || now > task.weekEnd) throw new Error("Task not available this week.");
+
+      // Audit finding (Task & Ad Management, 2026-07-28): getActiveWeeklyTasks only
+      // controls what the UI shows — without re-checking here, a client could still
+      // POST /complete directly on a taskId its guild doesn't qualify for.
+      const [guildRow] = await tx.select().from(guilds).where(eq(guilds.id, guildId));
+      const gpsConfig = await fetchGpsConfig();
+      const guildRankTier = guildRow ? computeGuildRankTier(guildRow.guildPerformanceScore, gpsConfig.rankMins) : "E-Rank";
+      const RANK_LETTERS = ["E", "D", "C", "B", "A", "S"];
+      const guildRankIdx = RANK_LETTERS.indexOf(guildRankTier[0]);
+      if (guildRankIdx < RANK_LETTERS.indexOf(task.targetGuildRank ?? "E")) {
+        throw new Error("Your guild's rank does not meet this task's requirement.");
+      }
 
       // Duplicate check INSIDE the lock — both concurrent requests can no longer
       // both pass this; the second will see the row committed by the first.

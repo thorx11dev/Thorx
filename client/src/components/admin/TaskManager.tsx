@@ -156,7 +156,7 @@ function EngineBTasksTab() {
       setIsDialogOpen(false);
       setForm(DEFAULT_ENGINE_B_FORM);
     },
-    onError: () => toast({ title: "Error", description: "Failed to create task.", variant: "destructive" }),
+    onError: (err: any) => toast({ title: "Error", description: err?.message || "Failed to create task.", variant: "destructive" }),
   });
 
   const updateMutation = useMutation({
@@ -168,7 +168,7 @@ function EngineBTasksTab() {
       setIsDialogOpen(false);
       setEditingTask(null);
     },
-    onError: () => toast({ title: "Error", description: "Failed to update task.", variant: "destructive" }),
+    onError: (err: any) => toast({ title: "Error", description: err?.message || "Failed to update task.", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -177,14 +177,14 @@ function EngineBTasksTab() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminTasks });
       toast({ title: "Task deleted" });
     },
-    onError: () => toast({ title: "Error", description: "Failed to delete task.", variant: "destructive" }),
+    onError: (err: any) => toast({ title: "Error", description: err?.message || "Failed to delete task.", variant: "destructive" }),
   });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       apiRequest("PATCH", `/api/admin/engine-b-tasks/${id}`, { isActive }).then(r => r.json()),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminTasks }),
-    onError: () => toast({ title: "Error", description: "Failed to toggle task.", variant: "destructive" }),
+    onError: (err: any) => toast({ title: "Error", description: err?.message || "Failed to toggle task.", variant: "destructive" }),
   });
 
   const filteredTasks = tasks.filter(t =>
@@ -496,7 +496,7 @@ function GuildWeeklyTasksTab() {
       setIsDialogOpen(false);
       setEditingTask(null);
     },
-    onError: () => toast({ title: "Error", description: "Failed to update guild task.", variant: "destructive" }),
+    onError: (err: any) => toast({ title: "Error", description: err?.message || "Failed to update guild task.", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -505,14 +505,14 @@ function GuildWeeklyTasksTab() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminWeeklyTasks });
       toast({ title: "Task deleted" });
     },
-    onError: () => toast({ title: "Error", description: "Failed to delete guild task.", variant: "destructive" }),
+    onError: (err: any) => toast({ title: "Error", description: err?.message || "Failed to delete guild task.", variant: "destructive" }),
   });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       apiRequest("PATCH", `/api/admin/weekly-tasks/${id}`, { isActive }).then(r => r.json()),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminWeeklyTasks }),
-    onError: () => toast({ title: "Error", description: "Failed to toggle task.", variant: "destructive" }),
+    onError: (err: any) => toast({ title: "Error", description: err?.message || "Failed to toggle task.", variant: "destructive" }),
   });
 
   const filteredTasks = tasks.filter(t =>
@@ -843,7 +843,7 @@ function IndirectTasksTab() {
       setIsDialogOpen(false);
       setEditingTask(null);
     },
-    onError: () => toast({ title: "Error", description: "Failed to update indirect task.", variant: "destructive" }),
+    onError: (err: any) => toast({ title: "Error", description: err?.message || "Failed to update indirect task.", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -852,14 +852,14 @@ function IndirectTasksTab() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminWeeklyTasks });
       toast({ title: "Task deleted" });
     },
-    onError: () => toast({ title: "Error", description: "Failed to delete task.", variant: "destructive" }),
+    onError: (err: any) => toast({ title: "Error", description: err?.message || "Failed to delete task.", variant: "destructive" }),
   });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       apiRequest("PATCH", `/api/admin/weekly-tasks/${id}`, { isActive }).then(r => r.json()),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminWeeklyTasks }),
-    onError: () => toast({ title: "Error", description: "Failed to toggle task.", variant: "destructive" }),
+    onError: (err: any) => toast({ title: "Error", description: err?.message || "Failed to toggle task.", variant: "destructive" }),
   });
 
   const filteredTasks = tasks.filter(t =>

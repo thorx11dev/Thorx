@@ -1481,6 +1481,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (weekEnd !== undefined) updates.weekEnd = new Date(weekEnd);
       // If switching to indirect, force grossPkr to 0
       if (taskCategory === "indirect") updates.grossPkrPerCompletion = "0";
+      // Audit finding (Task & Ad Management, 2026-07-28): the schema allows an explicit
+      // `null` for grossPkrPerCompletion. completeWeeklyTaskAtomic already falls back to
+      // "0" for a null value, so this couldn't pay out an undefined amount, but a real
+      // cpa_offer task silently going NULL for its PKR reward is a confusing admin state
+      // to leave in the DB — normalize it to "0" instead unless it's becoming indirect.
+      if (updates.grossPkrPerCompletion === null && taskCategory !== "indirect") updates.grossPkrPerCompletion = "0";
       const task = await storage.updateWeeklyTask(req.params.id, updates as any);
       res.json({ task });
     } catch (error) {
@@ -3982,7 +3988,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/engine-b-tasks", requirePermission("MANAGE_TASKS"), async (req, res) => {
     try {
-      const validatedData = insertEngineBTaskSchema.parse(req.body);
+      // Audit finding (Task & Ad Management, 2026-07-28): the auto-generated
+      // insertEngineBTaskSchema only knew grossPkrPerCompletion was a string (from the
+      // decimal column type) with no format check — unlike weekly-tasks' matching field,
+      // which already validates this regex. Extend it here so a malformed value 400s
+      // instead of reaching the DB as an unparsable decimal.
+      const validatedData = insertEngineBTaskSchema.extend({
+        grossPkrPerCompletion: z.string().regex(/^\d+(\.\d+)?$/, "grossPkrPerCompletion must be a positive decimal string"),
+      }).parse(req.body);
       const task = await storage.createEngineBTask(validatedData);
       res.status(201).json(task);
     } catch (error: any) {
@@ -4004,7 +4017,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         targetRank:            z.enum(["E-Rank","D-Rank","C-Rank","B-Rank","A-Rank","S-Rank"]).optional(),
         difficulty:            z.enum(["Easy","Medium","Hard","Elite"]).optional(),
         isActive:              z.boolean().optional(),
-        grossPkrPerCompletion: z.string().optional(),
+        grossPkrPerCompletion: z.string().regex(/^\d+(\.\d+)?$/, "grossPkrPerCompletion must be a positive decimal string").optional(),
       });
       const parsed = updateSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
