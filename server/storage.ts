@@ -513,7 +513,7 @@ export interface IStorage {
 
   // Reclassify an admin_credit earning as a verified_deposit, or vice-versa (founder only).
   // Throws if the earning's current type does not match the expected source type for the toggle.
-  reclassifyEarning(earningId: string, newType: 'verified_deposit' | 'admin_credit', adminId: string): Promise<void>;
+  reclassifyEarning(earningId: string, newType: 'verified_deposit' | 'admin_credit', adminId: string): Promise<{ userId: string }>;
 
   // Error event logging for health engine
   logErrorEvent(route: string, status: number, message?: string): Promise<void>;
@@ -4278,13 +4278,13 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async reclassifyEarning(earningId: string, newType: 'verified_deposit' | 'admin_credit', adminId: string): Promise<void> {
+  async reclassifyEarning(earningId: string, newType: 'verified_deposit' | 'admin_credit', adminId: string): Promise<{ userId: string }> {
     // The only valid reclassifications are admin_credit <-> verified_deposit. Guarding on the
     // earning's CURRENT type (fetched with a row lock) prevents this endpoint from being misused
     // to silently retype an unrelated earning (e.g. a real task_completion payout) into
     // admin_credit/verified_deposit, which would corrupt the reconciliation totals above.
-    await db.transaction(async (tx) => {
-      const [earning] = await tx.select({ type: earnings.type }).from(earnings).where(eq(earnings.id, earningId)).for('update');
+    return await db.transaction(async (tx) => {
+      const [earning] = await tx.select({ type: earnings.type, userId: earnings.userId }).from(earnings).where(eq(earnings.id, earningId)).for('update');
       if (!earning) {
         throw new Error("Earning not found");
       }
@@ -4303,6 +4303,7 @@ export class DatabaseStorage implements IStorage {
         targetId: earningId,
         details: { newType, previousType: earning.type, reclassifiedBy: adminId },
       });
+      return { userId: earning.userId };
     });
   }
 

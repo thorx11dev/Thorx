@@ -2921,13 +2921,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ── Financial Reconciliation ─────────────────────────────────────────────────
 
-  app.get("/api/admin/reconciliation", requirePermission("VIEW_FINANCE"), async (req, res) => {
+  // R-Audit (2026-07-29): rate-limited like every other financial read (the
+  // underlying query runs several full-table SUM aggregations) and now leaves
+  // an audit trail like the Ledger Validator's comparable scan endpoint.
+  app.get("/api/admin/reconciliation", requirePermission("VIEW_FINANCE"), adminActionRateLimiter, async (req, res) => {
     try {
       const { offset, limit } = z.object({
         offset: z.coerce.number().int().min(0).optional(),
         limit: z.coerce.number().int().min(1).max(200).optional(),
       }).parse(req.query);
       const data = await storage.getReconciliationData({ offset, limit });
+      const adminId = req.userProfile?.id;
+      if (adminId) {
+        await storage.createAuditLog({
+          adminId,
+          action: "RECONCILIATION_VIEW",
+          targetType: "system",
+          targetId: "reconciliation",
+          details: { netPlatformLiquidity: data.netPlatformLiquidity, unverifiedCreditExposure: data.unverifiedCreditExposure },
+          ipAddress: req.ip,
+        });
+      }
       res.json(data);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2938,7 +2952,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/earnings/:earningId/reclassify", requireTeamRole, adminActionRateLimiter, async (req, res) => {
+  // R-Audit (2026-07-29): gated by requirePermission("MANAGE_USERS") (matching the
+  // ledger reconcile route's permission, since this also changes what a user's
+  // recorded money is considered to be) in addition to the pre-existing founder-only
+  // check, and rate-limited with withdrawalRateLimiter — the same stricter limiter
+  // used for other money-mutating actions — instead of the generic admin limiter.
+  // Broadcasts to the affected user like every other balance/earnings mutation.
+  app.post("/api/admin/earnings/:earningId/reclassify", requirePermission("MANAGE_USERS"), withdrawalRateLimiter, async (req, res) => {
     try {
       if (req.userProfile!.role !== 'founder') {
         return res.status(403).json({ message: "Founder access required" });
@@ -2947,7 +2967,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { type } = z.object({
         type: z.enum(['verified_deposit', 'admin_credit']),
       }).parse(req.body);
-      await storage.reclassifyEarning(earningId, type, req.userProfile!.id);
+      const { userId } = await storage.reclassifyEarning(earningId, type, req.userProfile!.id);
+      broadcastUserUpdated(userId, "earning_reclassified");
       res.json({ success: true });
     } catch (error: any) {
       if (error instanceof z.ZodError) {

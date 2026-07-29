@@ -2,10 +2,15 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, CheckCircle, ChevronDown, ChevronRight, User, Shield, Loader2, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle, ChevronDown, ChevronRight, User, Shield, Loader2, XCircle, Download } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Above this unverified-credit exposure, the panel surfaces a warning banner.
 // Kept as a named constant (rather than buried in JSX) so it's easy to find and tune.
@@ -36,6 +41,32 @@ interface ReconciliationData {
 function pkr(value: string | undefined): number {
   const n = parseFloat(value || "0");
   return Number.isFinite(n) ? n : 0;
+}
+
+function csvCell(value: string | number): string {
+  const s = String(value ?? "");
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+// Client-side export of whatever admin-credit rows are currently loaded (respects
+// however many pages of "Load more" the admin has fetched), matching the export
+// convention used by the Ledger Validator and other financial admin panels.
+function downloadAdminCreditsCsv(details: ReconciliationData["adminCreditDetails"]) {
+  const header = ["User", "User ID", "Granted By", "Amount (PKR)", "Description", "Date"];
+  const rows = [
+    header,
+    ...details.map(c => [c.userName, c.userId, c.adminName, c.amount, c.description, new Date(c.createdAt).toISOString()]),
+  ];
+  const csv = rows.map(row => row.map(csvCell).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `manual-credits-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function Row({ label, value, sub, variant = "neutral", indent = false }: {
@@ -69,6 +100,9 @@ export function ReconciliationPanel() {
   const [showDrilldown, setShowDrilldown] = useState(false);
   const [showLiabilityBreakdown, setShowLiabilityBreakdown] = useState(false);
   const [creditsLimit, setCreditsLimit] = useState(ADMIN_CREDITS_PAGE_SIZE);
+  // High-stakes action (reclassifies real vs. unverified money) — confirm before firing,
+  // matching the confirm-before-mutate convention used by UserManager's balance adjustment.
+  const [confirmTarget, setConfirmTarget] = useState<{ id: string; userName: string; amount: string } | null>(null);
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery<ReconciliationData>({
     queryKey: [`/api/admin/reconciliation?limit=${creditsLimit}`],
@@ -89,6 +123,7 @@ export function ReconciliationPanel() {
         },
       });
       toast({ title: "Marked as Verified", description: "Entry reclassified as real bank deposit." });
+      setConfirmTarget(null);
     },
     onError: (err: Error) => toast({
       title: "Action failed",
@@ -163,6 +198,7 @@ export function ReconciliationPanel() {
           ) : (
             <>
               <Row label="Total in User Balances" value={data?.totalUserBalances ?? "0"} sub="Active + suspended accounts combined" variant="neutral" />
+              <Row label="Active Accounts" value={data?.activeUserBalances ?? "0"} sub="Included above" variant="neutral" indent />
               {frozenLiability > 0 && (
                 <Row label="Suspended / Deleted Accounts" value={data?.frozenAccountLiability ?? "0"} sub="Included above — balance is not wiped on suspension" variant="warning" indent />
               )}
@@ -206,18 +242,35 @@ export function ReconciliationPanel() {
 
       {/* Manual Credits Drill-Down */}
       <div className="bg-white border-[1.5px] border-zinc-200 rounded-[2rem] overflow-hidden">
-        <button
-          className="w-full flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-zinc-50 hover:bg-zinc-100 transition-colors rounded-t-[2rem]"
-          onClick={() => setShowDrilldown(!showDrilldown)}
-        >
-          <div className="flex items-center gap-2">
+        <div className="w-full flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-zinc-50 rounded-t-[2rem]">
+          <button
+            className="flex-1 flex items-center gap-2 text-left hover:opacity-70 transition-opacity"
+            onClick={() => setShowDrilldown(!showDrilldown)}
+            data-testid="button-toggle-credits-drilldown"
+          >
             <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Manual Credits</p>
             <span className="text-[10px] font-black bg-zinc-200 text-zinc-600 px-2 py-0.5 rounded-full">
               {data?.adminCreditTotalCount ?? 0}
             </span>
+          </button>
+          <div className="flex items-center gap-2">
+            {!!data?.adminCreditDetails?.length && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-[10px]"
+                onClick={() => downloadAdminCreditsCsv(data.adminCreditDetails)}
+                data-testid="button-export-credits-csv"
+              >
+                <Download size={12} className="mr-1" />
+                Export CSV
+              </Button>
+            )}
+            <button onClick={() => setShowDrilldown(!showDrilldown)} data-testid="button-toggle-credits-drilldown-chevron">
+              {showDrilldown ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+            </button>
           </div>
-          {showDrilldown ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-        </button>
+        </div>
 
         {showDrilldown && (
           <div className="divide-y divide-zinc-100">
@@ -248,7 +301,7 @@ export function ReconciliationPanel() {
                       <span className="font-black text-amber-600 text-sm">₨{pkr(credit.amount).toLocaleString()}</span>
                       {user?.role === "founder" && (
                         <button
-                          onClick={() => reclassifyMutation.mutate(credit.id)}
+                          onClick={() => setConfirmTarget({ id: credit.id, userName: credit.userName, amount: credit.amount })}
                           disabled={reclassifyMutation.isPending}
                           className="flex items-center gap-1.5 px-3 h-8 bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widest rounded-full hover:bg-emerald-700 transition-colors disabled:opacity-50"
                         >
@@ -276,6 +329,29 @@ export function ReconciliationPanel() {
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!confirmTarget} onOpenChange={(open) => !open && setConfirmTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark ₨{confirmTarget ? pkr(confirmTarget.amount).toLocaleString() : 0} as a verified deposit?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This reclassifies {confirmTarget?.userName}'s manual credit from "unverified" to "real earnings backing" in the Money Overview totals. Only do this after confirming the matching bank deposit actually happened — this action is logged to the audit trail.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={reclassifyMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={reclassifyMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (confirmTarget) reclassifyMutation.mutate(confirmTarget.id);
+              }}
+            >
+              {reclassifyMutation.isPending ? "Verifying…" : "Confirm — Mark as Verified"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
