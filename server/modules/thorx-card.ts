@@ -8,6 +8,25 @@
 
 import Decimal from "decimal.js";
 
+// Rank reward multipliers — applied to TX-Points (gamification display) per earn event.
+// Higher ranks earn proportionally more points for the same gross PKR amount.
+// Config Q6: E=1.00x, D=1.10x, C=1.20x, B=1.35x, A=1.50x, S=1.75x
+//
+// Single source of truth: server/storage.ts (recordEarnEvent) imports this
+// constant rather than keeping its own copy. Before this fix, the Thorx Card
+// Sandbox (server/routes.ts simulate/thorx-card) never applied this
+// multiplier at all, so admin-facing simulation results silently understated
+// what higher-rank users actually receive (up to 43% low for S-Rank once the
+// 1.75x step is skipped).
+export const RANK_REWARD_MULTIPLIERS: Record<string, number> = {
+  "E-Rank": 1.00,
+  "D-Rank": 1.10,
+  "C-Rank": 1.20,
+  "B-Rank": 1.35,
+  "A-Rank": 1.50,
+  "S-Rank": 1.75,
+};
+
 export interface CardDrawParams {
   userPkrShare: number | string;   // exact PKR already split from gross for this user (string keeps Decimal precision)
   conversionRate: number; // system_config CONVERSION_RATE (TX-Points per Rs.10)
@@ -78,13 +97,21 @@ export interface CardConfig {
 
 export interface SimulationResult {
   iteration: number;
-  pointsCredited: number;
+  pointsCredited: number;     // FINAL points a real user would see — includes the Q6 rank multiplier, matching recordEarnEvent
+  basePointsCredited: number; // pre-rank-multiplier value (post-variance), for transparency
+  rankMultiplier: number;     // the Q6 multiplier actually applied for userRankTier
   realPkrValue: string;
   cardVariance: number;
 }
 
 // Admin simulation tool (Thorx Card Sandbox) — runs N draws for a given
 // gross PKR / engine / rank combination without touching real user data.
+//
+// Audit fix: this previously stopped after drawThorxCard() and returned its
+// raw pointsCredited, skipping the Q6 rank reward multiplier that
+// recordEarnEvent() (server/storage.ts) always applies afterwards. Every
+// simulated draw above E-Rank understated the real outcome (D +10% low, ...,
+// S up to 43% low) — now applies the exact same RANK_REWARD_MULTIPLIERS step.
 export function simulateThorxCards(params: {
   grossPkr: number;
   engineType: "A" | "B" | "C";
@@ -97,6 +124,7 @@ export function simulateThorxCards(params: {
   // Use Decimal for the split so floating-point errors don't accumulate across iterations
   // F-08: Keep full Decimal precision — drawThorxCard accepts number|string; pass string to avoid float drift.
   const userPkrShare = new Decimal(grossPkr).times(engineSplits.userCutPct).div(100).toFixed(8);
+  const rankMultiplier = RANK_REWARD_MULTIPLIERS[userRankTier] ?? 1.00;
 
   const results: SimulationResult[] = [];
   for (let i = 0; i < iterations; i++) {
@@ -109,9 +137,15 @@ export function simulateThorxCards(params: {
       aRankBonusPct: config.aRankBonusPct,
       sRankBonusPct: config.sRankBonusPct,
     });
+    // Mirrors server/storage.ts recordEarnEvent's rounding exactly (Math.floor after multiply).
+    const rankedPointsCredited = draw.pointsCredited > 0
+      ? Math.floor(draw.pointsCredited * rankMultiplier)
+      : 0;
     results.push({
       iteration: i + 1,
-      pointsCredited: draw.pointsCredited,
+      pointsCredited: rankedPointsCredited,
+      basePointsCredited: draw.pointsCredited,
+      rankMultiplier,
       realPkrValue: draw.realPkrValue,
       cardVariance: draw.cardVariance,
     });

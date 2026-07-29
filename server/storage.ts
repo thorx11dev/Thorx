@@ -126,7 +126,7 @@ import {
   type InsertEngineBRecord,
   guildWars,
 } from "@shared/schema";
-import { drawThorxCard } from "./modules/thorx-card";
+import { drawThorxCard, RANK_REWARD_MULTIPLIERS } from "./modules/thorx-card";
 import { awardTaskPS, processStreak } from "./modules/ps-engine";
 import { checkAndUpdateRankTier } from "./modules/ps-engine";
 import { awardMemberGPS, awardMVPGPS, checkAndUpdateGuildRankTier, computeGuildRankTier, fetchGpsConfig, GUILD_RANK_TIERS, type GuildRankTier } from "./modules/gps-engine";
@@ -147,16 +147,9 @@ import { encryptCredential, decryptCredential, isEncrypted } from "./utils/crede
 const DEFAULT_CONVERSION_RATE = 1000;
 
 // Rank reward multipliers — applied to TX-Points (gamification display) per earn event.
-// Higher ranks earn proportionally more points for the same gross PKR amount.
-// Config Q6: E=1.00x, D=1.10x, C=1.20x, B=1.35x, A=1.50x, S=1.75x
-const RANK_REWARD_MULTIPLIERS: Record<string, number> = {
-  "E-Rank": 1.00,
-  "D-Rank": 1.10,
-  "C-Rank": 1.20,
-  "B-Rank": 1.35,
-  "A-Rank": 1.50,
-  "S-Rank": 1.75,
-};
+// Config Q6: E=1.00x, D=1.10x, C=1.20x, B=1.35x, A=1.50x, S=1.75x.
+// Canonical definition lives in ./modules/thorx-card (imported above) so the
+// real earn flow and the admin Thorx Card Sandbox simulation can never drift.
 
 // Fixed UTC week boundary: Monday 00:00:00 UTC through Sunday 23:59:59.999 UTC.
 // Not user-configurable in v1 (see design notes in shared/schema.ts).
