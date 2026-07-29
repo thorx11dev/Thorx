@@ -49,6 +49,16 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Withdrawal {
   id: string;
@@ -87,11 +97,15 @@ export function PayoutControl() {
   const [transactionId, setTransactionId] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  // Bulk approve/reject confirmation — replaces window.confirm() so the
+  // action reads consistently with the rest of the app's UI and can't be
+  // triggered accidentally by an admin holding down Enter.
+  const [bulkConfirmAction, setBulkConfirmAction] = useState<'completed' | 'rejected' | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery<{ withdrawals: Withdrawal[], totalCount: number }>({
+  const { data, isLoading } = useQuery<{ withdrawals: Withdrawal[], totalCount: number, payoutSlaHours?: number }>({
     queryKey: ['/api/admin/withdrawals', { page: currentPage, status: filterStatus, search: debouncedSearch, sort: sortType }],
     queryFn: async ({ queryKey }) => {
       const [_url, params] = queryKey as [string, any];
@@ -110,9 +124,13 @@ export function PayoutControl() {
   const withdrawalsList = data?.withdrawals || [];
   const totalCount = data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
+  // Driven by the PAYOUT_SLA_HOURS system setting (System Settings panel) — was
+  // previously hardcoded to 48h here, so admins could only change the SLA with
+  // a code change/redeploy. Falls back to 48h if the server hasn't sent it yet.
+  const payoutSlaHours = data?.payoutSlaHours ?? 48;
 
   const getDeadtimeLeft = (createdAt: string) => {
-    const deadline = new Date(createdAt).getTime() + 48 * 60 * 60 * 1000;
+    const deadline = new Date(createdAt).getTime() + payoutSlaHours * 60 * 60 * 1000;
     return deadline - Date.now();
   };
 
@@ -337,11 +355,7 @@ export function PayoutControl() {
                 size="sm"
                 disabled={bulkUpdateMutation.isPending}
                 className="h-8 px-4 rounded-full bg-white text-[#111] font-black text-[9px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all disabled:opacity-50"
-                onClick={() => {
-                  if (confirm(`Approve ${selectedIds.length} selected withdrawal(s)? This finalizes payout and cannot be undone.`)) {
-                    bulkUpdateMutation.mutate({ ids: selectedIds, status: 'completed' });
-                  }
-                }}
+                onClick={() => setBulkConfirmAction('completed')}
               >
                 Approve Selected
               </Button>
@@ -349,11 +363,7 @@ export function PayoutControl() {
                 size="sm"
                 disabled={bulkUpdateMutation.isPending}
                 className="h-8 px-4 rounded-full bg-transparent border-[1.5px] border-red-500/60 text-red-400 font-black text-[9px] uppercase tracking-widest hover:bg-red-500 hover:text-white hover:border-red-500 transition-all disabled:opacity-50"
-                onClick={() => {
-                  if (confirm(`Reject ${selectedIds.length} selected withdrawal(s)?`)) {
-                    bulkUpdateMutation.mutate({ ids: selectedIds, status: 'rejected' });
-                  }
-                }}
+                onClick={() => setBulkConfirmAction('rejected')}
               >
                 Reject Selected
               </Button>
@@ -835,6 +845,35 @@ export function PayoutControl() {
             </DialogFooter>
          </DialogContent>
       </Dialog>
+
+      <AlertDialog open={bulkConfirmAction !== null} onOpenChange={(open) => !open && setBulkConfirmAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {bulkConfirmAction === 'completed' ? `Approve ${selectedIds.length} withdrawal(s)?` : `Reject ${selectedIds.length} withdrawal(s)?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkConfirmAction === 'completed'
+                ? "This finalizes payout for every selected withdrawal and cannot be undone."
+                : "Every selected withdrawal will be marked as rejected."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className={bulkConfirmAction === 'rejected' ? "bg-red-600 text-white hover:bg-red-700" : undefined}
+              onClick={() => {
+                if (bulkConfirmAction) {
+                  bulkUpdateMutation.mutate({ ids: selectedIds, status: bulkConfirmAction });
+                }
+                setBulkConfirmAction(null);
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

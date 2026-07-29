@@ -2537,12 +2537,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const status = req.query.status as string;
       const sort = req.query.sort as string | undefined;
 
-      const result = await storage.getWithdrawalsPaginated({ page, limit, search, status, sort });
+      const [result, payoutSlaHours] = await Promise.all([
+        storage.getWithdrawalsPaginated({ page, limit, search, status, sort }),
+        storage.getSystemConfigValue<number>("PAYOUT_SLA_HOURS", 48),
+      ]);
       // Payout Operations audit: never send the raw users row to the client —
       // it carries passwordHash/verificationToken. Always pass through sanitizeUser.
       res.json({
         ...result,
         withdrawals: result.withdrawals.map(w => ({ ...w, user: sanitizeUser(w.user) })),
+        // Finance audit (2026-07-29): the deadtime countdown was hardcoded to 48h
+        // client-side, so admins had no way to change the SLA without a code
+        // change/redeploy. Now driven by PAYOUT_SLA_HOURS (System Settings).
+        payoutSlaHours,
       });
     } catch (error) {
       logger.error({ err: error }, "Fetch withdrawals error");

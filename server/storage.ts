@@ -697,6 +697,7 @@ export const RANK_NAMES: string[] = [];
 export const SYSTEM_CONFIG_DEFAULTS = [
       { key: "MIN_PAYOUT", value: 100, description: "Minimum PKR required for withdrawal" },
       { key: "WITHDRAWAL_FEE_PCT", value: 15, description: "Total percentage fee deducted from every payout" },
+      { key: "PAYOUT_SLA_HOURS", value: 48, description: "Hours an admin has to action a pending withdrawal before Payout Control's deadtime countdown shows EXPIRED" },
       { key: "REFERRAL_FEE_SHARE_PCT", value: 50, description: "Share of the withdrawal fee (above) carved out to the withdrawing user's direct referrer; the rest stays with the platform" },
       { key: "CONVERSION_RATE", value: 1000, description: "TX-Points per Rs.10 earned (formula: pkr÷10×rate → effective 100 pts per Rs.1 at default 1000; global fallback — per-engine keys take precedence)" },
       { key: "DAILY_EARNINGS_GOAL_PKR", value: 50, description: "Lifetime-earnings progress bar target shown in User Portal (PKR). Adjust to set the milestone threshold." },

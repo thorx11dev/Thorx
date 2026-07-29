@@ -216,7 +216,7 @@ describe("Withdrawal rejection", () => {
   it("cannot re-reject an already-rejected withdrawal", async () => {
     await expect(
       storage.updateWithdrawalStatus(rejectedWdId, "rejected", founderUserId, undefined, "again")
-    ).rejects.toThrow(/not pending/i);
+    ).rejects.toThrow(/not in a rejectable state/i);
   });
 });
 

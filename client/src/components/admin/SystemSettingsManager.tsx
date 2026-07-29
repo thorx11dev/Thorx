@@ -326,6 +326,14 @@ export function SystemSettingsManager() {
             />
 
             <EconomicControl 
+              label="Payout SLA (hours)" 
+              value={localConfigs["PAYOUT_SLA_HOURS"] || 0} 
+              onChange={(val: number) => updateValue("PAYOUT_SLA_HOURS", val)}
+              onSave={() => handleSave("PAYOUT_SLA_HOURS")}
+              isLoading={saveMutation.isPending && saveMutation.variables?.key === "PAYOUT_SLA_HOURS"}
+            />
+
+            <EconomicControl 
               label="Referral Share of Fee (%)" 
               value={localConfigs["REFERRAL_FEE_SHARE_PCT"] || 0} 
               onChange={(val: number) => updateValue("REFERRAL_FEE_SHARE_PCT", val)}
