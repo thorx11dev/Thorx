@@ -68,9 +68,13 @@ export function SystemHealthCard() {
   const queryClient = useQueryClient();
   const [showReport, setShowReport] = useState(false);
 
+  // Snapshots are only recomputed hourly by the cron job, so a 5-minute
+  // refetch was polling ~12x more often than the underlying data could ever
+  // change. 15 minutes still catches a manual "Refresh Now" recompute
+  // promptly without the extra load.
   const { data: snapshot, isLoading, isError, refetch } = useQuery<HealthSnapshotData | null>({
     queryKey: ["/api/admin/system-health"],
-    refetchInterval: 5 * 60 * 1000,
+    refetchInterval: 15 * 60 * 1000,
   });
 
   // Audit finding: a failed fetch (permission denied, network error, etc.)

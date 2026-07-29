@@ -2940,8 +2940,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!snap) {
         return res.json(null);
       }
-      const { isSnapshotStale } = await import("./modules/health-engine");
-      res.json({ ...snap, isStale: isSnapshotStale(snap.recordedAt) });
+      const { isSnapshotStale, DIMENSION_WEIGHTS } = await import("./modules/health-engine");
+      res.json({ ...snap, isStale: isSnapshotStale(snap.recordedAt), weights: DIMENSION_WEIGHTS });
     } catch (error) {
       logger.error({ err: error }, "System health error:");
       res.status(500).json({ message: "Failed to fetch system health" });
@@ -3758,6 +3758,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (!user) {
+        storage.logAuthEvent(email, false, "invalid_credentials", req.ip).catch(() => {});
         return res.status(401).json({
           message: "Invalid email or password",
           error: "UNAUTHORIZED"
@@ -3768,6 +3769,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Team, founder, and admin roles are exempt from OTP verification
       const isPrivilegedRole = ['team', 'admin', 'founder'].includes(user.role || '');
       if (!isPrivilegedRole && !user.emailVerifiedAt && !user.isVerified) {
+        storage.logAuthEvent(email, false, "email_not_verified", req.ip).catch(() => {});
         return res.status(403).json({
           message: "Email verification required. Please verify your email to continue.",
           error: "EMAIL_NOT_VERIFIED",
@@ -3781,6 +3783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const teamKeys = await storage.getTeamKeysByUser(user.id);
         if (teamKeys && teamKeys.length > 0) {
           if (!teamKeys[0].isActive && user.role !== 'founder') {
+            storage.logAuthEvent(email, false, "suspended", req.ip).catch(() => {});
             return res.status(401).json({
               message: "Account suspended: Your cryptographic key has been revoked or frozen.",
               error: "UNAUTHORIZED"
@@ -3846,6 +3849,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           logger.error({ err: e }, "Failed to write access log");
         }
       }
+
+      storage.logAuthEvent(email, true, undefined, req.ip).catch(() => {});
 
       res.json({
         message: "Login successful",

@@ -21,6 +21,7 @@ import {
   healthSnapshots,
   type HealthSnapshot,
   errorEvents,
+  authEvents,
   type Registration,
   type InsertRegistration,
   type User,
@@ -563,6 +564,9 @@ export interface IStorage {
 
   // Error event logging for health engine
   logErrorEvent(route: string, status: number, message?: string): Promise<void>;
+
+  // Auth event logging for health engine (failed_auth_rate signal)
+  logAuthEvent(email: string | undefined, success: boolean, reason?: string, ipAddress?: string | null): Promise<void>;
 
   // Extended metrics for dashboard cards
   getExtendedMetrics(): Promise<{
@@ -4438,6 +4442,12 @@ export class DatabaseStorage implements IStorage {
 
   async logErrorEvent(route: string, status: number, message?: string): Promise<void> {
     await db.insert(errorEvents).values({ route, status, message }).catch(() => {/* silent */});
+  }
+
+  // ── Auth Event Logging ──────────────────────────────────────────────────────
+
+  async logAuthEvent(email: string | undefined, success: boolean, reason?: string, ipAddress?: string | null): Promise<void> {
+    await db.insert(authEvents).values({ email: email ?? null, success, reason: reason ?? null, ipAddress: ipAddress ?? null }).catch(() => {/* silent — logging must never block login */});
   }
 
   // ── Extended Metrics for Dashboard Cards ────────────────────────────────────

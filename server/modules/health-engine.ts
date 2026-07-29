@@ -20,6 +20,7 @@ import {
   earnings,
   users,
   auditLogs,
+  authEvents,
   riskCases,
   errorEvents,
   healthSnapshots,
@@ -53,6 +54,17 @@ export interface HealthResult {
   signalsJson: Record<string, HealthSignal[]>;
   topReason: string;
 }
+
+// Single source of truth for dimension weights — the frontend reads these
+// from the API response instead of hardcoding its own copy, so the two can
+// never drift apart if a weight is ever rebalanced here.
+export const DIMENSION_WEIGHTS = {
+  financial: 0.25,
+  operational: 0.25,
+  userHealth: 0.20,
+  risk: 0.20,
+  integrity: 0.10,
+} as const;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -214,15 +226,20 @@ async function computeOperationalHealth(): Promise<DimensionResult> {
   } catch { signals.push({ name: "db_response_latency", score: 0, rawValue: "timeout", detail: "Database did not respond" }); }
 
   // Signal 2: Connection pool utilization
+  // Audit finding (2026-07-29): this used `pool.totalCount` (connections
+  // currently opened) as the denominator instead of the pool's configured
+  // capacity (`pool.options.max`). `totalCount` grows lazily from 0 up to
+  // max, so with e.g. 2 opened / 2 busy connections this reported "100%
+  // utilization" and scored 0/100 even though the pool had 18 more
+  // connections of headroom available — a false "critical" reading.
   try {
-    const total = pool.totalCount;
-    const idle = pool.idleCount;
-    const used = total - idle;
-    const utilPct = total > 0 ? (used / total) * 100 : 0;
+    const maxSize = pool.options.max ?? 20;
+    const used = pool.totalCount - pool.idleCount;
+    const utilPct = maxSize > 0 ? (used / maxSize) * 100 : 0;
     signals.push({
       name: "pool_utilization",
       score: linearScore(utilPct, 90, 60),
-      rawValue: `${used}/${total} connections used (${utilPct.toFixed(0)}%)`,
+      rawValue: `${used}/${maxSize} connections used (${utilPct.toFixed(0)}%)`,
       detail: `Connection pool at ${utilPct.toFixed(0)}% utilization`,
     });
   } catch { signals.push({ name: "pool_utilization", score: 80, rawValue: "N/A", detail: "Could not read pool stats" }); }
@@ -243,23 +260,33 @@ async function computeOperationalHealth(): Promise<DimensionResult> {
   } catch { signals.push({ name: "server_error_rate", score: 80, rawValue: "N/A", detail: "Could not compute error rate" }); }
 
   // Signal 4: Failed authentication rate (last 1h)
+  // Audit finding (2026-07-29): this queried `auditLogs` for actions
+  // "FAILED_LOGIN" / "LOGIN_SUCCESS" / "LOGIN", but the login route never
+  // wrote any audit log with those names (auditLogs is scoped to admin/team
+  // actions and requires a non-null adminId, so it can't record anonymous or
+  // regular-user login attempts). totalLogins was therefore always 0, so
+  // this signal silently scored a fake 100 regardless of real auth activity.
+  // It now reads the dedicated `authEvents` table, written by every login
+  // attempt (success or failure) in POST /api/login.
   try {
     const [failRow] = await db
       .select({ cnt: count() })
-      .from(auditLogs)
-      .where(and(gte(auditLogs.createdAt, ago1h), eq(auditLogs.action, "FAILED_LOGIN")));
+      .from(authEvents)
+      .where(and(gte(authEvents.occurredAt, ago1h), eq(authEvents.success, false)));
     const [totalLoginRow] = await db
       .select({ cnt: count() })
-      .from(auditLogs)
-      .where(and(gte(auditLogs.createdAt, ago1h), inArray(auditLogs.action, ["FAILED_LOGIN", "LOGIN_SUCCESS", "LOGIN"])));
+      .from(authEvents)
+      .where(gte(authEvents.occurredAt, ago1h));
     const fails = Number(failRow?.cnt ?? 0);
     const totalLogins = Number(totalLoginRow?.cnt ?? 0);
     const failRate = totalLogins > 0 ? (fails / totalLogins) * 100 : 0;
     signals.push({
       name: "failed_auth_rate",
-      score: linearScore(failRate, 10, 2),
+      score: totalLogins > 0 ? linearScore(failRate, 10, 2) : 100,
       rawValue: `${fails}/${totalLogins} failed (${failRate.toFixed(1)}%)`,
-      detail: `${failRate.toFixed(1)}% of login attempts failed in last hour`,
+      detail: totalLogins > 0
+        ? `${failRate.toFixed(1)}% of login attempts failed in last hour`
+        : "No login attempts in last hour",
     });
   } catch { signals.push({ name: "failed_auth_rate", score: 80, rawValue: "N/A", detail: "Could not compute auth rate" }); }
 
@@ -556,11 +583,11 @@ export async function computeHealthScore(): Promise<HealthResult> {
   ]);
 
   const overallScore =
-    financial.score * 0.25 +
-    operational.score * 0.25 +
-    userHealth.score * 0.20 +
-    risk.score * 0.20 +
-    integrity.score * 0.10;
+    financial.score * DIMENSION_WEIGHTS.financial +
+    operational.score * DIMENSION_WEIGHTS.operational +
+    userHealth.score * DIMENSION_WEIGHTS.userHealth +
+    risk.score * DIMENSION_WEIGHTS.risk +
+    integrity.score * DIMENSION_WEIGHTS.integrity;
 
   const allSignals = [
     ...financial.signals,

@@ -33,6 +33,14 @@ interface HealthSnapshotData {
   delta24h: string | null;
   recordedAt: string;
   isStale: boolean;
+  // Read from the API instead of hardcoding a copy here — keeps the
+  // displayed weight badges from drifting out of sync with the engine's
+  // actual weighting if it's ever rebalanced server-side.
+  weights?: { financial: number; operational: number; userHealth: number; risk: number; integrity: number };
+}
+
+function pct(w: number | undefined, fallback: number): string {
+  return `${Math.round((w ?? fallback) * 100)}%`;
 }
 
 interface HistorySnapshot {
@@ -107,9 +115,13 @@ function DimensionBar({ label, score, weight, signals }: { label: string; score:
 }
 
 export function HealthReportPanel({ snapshot }: { snapshot: HealthSnapshotData | null }) {
+  // Snapshots are only recomputed hourly by the cron job, so a 5-minute
+  // refetch was polling ~12x more often than the underlying data could ever
+  // change. 15 minutes still catches a manual "Refresh Now" recompute
+  // promptly without the extra load.
   const { data: history } = useQuery<HistorySnapshot[]>({
     queryKey: ["/api/admin/system-health/history"],
-    refetchInterval: 5 * 60 * 1000,
+    refetchInterval: 15 * 60 * 1000,
   });
 
   // Defensive guard: the card that opens this dialog only does so once a
@@ -188,11 +200,11 @@ export function HealthReportPanel({ snapshot }: { snapshot: HealthSnapshotData |
       <div className="space-y-4">
         <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Health Breakdown <span className="font-normal normal-case">(tap a row to expand)</span></p>
         <div className="space-y-5">
-          <DimensionBar label="Financial Health" score={parseFloat(snapshot?.financialScore ?? "0")} weight="25%" signals={signals.financial} />
-          <DimensionBar label="Operational Health" score={parseFloat(snapshot?.operationalScore ?? "0")} weight="25%" signals={signals.operational} />
-          <DimensionBar label="User & Growth" score={parseFloat(snapshot?.userHealthScore ?? "0")} weight="20%" signals={signals.userHealth} />
-          <DimensionBar label="Risk & Integrity" score={parseFloat(snapshot?.riskHealthScore ?? "0")} weight="20%" signals={signals.risk} />
-          <DimensionBar label="Platform Integrity" score={parseFloat(snapshot?.integrityScore ?? "0")} weight="10%" signals={signals.integrity} />
+          <DimensionBar label="Financial Health" score={parseFloat(snapshot?.financialScore ?? "0")} weight={pct(snapshot?.weights?.financial, 0.25)} signals={signals.financial} />
+          <DimensionBar label="Operational Health" score={parseFloat(snapshot?.operationalScore ?? "0")} weight={pct(snapshot?.weights?.operational, 0.25)} signals={signals.operational} />
+          <DimensionBar label="User & Growth" score={parseFloat(snapshot?.userHealthScore ?? "0")} weight={pct(snapshot?.weights?.userHealth, 0.20)} signals={signals.userHealth} />
+          <DimensionBar label="Risk & Integrity" score={parseFloat(snapshot?.riskHealthScore ?? "0")} weight={pct(snapshot?.weights?.risk, 0.20)} signals={signals.risk} />
+          <DimensionBar label="Platform Integrity" score={parseFloat(snapshot?.integrityScore ?? "0")} weight={pct(snapshot?.weights?.integrity, 0.10)} signals={signals.integrity} />
         </div>
       </div>
 
@@ -201,10 +213,10 @@ export function HealthReportPanel({ snapshot }: { snapshot: HealthSnapshotData |
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Score History</p>
           <div className="space-y-1.5">
-            {(history ?? []).slice(0, 10).map((h, i) => {
+            {(history ?? []).slice(0, 10).map((h) => {
               const s = parseFloat(h.overallScore);
               return (
-                <div key={i} className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-100 rounded-xl">
+                <div key={h.recordedAt} className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-100 rounded-xl">
                   <span className={cn("text-sm font-black w-16 shrink-0", scoreColor(s))}>{Math.round(s)}/100</span>
                   <p className="flex-1 text-[10px] text-muted-foreground truncate min-w-0">{h.topReason.split("·")[0].trim()}</p>
                   <span className="text-[9px] text-muted-foreground shrink-0 font-bold">

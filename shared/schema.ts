@@ -1003,6 +1003,27 @@ export const errorEvents = pgTable("error_events", {
 
 export type ErrorEvent = typeof errorEvents.$inferSelect;
 
+// Logs every login attempt (success or failure) for ALL users — separate from
+// `auditLogs`, which is scoped to admin/team actions (`adminId` is NOT NULL
+// there, so it cannot record anonymous or regular-user login attempts).
+// Health Report audit (2026-07-29): the Operational Health "failed auth rate"
+// signal previously queried `auditLogs` for actions that were never written
+// anywhere in the login route, so it silently always computed 0/0 and scored
+// a fake 100 — this table gives it real data to read.
+export const authEvents = pgTable("auth_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email"),
+  success: boolean("success").notNull(),
+  reason: text("reason"), // e.g. "invalid_credentials", "email_not_verified", "suspended"
+  ipAddress: text("ip_address"),
+  occurredAt: timestamp("occurred_at").defaultNow(),
+}, (table) => [
+  index("auth_events_occurred_at_idx").on(table.occurredAt),
+  index("auth_events_success_idx").on(table.success),
+]);
+
+export type AuthEvent = typeof authEvents.$inferSelect;
+
 // ── Feature 3: Guild, Escrow Vault & Points Ledger System ─────────────────────
 // Implements thorx_master_plan.md Engine C (Guilds), the 15% Hold & Release
 // Escrow Vault, and the bulletproof points-first valuation ledger.
