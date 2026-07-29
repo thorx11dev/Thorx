@@ -20,13 +20,6 @@ export function SystemSettingsManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [localConfigs, setLocalConfigs] = useState<Record<string, any>>({});
-  
-  // Fetch specific configuration keys
-  const configKeys = [
-    "MIN_PAYOUT", "WITHDRAWAL_FEE_PCT", "REFERRAL_FEE_SHARE_PCT",
-    "CONVERSION_RATE",
-    "AD_NETWORKS", "CPA_NETWORKS",
-  ];
 
   // Admin-tunable Performance Score weights and Risk Engine thresholds.
   // Defaults here must match the fallback defaults read server-side
@@ -71,6 +64,18 @@ export function SystemSettingsManager() {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/config/bulk"] });
+      // Audit fix (System Settings, 2026-07-29): the backend already flags
+      // saves to a key no engine reads (isKnownKey: false) but this toast
+      // used to say "Successfully synchronized" regardless — an admin had no
+      // way to tell their change actually did nothing.
+      if (data?.isKnownKey === false) {
+        toast({
+          title: "Saved, but not wired to anything",
+          description: `"${variables.key}" was stored, but no engine currently reads this key — it will have no effect.`,
+          variant: "destructive",
+        });
+        return;
+      }
       toast({
         title: "Configuration Saved",
         description: `Successfully synchronized ${variables.key} protocol.`,

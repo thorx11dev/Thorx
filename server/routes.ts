@@ -556,6 +556,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ success: true, config, isKnownKey });
     } catch (error) {
+      // Audit fix (System Settings, 2026-07-29): a malformed/invalid `value`
+      // (caught by the Zod parse above) was falling into this generic catch
+      // and reporting a misleading HTTP 500 "server error" for what is
+      // actually a 400 client validation problem.
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid config value", errors: error.errors });
+      }
+      logger.error({ err: error, key: req.params.key }, "Failed to update system configuration");
       res.status(500).json({ message: "Failed to update system configuration" });
     }
   });
