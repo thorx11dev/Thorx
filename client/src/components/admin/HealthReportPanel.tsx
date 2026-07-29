@@ -112,6 +112,18 @@ export function HealthReportPanel({ snapshot }: { snapshot: HealthSnapshotData |
     refetchInterval: 5 * 60 * 1000,
   });
 
+  // Defensive guard: the card that opens this dialog only does so once a
+  // snapshot is loaded, but render a plain state instead of a fake 0/100
+  // score if this is ever reached without one (e.g. a refetch race).
+  if (!snapshot) {
+    return (
+      <div className="p-10 text-center">
+        <p className="text-sm font-black text-foreground mb-1">No health snapshot available</p>
+        <p className="text-xs text-muted-foreground">Try refreshing once the hourly job has recorded data.</p>
+      </div>
+    );
+  }
+
   const chartData = (history ?? []).map((h) => ({
     time: new Date(h.recordedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }),
     score: parseFloat(h.overallScore),

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
-import { Zap, TrendingUp, TrendingDown, Minus, RefreshCw, X, AlertCircle } from "lucide-react";
+import { Zap, TrendingUp, TrendingDown, Minus, RefreshCw, X, AlertCircle, ServerCrash } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -68,10 +68,16 @@ export function SystemHealthCard() {
   const queryClient = useQueryClient();
   const [showReport, setShowReport] = useState(false);
 
-  const { data: snapshot, isLoading } = useQuery<HealthSnapshotData>({
+  const { data: snapshot, isLoading, isError, refetch } = useQuery<HealthSnapshotData | null>({
     queryKey: ["/api/admin/system-health"],
     refetchInterval: 5 * 60 * 1000,
   });
+
+  // Audit finding: a failed fetch (permission denied, network error, etc.)
+  // previously fell through to `parseFloat(undefined ?? "0") = 0`, rendering
+  // a red "0/100 Critical" card indistinguishable from a genuinely critical
+  // system — a fetch error must never be displayed as a real health score.
+  const hasNoSnapshotYet = !isLoading && !isError && snapshot == null;
 
   const recalcMutation = useMutation({
     mutationFn: async () => {
@@ -93,6 +99,62 @@ export function SystemHealthCard() {
   const staleAgeMin = snapshot?.recordedAt
     ? Math.round((Date.now() - new Date(snapshot.recordedAt).getTime()) / 60000)
     : null;
+
+  // Audit finding: fetch failures and "no snapshot recorded yet" both used to
+  // collapse into the same rendering path as a real score of 0, which shows
+  // up visually identical to a genuinely critical (0/100) system. Both are
+  // rendered as their own explicit, non-alarming states below.
+  if (isError) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.08 }}
+        className="border-[1.5px] rounded-[2rem] p-6 text-left bg-zinc-50 border-zinc-200"
+        data-testid="card-system-health"
+      >
+        <div className="flex items-start justify-between mb-5">
+          <div className="p-2 rounded-full bg-zinc-200">
+            <ServerCrash className="w-4 h-4 text-zinc-500" />
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">System Health</span>
+        </div>
+        <p className="text-sm font-black text-foreground mb-1">Couldn't load health data</p>
+        <p className="text-[11px] text-muted-foreground leading-relaxed mb-4">
+          This isn't a health score of zero — the request failed. Check your connection or permissions and try again.
+        </p>
+        <button
+          onClick={(e) => { e.stopPropagation(); refetch(); }}
+          className="flex items-center gap-1.5 px-3 h-8 bg-black text-white text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-black/80 transition-colors"
+        >
+          <RefreshCw className="w-3 h-3" /> Retry
+        </button>
+      </motion.div>
+    );
+  }
+
+  if (hasNoSnapshotYet) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.08 }}
+        className="border-[1.5px] rounded-[2rem] p-6 text-left bg-zinc-50 border-zinc-200"
+        data-testid="card-system-health"
+      >
+        <div className="flex items-start justify-between mb-5">
+          <div className="p-2 rounded-full bg-zinc-200">
+            <Zap className="w-4 h-4 text-zinc-400" />
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">System Health</span>
+        </div>
+        <p className="text-sm font-black text-foreground mb-1">No snapshot yet</p>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          The hourly health job hasn't recorded a snapshot yet. Check back shortly.
+        </p>
+      </motion.div>
+    );
+  }
 
   return (
     <>

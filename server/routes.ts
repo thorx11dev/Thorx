@@ -2883,21 +2883,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ── System Health ────────────────────────────────────────────────────────────
 
-  app.get("/api/admin/system-health", requirePermission("VIEW_USERS"), async (req, res) => {
+  // Audit finding (Health Report Panel, 2026-07-29): these three routes used
+  // VIEW_USERS / MANAGE_USERS, which granted "users"-section team members
+  // (e.g. user support staff) visibility into financial/risk/integrity health
+  // data and the ability to trigger a recompute, while "dashboard"-section
+  // staff (who should see this) were blocked. Every sibling dashboard/analytics
+  // read+recompute pair (leaderboard insights/force-sync, risk-cases/risk-scan)
+  // uses VIEW_ANALYTICS — aligned here for consistency.
+  app.get("/api/admin/system-health", requirePermission("VIEW_ANALYTICS"), async (req, res) => {
     try {
       const snap = await storage.getLatestHealthSnapshot();
       if (!snap) {
         return res.json(null);
       }
-      const ageMinutes = snap.recordedAt ? (Date.now() - new Date(snap.recordedAt).getTime()) / 60000 : 9999;
-      res.json({ ...snap, isStale: ageMinutes > 90 });
+      const { isSnapshotStale } = await import("./modules/health-engine");
+      res.json({ ...snap, isStale: isSnapshotStale(snap.recordedAt) });
     } catch (error) {
       logger.error({ err: error }, "System health error:");
       res.status(500).json({ message: "Failed to fetch system health" });
     }
   });
 
-  app.get("/api/admin/system-health/history", requirePermission("VIEW_USERS"), async (req, res) => {
+  app.get("/api/admin/system-health/history", requirePermission("VIEW_ANALYTICS"), async (req, res) => {
     try {
       const hours = Number(req.query.hours ?? 24);
       const history = await storage.getHealthHistory(hours);
@@ -2908,12 +2915,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/system-health/recalculate", requirePermission("MANAGE_USERS"), adminActionRateLimiter, async (req, res) => {
+  app.post("/api/admin/system-health/recalculate", requirePermission("VIEW_ANALYTICS"), adminActionRateLimiter, async (req, res) => {
     try {
-      const { computeAndSaveHealthSnapshot } = await import("./modules/health-engine");
-      await computeAndSaveHealthSnapshot();
+      const { computeAndSaveHealthSnapshot, isSnapshotStale } = await import("./modules/health-engine");
+      // Audit finding: computeAndSaveHealthSnapshot() used to swallow every
+      // error internally and this route always responded 200 with whatever
+      // the latest (possibly old, pre-failure) snapshot was — the admin saw
+      // a "Health Recalculated" success toast even when nothing was
+      // recalculated. It now reports success/failure explicitly.
+      const saved = await computeAndSaveHealthSnapshot();
+      if (!saved) {
+        return res.status(500).json({
+          message: "Failed to recalculate health snapshot — see server logs for details",
+          error: "HEALTH_RECALC_FAILED",
+        });
+      }
       const snap = await storage.getLatestHealthSnapshot();
-      const ageMinutes = snap?.recordedAt ? (Date.now() - new Date(snap.recordedAt).getTime()) / 60000 : 0;
       // Audit log — manual health recalculations must be traceable (enterprise §8)
       await storage.createAuditLog({
         adminId: req.userProfile?.id,
@@ -2922,7 +2939,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         targetId: "health_engine",
         details: { triggeredBy: req.userProfile?.email, overallScore: (snap as any)?.overallScore },
       });
-      res.json({ ...snap, isStale: ageMinutes > 90 });
+      res.json({ ...snap, isStale: isSnapshotStale(snap?.recordedAt) });
     } catch (error) {
       logger.error({ err: error }, "Recalculate health error:");
       res.status(500).json({ message: "Failed to recalculate health" });

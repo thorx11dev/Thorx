@@ -588,9 +588,25 @@ export async function computeHealthScore(): Promise<HealthResult> {
   };
 }
 
+// ── Staleness ─────────────────────────────────────────────────────────────────
+// Snapshots are recorded hourly by the cron job; a single shared threshold
+// keeps the GET and recalculate routes from silently drifting apart.
+export const STALE_THRESHOLD_MINUTES = 90;
+
+export function isSnapshotStale(recordedAt: Date | string | null | undefined): boolean {
+  if (!recordedAt) return true;
+  const ageMinutes = (Date.now() - new Date(recordedAt).getTime()) / 60000;
+  return ageMinutes > STALE_THRESHOLD_MINUTES;
+}
+
 // ── Snapshot Persistence ───────────────────────────────────────────────────────
 
-export async function computeAndSaveHealthSnapshot(): Promise<void> {
+// Returns true if a new snapshot was computed and saved, false if the
+// computation/save failed (already logged). Callers that report success to a
+// user (e.g. the manual "Recalculate" admin action) must check this instead
+// of assuming success just because no exception escaped — silently reporting
+// success on a failed recalculation would show a stale snapshot as fresh.
+export async function computeAndSaveHealthSnapshot(): Promise<boolean> {
   try {
     const result = await computeHealthScore();
 
@@ -632,7 +648,9 @@ export async function computeAndSaveHealthSnapshot(): Promise<void> {
     });
 
     logger.info({ overallScore: result.overallScore, topReason: result.topReason.slice(0, 80) }, "[HealthEngine] Snapshot saved");
+    return true;
   } catch (err) {
     logger.error({ err }, "[HealthEngine] Failed to compute/save snapshot");
+    return false;
   }
 }
