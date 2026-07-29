@@ -190,6 +190,16 @@ export interface LedgerValidationResult {
   pointsMismatch?: number;
   pkrMismatch?: number;
   severity?: string;
+  // Ledger-audit addition (2026-07-29): referral cash-commission wallet
+  // (users.balanceCashPkr) was previously completely outside ledger
+  // validation — an admin could not detect drift/corruption in referral
+  // commissions the way they could for the main earnings balance. Computed
+  // as SUM(referral_earn_commissions.commissionPkr) +
+  // SUM(referral_commissions.commissionAmountPkr) − SUM(amount) of that
+  // user's non-rejected referral:* withdrawals.
+  computedCashBalance: string;
+  storedCashBalance: string;
+  cashDiscrepancy: string;
 }
 
 interface LedgerUserFields {
@@ -199,6 +209,7 @@ interface LedgerUserFields {
   totalEarnings: string | null;
   totalWithdrawn: string | null;
   txPointsBalance: number | null;
+  balanceCashPkr?: string | null;
 }
 
 const LEDGER_PKR_TOLERANCE = new Decimal("0.01");
@@ -211,6 +222,10 @@ function buildLedgerValidationResult(
   unwithdrawnPoints: string | number,
   transactionCount: number,
   totalFees: string | number,
+  // Ledger-audit addition (2026-07-29): referral cash-commission aggregates —
+  // see the computedCashBalance doc comment on LedgerValidationResult.
+  referralCommissionsEarned: string | number = 0,
+  referralWithdrawnCash: string | number = 0,
 ): LedgerValidationResult {
   // R-Audit (2026-07-29, CRITICAL): processWithdrawal debits availableBalance by
   // the NET payout (post-fee) but marks the FULL gross ledger value as withdrawn
@@ -265,6 +280,22 @@ function buildLedgerValidationResult(
     warnings.push(`User holds a positive balance with no ledger transactions on record (likely a manual balance adjustment).`);
   }
 
+  // Referral cash wallet check (2026-07-29 audit addition) — balanceCashPkr was
+  // previously never cross-checked against anything, so drift or corruption in
+  // an admin's or user's referral commissions was invisible. Rejected referral
+  // withdrawals are excluded from referralWithdrawnCash by the caller's query
+  // (only non-rejected withdrawals actually remove cash from the wallet).
+  const computedCashBalanceD = new Decimal(referralCommissionsEarned || 0).minus(new Decimal(referralWithdrawnCash || 0));
+  const storedCashBalanceD = new Decimal(user.balanceCashPkr ?? "0");
+  const cashDiscrepancyD = storedCashBalanceD.minus(computedCashBalanceD.toDecimalPlaces(2, Decimal.ROUND_HALF_UP));
+  if (cashDiscrepancyD.abs().gt(LEDGER_PKR_TOLERANCE)) {
+    errors.push(
+      `Referral cash balance (Rs.${storedCashBalanceD.toFixed(2)}) does not match lifetime commissions minus withdrawals (Rs.${computedCashBalanceD.toFixed(2)}).`
+    );
+  } else if (cashDiscrepancyD.abs().gt(0)) {
+    warnings.push(`Rounding drift of Rs.${cashDiscrepancyD.abs().toFixed(4)} in the referral cash wallet.`);
+  }
+
   return {
     userId: user.id,
     email: user.email,
@@ -282,6 +313,9 @@ function buildLedgerValidationResult(
     pointsMismatch,
     pkrMismatch,
     severity: errors.length > 0 ? "CRITICAL" : warnings.length > 0 ? "WARNING" : undefined,
+    computedCashBalance: computedCashBalanceD.toFixed(2),
+    storedCashBalance: storedCashBalanceD.toFixed(2),
+    cashDiscrepancy: cashDiscrepancyD.toFixed(4),
   };
 }
 
@@ -2266,18 +2300,28 @@ export class DatabaseStorage implements IStorage {
       .limit(5000); // C1-05: safety cap — no realistic user accumulates >5 000 un-withdrawn rows
 
     /** Resolve a row's true PKR value with a three-tier fallback for legacy
-     *  records where realPkrValue was not captured at earn time. */
+     *  records where realPkrValue was not captured at earn time.
+     *
+     *  Ledger-audit fix (2026-07-29, CRITICAL): the fallback used to trigger
+     *  for ANY row with realPkrValue <= 0, but Engine_C rows are 0 by design
+     *  (their PKR share is locked in the guild's weekly pool, not paid to the
+     *  user immediately — see recordEarnEvent), Indirect rows never pay PKR
+     *  at all, and Manual admin/reconciliation rows (engineType 'Manual')
+     *  can be legitimately zero or negative. Falling back to a gross-based
+     *  estimate for these rows previously leaked guild-pool money (or
+     *  mis-estimated correction rows) into individual withdrawals. Only
+     *  Engine_A/Engine_B rows — which should always carry a real positive
+     *  share — are eligible for the legacy fallback. */
     const resolveRowPkr = (row: typeof rows[number]): Decimal => {
       const realD = new Decimal(row.realPkrValue ?? "0");
+      if (row.engineType !== "Engine_A" && row.engineType !== "Engine_B") return realD;
       if (realD.gt(0)) return realD;
 
       // Fallback 1 — use stored grossPkr × engine-appropriate user cut.
       const grossD = new Decimal(row.grossPkr ?? "0");
       if (grossD.gt(0)) {
-        // Engine C user cut is 45 %; A and B are both 60 %. Indirect = 0.
-        const userCutPct = row.engineType === "Engine_C" ? new Decimal("0.45")
-                         : row.engineType === "Indirect"  ? new Decimal("0")
-                         : new Decimal("0.60");
+        // Engine A and B are both 60% user cut.
+        const userCutPct = new Decimal("0.60");
         return grossD.times(userCutPct);
       }
 
@@ -2715,6 +2759,19 @@ export class DatabaseStorage implements IStorage {
         .where(eq(withdrawals.id, withdrawalId))
         .returning();
 
+      // Ledger-audit fix (2026-07-29, CRITICAL): createReferralCashWithdrawal
+      // debits balanceCashPkr immediately when the request is created (unlike
+      // normal earnings withdrawals, whose balance is only touched later in
+      // processWithdrawal) — see spec E.9. Rejecting a referral:* withdrawal
+      // previously never refunded that pre-deducted amount, so every rejected
+      // referral cash-out permanently destroyed real user money with no
+      // corresponding ledger entry or recovery path.
+      if (updatedWithdrawal.method?.startsWith("referral:")) {
+        await tx.update(users)
+          .set({ balanceCashPkr: sql`${users.balanceCashPkr} + ${updatedWithdrawal.amount}` })
+          .where(eq(users.id, updatedWithdrawal.userId));
+      }
+
       // Audit log written inside the transaction — atomically consistent with the
       // status update. The route handler writes a second log for belt-and-suspenders
       // visibility, but this one is the authoritative record even if the route fails.
@@ -2723,7 +2780,13 @@ export class DatabaseStorage implements IStorage {
         action: "WITHDRAWAL_REJECTED",
         targetType: "withdrawal",
         targetId: withdrawalId,
-        details: { status: "rejected", amount: updatedWithdrawal.amount, beneficiary: updatedWithdrawal.userId, rejectionReason: reason },
+        details: {
+          status: "rejected",
+          amount: updatedWithdrawal.amount,
+          beneficiary: updatedWithdrawal.userId,
+          rejectionReason: reason,
+          referralCashRefunded: updatedWithdrawal.method?.startsWith("referral:") ? updatedWithdrawal.amount : undefined,
+        },
       });
 
       return updatedWithdrawal;
@@ -4065,18 +4128,34 @@ export class DatabaseStorage implements IStorage {
         });
       }
 
-      // If txPointsDelta is provided, insert a user_transactions row AND update the
-      // txPointsBalance counter so the visible balance stays in sync with the ledger.
-      // Previously only the ledger row was inserted without updating txPointsBalance,
-      // causing adminValidateLedger to report inconsistency after any admin TX-Point
-      // adjustment (audit finding 2026-07-24).
-      if (txPointsDelta !== undefined && txPointsDelta !== 0) {
+      // Ledger-audit fix (2026-07-29, CRITICAL): always insert a signed
+      // user_transactions row for ANY non-zero PKR and/or points delta —
+      // not only when txPointsDelta was provided. Two bugs previously lived
+      // here:
+      //  1. Sign bug — realPkrValue/pointsCredited were unconditionally
+      //     `.abs()`'d, so a 'subtract' adjustment (the common case when an
+      //     admin reconciles a "stored balance too high" mismatch) inserted
+      //     a POSITIVE ledger row. That inflated the computed (SUM-based)
+      //     balance in the wrong direction, so "reconciling" an account
+      //     actually flipped the discrepancy to the opposite sign instead
+      //     of clearing it.
+      //  2. Missing row — a pure PKR-only adjustment (no txPointsDelta) did
+      //     not write any ledger row at all, so the SUM-based ledger
+      //     validator never reflected the admin's change and would flag the
+      //     account as a fresh "critical mismatch" on the very next scan,
+      //     even though the balance itself was correct.
+      // pointsCredited/realPkrValue now carry the true signed delta so the
+      // ledger SUM this row contributes exactly matches the balance change
+      // applied above, keeping computed vs. stored balance in sync.
+      const pkrDeltaD = type === 'add' ? new Decimal(amount) : new Decimal(amount).neg();
+      const hasPointsDelta = txPointsDelta !== undefined && txPointsDelta !== 0;
+      if (!pkrDeltaD.isZero() || hasPointsDelta) {
         await tx.insert(userTransactions).values({
           userId,
           engineType: 'Manual' as any,
-          pointsCredited: Math.abs(txPointsDelta),
-          realPkrValue: new Decimal(amount).abs().toFixed(4),
-          grossPkr: new Decimal(amount).abs().toFixed(4),
+          pointsCredited: hasPointsDelta ? txPointsDelta! : 0,
+          realPkrValue: pkrDeltaD.toFixed(4),
+          grossPkr: pkrDeltaD.abs().toFixed(4),
           thorxProfitPkr: '0.0000',
           guildPoolPkr: '0.0000',
           conversionRate: 1000,
@@ -4086,9 +4165,11 @@ export class DatabaseStorage implements IStorage {
           withdrawn: false,
         });
         // Keep txPointsBalance in sync — use SQL arithmetic to avoid race conditions.
-        await tx.update(users)
-          .set({ txPointsBalance: sql`${users.txPointsBalance} + ${txPointsDelta}` })
-          .where(eq(users.id, userId));
+        if (hasPointsDelta) {
+          await tx.update(users)
+            .set({ txPointsBalance: sql`${users.txPointsBalance} + ${txPointsDelta}` })
+            .where(eq(users.id, userId));
+        }
       }
 
       await tx.insert(auditLogs).values({
@@ -5736,7 +5817,7 @@ export class DatabaseStorage implements IStorage {
       : await this.getUserById(trimmed);
     if (!user) throw new Error("User not found");
 
-    const [ledgerAggRows, txStatsRows, feeStatsRows] = await Promise.all([
+    const [ledgerAggRows, txStatsRows, feeStatsRows, referralEarnRows, referralCommissionRows, referralWithdrawnRows] = await Promise.all([
       db.select({
           pkrTotal: sql<string>`COALESCE(SUM(${userTransactions.realPkrValue}), 0)`,
           pointsTotal: sql<string>`COALESCE(SUM(${userTransactions.pointsCredited}), 0)`,
@@ -5749,6 +5830,24 @@ export class DatabaseStorage implements IStorage {
       db.select({ total: sql<string>`COALESCE(SUM(${withdrawals.fee}), 0)` })
         .from(withdrawals)
         .where(and(eq(withdrawals.userId, user.id), eq(withdrawals.status, "completed"))),
+      // Referral cash wallet aggregates (2026-07-29 audit addition).
+      db.select({ total: sql<string>`COALESCE(SUM(${referralEarnCommissions.commissionPkr}), 0)` })
+        .from(referralEarnCommissions)
+        .where(eq(referralEarnCommissions.referrerId, user.id)),
+      db.select({ total: sql<string>`COALESCE(SUM(${referralCommissions.commissionAmountPkr}), 0)` })
+        .from(referralCommissions)
+        .where(eq(referralCommissions.referrerId, user.id)),
+      // Money leaves balanceCashPkr the instant a referral:* withdrawal is
+      // created (see createReferralCashWithdrawal) and is refunded on
+      // rejection — so every non-rejected referral withdrawal (pending,
+      // approved, processing, completed) counts as "withdrawn cash".
+      db.select({ total: sql<string>`COALESCE(SUM(${withdrawals.amount}), 0)` })
+        .from(withdrawals)
+        .where(and(
+          eq(withdrawals.userId, user.id),
+          sql`${withdrawals.method} LIKE 'referral:%'`,
+          sql`${withdrawals.status} != 'rejected'`,
+        )),
     ]);
 
     return buildLedgerValidationResult(
@@ -5757,6 +5856,8 @@ export class DatabaseStorage implements IStorage {
       ledgerAggRows[0]?.pointsTotal ?? "0",
       Number(txStatsRows[0]?.count ?? 0),
       feeStatsRows[0]?.total ?? "0",
+      new Decimal(referralEarnRows[0]?.total ?? "0").plus(referralCommissionRows[0]?.total ?? "0").toFixed(4),
+      referralWithdrawnRows[0]?.total ?? "0",
     );
   }
 
@@ -5777,6 +5878,7 @@ export class DatabaseStorage implements IStorage {
           totalEarnings: users.totalEarnings,
           totalWithdrawn: users.totalWithdrawn,
           txPointsBalance: users.txPointsBalance,
+          balanceCashPkr: users.balanceCashPkr,
         })
         .from(users)
         .where(scanFilter)
@@ -5797,7 +5899,7 @@ export class DatabaseStorage implements IStorage {
 
     const userIds = rows.map(r => r.id);
 
-    const [ledgerRows, txCountRows, feeRows] = await Promise.all([
+    const [ledgerRows, txCountRows, feeRows, referralEarnRows, referralCommissionRows, referralWithdrawnRows] = await Promise.all([
       db.select({
           userId: userTransactions.userId,
           pkrTotal: sql<string>`COALESCE(SUM(${userTransactions.realPkrValue}), 0)`,
@@ -5814,23 +5916,49 @@ export class DatabaseStorage implements IStorage {
         .from(withdrawals)
         .where(and(inArray(withdrawals.userId, userIds), eq(withdrawals.status, "completed")))
         .groupBy(withdrawals.userId),
+      // Referral cash wallet aggregates (2026-07-29 audit addition) — see
+      // buildLedgerValidationResult's computedCashBalance doc comment.
+      db.select({ userId: referralEarnCommissions.referrerId, total: sql<string>`COALESCE(SUM(${referralEarnCommissions.commissionPkr}), 0)` })
+        .from(referralEarnCommissions)
+        .where(inArray(referralEarnCommissions.referrerId, userIds))
+        .groupBy(referralEarnCommissions.referrerId),
+      db.select({ userId: referralCommissions.referrerId, total: sql<string>`COALESCE(SUM(${referralCommissions.commissionAmountPkr}), 0)` })
+        .from(referralCommissions)
+        .where(inArray(referralCommissions.referrerId, userIds))
+        .groupBy(referralCommissions.referrerId),
+      db.select({ userId: withdrawals.userId, total: sql<string>`COALESCE(SUM(${withdrawals.amount}), 0)` })
+        .from(withdrawals)
+        .where(and(
+          inArray(withdrawals.userId, userIds),
+          sql`${withdrawals.method} LIKE 'referral:%'`,
+          sql`${withdrawals.status} != 'rejected'`,
+        ))
+        .groupBy(withdrawals.userId),
     ]);
 
     const ledgerByUser = new Map(ledgerRows.map(r => [r.userId, r]));
     const txCountByUser = new Map(txCountRows.map(r => [r.userId, Number(r.count) || 0]));
     const feeByUser = new Map(feeRows.map(r => [r.userId, r.total]));
+    const referralEarnByUser = new Map(referralEarnRows.map(r => [r.userId, r.total]));
+    const referralCommissionByUser = new Map(referralCommissionRows.map(r => [r.userId, r.total]));
+    const referralWithdrawnByUser = new Map(referralWithdrawnRows.map(r => [r.userId, r.total]));
 
     const critical: LedgerValidationResult[] = [];
     const flaggedWarnings: LedgerValidationResult[] = [];
 
     for (const row of rows) {
       const ledger = ledgerByUser.get(row.id);
+      const referralEarned = new Decimal(referralEarnByUser.get(row.id) ?? "0")
+        .plus(referralCommissionByUser.get(row.id) ?? "0")
+        .toFixed(4);
       const result = buildLedgerValidationResult(
         row,
         ledger?.pkrTotal ?? "0",
         ledger?.pointsTotal ?? "0",
         txCountByUser.get(row.id) ?? 0,
         feeByUser.get(row.id) ?? "0",
+        referralEarned,
+        referralWithdrawnByUser.get(row.id) ?? "0",
       );
       if (result.errors.length > 0) critical.push(result);
       else if (result.warnings.length > 0) flaggedWarnings.push(result);

@@ -38,6 +38,11 @@ interface ValidationResult {
   transactionCount: number;
   errors: string[];
   warnings: string[];
+  // Referral cash wallet check (2026-07-29 audit addition) — see the
+  // matching doc comment on LedgerValidationResult in server/storage.ts.
+  computedCashBalance?: string;
+  storedCashBalance?: string;
+  cashDiscrepancy?: string;
 }
 
 interface ScanResult {
