@@ -5824,6 +5824,15 @@ export class DatabaseStorage implements IStorage {
       else if (result.warnings.length > 0) flaggedWarnings.push(result);
     }
 
+    // Surface the worst offenders first — admins triaging a long flagged list
+    // need the largest Rs. mismatches at the top, not buried on a later
+    // "Load next batch" page just because that account was created earlier
+    // (audit 2026-07-29: was previously left in createdAt/id scan order).
+    const byDiscrepancyDesc = (a: LedgerValidationResult, b: LedgerValidationResult) =>
+      Math.abs(Number(b.discrepancy) || 0) - Math.abs(Number(a.discrepancy) || 0);
+    critical.sort(byDiscrepancyDesc);
+    flaggedWarnings.sort(byDiscrepancyDesc);
+
     return {
       scanned: rows.length,
       totalEligible,

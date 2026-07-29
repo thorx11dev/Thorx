@@ -244,5 +244,8 @@ app.use((req, res, next) => {
     hilltopAdsScheduler.start();
     // Daily economy multiplier snapshot — populates economy_state for recordEarnEvent()
     startEconomySnapshotJob();
+    // Daily automated ledger integrity scan — catches balance/ledger drift without
+    // waiting on an admin to manually run Ledger Validator.
+    startLedgerIntegrityScanJob();
   });
 })();
