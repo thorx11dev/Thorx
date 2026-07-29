@@ -13,6 +13,7 @@ import { startGuildWeeklyResetJob } from "./jobs/guild-weekly-reset";
 import { startInactivityPenaltyJob } from "./jobs/inactivity-penalty";
 import { startRetentionCleanupJob } from "./jobs/retention-cleanup";
 import { startEconomySnapshotJob } from "./jobs/economy-snapshot";
+import { startLedgerIntegrityScanJob } from "./jobs/ledger-integrity-scan";
 import { hilltopAdsScheduler } from "./hilltopads-scheduler";
 import { initSentry, sentryErrorHandler, Sentry } from "./lib/sentry";
 import { pool } from "./db";
