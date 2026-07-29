@@ -219,6 +219,7 @@ export const requirePermission = (permission: string) => {
           'VIEW_PAYOUTS': ['payouts'],
           'VIEW_USERS': ['users'],
           'MANAGE_USERS': ['users'],
+          'VIEW_FINANCE': ['finance'],
           'MANAGE_SYSTEM': ['dashboard'],
           'VIEW_STATS': ['dashboard'],
           'VIEW_ANALYTICS': ['dashboard'],
@@ -2802,29 +2803,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ── Financial Reconciliation ─────────────────────────────────────────────────
 
-  app.get("/api/admin/reconciliation", requirePermission("VIEW_USERS"), async (req, res) => {
+  app.get("/api/admin/reconciliation", requirePermission("VIEW_FINANCE"), async (req, res) => {
     try {
-      const data = await storage.getReconciliationData();
+      const { offset, limit } = z.object({
+        offset: z.coerce.number().int().min(0).optional(),
+        limit: z.coerce.number().int().min(1).max(200).optional(),
+      }).parse(req.query);
+      const data = await storage.getReconciliationData({ offset, limit });
       res.json(data);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid query parameters", errors: error.errors });
+      }
       logger.error({ err: error }, "Reconciliation error:");
       res.status(500).json({ message: "Failed to fetch reconciliation data" });
     }
   });
 
-  app.post("/api/admin/earnings/:earningId/reclassify", requireTeamRole, async (req, res) => {
+  app.post("/api/admin/earnings/:earningId/reclassify", requireTeamRole, adminActionRateLimiter, async (req, res) => {
     try {
       if (req.userProfile!.role !== 'founder') {
         return res.status(403).json({ message: "Founder access required" });
       }
       const { earningId } = req.params;
-      const { type } = req.body;
-      if (!['verified_deposit', 'admin_credit'].includes(type)) {
-        return res.status(400).json({ message: "Invalid type" });
-      }
+      const { type } = z.object({
+        type: z.enum(['verified_deposit', 'admin_credit']),
+      }).parse(req.body);
       await storage.reclassifyEarning(earningId, type, req.userProfile!.id);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid type", errors: error.errors });
+      }
+      if (error?.message === "Earning not found" || error?.message?.startsWith("Cannot reclassify:")) {
+        return res.status(400).json({ message: error.message });
+      }
       logger.error({ err: error }, "Reclassify earning error:");
       res.status(500).json({ message: "Failed to reclassify earning" });
     }

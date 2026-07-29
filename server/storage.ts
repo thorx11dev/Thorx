@@ -395,20 +395,25 @@ export interface IStorage {
   getHealthHistory(hours?: number): Promise<HealthSnapshot[]>;
 
   // Financial Reconciliation
-  getReconciliationData(): Promise<{
+  getReconciliationData(params?: { limit?: number; offset?: number }): Promise<{
     totalUserBalances: string;
+    activeUserBalances: string;
+    frozenAccountLiability: string;
     realEarningsBacking: string;
     unverifiedCreditExposure: string;
     pendingWithdrawalLiability: string;
+    withdrawalLiabilityBreakdown: { pending: string; approved: string; processing: string };
     netPlatformLiquidity: string;
     adminCreditDetails: Array<{
       id: string; userId: string; userName: string; adminName: string;
       amount: string; description: string; createdAt: string;
     }>;
+    adminCreditTotalCount: number;
   }>;
 
-  // Reclassify an admin_credit earning as a verified_deposit (founder only)
-  reclassifyEarning(earningId: string, newType: string, adminId: string): Promise<void>;
+  // Reclassify an admin_credit earning as a verified_deposit, or vice-versa (founder only).
+  // Throws if the earning's current type does not match the expected source type for the toggle.
+  reclassifyEarning(earningId: string, newType: 'verified_deposit' | 'admin_credit', adminId: string): Promise<void>;
 
   // Error event logging for health engine
   logErrorEvent(route: string, status: number, message?: string): Promise<void>;
@@ -4016,33 +4021,64 @@ export class DatabaseStorage implements IStorage {
 
   // ── Financial Reconciliation ────────────────────────────────────────────────
 
-  async getReconciliationData() {
-    const [balRow] = await db.select({ total: sql<string>`COALESCE(SUM(CAST(available_balance AS DECIMAL)), 0)::text` }).from(users).where(eq(users.isActive, true));
-    const [realRow] = await db.select({ total: sql<string>`COALESCE(SUM(CAST(amount AS DECIMAL)), 0)::text` }).from(earnings).where(sql`type != 'admin_credit'`);
-    const [unverRow] = await db.select({ total: sql<string>`COALESCE(SUM(CAST(amount AS DECIMAL)), 0)::text` }).from(earnings).where(eq(earnings.type, 'admin_credit'));
-    const [pendRow] = await db.select({ total: sql<string>`COALESCE(SUM(CAST(amount AS DECIMAL)), 0)::text` }).from(withdrawals).where(eq(withdrawals.status, 'pending'));
+  async getReconciliationData(params?: { limit?: number; offset?: number }) {
+    const limit = Math.min(Math.max(params?.limit ?? 50, 1), 200);
+    const offset = Math.max(params?.offset ?? 0, 0);
+
+    // Active-only and frozen (isActive=false) balances are broken out separately so the
+    // panel can show exactly how much of the platform's liability sits in suspended /
+    // soft-deleted accounts (their availableBalance is never zeroed — see storage.deleteUser).
+    // totalUserBalances is the true sum the platform owes across every user row.
+    const [activeBalRow] = await db.select({ total: sql<string>`COALESCE(SUM(CAST(available_balance AS DECIMAL)), 0)::text` }).from(users).where(eq(users.isActive, true));
+    const [frozenBalRow] = await db.select({ total: sql<string>`COALESCE(SUM(CAST(available_balance AS DECIMAL)), 0)::text` }).from(users).where(eq(users.isActive, false));
+
+    // Only 'completed' earnings count as real/backing or exposure — matches the
+    // status filter convention used elsewhere (e.g. getExtendedMetrics growth stats).
+    const [realRow] = await db.select({ total: sql<string>`COALESCE(SUM(CAST(amount AS DECIMAL)), 0)::text` }).from(earnings).where(and(sql`type != 'admin_credit'`, eq(earnings.status, 'completed')));
+    const [unverRow] = await db.select({ total: sql<string>`COALESCE(SUM(CAST(amount AS DECIMAL)), 0)::text` }).from(earnings).where(and(eq(earnings.type, 'admin_credit'), eq(earnings.status, 'completed')));
+
+    // Withdrawal liability: 'pending', 'approved' (S-Rank fast-track), and 'processing'
+    // are all non-terminal states where the platform still owes the payout — only
+    // 'completed'/'rejected' are terminal (see processWithdrawal's own status guard).
+    // netAmount (not the gross `amount`) is what actually leaves the platform's funds,
+    // and is populated at request time in createWithdrawal, so it's safe to sum here.
+    const [liabilityByStatus] = await db.select({
+      pending: sql<string>`COALESCE(SUM(CAST(net_amount AS DECIMAL)) FILTER (WHERE status = 'pending'), 0)::text`,
+      approved: sql<string>`COALESCE(SUM(CAST(net_amount AS DECIMAL)) FILTER (WHERE status = 'approved'), 0)::text`,
+      processing: sql<string>`COALESCE(SUM(CAST(net_amount AS DECIMAL)) FILTER (WHERE status = 'processing'), 0)::text`,
+    }).from(withdrawals).where(sql`${withdrawals.status} IN ('pending', 'approved', 'processing')`);
+
+    const pendingD = new Decimal(liabilityByStatus?.pending ?? '0');
+    const approvedD = new Decimal(liabilityByStatus?.approved ?? '0');
+    const processingD = new Decimal(liabilityByStatus?.processing ?? '0');
+    const totalWithdrawalLiability = pendingD.plus(approvedD).plus(processingD);
 
     const realBacking = new Decimal(realRow?.total ?? '0');
-    const pendingLiability = new Decimal(pendRow?.total ?? '0');
-    const netLiquidity = realBacking.minus(pendingLiability);
+    const netLiquidity = realBacking.minus(totalWithdrawalLiability);
+    const activeBalances = new Decimal(activeBalRow?.total ?? '0');
+    const frozenBalances = new Decimal(frozenBalRow?.total ?? '0');
 
-    // Fetch admin credit earnings with recipient user info
-    const adminCreditRows = await db
-      .select({
-        id: earnings.id,
-        userId: earnings.userId,
-        amount: earnings.amount,
-        description: earnings.description,
-        metadata: earnings.metadata,
-        createdAt: earnings.createdAt,
-        userFirstName: users.firstName,
-        userLastName: users.lastName,
-      })
-      .from(earnings)
-      .leftJoin(users, eq(earnings.userId, users.id))
-      .where(eq(earnings.type, 'admin_credit'))
-      .orderBy(desc(earnings.createdAt))
-      .limit(100);
+    // Fetch admin credit earnings with recipient user info (paginated)
+    const [adminCreditRows, [countRow]] = await Promise.all([
+      db
+        .select({
+          id: earnings.id,
+          userId: earnings.userId,
+          amount: earnings.amount,
+          description: earnings.description,
+          metadata: earnings.metadata,
+          createdAt: earnings.createdAt,
+          userFirstName: users.firstName,
+          userLastName: users.lastName,
+        })
+        .from(earnings)
+        .leftJoin(users, eq(earnings.userId, users.id))
+        .where(eq(earnings.type, 'admin_credit'))
+        .orderBy(desc(earnings.createdAt))
+        .limit(limit)
+        .offset(offset),
+      db.select({ count: sql<number>`COUNT(*)` }).from(earnings).where(eq(earnings.type, 'admin_credit')),
+    ]);
 
     // Resolve admin names from metadata.adminId — batch fetch to avoid N+1 queries
     const adminIds = Array.from(new Set(
@@ -4060,10 +4096,17 @@ export class DatabaseStorage implements IStorage {
     }
 
     return {
-      totalUserBalances: balRow?.total ?? '0',
+      totalUserBalances: activeBalances.plus(frozenBalances).toFixed(2),
+      activeUserBalances: activeBalRow?.total ?? '0',
+      frozenAccountLiability: frozenBalRow?.total ?? '0',
       realEarningsBacking: realRow?.total ?? '0',
       unverifiedCreditExposure: unverRow?.total ?? '0',
-      pendingWithdrawalLiability: pendRow?.total ?? '0',
+      pendingWithdrawalLiability: totalWithdrawalLiability.toFixed(2),
+      withdrawalLiabilityBreakdown: {
+        pending: pendingD.toFixed(2),
+        approved: approvedD.toFixed(2),
+        processing: processingD.toFixed(2),
+      },
       netPlatformLiquidity: netLiquidity.toFixed(2),
       adminCreditDetails: adminCreditRows.map(c => {
         const grantedById = (c.metadata as any)?.adminId as string | undefined;
@@ -4078,20 +4121,34 @@ export class DatabaseStorage implements IStorage {
           createdAt: c.createdAt?.toISOString() ?? '',
         };
       }),
+      adminCreditTotalCount: Number(countRow?.count ?? 0),
     };
   }
 
-  async reclassifyEarning(earningId: string, newType: string, adminId: string): Promise<void> {
-    // C-02: Both statements must succeed atomically — if the audit log insert
-    // fails after the update, the reclassification must roll back entirely.
+  async reclassifyEarning(earningId: string, newType: 'verified_deposit' | 'admin_credit', adminId: string): Promise<void> {
+    // The only valid reclassifications are admin_credit <-> verified_deposit. Guarding on the
+    // earning's CURRENT type (fetched with a row lock) prevents this endpoint from being misused
+    // to silently retype an unrelated earning (e.g. a real task_completion payout) into
+    // admin_credit/verified_deposit, which would corrupt the reconciliation totals above.
     await db.transaction(async (tx) => {
+      const [earning] = await tx.select({ type: earnings.type }).from(earnings).where(eq(earnings.id, earningId)).for('update');
+      if (!earning) {
+        throw new Error("Earning not found");
+      }
+      const expectedCurrentType = newType === 'verified_deposit' ? 'admin_credit' : 'verified_deposit';
+      if (earning.type !== expectedCurrentType) {
+        throw new Error(`Cannot reclassify: earning is currently "${earning.type}", expected "${expectedCurrentType}"`);
+      }
+
+      // C-02: Both statements must succeed atomically — if the audit log insert
+      // fails after the update, the reclassification must roll back entirely.
       await tx.update(earnings).set({ type: newType }).where(eq(earnings.id, earningId));
       await tx.insert(auditLogs).values({
         adminId,
         action: "RECLASSIFY_EARNING",
         targetType: "earning",
         targetId: earningId,
-        details: { newType, reclassifiedBy: adminId },
+        details: { newType, previousType: earning.type, reclassifiedBy: adminId },
       });
     });
   }
