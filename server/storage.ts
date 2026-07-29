@@ -383,7 +383,7 @@ export interface IStorage {
   deleteTeamEmail(id: string): Promise<boolean>;
 
   // Team keys for managing team member access
-  createTeamKey(teamKey: InsertTeamKey): Promise<TeamKey>;
+  createTeamKey(teamKey: InsertTeamKey, tx?: any): Promise<TeamKey>;
   getTeamKeysByUser(userId: string): Promise<TeamKey[]>;
   updateTeamKey(keyId: string, updates: Partial<InsertTeamKey>): Promise<TeamKey | undefined>;
   getTeamMembers(): Promise<Array<User & { teamKey: TeamKey | null }>>;
@@ -1695,8 +1695,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Team keys for managing team member access
-  async createTeamKey(insertTeamKey: InsertTeamKey): Promise<TeamKey> {
-    const [teamKey] = await db.insert(teamKeys).values(insertTeamKey).returning();
+  async createTeamKey(insertTeamKey: InsertTeamKey, tx?: any): Promise<TeamKey> {
+    // Upsert on userId: team_keys.user_id is unique, so concurrent "add
+    // member" requests for the same user resolve to a single row instead of
+    // racing to create duplicates. Accepts an optional outer transaction so
+    // callers can keep the users.role/permissions write and this key write atomic.
+    const { userId, ...rest } = insertTeamKey;
+    const client = tx || db;
+    const [teamKey] = await client
+      .insert(teamKeys)
+      .values(insertTeamKey)
+      .onConflictDoUpdate({
+        target: teamKeys.userId,
+        set: { ...rest, updatedAt: new Date() },
+      })
+      .returning();
     return teamKey;
   }
 

@@ -317,7 +317,9 @@ export const teamKeys = pgTable("team_keys", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
-  index("team_keys_user_id_idx").on(table.userId),
+  // One team key per user — enforced at the DB level so concurrent
+  // "add member" requests can't create duplicate keys for the same user.
+  unique("team_keys_user_id_unique").on(table.userId),
   index("team_keys_access_level_idx").on(table.accessLevel),
   index("team_keys_is_active_idx").on(table.isActive),
 ]);

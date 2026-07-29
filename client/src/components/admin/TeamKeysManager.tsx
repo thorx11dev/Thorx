@@ -105,7 +105,8 @@ export function TeamKeysManager() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/team/members'] });
       toast({ title: "Member Terminated", description: "Team access has been permanently revoked." });
-    }
+    },
+    onError: (err: any) => toast({ title: "Removal Failed", description: err?.message ?? "An unexpected error occurred.", variant: "destructive" }),
   });
 
   const updatePermissionsMutation = useMutation({
@@ -244,9 +245,8 @@ export function TeamKeysManager() {
               </tr>
             </thead>
             <tbody className="divide-y-[1.5px] divide-[#111]/10">
-              {filtered.map((member) => (
-                <React.Fragment key={member.id}>
-                  <tr className="hover:bg-black/5 transition-colors group">
+              {filtered.map((member) => [
+                  <tr key={`${member.id}-row`} className="hover:bg-black/5 transition-colors group">
                     <td className="p-6">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center rounded-full group-hover:bg-primary/20 group-hover:border-primary transition-colors shadow-sm">
@@ -329,10 +329,9 @@ export function TeamKeysManager() {
                         </Button>
                       </div>
                     </td>
-                  </tr>
-                  
-                  {expandedMemberId === member.id && (
-                    <tr className="bg-black/[0.02] border-b-[1.5px] border-[#111]/10 animate-in slide-in-from-top-2 duration-200">
+                  </tr>,
+                  expandedMemberId === member.id && (
+                    <tr key={`${member.id}-expanded`} className="bg-black/[0.02] border-b-[1.5px] border-[#111]/10 animate-in slide-in-from-top-2 duration-200">
                       <td colSpan={5} className="p-8">
                         <div className="max-w-4xl mx-auto">
                           <div className="flex items-center justify-between mb-6">
@@ -347,7 +346,7 @@ export function TeamKeysManager() {
                                   size="sm"
                                   className="inline-flex items-center gap-1.5 px-4 py-1 border-2 border-[#111] bg-zinc-200 rounded-full font-black text-[9px] tracking-widest uppercase shadow-sm text-[#111] hover:bg-zinc-300 transition-all h-8"
                                   onClick={() => handleToggleAllPermissions(member, true)}
-                                  disabled={updatePermissionsMutation.isPending || member.accessLevel !== 'team'}
+                                  disabled={updatePermissionsMutation.isPending || member.accessLevel !== 'team' || currentUser?.role !== 'founder'}
                                 >
                                   SELECT ALL
                                 </Button>
@@ -356,7 +355,7 @@ export function TeamKeysManager() {
                                   size="sm"
                                   className="inline-flex items-center gap-1.5 px-4 py-1 border-2 border-[#111] bg-zinc-200 rounded-full font-black text-[9px] tracking-widest uppercase shadow-sm text-[#111] hover:bg-zinc-300 transition-all h-8"
                                   onClick={() => handleToggleAllPermissions(member, false)}
-                                  disabled={updatePermissionsMutation.isPending || member.accessLevel !== 'team'}
+                                  disabled={updatePermissionsMutation.isPending || member.accessLevel !== 'team' || currentUser?.role !== 'founder'}
                                 >
                                   REMOVE ALL
                                 </Button>
@@ -417,9 +416,8 @@ export function TeamKeysManager() {
                         </div>
                       </td>
                     </tr>
-                  )}
-                </React.Fragment>
-              ))}
+                  )
+              ])}
               {filtered.length === 0 && !isLoading && (
                 <tr>
                   <td colSpan={5} className="p-16 text-center text-zinc-400 font-bold text-[11px] uppercase tracking-widest italic">

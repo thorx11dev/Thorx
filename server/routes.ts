@@ -4614,7 +4614,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Zero-Trust Team Key Management (Admin/Founder only)
-  app.get("/api/team/members", requireTeamRole, async (req, res) => {
+  app.get("/api/team/members", requirePermission("MANAGE_TEAM"), async (req, res) => {
     try {
       const records = await storage.getTeamMembers();
       const members = records.map(record => ({
@@ -4622,7 +4622,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name: `${record.firstName} ${record.lastName}`.trim(),
         email: record.email,
         accessLevel: record.role, // 'founder', 'admin', 'team'
-        permissions: (record as any).teamKey?.permissions || [],
+        // users.permissions is the field actually enforced by requirePermission —
+        // team_keys.permissions is kept as a mirror but must never be the source of
+        // truth for what's displayed here, or the UI can show grants that don't work.
+        permissions: (record.permissions as string[] | null) || [],
         isActive: record.isActive,
         lastUsed: record.lastLoginDate?.toISOString() || null // Used for Activity Monitoring
       }));
@@ -4632,7 +4635,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/team/members", requireTeamRole, adminActionRateLimiter, async (req, res) => {
+  app.post("/api/team/members", requirePermission("MANAGE_TEAM"), adminActionRateLimiter, async (req, res) => {
     try {
       if (!req.userProfile) return res.status(401).send();
       const teamMemberSchema = z.object({
@@ -4665,27 +4668,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Only founders can assign admin or founder roles." });
       }
 
-      // 1. Elevate Privilege Level
-      await db.update(users).set({ role }).where(eq(users.id, targetUser.id));
+      const grantedPermissions = role === 'team' ? (permissions || []) : [];
 
-      // 2. Issue Cryptographic Entry Key
-      const existingKeys = await storage.getTeamKeysByUser(targetUser.id);
-      
-      const keyData = { 
-        accessLevel: role,
-        ...(role === 'team' && req.body.permissions ? { permissions: req.body.permissions } : {}) 
-      };
+      // Role + key + effective-permissions writes must land together — if the key
+      // write failed after the role write, the user would be promoted without a
+      // matching key record (or vice versa).
+      await db.transaction(async (tx) => {
+        // 1. Elevate Privilege Level. users.permissions is the column requirePermission()
+        // actually reads, so it must be updated in the same step as the role.
+        await tx.update(users).set({ role, permissions: grantedPermissions }).where(eq(users.id, targetUser.id));
 
-      if (existingKeys.length === 0) {
+        // 2. Issue Cryptographic Entry Key (mirrors the effective permissions for display).
         await storage.createTeamKey({
           userId: targetUser.id,
           keyName: `AUTH-TOKEN-${Date.now()}`,
-          ...keyData
-        });
-      } else {
-        await storage.updateTeamKey(existingKeys[0].id, keyData);
-      }
+          accessLevel: role,
+          permissions: grantedPermissions,
+        }, tx);
+      });
 
+      await storage.createAuditLog({
+        adminId: req.userProfile.id,
+        action: "TEAM_MEMBER_ADDED",
+        targetType: "system",
+        targetId: targetUser.id,
+        details: { email: targetUser.email, role, permissions: grantedPermissions },
+        ipAddress: req.ip,
+      });
+
+      broadcastUserUpdated(targetUser.id, "team_privileges_updated");
+      broadcastTeamRefresh("team_member_added");
       res.json({ success: true, message: "Cryptographic Key successfully minted." });
     } catch (error) {
        logger.error({ err: error }, "Team key creation error:");
@@ -4693,7 +4705,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/team/members/:id", requireTeamRole, adminActionRateLimiter, async (req, res) => {
+  app.patch("/api/team/members/:id", requirePermission("MANAGE_TEAM"), adminActionRateLimiter, async (req, res) => {
     try {
       if (!req.userProfile) return res.status(401).send();
       const patchMemberSchema = z.object({
@@ -4712,6 +4724,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Insufficient authorization to modify team members." });
       }
 
+      // Nobody can deactivate or demote their own account through this panel —
+      // prevents an admin from accidentally locking themselves out.
+      if (id === req.userProfile.id) {
+        return res.status(400).json({ message: "You cannot modify your own access level or status." });
+      }
+
       // Only founders can elevate a role to admin or founder level
       if (accessLevel && ['admin', 'founder'].includes(accessLevel) && actorRole !== 'founder') {
         return res.status(403).json({ message: "Only founders can assign admin or founder roles." });
@@ -4726,22 +4744,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Founding nodes cannot be altered." });
       }
 
-      const updates: any = {};
-      if (accessLevel) updates.role = accessLevel;
-      if (isActive !== undefined) updates.isActive = isActive;
-      
-      await db.update(users).set(updates).where(eq(users.id, id));
+      const oldRole = targetUser.role;
+      const oldIsActive = targetUser.isActive;
 
-      // Synchronize associated key
-      if (accessLevel || isActive !== undefined) {
-        const existingKeys = await storage.getTeamKeysByUser(id);
-        if (existingKeys.length > 0) {
-          const keyUpdates: any = {};
-          if (accessLevel) keyUpdates.accessLevel = accessLevel;
-          if (isActive !== undefined) keyUpdates.isActive = isActive;
-          await storage.updateTeamKey(existingKeys[0].id, keyUpdates);
+      await db.transaction(async (tx) => {
+        const updates: any = {};
+        if (accessLevel) updates.role = accessLevel;
+        if (isActive !== undefined) updates.isActive = isActive;
+
+        await tx.update(users).set(updates).where(eq(users.id, id));
+
+        // Synchronize associated key
+        if (accessLevel || isActive !== undefined) {
+          const existingKeys = await storage.getTeamKeysByUser(id);
+          if (existingKeys.length > 0) {
+            const keyUpdates: any = {};
+            if (accessLevel) keyUpdates.accessLevel = accessLevel;
+            if (isActive !== undefined) keyUpdates.isActive = isActive;
+            await tx.update(teamKeys).set({ ...keyUpdates, updatedAt: new Date() }).where(eq(teamKeys.id, existingKeys[0].id));
+          }
         }
-      }
+      });
+
+      await storage.createAuditLog({
+        adminId: req.userProfile.id,
+        action: "TEAM_MEMBER_UPDATED",
+        targetType: "system",
+        targetId: id,
+        details: { email: targetUser.email, oldRole, newRole: accessLevel ?? oldRole, oldIsActive, newIsActive: isActive ?? oldIsActive },
+        ipAddress: req.ip,
+      });
 
       broadcastUserUpdated(id, "team_privileges_updated");
       broadcastTeamRefresh("team_member_updated");
@@ -4856,7 +4888,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "No active key found for this node. Issue a key first." });
       }
 
-      await storage.updateTeamKey(existingKeys[0].id, { permissions });
+      // Update both stores together: team_keys.permissions drives the UI, but
+      // users.permissions is what requirePermission() actually enforces. Writing
+      // only one meant granting access here had zero effect on real authorization.
+      await db.transaction(async (tx) => {
+        await tx.update(teamKeys).set({ permissions, updatedAt: new Date() }).where(eq(teamKeys.id, existingKeys[0].id));
+        await tx.update(users).set({ permissions }).where(eq(users.id, id));
+      });
 
       await storage.createAuditLog({
         adminId: req.userProfile.id,
@@ -4876,7 +4914,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/team/members/:id", requireTeamRole, async (req, res) => {
+  app.delete("/api/team/members/:id", requirePermission("MANAGE_TEAM"), async (req, res) => {
     try {
       if (!req.userProfile) return res.status(401).send();
       const { id } = req.params;
@@ -4887,6 +4925,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Insufficient authorization to remove team members." });
       }
 
+      // Nobody can revoke their own access — prevents accidental self-lockout
+      // (e.g. the last founder deleting themselves).
+      if (id === req.userProfile.id) {
+        return res.status(400).json({ message: "You cannot revoke your own access." });
+      }
+
       const targetUser = await storage.getUserById(id);
 
       if (!targetUser) return res.status(404).json({ message: "Node missing." });
@@ -4894,9 +4938,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
          return res.status(403).json({ message: "Founders are immutable." });
       }
 
-      // Demote node and wipe session keys completely from the DB
-      await db.update(users).set({ role: 'user' }).where(eq(users.id, id));
-      await db.delete(teamKeys).where(eq(teamKeys.userId, id));
+      // Demote node, clear granted permissions, and wipe session keys completely from the DB
+      await db.transaction(async (tx) => {
+        await tx.update(users).set({ role: 'user', permissions: [] }).where(eq(users.id, id));
+        await tx.delete(teamKeys).where(eq(teamKeys.userId, id));
+      });
 
       await storage.createAuditLog({
         adminId: req.userProfile.id,
