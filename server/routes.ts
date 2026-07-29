@@ -1749,11 +1749,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ── Admin: Ledger validation (scan before :userId to avoid Express conflict) ──
   app.get("/api/admin/ledger/validate/scan", requireTeamRole, async (req, res) => {
     try {
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      // Default covers a full platform scan (UI copy promises "all active user
+      // balances"); query params still allow pagination for very large tables.
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 1000;
       const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
       const result = await storage.adminValidateLedgerScan(limit, offset);
       res.json(result);
     } catch (error) {
+      logger.error({ err: error }, "Ledger scan error:");
       res.status(500).json({ message: "Ledger scan failed" });
     }
   });
@@ -1764,6 +1767,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(result);
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Ledger validation failed";
+      logger.error({ err: error }, "Ledger validation error:");
       res.status(400).json({ message: msg });
     }
   });

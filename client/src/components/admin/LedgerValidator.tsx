@@ -106,7 +106,7 @@ export function LedgerValidator() {
 
   const scanMutation = useMutation({
     mutationFn: async () => {
-      const r = await apiRequest("GET", "/api/admin/ledger/scan");
+      const r = await apiRequest("GET", "/api/admin/ledger/validate/scan");
       return r.json();
     },
     onSuccess: (data) => { setScanResult(data); setScanning(false); },

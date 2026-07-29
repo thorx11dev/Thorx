@@ -166,6 +166,107 @@ function getUtcWeekBounds(reference: Date): { weekStart: Date; weekEnd: Date } {
   return { weekStart, weekEnd };
 }
 
+// ── Ledger Validator (admin tool) shared result shape ───────────────────────
+// Consumed by two different admin surfaces:
+//   • LedgerValidator.tsx  — full per-user + platform-wide integrity report
+//   • PayoutControl.tsx    — pre-approval "RED ALERT" ledger-mismatch banner
+// Both read the exact same endpoint response, so every field either surface
+// needs must live here.
+export interface LedgerValidationResult {
+  userId: string;
+  email?: string;
+  isBalanced: boolean;
+  computedBalance: string;
+  storedBalance: string;
+  discrepancy: string;
+  totalEarned: string;
+  totalWithdrawn: string;
+  totalFees: string;
+  transactionCount: number;
+  errors: string[];
+  warnings: string[];
+  // PayoutControl-only fields (pre-approval mismatch banner):
+  isMismatch: boolean;
+  pointsMismatch?: number;
+  pkrMismatch?: number;
+  severity?: string;
+}
+
+interface LedgerUserFields {
+  id: string;
+  email: string;
+  availableBalance: string | null;
+  totalEarnings: string | null;
+  totalWithdrawn: string | null;
+  txPointsBalance: number | null;
+}
+
+const LEDGER_PKR_TOLERANCE = new Decimal("0.01");
+
+// Pure function: turns raw aggregates into the validation verdict. Shared by
+// the single-user lookup and the bulk scan so both apply identical rules.
+function buildLedgerValidationResult(
+  user: LedgerUserFields,
+  unwithdrawnPkr: string | number,
+  unwithdrawnPoints: string | number,
+  transactionCount: number,
+  totalFees: string | number,
+): LedgerValidationResult {
+  const computedBalanceD = new Decimal(unwithdrawnPkr || 0);
+  const storedBalanceD = new Decimal(user.availableBalance || "0");
+  const discrepancyD = storedBalanceD.minus(computedBalanceD);
+  const ledgerUnwithdrawnPoints = Math.round(Number(unwithdrawnPoints) || 0);
+  const txPointsBalance = user.txPointsBalance ?? 0;
+
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  let pointsMismatch: number | undefined;
+  let pkrMismatch: number | undefined;
+
+  if (discrepancyD.abs().gt(LEDGER_PKR_TOLERANCE)) {
+    errors.push(
+      `Available balance (Rs.${storedBalanceD.toFixed(2)}) does not match the unwithdrawn ledger total (Rs.${computedBalanceD.toFixed(2)}).`
+    );
+    pkrMismatch = Number(discrepancyD.toFixed(4));
+  } else if (discrepancyD.abs().gt(0)) {
+    warnings.push(`Rounding drift of Rs.${discrepancyD.abs().toFixed(4)} between balance and ledger.`);
+  }
+
+  if (txPointsBalance !== ledgerUnwithdrawnPoints) {
+    errors.push(
+      `TX-Points counter (${txPointsBalance}) does not match the unwithdrawn points ledger (${ledgerUnwithdrawnPoints}).`
+    );
+    pointsMismatch = txPointsBalance - ledgerUnwithdrawnPoints;
+  }
+
+  if (storedBalanceD.lt(0)) {
+    errors.push(`Available balance is negative (Rs.${storedBalanceD.toFixed(2)}).`);
+  }
+
+  if (transactionCount === 0 && storedBalanceD.gt(0)) {
+    warnings.push(`User holds a positive balance with no ledger transactions on record (likely a manual balance adjustment).`);
+  }
+
+  return {
+    userId: user.id,
+    email: user.email,
+    isBalanced: errors.length === 0,
+    computedBalance: computedBalanceD.toFixed(2),
+    storedBalance: storedBalanceD.toFixed(2),
+    discrepancy: discrepancyD.toFixed(4),
+    totalEarned: new Decimal(user.totalEarnings || "0").toFixed(2),
+    totalWithdrawn: new Decimal(user.totalWithdrawn || "0").toFixed(2),
+    totalFees: new Decimal(totalFees || 0).toFixed(2),
+    transactionCount,
+    errors,
+    warnings,
+    isMismatch: errors.length > 0,
+    pointsMismatch,
+    pkrMismatch,
+    severity: errors.length > 0 ? "CRITICAL" : warnings.length > 0 ? "WARNING" : undefined,
+  };
+}
+
 export interface EarnEventBreakdown {
   basePoints: number;
   guildBonusPoints: number;
@@ -494,8 +595,10 @@ export interface IStorage {
   createReferralCashWithdrawal(userId: string, amount: number, method: string, accountName: string, accountNumber: string, accountDetails: any): Promise<any>;
 
   // ── THORX v3 (spec E.9): Admin ops ────────────────────────────────────────
-  adminValidateLedger(userId: string): Promise<any>;
-  adminValidateLedgerScan(limit?: number, offset?: number): Promise<any>;
+  adminValidateLedger(userIdOrEmail: string): Promise<LedgerValidationResult>;
+  adminValidateLedgerScan(limit?: number, offset?: number): Promise<{
+    scanned: number; flagged: number; critical: LedgerValidationResult[]; warnings: LedgerValidationResult[]; checkedAt: string;
+  }>;
   adminAdjustUserPS(userId: string, delta: number, reason: string, adminId: string): Promise<User>;
   adminAdjustGuildGPS(guildId: string, delta: number, reason: string, adminId: string): Promise<any>;
   adminReassignCaptain(guildId: string, newCaptainUserId: string, adminId: string): Promise<any>;
@@ -5515,38 +5618,108 @@ export class DatabaseStorage implements IStorage {
   // ── THORX v3 (spec E.9): Admin ops — ledger validator, PS/GPS overrides, ──
   // ── captain reassignment, weekly-target overrides, inactive-captain alert ──
 
-  async adminValidateLedger(userId: string): Promise<{
-    userId: string; txPointsBalance: number; ledgerUnwithdrawnPoints: number; consistent: boolean;
-  }> {
-    const user = await this.getUserById(userId);
+  async adminValidateLedger(userIdOrEmail: string): Promise<LedgerValidationResult> {
+    // The UI invites admins to paste either a raw user ID or an email — honor both.
+    const user = userIdOrEmail.includes("@")
+      ? await this.getUserByEmail(userIdOrEmail)
+      : await this.getUserById(userIdOrEmail);
     if (!user) throw new Error("User not found");
-    const [{ total }] = await db
-      .select({ total: sql<string>`COALESCE(SUM(${userTransactions.pointsCredited}), 0)` })
-      .from(userTransactions)
-      .where(and(eq(userTransactions.userId, userId), eq(userTransactions.withdrawn, false)));
-    const ledgerUnwithdrawnPoints = Number(total) || 0;
-    return {
-      userId,
-      txPointsBalance: user.txPointsBalance ?? 0,
-      ledgerUnwithdrawnPoints,
-      consistent: (user.txPointsBalance ?? 0) === ledgerUnwithdrawnPoints,
-    };
+
+    const [ledgerAggRows, txStatsRows, feeStatsRows] = await Promise.all([
+      db.select({
+          pkrTotal: sql<string>`COALESCE(SUM(${userTransactions.realPkrValue}), 0)`,
+          pointsTotal: sql<string>`COALESCE(SUM(${userTransactions.pointsCredited}), 0)`,
+        })
+        .from(userTransactions)
+        .where(and(eq(userTransactions.userId, user.id), eq(userTransactions.withdrawn, false))),
+      db.select({ count: sql<string>`COUNT(*)` })
+        .from(userTransactions)
+        .where(eq(userTransactions.userId, user.id)),
+      db.select({ total: sql<string>`COALESCE(SUM(${withdrawals.fee}), 0)` })
+        .from(withdrawals)
+        .where(and(eq(withdrawals.userId, user.id), eq(withdrawals.status, "completed"))),
+    ]);
+
+    return buildLedgerValidationResult(
+      user,
+      ledgerAggRows[0]?.pkrTotal ?? "0",
+      ledgerAggRows[0]?.pointsTotal ?? "0",
+      Number(txStatsRows[0]?.count ?? 0),
+      feeStatsRows[0]?.total ?? "0",
+    );
   }
 
-  async adminValidateLedgerScan(limit = 50, offset = 0): Promise<{ scanned: number; mismatches: any[] }> {
+  async adminValidateLedgerScan(limit = 1000, offset = 0): Promise<{
+    scanned: number; flagged: number; critical: LedgerValidationResult[]; warnings: LedgerValidationResult[]; checkedAt: string;
+  }> {
     const rows = await db
-      .select({ id: users.id })
+      .select({
+        id: users.id,
+        email: users.email,
+        availableBalance: users.availableBalance,
+        totalEarnings: users.totalEarnings,
+        totalWithdrawn: users.totalWithdrawn,
+        txPointsBalance: users.txPointsBalance,
+      })
       .from(users)
       .where(eq(users.role, "user"))
+      .orderBy(users.createdAt)
       .limit(limit)
       .offset(offset);
 
-    const mismatches: any[] = [];
-    for (const row of rows) {
-      const result = await this.adminValidateLedger(row.id);
-      if (!result.consistent) mismatches.push(result);
+    const checkedAt = new Date().toISOString();
+    if (rows.length === 0) {
+      return { scanned: 0, flagged: 0, critical: [], warnings: [], checkedAt };
     }
-    return { scanned: rows.length, mismatches };
+
+    const userIds = rows.map(r => r.id);
+
+    const [ledgerRows, txCountRows, feeRows] = await Promise.all([
+      db.select({
+          userId: userTransactions.userId,
+          pkrTotal: sql<string>`COALESCE(SUM(${userTransactions.realPkrValue}), 0)`,
+          pointsTotal: sql<string>`COALESCE(SUM(${userTransactions.pointsCredited}), 0)`,
+        })
+        .from(userTransactions)
+        .where(and(inArray(userTransactions.userId, userIds), eq(userTransactions.withdrawn, false)))
+        .groupBy(userTransactions.userId),
+      db.select({ userId: userTransactions.userId, count: sql<string>`COUNT(*)` })
+        .from(userTransactions)
+        .where(inArray(userTransactions.userId, userIds))
+        .groupBy(userTransactions.userId),
+      db.select({ userId: withdrawals.userId, total: sql<string>`COALESCE(SUM(${withdrawals.fee}), 0)` })
+        .from(withdrawals)
+        .where(and(inArray(withdrawals.userId, userIds), eq(withdrawals.status, "completed")))
+        .groupBy(withdrawals.userId),
+    ]);
+
+    const ledgerByUser = new Map(ledgerRows.map(r => [r.userId, r]));
+    const txCountByUser = new Map(txCountRows.map(r => [r.userId, Number(r.count) || 0]));
+    const feeByUser = new Map(feeRows.map(r => [r.userId, r.total]));
+
+    const critical: LedgerValidationResult[] = [];
+    const flaggedWarnings: LedgerValidationResult[] = [];
+
+    for (const row of rows) {
+      const ledger = ledgerByUser.get(row.id);
+      const result = buildLedgerValidationResult(
+        row,
+        ledger?.pkrTotal ?? "0",
+        ledger?.pointsTotal ?? "0",
+        txCountByUser.get(row.id) ?? 0,
+        feeByUser.get(row.id) ?? "0",
+      );
+      if (result.errors.length > 0) critical.push(result);
+      else if (result.warnings.length > 0) flaggedWarnings.push(result);
+    }
+
+    return {
+      scanned: rows.length,
+      flagged: critical.length + flaggedWarnings.length,
+      critical,
+      warnings: flaggedWarnings,
+      checkedAt,
+    };
   }
 
   async adminAdjustUserPS(userId: string, delta: number, reason: string, adminId: string): Promise<User> {
