@@ -532,17 +532,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { value } = z.object({
         value: z.union([z.string(), z.number(), z.boolean(), z.array(z.unknown())]),
       }).parse(req.body);
+      // storage.updateSystemConfig() already writes a SYSTEM_CONFIG_UPDATED/CREATED
+      // audit log entry with both the old and new value (System Settings audit,
+      // 2026-07-29) — a second manual createAuditLog() call here used to write a
+      // duplicate, weaker entry (new value only, wrong action name) on every save.
       const config = await storage.updateSystemConfig(req.params.key, value, getThorxPrincipalId(req) as string);
-
-      // Audit log for critical system change
-      await storage.createAuditLog({
-        adminId: getThorxPrincipalId(req) as string,
-        action: "UPDATE_SYSTEM_CONFIG",
-        targetType: "system_config",
-        targetId: req.params.key,
-        details: { value },
-        ipAddress: req.ip || "unknown"
-      });
 
       // Ranks & Engine Config audit (2026-07-29): several admin panels used to
       // save keys that no engine ever reads (e.g. PS_THRESHOLD_E, ENGINE_A_USER_SPLIT).
@@ -4936,21 +4930,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/system-config", requirePermission("MANAGE_SYSTEM"), adminActionRateLimiter, async (req, res) => {
-    try {
-      const sysConfigSchema = z.object({
-        key: z.string().min(1).max(100),
-        value: z.string().max(500),
-      });
-      const parsed = sysConfigSchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input" });
-      const { key, value } = parsed.data;
-      const config = await storage.updateSystemConfig(key, value, getThorxPrincipalId(req)!);
-      res.json(config);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update config" });
-    }
-  });
+  // System Settings audit (2026-07-29): POST /api/admin/system-config was a
+  // dead, unused-by-frontend duplicate of PATCH /api/admin/config/:key with
+  // weaker validation (value capped to a 500-char string, so it would 400/500
+  // on the JSON-array configs like AD_NETWORKS/CPA_NETWORKS). Removed to stop
+  // it from silently drifting further out of sync with the real endpoint.
 
   app.get("/api/admin/system-config/:key", requireTeamRole, async (req, res) => {
     try {

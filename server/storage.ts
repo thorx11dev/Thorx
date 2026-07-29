@@ -4851,49 +4851,37 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSystemConfig(key: string, value: any, adminId: string): Promise<SystemConfig | undefined> {
+    // System Settings audit (2026-07-29): the old update-then-insert pattern
+    // raced under concurrent writes to the same key — two simultaneous PATCHes
+    // could both miss the UPDATE (row not committed yet) and both attempt the
+    // INSERT, throwing an unhandled unique-constraint violation. A single
+    // atomic upsert removes that window entirely. This also now captures the
+    // pre-change value in the audit log (previously only the new value was
+    // recorded, making a future rollback/history feature impossible).
     return await db.transaction(async (tx) => {
-      // Upsert: Try to update first
-      const [updated] = await tx
-        .update(systemConfig)
-        .set({ 
-          value, 
-          updatedAt: new Date() 
-        })
-        .where(eq(systemConfig.key, key))
-        .returning();
+      const [existing] = await tx
+        .select()
+        .from(systemConfig)
+        .where(eq(systemConfig.key, key));
 
-      if (updated) {
-        // Log the change
-        await tx.insert(auditLogs).values({
-          adminId,
-          action: "SYSTEM_CONFIG_UPDATED",
-          targetType: "system",
-          targetId: key,
-          details: { key, value }
-        });
-        return updated;
-      }
-
-      // If no update occurred, create it
-      const [created] = await tx
+      const [result] = await tx
         .insert(systemConfig)
-        .values({
-          key,
-          value,
-          updatedAt: new Date()
+        .values({ key, value, updatedAt: new Date() })
+        .onConflictDoUpdate({
+          target: systemConfig.key,
+          set: { value, updatedAt: new Date() },
         })
         .returning();
 
-      // Log creation
       await tx.insert(auditLogs).values({
         adminId,
-        action: "SYSTEM_CONFIG_CREATED",
+        action: existing ? "SYSTEM_CONFIG_UPDATED" : "SYSTEM_CONFIG_CREATED",
         targetType: "system",
         targetId: key,
-        details: { key, value }
+        details: existing ? { key, oldValue: existing.value, newValue: value } : { key, newValue: value },
       });
 
-      return created;
+      return result;
     });
   }
 

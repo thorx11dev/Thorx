@@ -34,6 +34,7 @@ export function SystemSettingsManager() {
     RISK_VELOCITY_THRESHOLD: 5000,
     RISK_BOT_EARNINGS_PER_REF: 100,
     RISK_TASK_SPEED_SECONDS: 3,
+    RISK_CASHOUT_WINDOW_HOURS: 1,
   };
 
   
@@ -151,7 +152,7 @@ export function SystemSettingsManager() {
                     <span>Thorx Cut</span><span className="font-black text-[#111]">{cut}%</span>
                   </div>
                   <input type="range" min={min} max={max} value={cut}
-                    onChange={e => updateValue(cutKey, parseInt(e.target.value))}
+                    onChange={e => updateValue(cutKey, parseInt(e.target.value, 10))}
                     className="w-full h-2 rounded-full accent-current cursor-pointer"
                     style={{ accentColor: color }}
                   />
@@ -163,7 +164,7 @@ export function SystemSettingsManager() {
                         <span>Guild Pool (Sunday payout)</span><span className="font-black text-[#111]">{pool}%</span>
                       </div>
                       <input type="range" min={20} max={90} value={pool}
-                        onChange={e => updateValue("ENGINE_C_GUILD_POOL_PCT", parseInt(e.target.value))}
+                        onChange={e => updateValue("ENGINE_C_GUILD_POOL_PCT", parseInt(e.target.value, 10))}
                         className="w-full h-2 rounded-full cursor-pointer"
                         style={{ accentColor: color }}
                       />
@@ -173,7 +174,7 @@ export function SystemSettingsManager() {
                         <span>Bonus Pool (on target hit)</span><span className="font-black text-[#111]">{bonus}%</span>
                       </div>
                       <input type="range" min={0} max={20} value={bonus}
-                        onChange={e => updateValue("ENGINE_C_BONUS_PCT", parseInt(e.target.value))}
+                        onChange={e => updateValue("ENGINE_C_BONUS_PCT", parseInt(e.target.value, 10))}
                         className="w-full h-2 rounded-full cursor-pointer"
                         style={{ accentColor: color }}
                       />
@@ -189,13 +190,18 @@ export function SystemSettingsManager() {
                   <div className="text-[10px] font-bold text-amber-600">⚠ Cut + Pool + Bonus = {cut + pool + bonus}% (should total 100%)</div>
                 )}
                 <div className="flex gap-2">
-                  <Button size="sm" className="flex-1 h-7 text-[10px] font-black" onClick={() => {
-                    saveMutation.mutate({ key: cutKey, value: cut });
-                    if (isEngineC) {
-                      saveMutation.mutate({ key: "ENGINE_C_GUILD_POOL_PCT", value: pool });
-                      saveMutation.mutate({ key: "ENGINE_C_BONUS_PCT", value: bonus });
-                    }
-                  }}>Save</Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 h-7 text-[10px] font-black"
+                    disabled={isEngineC && cut + pool + bonus !== 100}
+                    title={isEngineC && cut + pool + bonus !== 100 ? "Cut + Pool + Bonus must total 100% before saving" : undefined}
+                    onClick={() => {
+                      saveMutation.mutate({ key: cutKey, value: cut });
+                      if (isEngineC) {
+                        saveMutation.mutate({ key: "ENGINE_C_GUILD_POOL_PCT", value: pool });
+                        saveMutation.mutate({ key: "ENGINE_C_BONUS_PCT", value: bonus });
+                      }
+                    }}>Save</Button>
                 </div>
               </div>
             );
@@ -239,7 +245,7 @@ export function SystemSettingsManager() {
                     <span className="font-black text-[#111]">±{val}%</span>
                   </div>
                   <input type="range" min={0} max={50} step={1} value={val}
-                    onChange={e => updateValue(key, parseInt(e.target.value))}
+                    onChange={e => updateValue(key, parseInt(e.target.value, 10))}
                     className="w-full h-2 rounded-full accent-black cursor-pointer"
                   />
                   <Button size="sm" className="h-6 text-[9px] font-black px-3" onClick={() => saveMutation.mutate({ key, value: val })}>Save</Button>
@@ -261,7 +267,7 @@ export function SystemSettingsManager() {
                     <span className="font-black text-[#111]">{val}%</span>
                   </div>
                   <input type="range" min={min} max={max} step={1} value={val}
-                    onChange={e => updateValue(key, parseInt(e.target.value))}
+                    onChange={e => updateValue(key, parseInt(e.target.value, 10))}
                     className="w-full h-2 rounded-full accent-black cursor-pointer"
                   />
                   <Button size="sm" className="h-6 text-[9px] font-black px-3" onClick={() => saveMutation.mutate({ key, value: val })}>Save</Button>
@@ -403,7 +409,7 @@ export function SystemSettingsManager() {
                       <span className="font-black text-[#111]">{ratio.toLocaleString()}</span>
                     </div>
                     <input type="range" min={100} max={10000} step={100} value={ratio}
-                      onChange={e => updateValue(ratioKey, parseInt(e.target.value))}
+                      onChange={e => updateValue(ratioKey, parseInt(e.target.value, 10))}
                       className="w-full h-2 rounded-full cursor-pointer" style={{ accentColor: color }}
                     />
                   </div>
@@ -413,7 +419,7 @@ export function SystemSettingsManager() {
                       <span className="font-black text-[#111]">±{variance}%</span>
                     </div>
                     <input type="range" min={0} max={50} step={1} value={variance}
-                      onChange={e => updateValue(varKey, parseInt(e.target.value))}
+                      onChange={e => updateValue(varKey, parseInt(e.target.value, 10))}
                       className="w-full h-2 rounded-full cursor-pointer" style={{ accentColor: color }}
                     />
                   </div>
@@ -448,6 +454,9 @@ export function SystemSettingsManager() {
         </div>
 
         <div className="lg:col-span-2">
+          <div className="mb-3 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[10px] font-bold text-amber-700 uppercase tracking-widest">
+            ⚠ Not yet wired — Engine B (CPA/Tasks) does not currently read this list for routing. Changes here are stored but have no live effect until a CPA routing engine is built.
+          </div>
           <WaterfallSection 
             title="CPA Network Waterfall" 
             networks={localConfigs["CPA_NETWORKS"] || []}
@@ -517,7 +526,9 @@ function RiskWeightsSection({ localConfigs, defaults, updateValue, handleSave, s
             <EconomicControl label="Earnings Velocity Threshold (PKR/24h)" value={val("RISK_VELOCITY_THRESHOLD")} onChange={(v: number) => updateValue("RISK_VELOCITY_THRESHOLD", v)} onSave={() => handleSave("RISK_VELOCITY_THRESHOLD")} isLoading={saveMutation.isPending && saveMutation.variables?.key === "RISK_VELOCITY_THRESHOLD"} />
             <EconomicControl label="Bot Network Earnings/Ref (PKR)" value={val("RISK_BOT_EARNINGS_PER_REF")} onChange={(v: number) => updateValue("RISK_BOT_EARNINGS_PER_REF", v)} onSave={() => handleSave("RISK_BOT_EARNINGS_PER_REF")} isLoading={saveMutation.isPending && saveMutation.variables?.key === "RISK_BOT_EARNINGS_PER_REF"} />
             <EconomicControl label="Implausible Task Speed (seconds)" value={val("RISK_TASK_SPEED_SECONDS")} onChange={(v: number) => updateValue("RISK_TASK_SPEED_SECONDS", v)} onSave={() => handleSave("RISK_TASK_SPEED_SECONDS")} isLoading={saveMutation.isPending && saveMutation.variables?.key === "RISK_TASK_SPEED_SECONDS"} />
+            <EconomicControl label="Cash-out Velocity Window (hours)" value={val("RISK_CASHOUT_WINDOW_HOURS")} onChange={(v: number) => updateValue("RISK_CASHOUT_WINDOW_HOURS", v)} onSave={() => handleSave("RISK_CASHOUT_WINDOW_HOURS")} isLoading={saveMutation.isPending && saveMutation.variables?.key === "RISK_CASHOUT_WINDOW_HOURS"} />
           </div>
+          <p className="text-[9px] font-bold text-zinc-400 mt-3 uppercase tracking-widest">Withdrawals placed within this many hours of earning trigger a cash-out velocity risk signal. This control was previously missing even though the Risk Engine already reads it.</p>
         </div>
 
         <div>
@@ -665,7 +676,7 @@ function AdPlayersSection() {
           <div className="col-span-3 flex gap-2 justify-end">
             <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowAddForm(false)}>Cancel</Button>
             <Button size="sm" className="h-7 text-xs bg-zinc-900 text-white hover:bg-black"
-              disabled={!newName.trim() || !newRatio || !newVariance || addMutation.isPending}
+              disabled={!newName.trim() || isNaN(parseFloat(newRatio)) || isNaN(parseFloat(newVariance)) || addMutation.isPending}
               onClick={() => addMutation.mutate({ name: newName.trim(), pkrToPointsRatio: parseFloat(newRatio), variancePct: parseFloat(newVariance) })}
             >
               {addMutation.isPending ? "Adding…" : "Save Player"}
@@ -709,7 +720,8 @@ function AdPlayersSection() {
                     <div className="flex gap-1 justify-end">
                       <Button size="sm" variant="ghost" className="h-6 text-xs px-2" onClick={() => setEditingId(null)}>Cancel</Button>
                       <Button size="sm" className="h-6 text-xs px-2 bg-zinc-900 text-white hover:bg-black"
-                        disabled={updateMutation.isPending}
+                        disabled={updateMutation.isPending || !editName.trim() || isNaN(parseFloat(editRatio)) || isNaN(parseFloat(editVariance))}
+                        title={isNaN(parseFloat(editRatio)) || isNaN(parseFloat(editVariance)) ? "Ratio and variance must be numbers" : undefined}
                         onClick={() => updateMutation.mutate({ id: p.id, name: editName.trim(), pkrToPointsRatio: parseFloat(editRatio), variancePct: parseFloat(editVariance) })}
                       >
                         {updateMutation.isPending ? "…" : "Save"}
