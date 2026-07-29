@@ -130,6 +130,7 @@ import { drawThorxCard } from "./modules/thorx-card";
 import { awardTaskPS, processStreak } from "./modules/ps-engine";
 import { checkAndUpdateRankTier } from "./modules/ps-engine";
 import { awardMemberGPS, awardMVPGPS, checkAndUpdateGuildRankTier, computeGuildRankTier, fetchGpsConfig, GUILD_RANK_TIERS, type GuildRankTier } from "./modules/gps-engine";
+import { contributeWarPoints } from "./modules/guild-wars";
 import { emitFeedEvent } from "./modules/live-feed";
 import { db } from "./db";
 import { eq, desc, asc, and, or, sql, inArray, ilike, gte, lte, lt, ne, isNotNull, isNull } from "drizzle-orm";
@@ -1185,6 +1186,11 @@ export class DatabaseStorage implements IStorage {
           .set({ weeklyPointsContributed: sql`${guildMembers.weeklyPointsContributed} + ${rankedPointsCredited}` })
           .where(and(eq(guildMembers.userId, params.userId), eq(guildMembers.guildId, params.guildId)));
         await awardMemberGPS(params.guildId, rankedPointsCredited, tx);
+        // Critical fix: this was the missing link — contributeWarPoints() was fully
+        // implemented but never called from anywhere, so active guild wars never
+        // accumulated points from real member earnings. Wired in here, alongside
+        // the GPS award, using the same outer transaction for consistency.
+        await contributeWarPoints(params.userId, params.guildId, rankedPointsCredited, tx);
       }
 
       // Step 6: PS award + streak + rank-tier check (PS is the sole rank input — Appendix A #6).

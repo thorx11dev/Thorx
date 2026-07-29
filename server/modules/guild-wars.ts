@@ -135,49 +135,61 @@ export async function initiateChallenge(params: {
     throw new Error("A guild cannot challenge itself");
   }
 
-  // Verify captain
-  const guild = await db.select().from(guilds).where(eq(guilds.id, challengerGuildId)).limit(1);
-  if (!guild[0]) throw new Error("Guild not found");
-  if (guild[0].captainId !== captainId) throw new Error("Only the guild captain can initiate a challenge");
-  if (guild[0].status !== "active") throw new Error("Guild must be active to challenge");
+  // Race-condition fix: two simultaneous challenges touching either guild could
+  // both pass the "no existing war" check before either INSERT commits, creating
+  // duplicate wars. Wrap the check-then-insert in a transaction and take
+  // pg_advisory_xact_lock on both guild IDs (sorted, so two overlapping
+  // challenges always lock in the same global order and can't deadlock).
+  return await db.transaction(async (tx) => {
+    const lockIds = [challengerGuildId, challengedGuildId].sort();
+    for (const id of lockIds) {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${id})::bigint)`);
+    }
 
-  // Check no active/pending war for either guild
-  const existingWar = await db.select().from(guildWars).where(
-    and(
-      or(
-        eq(guildWars.challengerGuildId, challengerGuildId),
-        eq(guildWars.challengedGuildId, challengerGuildId),
-        eq(guildWars.challengerGuildId, challengedGuildId),
-        eq(guildWars.challengedGuildId, challengedGuildId),
-      ),
-      or(
-        eq(guildWars.status, "pending_challenger_approval"),
-        eq(guildWars.status, "pending_challenged_approval"),
-        eq(guildWars.status, "active"),
-      ),
-    )
-  ).limit(1);
+    // Verify captain
+    const guild = await tx.select().from(guilds).where(eq(guilds.id, challengerGuildId)).limit(1);
+    if (!guild[0]) throw new Error("Guild not found");
+    if (guild[0].captainId !== captainId) throw new Error("Only the guild captain can initiate a challenge");
+    if (guild[0].status !== "active") throw new Error("Guild must be active to challenge");
 
-  if (existingWar[0]) throw new Error("One of the guilds is already in an active war or has a pending challenge");
+    // Check no active/pending war for either guild
+    const existingWar = await tx.select().from(guildWars).where(
+      and(
+        or(
+          eq(guildWars.challengerGuildId, challengerGuildId),
+          eq(guildWars.challengedGuildId, challengerGuildId),
+          eq(guildWars.challengerGuildId, challengedGuildId),
+          eq(guildWars.challengedGuildId, challengedGuildId),
+        ),
+        or(
+          eq(guildWars.status, "pending_challenger_approval"),
+          eq(guildWars.status, "pending_challenged_approval"),
+          eq(guildWars.status, "active"),
+        ),
+      )
+    ).limit(1);
 
-  // Verify challenged guild exists and is active
-  const challengedGuild = await db.select().from(guilds).where(eq(guilds.id, challengedGuildId)).limit(1);
-  if (!challengedGuild[0]) throw new Error("Challenged guild not found");
-  if (challengedGuild[0].status !== "active") throw new Error("Challenged guild is not active");
+    if (existingWar[0]) throw new Error("One of the guilds is already in an active war or has a pending challenge");
 
-  const [war] = await db
-    .insert(guildWars)
-    .values({
-      challengerGuildId,
-      challengedGuildId,
-      status: "pending_challenger_approval",
-      challengerScore: 0,
-      challengedScore: 0,
-    })
-    .returning();
+    // Verify challenged guild exists and is active
+    const challengedGuild = await tx.select().from(guilds).where(eq(guilds.id, challengedGuildId)).limit(1);
+    if (!challengedGuild[0]) throw new Error("Challenged guild not found");
+    if (challengedGuild[0].status !== "active") throw new Error("Challenged guild is not active");
 
-  logger.info({ warId: war.id, challengerGuildId, challengedGuildId }, "[GuildWars] Challenge initiated");
-  return war;
+    const [war] = await tx
+      .insert(guildWars)
+      .values({
+        challengerGuildId,
+        challengedGuildId,
+        status: "pending_challenger_approval",
+        challengerScore: 0,
+        challengedScore: 0,
+      })
+      .returning();
+
+    logger.info({ warId: war.id, challengerGuildId, challengedGuildId }, "[GuildWars] Challenge initiated");
+    return war;
+  });
 }
 
 /**
@@ -368,8 +380,10 @@ export async function contributeWarPoints(
   userId: string,
   guildId: string,
   points: number,
+  tx?: any,
 ): Promise<void> {
-  const [activeWar] = await db
+  const dbc = tx ?? db;
+  const [activeWar] = await dbc
     .select()
     .from(guildWars)
     .where(
@@ -386,7 +400,7 @@ export async function contributeWarPoints(
   if (!activeWar) return;
 
   // Upsert participant contribution
-  await db
+  await dbc
     .insert(guildWarParticipants)
     .values({ warId: activeWar.id, guildId, userId, pointsContributed: points })
     .onConflictDoUpdate({
@@ -396,12 +410,12 @@ export async function contributeWarPoints(
 
   // Update war score for the correct side
   if (activeWar.challengerGuildId === guildId) {
-    await db
+    await dbc
       .update(guildWars)
       .set({ challengerScore: sql`${guildWars.challengerScore} + ${points}` })
       .where(eq(guildWars.id, activeWar.id));
   } else {
-    await db
+    await dbc
       .update(guildWars)
       .set({ challengedScore: sql`${guildWars.challengedScore} + ${points}` })
       .where(eq(guildWars.id, activeWar.id));
@@ -419,82 +433,52 @@ export async function resolveWar(warId: string): Promise<{
   isDraw: boolean;
   poolTransferred?: string;
 }> {
-  const [war] = await db.select().from(guildWars).where(eq(guildWars.id, warId)).limit(1);
-  if (!war) throw new Error("War not found");
-  if (war.status === "completed") return { winnerId: war.winnerId, isDraw: !war.winnerId };
+  return await db.transaction(async (tx) => {
+    const [war] = await tx.select().from(guildWars).where(eq(guildWars.id, warId)).limit(1);
+    if (!war) throw new Error("War not found");
+    if (war.status === "completed") return { winnerId: war.winnerId, isDraw: !war.winnerId };
 
-  const isDraw = war.challengerScore === war.challengedScore;
-  const winnerId = isDraw
-    ? null
-    : war.challengerScore > war.challengedScore
-    ? war.challengerGuildId
-    : war.challengedGuildId;
-  const loserId = isDraw
-    ? null
-    : winnerId === war.challengerGuildId
-    ? war.challengedGuildId
-    : war.challengerGuildId;
+    const isDraw = war.challengerScore === war.challengedScore;
+    const winnerId = isDraw
+      ? null
+      : war.challengerScore > war.challengedScore
+      ? war.challengerGuildId
+      : war.challengedGuildId;
+    const loserId = isDraw
+      ? null
+      : winnerId === war.challengerGuildId
+      ? war.challengedGuildId
+      : war.challengerGuildId;
 
-  await db
-    .update(guildWars)
-    .set({ status: "completed", winnerId, completedAt: new Date() })
-    .where(eq(guildWars.id, warId));
+    await tx
+      .update(guildWars)
+      .set({ status: "completed", winnerId, completedAt: new Date() })
+      .where(eq(guildWars.id, warId));
 
-  let poolTransferred = "0.00";
+    let poolTransferred = "0.00";
 
-  if (winnerId && loserId) {
-    // ── Master Plan Phase 6: Winner gets loser's current-week pool ────────────
-    // Find the current active week cycle for the losing guild and transfer its
-    // bonusPoolPkr into the winner's cycle (or accumulate in winner's cycle).
-    const now = new Date();
-    // Current week Monday 00:00 UTC
-    const day = now.getUTCDay(); // 0=Sun..6=Sat
-    const diffToMonday = day === 0 ? -6 : 1 - day;
-    const weekStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    weekStart.setUTCDate(weekStart.getUTCDate() + diffToMonday);
-    weekStart.setUTCHours(0, 0, 0, 0);
+    if (winnerId && loserId) {
+      // Winner captures the loser's currently-accruing weekly bonus pool.
+      // Fixed bug: this used to look up a guildWeeklyCycles row for the CURRENT
+      // week, but that row is only ever created retroactively by the Sunday
+      // reset job for the week that just ended — so during a live war (the
+      // normal case) it never existed and the transfer silently no-opped.
+      // guilds.weeklyBonusPool is the live running pool (see storage.ts
+      // recordEarnEvent), so read/zero/credit it directly — always available,
+      // no dependency on reset-job timing. All in the same tx as the war
+      // status update so a mid-resolve failure can't leave scores/pool/badge
+      // in an inconsistent state.
+      const [loserGuild] = await tx.select().from(guilds).where(eq(guilds.id, loserId)).limit(1);
+      const loserPool = new Decimal(loserGuild?.weeklyBonusPool ?? "0");
 
-    const [loserCycle] = await db
-      .select()
-      .from(guildWeeklyCycles)
-      .where(and(eq(guildWeeklyCycles.guildId, loserId), eq(guildWeeklyCycles.weekStart, weekStart)))
-      .limit(1);
-
-    if (loserCycle && !loserCycle.resolved) {
-      const loserPool = new Decimal(loserCycle.bonusPoolPkr ?? "0");
       if (loserPool.gt(0)) {
-        // Zero out loser's pool
-        await db.update(guildWeeklyCycles)
-          .set({ bonusPoolPkr: "0.0000" })
-          .where(eq(guildWeeklyCycles.id, loserCycle.id));
+        await tx.update(guilds)
+          .set({ weeklyBonusPool: "0.0000" })
+          .where(eq(guilds.id, loserId));
 
-        // Add to winner's cycle (upsert)
-        const [winnerCycle] = await db
-          .select()
-          .from(guildWeeklyCycles)
-          .where(and(eq(guildWeeklyCycles.guildId, winnerId), eq(guildWeeklyCycles.weekStart, weekStart)))
-          .limit(1);
-
-        if (winnerCycle) {
-          await db.update(guildWeeklyCycles)
-            .set({
-              bonusPoolPkr: sql`${guildWeeklyCycles.bonusPoolPkr} + ${loserPool.toFixed(4)}`,
-            })
-            .where(eq(guildWeeklyCycles.id, winnerCycle.id));
-        } else {
-          // Winner has no cycle yet this week — create one with the transferred pool.
-          // weekEnd = weekStart + 6 days (Sunday 23:59:59 UTC)
-          const weekEnd = new Date(weekStart);
-          weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
-          weekEnd.setUTCHours(23, 59, 59, 999);
-          await db.insert(guildWeeklyCycles).values({
-            guildId: winnerId,
-            weekStart,
-            weekEnd,
-            targetPoints: 0,
-            bonusPoolPkr: loserPool.toFixed(4),
-          }).onConflictDoNothing();
-        }
+        await tx.update(guilds)
+          .set({ weeklyBonusPool: sql`${guilds.weeklyBonusPool} + ${loserPool.toFixed(4)}` })
+          .where(eq(guilds.id, winnerId));
 
         poolTransferred = loserPool.toFixed(2);
         logger.info({ warId, winnerId, loserId, poolTransferred }, "[GuildWars] Pool transferred from loser to winner.");
@@ -509,34 +493,59 @@ export async function resolveWar(warId: string): Promise<{
           });
         } catch (_) { /* non-critical */ }
       }
+
+      await awardBadge(winnerId, "war_winner", "⚔️ War Victor", war.seasonId ?? undefined, tx);
+      logger.info({ warId, winnerId, poolTransferred }, "[GuildWars] War resolved — winner");
+    } else {
+      logger.info({ warId }, "[GuildWars] War resolved — draw");
     }
 
-    await awardBadge(winnerId, "war_winner", "⚔️ War Victor", war.seasonId ?? undefined);
-    logger.info({ warId, winnerId, poolTransferred }, "[GuildWars] War resolved — winner");
-  } else {
-    logger.info({ warId }, "[GuildWars] War resolved — draw");
-  }
-
-  return { winnerId, isDraw, poolTransferred };
+    return { winnerId, isDraw, poolTransferred };
+  });
 }
 
 // ─── Season Resolution ────────────────────────────────────────────────────────
 
-export async function resolveSeason(seasonId: string): Promise<void> {
-  const standings = await db
+// Shared standings computation for resolveSeason() and getSeasonLeaderboard().
+// Bug fix: the old queries grouped only by challengerGuildId, so any wins/score
+// a guild earned while on the challenged side vanished entirely, and a guild
+// that only ever got challenged (never initiated) never appeared at all.
+// Aggregates both sides in JS instead of duplicating a UNION ALL in SQL.
+async function computeSeasonStandings(
+  seasonId: string,
+): Promise<Map<string, { wins: number; totalScore: number; warsPlayed: number }>> {
+  const rows = await db
     .select({
-      guildId: guildWars.challengerGuildId,
-      wins: sql<number>`COUNT(*) FILTER (WHERE winner_id = challenger_guild_id)`,
-      totalScore: sql<number>`SUM(challenger_score)`,
+      challengerGuildId: guildWars.challengerGuildId,
+      challengedGuildId: guildWars.challengedGuildId,
+      winnerId: guildWars.winnerId,
+      challengerScore: guildWars.challengerScore,
+      challengedScore: guildWars.challengedScore,
     })
     .from(guildWars)
-    .where(and(eq(guildWars.seasonId, seasonId), eq(guildWars.status, "completed")))
-    .groupBy(guildWars.challengerGuildId);
+    .where(and(eq(guildWars.seasonId, seasonId), eq(guildWars.status, "completed")));
 
-  standings.sort((a, b) => {
-    if (b.wins !== a.wins) return b.wins - a.wins;
-    return b.totalScore - a.totalScore;
-  });
+  const standings = new Map<string, { wins: number; totalScore: number; warsPlayed: number }>();
+  const bump = (guildId: string, won: boolean, score: number) => {
+    const cur = standings.get(guildId) ?? { wins: 0, totalScore: 0, warsPlayed: 0 };
+    cur.warsPlayed += 1;
+    cur.totalScore += score;
+    if (won) cur.wins += 1;
+    standings.set(guildId, cur);
+  };
+
+  for (const w of rows) {
+    bump(w.challengerGuildId, w.winnerId === w.challengerGuildId, w.challengerScore);
+    bump(w.challengedGuildId, w.winnerId === w.challengedGuildId, w.challengedScore);
+  }
+  return standings;
+}
+
+export async function resolveSeason(seasonId: string): Promise<void> {
+  const standingsMap = await computeSeasonStandings(seasonId);
+  const standings = Array.from(standingsMap.entries())
+    .map(([guildId, s]) => ({ guildId, wins: s.wins, totalScore: s.totalScore }))
+    .sort((a, b) => (b.wins - a.wins) || (b.totalScore - a.totalScore));
 
   for (let i = 0; i < Math.min(3, standings.length); i++) {
     const placement = i + 1;
@@ -573,8 +582,10 @@ export async function awardBadge(
   badgeType: string,
   badgeName: string,
   seasonId?: string,
+  tx?: any,
 ): Promise<GuildBadge> {
-  const [badge] = await db
+  const dbc = tx ?? db;
+  const [badge] = await dbc
     .insert(guildBadges)
     .values({ guildId, badgeType, badgeName, seasonId })
     .returning();
@@ -616,22 +627,14 @@ export async function getSeasonLeaderboard(seasonId: string): Promise<{
   winRatePct: number;
   totalScore: number;
 }[]> {
-  const rows = await db
-    .select({
-      guildId: guildWars.challengerGuildId,
-      total: sql<number>`COUNT(*)`,
-      won: sql<number>`COUNT(*) FILTER (WHERE winner_id = challenger_guild_id)`,
-      score: sql<number>`SUM(challenger_score)`,
-    })
-    .from(guildWars)
-    .where(and(eq(guildWars.seasonId, seasonId), eq(guildWars.status, "completed")))
-    .groupBy(guildWars.challengerGuildId);
-
-  return rows.map((r) => ({
-    guildId: r.guildId,
-    warsPlayed: r.total,
-    warsWon: r.won,
-    winRatePct: r.total > 0 ? Math.round((r.won / r.total) * 100) : 0,
-    totalScore: r.score,
-  })).sort((a, b) => b.warsWon - a.warsWon || b.totalScore - a.totalScore);
+  const standingsMap = await computeSeasonStandings(seasonId);
+  return Array.from(standingsMap.entries())
+    .map(([guildId, s]) => ({
+      guildId,
+      warsPlayed: s.warsPlayed,
+      warsWon: s.wins,
+      winRatePct: s.warsPlayed > 0 ? Math.round((s.wins / s.warsPlayed) * 100) : 0,
+      totalScore: s.totalScore,
+    }))
+    .sort((a, b) => b.warsWon - a.warsWon || b.totalScore - a.totalScore);
 }

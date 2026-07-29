@@ -5397,11 +5397,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { db } = await import("./db");
       const { guildWars, guilds } = await import("@shared/schema");
-      const { desc, eq } = await import("drizzle-orm");
+      const { desc, eq, inArray } = await import("drizzle-orm");
       const wars = await db.select().from(guildWars).orderBy(desc(guildWars.createdAt)).limit(50);
       const guildIds = Array.from(new Set(wars.flatMap(w => [w.challengerGuildId, w.challengedGuildId])));
       const guildRows = guildIds.length
-        ? await db.select({ id: guilds.id, name: guilds.name }).from(guilds).where(or(...guildIds.map(id => eq(guilds.id, id))))
+        ? await db.select({ id: guilds.id, name: guilds.name }).from(guilds).where(inArray(guilds.id, guildIds))
         : [];
       const guildNames = new Map(guildRows.map(g => [g.id, g.name]));
       res.json({
@@ -5419,13 +5419,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/guild-wars/wars", requirePermission("MANAGE_SYSTEM"), adminActionRateLimiter, async (req, res) => {
     try {
+      // startDate/endDate/prizePoolPkr removed: guild_wars has no columns for
+      // them (dates are derived from startedAt/completedAt; prize comes from
+      // the live pool-capture mechanic, not a fixed value), and createWar()
+      // never accepted them — the API was silently discarding whatever the
+      // caller sent for these fields.
       const parsed = z.object({
         seasonId: z.string().min(1),
         guild1Id: z.string().min(1),
         guild2Id: z.string().min(1),
-        startDate: z.string().datetime(),
-        endDate: z.string().datetime(),
-        prizePoolPkr: z.string().regex(/^\d+(\.\d{1,4})?$/),
       }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
       const { createWar } = await import("./modules/guild-wars");
@@ -5445,7 +5447,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { resolveWar } = await import("./modules/guild-wars");
       const result = await resolveWar(req.params.id);
-      res.json(result);
+      // Enrich with the winner's guild name — the frontend displays it in the
+      // resolve toast, but resolveWar() only returns raw IDs.
+      const winnerGuild = result.winnerId ? await storage.getGuildById(result.winnerId) : null;
+      res.json({ ...result, winnerGuildName: winnerGuild?.name ?? null });
     } catch (error: any) {
       const status = error?.message === "War not found" ? 404 : 500;
       res.status(status).json({ message: error?.message || "Failed to resolve war" });
@@ -5623,6 +5628,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { getGuildCurrentWar, getWarWithApprovals, getGuildBadges } = await import("./modules/guild-wars");
       const guildId = req.params.id;
+      // Authorization fix: previously any authenticated user could view any
+      // guild's war status/approvals by guessing an ID — info leak. Restrict
+      // to members (pending or active) of the requested guild.
+      const requesterId = getThorxPrincipalId(req) as string;
+      const membership = await storage.getUserGuildMembership(requesterId);
+      if (!membership || membership.guildId !== guildId) {
+        return res.status(403).json({ message: "You are not a member of this guild" });
+      }
       const [currentWar, badges] = await Promise.all([
         getGuildCurrentWar(guildId),
         getGuildBadges(guildId),
