@@ -305,6 +305,18 @@ export function useRealtimeSync(user: User | null, guildId?: string | null) {
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildDetail(msg.guildId) });
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildMine });
         }
+
+        // ── Audit fix (Live Activity Feed): the admin Live Activity Feed panel
+        // only ever polled every 8s and never listened on this socket, even
+        // though the server has broadcast "feed:event" via
+        // broadcastAdminFeedEvent (server/realtime.ts) since it was built.
+        // Invalidate on push so new events (and any active event-type filter)
+        // land within the same tick they happen, instead of up to 8s late.
+        if (msg.type === "feed:event") {
+          queryClient.invalidateQueries({
+            predicate: (q) => typeof q.queryKey[0] === "string" && (q.queryKey[0] as string).startsWith("/api/admin/live-feed"),
+          });
+        }
       };
 
       ws.onclose = () => {

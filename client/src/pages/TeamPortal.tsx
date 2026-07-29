@@ -130,7 +130,7 @@ export default function TeamPortal() {
       case "finance":
         return <ReconciliationPanel />;
       case "live-feed":
-        return <LiveActivityFeed />;
+        return <LiveActivityFeed onViewUserInCRM={handleViewUserInCRM} />;
       case "card-sandbox":
         return <ThorxCardSandbox />;
       case "ledger":
