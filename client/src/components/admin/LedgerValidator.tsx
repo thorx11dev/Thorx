@@ -30,6 +30,7 @@ interface ValidationResult {
 
 interface ScanResult {
   scanned: number;
+  totalEligible: number;
   flagged: number;
   critical: ValidationResult[];
   warnings: ValidationResult[];
@@ -101,22 +102,40 @@ export function LedgerValidator() {
       return r.json();
     },
     onSuccess: (data) => setSingleResult(data),
-    onError: () => toast({ title: "Validation failed", variant: "destructive" }),
+    onError: (error: Error) => toast({ title: "Validation failed", description: error.message, variant: "destructive" }),
   });
 
   const scanMutation = useMutation({
-    mutationFn: async () => {
-      const r = await apiRequest("GET", "/api/admin/ledger/validate/scan");
-      return r.json();
+    mutationFn: async (offset: number) => {
+      const r = await apiRequest("GET", `/api/admin/ledger/validate/scan?offset=${offset}`);
+      return r.json() as Promise<ScanResult>;
     },
-    onSuccess: (data) => { setScanResult(data); setScanning(false); },
-    onError: () => { toast({ title: "Scan failed", variant: "destructive" }); setScanning(false); },
+    onSuccess: (data, offset) => {
+      setScanResult(prev => offset === 0 || !prev ? data : {
+        // Merge a "Load next batch" page into the running total instead of
+        // discarding the previous batch's results.
+        scanned: prev.scanned + data.scanned,
+        totalEligible: data.totalEligible,
+        flagged: prev.flagged + data.flagged,
+        critical: [...prev.critical, ...data.critical],
+        warnings: [...prev.warnings, ...data.warnings],
+        checkedAt: data.checkedAt,
+      });
+      setScanning(false);
+    },
+    onError: (error: Error) => { toast({ title: "Scan failed", description: error.message, variant: "destructive" }); setScanning(false); },
   });
 
   const handleScan = () => {
     setScanning(true);
     setScanResult(null);
-    scanMutation.mutate();
+    scanMutation.mutate(0);
+  };
+
+  const handleLoadNextBatch = () => {
+    if (!scanResult) return;
+    setScanning(true);
+    scanMutation.mutate(scanResult.scanned);
   };
 
   return (
@@ -182,6 +201,20 @@ export function LedgerValidator() {
               ))}
             </div>
 
+            {/* Truncation notice — the batch cap (1000) can be smaller than the
+                total active user count, so make the partial coverage explicit
+                instead of letting admins assume the whole platform was checked. */}
+            {scanResult.scanned < scanResult.totalEligible && (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2">
+                <div className="text-xs font-semibold text-amber-700">
+                  ⚠ Only {scanResult.scanned} of {scanResult.totalEligible} active users scanned so far.
+                </div>
+                <Button size="sm" variant="outline" className="h-7 text-xs shrink-0" onClick={handleLoadNextBatch} disabled={scanMutation.isPending}>
+                  {scanMutation.isPending ? "Loading…" : "Load next batch"}
+                </Button>
+              </div>
+            )}
+
             {/* Critical */}
             {(scanResult.critical?.length ?? 0) > 0 && (
               <div>
@@ -204,7 +237,8 @@ export function LedgerValidator() {
 
             {scanResult.flagged === 0 && (
               <div className="text-center py-6 text-emerald-600 text-sm font-semibold">
-                ✅ All {scanResult.scanned} accounts are balanced.
+                ✅ All {scanResult.scanned} scanned accounts are balanced
+                {scanResult.scanned < scanResult.totalEligible ? ` (${scanResult.totalEligible - scanResult.scanned} more active users not yet scanned).` : "."}
               </div>
             )}
           </div>

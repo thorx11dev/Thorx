@@ -1749,8 +1749,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ── Admin: Ledger validation (scan before :userId to avoid Express conflict) ──
   app.get("/api/admin/ledger/validate/scan", requireTeamRole, async (req, res) => {
     try {
-      // Default covers a full platform scan (UI copy promises "all active user
-      // balances"); query params still allow pagination for very large tables.
+      // Default batch is 1000; the response's totalEligible tells the caller
+      // whether more active users remain so the UI can page through offsets
+      // instead of silently reporting a partial scan as complete.
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 1000;
       const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
       const result = await storage.adminValidateLedgerScan(limit, offset);

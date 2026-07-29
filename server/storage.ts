@@ -4386,8 +4386,11 @@ export class DatabaseStorage implements IStorage {
         email: `deleted_${userId}@thorx.void`,
         firstName: "Deleted",
         lastName: "Account",
-        phone: null,
-        identity: null,
+        // `identity` and `phone` are both NOT NULL on the schema — null
+        // crashes this update with a constraint violation. Anonymize with
+        // unique placeholders instead, same pattern as email/referralCode.
+        phone: "0000000000",
+        identity: `deleted_${userId}`,
         profilePicture: null,
         referralCode: `DELETED_${userId.slice(0, 8)}`,
       } as any)
@@ -5650,26 +5653,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async adminValidateLedgerScan(limit = 1000, offset = 0): Promise<{
-    scanned: number; flagged: number; critical: LedgerValidationResult[]; warnings: LedgerValidationResult[]; checkedAt: string;
+    scanned: number; totalEligible: number; flagged: number; critical: LedgerValidationResult[]; warnings: LedgerValidationResult[]; checkedAt: string;
   }> {
-    const rows = await db
-      .select({
-        id: users.id,
-        email: users.email,
-        availableBalance: users.availableBalance,
-        totalEarnings: users.totalEarnings,
-        totalWithdrawn: users.totalWithdrawn,
-        txPointsBalance: users.txPointsBalance,
-      })
-      .from(users)
-      .where(eq(users.role, "user"))
-      .orderBy(users.createdAt)
-      .limit(limit)
-      .offset(offset);
+    // Scope matches the UI copy ("active user balances"): role='user' AND isActive.
+    // Deactivated/banned accounts are excluded — their balances are frozen and
+    // reviewed separately, not part of the routine integrity scan.
+    const scanFilter = and(eq(users.role, "user"), eq(users.isActive, true));
+
+    const [rows, [{ count: totalEligibleRaw }]] = await Promise.all([
+      db
+        .select({
+          id: users.id,
+          email: users.email,
+          availableBalance: users.availableBalance,
+          totalEarnings: users.totalEarnings,
+          totalWithdrawn: users.totalWithdrawn,
+          txPointsBalance: users.txPointsBalance,
+        })
+        .from(users)
+        .where(scanFilter)
+        .orderBy(users.createdAt)
+        .limit(limit)
+        .offset(offset),
+      db.select({ count: sql<string>`COUNT(*)` }).from(users).where(scanFilter),
+    ]);
+    const totalEligible = Number(totalEligibleRaw) || 0;
 
     const checkedAt = new Date().toISOString();
     if (rows.length === 0) {
-      return { scanned: 0, flagged: 0, critical: [], warnings: [], checkedAt };
+      return { scanned: 0, totalEligible, flagged: 0, critical: [], warnings: [], checkedAt };
     }
 
     const userIds = rows.map(r => r.id);
@@ -5715,6 +5727,7 @@ export class DatabaseStorage implements IStorage {
 
     return {
       scanned: rows.length,
+      totalEligible,
       flagged: critical.length + flaggedWarnings.length,
       critical,
       warnings: flaggedWarnings,
