@@ -100,36 +100,60 @@ export interface SimulationResult {
   pointsCredited: number;     // FINAL points a real user would see — includes the Q6 rank multiplier, matching recordEarnEvent
   basePointsCredited: number; // pre-rank-multiplier value (post-variance), for transparency
   rankMultiplier: number;     // the Q6 multiplier actually applied for userRankTier
-  realPkrValue: string;
+  realPkrValue: string;       // PKR value TX-Points were actually computed from (guild pool share for Engine C)
+  immediateUserPkrValue: string; // what lands in the user's withdrawable balance right now (0.0000 for Engine C — pool-based, Sunday payout)
   cardVariance: number;
 }
 
 // Admin simulation tool (Thorx Card Sandbox) — runs N draws for a given
 // gross PKR / engine / rank combination without touching real user data.
 //
-// Audit fix: this previously stopped after drawThorxCard() and returned its
-// raw pointsCredited, skipping the Q6 rank reward multiplier that
-// recordEarnEvent() (server/storage.ts) always applies afterwards. Every
-// simulated draw above E-Rank understated the real outcome (D +10% low, ...,
-// S up to 43% low) — now applies the exact same RANK_REWARD_MULTIPLIERS step.
+// Audit fix (rank multiplier): this previously stopped after drawThorxCard()
+// and returned its raw pointsCredited, skipping the Q6 rank reward
+// multiplier that recordEarnEvent() (server/storage.ts) always applies
+// afterwards. Every simulated draw above E-Rank understated the real outcome
+// (D +10% low, ..., S up to 43% low) — now applies the exact same
+// RANK_REWARD_MULTIPLIERS step.
+//
+// Audit fix (engine-specific splits): this previously ignored `engineType`
+// entirely and always computed userPkrShare = grossPkr * userCutPct/100,
+// i.e. it silently simulated Engine C exactly like Engine A/B. Real Engine C
+// economics (recordEarnEvent) route 0% to the user's immediate balance —
+// 100% of the user's share goes into the guild's weekly pool (15% Thorx /
+// 80% pool / 5% bonus-on-target), and TX-Points are based on the pool
+// contribution, not a per-user instant payout. Admins previewing "Engine C"
+// were seeing Engine A/B math with a different color, completely hiding the
+// real (very different) guild mechanics.
 export function simulateThorxCards(params: {
   grossPkr: number;
   engineType: "A" | "B" | "C";
   userRankTier: string;
   iterations: number;
   config: CardConfig;
-  engineSplits: { thorxCutPct: number; guildPoolPct?: number; userCutPct: number };
+  engineSplits: { thorxCutPct: number; userCutPct: number; guildPoolPct?: number; bonusPct?: number };
 }): SimulationResult[] {
-  const { grossPkr, userRankTier, iterations, config, engineSplits } = params;
-  // Use Decimal for the split so floating-point errors don't accumulate across iterations
-  // F-08: Keep full Decimal precision — drawThorxCard accepts number|string; pass string to avoid float drift.
-  const userPkrShare = new Decimal(grossPkr).times(engineSplits.userCutPct).div(100).toFixed(8);
+  const { grossPkr, engineType, userRankTier, iterations, config, engineSplits } = params;
+
+  // Use Decimal for the split so floating-point errors don't accumulate.
+  // Mirrors recordEarnEvent's per-engine branch (server/storage.ts) exactly.
+  let immediateUserPkrShareD: Decimal;
+  let txPointsBasePkrD: Decimal;
+  if (engineType === "C") {
+    const guildPoolPkrD = new Decimal(grossPkr).times(engineSplits.guildPoolPct ?? 80).div(100);
+    immediateUserPkrShareD = new Decimal(0); // pool unlocks Sunday — no instant balance credit
+    txPointsBasePkrD = guildPoolPkrD;        // TX-Points reflect the pool contribution instead
+  } else {
+    immediateUserPkrShareD = new Decimal(grossPkr).times(engineSplits.userCutPct).div(100);
+    txPointsBasePkrD = immediateUserPkrShareD;
+  }
+  const txPointsBasePkr = txPointsBasePkrD.toFixed(8);
+  const immediateUserPkrValue = immediateUserPkrShareD.toFixed(4);
   const rankMultiplier = RANK_REWARD_MULTIPLIERS[userRankTier] ?? 1.00;
 
   const results: SimulationResult[] = [];
   for (let i = 0; i < iterations; i++) {
     const draw = drawThorxCard({
-      userPkrShare,
+      userPkrShare: txPointsBasePkr,
       conversionRate: config.conversionRate,
       userRankTier,
       varianceMin: config.varianceMin,
@@ -147,6 +171,7 @@ export function simulateThorxCards(params: {
       basePointsCredited: draw.pointsCredited,
       rankMultiplier,
       realPkrValue: draw.realPkrValue,
+      immediateUserPkrValue,
       cardVariance: draw.cardVariance,
     });
   }

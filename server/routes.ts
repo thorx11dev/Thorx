@@ -5174,29 +5174,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ── THORX v3 (spec E.9): Admin — Thorx Card simulator ────────────────────
+  //
+  // Audit fix (2026-07-29): `iterations` previously defaulted to 1000 when
+  // omitted. The frontend's single "Draw Card" click never sent `iterations`
+  // at all, so every "single" draw actually simulated and returned 1000
+  // results — the client then read result[0] of the wrong dimension
+  // (an entire 1000-item array, not one SimulationResult), which crashed the
+  // reveal (`undefined.toLocaleString()`) and corrupted the draw-history
+  // list. Default is now 1, matching what a single "Draw Card" click means.
   app.post("/api/admin/simulate/thorx-card", requireTeamRole, async (req, res) => {
     try {
       const simulateThorxCardSchema = z.object({
-        iterations:    z.coerce.number().int().min(1).max(10000).default(1000),
+        iterations:    z.coerce.number().int().min(1).max(10000).default(1),
         grossPkr:      z.coerce.number().positive().max(100000).default(1.0),
         engineType:    z.enum(["A", "B", "C"]).default("A"),
         userRankTier:  z.string().default("E-Rank"),
-        conversionRate: z.coerce.number().positive().default(1000),
-        varianceMin:   z.coerce.number().min(0.1).max(1).default(0.8),
-        varianceMax:   z.coerce.number().min(1).max(3).default(1.2),
-        thorxCutPct:   z.coerce.number().min(0).max(100).default(40),
-        userCutPct:    z.coerce.number().min(0).max(100).default(60),
+        // Optional overrides for "what-if" testing. When omitted, the sandbox
+        // resolves the SAME live System Settings values recordEarnEvent uses
+        // (see storage.getThorxCardEngineConfig) — audit fix: these used to be
+        // hardcoded request defaults (1000 / 0.80-1.20 / 40-60) that the
+        // client never overrode, so changing System Settings had zero effect
+        // on the sandbox's preview.
+        conversionRate: z.coerce.number().positive().optional(),
+        varianceMin:   z.coerce.number().min(0.1).max(1).optional(),
+        varianceMax:   z.coerce.number().min(1).max(3).optional(),
+        thorxCutPct:   z.coerce.number().min(0).max(100).optional(),
+        userCutPct:    z.coerce.number().min(0).max(100).optional(),
+        guildPoolPct:  z.coerce.number().min(0).max(100).optional(),
+        bonusPct:      z.coerce.number().min(0).max(100).optional(),
       });
       const parsed = simulateThorxCardSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input" });
-      const { iterations, grossPkr, engineType, userRankTier, conversionRate, varianceMin, varianceMax, thorxCutPct, userCutPct } = parsed.data;
+      const p = parsed.data;
+      const live = await storage.getThorxCardEngineConfig(p.engineType);
+      const conversionRate = p.conversionRate ?? live.conversionRate;
+      const varianceMin = p.varianceMin ?? live.varianceMin;
+      const varianceMax = Math.max(varianceMin, p.varianceMax ?? live.varianceMax);
+      const thorxCutPct = p.thorxCutPct ?? live.thorxCutPct;
+      const userCutPct = p.userCutPct ?? (p.engineType === "C" ? 0 : 100 - thorxCutPct);
+      const guildPoolPct = p.guildPoolPct ?? live.guildPoolPct;
+      const bonusPct = p.bonusPct ?? live.bonusPct;
       const result = simulateThorxCards({
-        grossPkr,
-        engineType: engineType as "A" | "B" | "C",
-        userRankTier,
-        iterations,
-        config: { conversionRate, varianceMin, varianceMax },
-        engineSplits: { thorxCutPct, userCutPct },
+        grossPkr: p.grossPkr,
+        engineType: p.engineType,
+        userRankTier: p.userRankTier,
+        iterations: p.iterations,
+        config: { conversionRate, varianceMin, varianceMax, aRankBonusPct: live.aRankBonusPct, sRankBonusPct: live.sRankBonusPct },
+        engineSplits: { thorxCutPct, userCutPct, guildPoolPct, bonusPct },
       });
       // Bug found during 2026-07-15 production-readiness re-verification:
       // this used to wrap the array as { simulations, count }, but the client
@@ -5210,6 +5234,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Simulation failed";
       res.status(400).json({ message: msg });
+    }
+  });
+
+  // ── Thorx Card Sandbox — live config transparency (audit addition) ──────
+  // Read-only: lets the sandbox UI display exactly which System Settings
+  // values a draw will use for the selected engine, before drawing, so
+  // admins can trust the simulation actually reflects production.
+  app.get("/api/admin/simulate/thorx-card/live-config", requireTeamRole, async (req, res) => {
+    try {
+      const engineType = ["A", "B", "C"].includes(req.query.engineType as string)
+        ? (req.query.engineType as "A" | "B" | "C") : "A";
+      const live = await storage.getThorxCardEngineConfig(engineType);
+      res.json({ engineType, ...live });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch live config" });
     }
   });
 
