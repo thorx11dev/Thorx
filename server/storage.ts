@@ -214,7 +214,13 @@ function buildLedgerValidationResult(
 ): LedgerValidationResult {
   const computedBalanceD = new Decimal(unwithdrawnPkr || 0);
   const storedBalanceD = new Decimal(user.availableBalance || "0");
-  const discrepancyD = storedBalanceD.minus(computedBalanceD);
+  // users.availableBalance is DECIMAL(10,2) — every write to it is rounded to 2dp
+  // by Postgres, while the ledger (user_transactions.realPkrValue) carries 4dp of
+  // internal precision. Diffing the raw 4dp sum against the always-2dp stored
+  // balance manufactures sub-paisa "drift" from the scale mismatch alone, not a
+  // real bug. Round the computed side to the balance column's real precision
+  // before comparing so only genuine discrepancies are flagged (audit 2026-07-29).
+  const discrepancyD = storedBalanceD.minus(computedBalanceD.toDecimalPlaces(2, Decimal.ROUND_HALF_UP));
   const ledgerUnwithdrawnPoints = Math.round(Number(unwithdrawnPoints) || 0);
   const txPointsBalance = user.txPointsBalance ?? 0;
 
@@ -5674,9 +5680,13 @@ export class DatabaseStorage implements IStorage {
 
   async adminValidateLedger(userIdOrEmail: string): Promise<LedgerValidationResult> {
     // The UI invites admins to paste either a raw user ID or an email — honor both.
-    const user = userIdOrEmail.includes("@")
-      ? await this.getUserByEmail(userIdOrEmail)
-      : await this.getUserById(userIdOrEmail);
+    // Emails are normalized (trim + lowercase) before lookup, matching the
+    // convention used elsewhere (e.g. getUserByEmail(email.toLowerCase())) —
+    // otherwise a different-case paste produces a false "User not found".
+    const trimmed = userIdOrEmail.trim();
+    const user = trimmed.includes("@")
+      ? await this.getUserByEmail(trimmed.toLowerCase())
+      : await this.getUserById(trimmed);
     if (!user) throw new Error("User not found");
 
     const [ledgerAggRows, txStatsRows, feeStatsRows] = await Promise.all([
@@ -5723,7 +5733,10 @@ export class DatabaseStorage implements IStorage {
         })
         .from(users)
         .where(scanFilter)
-        .orderBy(users.createdAt)
+        // createdAt alone isn't guaranteed unique (seeded/bulk-imported rows can
+        // share a timestamp) — add id as a stable tiebreaker so "Load next batch"
+        // paging can't skip or re-scan a user at a page boundary.
+        .orderBy(asc(users.createdAt), asc(users.id))
         .limit(limit)
         .offset(offset),
       db.select({ count: sql<string>`COUNT(*)` }).from(users).where(scanFilter),

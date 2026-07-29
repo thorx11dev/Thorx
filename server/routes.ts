@@ -1747,7 +1747,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ── Admin: Ledger validation (scan before :userId to avoid Express conflict) ──
-  app.get("/api/admin/ledger/validate/scan", requireTeamRole, async (req, res) => {
+  // R-Audit (2026-07-29): gated by VIEW_FINANCE (was the generic requireTeamRole,
+  // which let any team member see every user's balance/discrepancy data
+  // regardless of finance access) + rate-limited like other heavy/sensitive
+  // admin reads, and now leaves an audit trail like comparable financial routes.
+  app.get("/api/admin/ledger/validate/scan", requirePermission("VIEW_FINANCE"), adminActionRateLimiter, async (req, res) => {
     try {
       // Default batch is 1000; the response's totalEligible tells the caller
       // whether more active users remain so the UI can page through offsets
@@ -1755,6 +1759,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 1000;
       const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
       const result = await storage.adminValidateLedgerScan(limit, offset);
+      const adminId = req.userProfile?.id;
+      if (adminId) {
+        await storage.createAuditLog({
+          adminId,
+          action: "LEDGER_SCAN",
+          targetType: "system",
+          targetId: "ledger",
+          details: { limit, offset, scanned: result.scanned, flagged: result.flagged },
+          ipAddress: req.ip,
+        });
+      }
       res.json(result);
     } catch (error) {
       logger.error({ err: error }, "Ledger scan error:");
@@ -1762,13 +1777,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/ledger/validate/:userId", requireTeamRole, async (req, res) => {
+  app.get("/api/admin/ledger/validate/:userId", requirePermission("VIEW_FINANCE"), adminActionRateLimiter, async (req, res) => {
     try {
       const result = await storage.adminValidateLedger(req.params.userId);
+      const adminId = req.userProfile?.id;
+      if (adminId) {
+        await storage.createAuditLog({
+          adminId,
+          action: "LEDGER_VALIDATE_USER",
+          targetType: "user",
+          targetId: result.userId,
+          details: { email: result.email, isBalanced: result.isBalanced, discrepancy: result.discrepancy },
+          ipAddress: req.ip,
+        });
+      }
       res.json(result);
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Ledger validation failed";
       logger.error({ err: error }, "Ledger validation error:");
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  // Reconcile a single user's stored balance/TX-Points counter back to what the
+  // ledger actually computes. Always re-validates server-side immediately before
+  // applying the correction (never trusts a client-supplied discrepancy, which
+  // could be stale by the time the admin clicks the button), reuses the same
+  // adjustUserBalance engine as the manual balance-adjustment tool, and requires
+  // a reason + leaves its own audit trail. Gated by MANAGE_USERS — the same
+  // permission already required to hand-adjust a balance, since reconciliation
+  // is just a computed-amount balance adjustment.
+  app.post("/api/admin/ledger/reconcile/:userId", requirePermission("MANAGE_USERS"), withdrawalRateLimiter, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const reasonSchema = z.object({ reason: z.string().min(5).max(500) });
+      const parsed = reasonSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "A reason (min 5 characters) is required." });
+      }
+      const { reason } = parsed.data;
+      const adminId = req.userProfile!.id;
+
+      const before = await storage.adminValidateLedger(userId);
+      if (before.isBalanced) {
+        return res.status(400).json({ message: "This account is already balanced — nothing to reconcile." });
+      }
+
+      const pkrDiscrepancyD = new Decimal(before.discrepancy || "0"); // stored - computed
+      const pointsMismatch = before.pointsMismatch ?? 0; // stored - computed
+      let user;
+      if (!pkrDiscrepancyD.isZero() && pointsMismatch !== 0) {
+        user = await storage.adjustUserBalance(
+          userId,
+          pkrDiscrepancyD.abs().toFixed(4),
+          pkrDiscrepancyD.isPositive() ? "subtract" : "add",
+          adminId,
+          `Ledger reconciliation: ${reason}`,
+          "admin_credit",
+          -pointsMismatch,
+        );
+      } else if (!pkrDiscrepancyD.isZero()) {
+        user = await storage.adjustUserBalance(
+          userId,
+          pkrDiscrepancyD.abs().toFixed(4),
+          pkrDiscrepancyD.isPositive() ? "subtract" : "add",
+          adminId,
+          `Ledger reconciliation: ${reason}`,
+        );
+      } else if (pointsMismatch !== 0) {
+        user = await storage.adjustUserBalance(
+          userId,
+          "0",
+          "add",
+          adminId,
+          `Ledger reconciliation: ${reason}`,
+          "admin_credit",
+          -pointsMismatch,
+        );
+      } else {
+        // isBalanced was false (e.g. a negative-balance integrity error) but
+        // there's no PKR/points delta to apply — not something this action can fix.
+        return res.status(400).json({ message: "This account has a flagged issue that isn't a balance/points mismatch and can't be auto-reconciled." });
+      }
+
+      await storage.createAuditLog({
+        adminId,
+        action: "LEDGER_RECONCILE",
+        targetType: "user",
+        targetId: userId,
+        details: {
+          email: before.email,
+          reason,
+          pkrDiscrepancyCorrected: pkrDiscrepancyD.toFixed(4),
+          pointsMismatchCorrected: pointsMismatch,
+          storedBalanceBefore: before.storedBalance,
+          computedBalance: before.computedBalance,
+        },
+        ipAddress: req.ip,
+      });
+
+      broadcastUserUpdated(userId, "balance_adjusted");
+      const after = await storage.adminValidateLedger(userId);
+      res.json({ user: sanitizeUser(user), validation: after });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Ledger reconciliation failed";
+      logger.error({ err: error }, "Ledger reconciliation error:");
       res.status(400).json({ message: msg });
     }
   });

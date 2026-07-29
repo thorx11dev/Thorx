@@ -1,17 +1,29 @@
 /**
  * LedgerValidator — THORX v3 (spec F.14)
  * Admin tool to validate financial ledger integrity.
- * GET /api/admin/ledger/validate/:userId and /api/admin/ledger/scan
+ * GET /api/admin/ledger/validate/:userId and /api/admin/ledger/validate/scan
+ * POST /api/admin/ledger/reconcile/:userId
  */
 import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Search, AlertTriangle, CheckCircle, RotateCcw, User } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Shield, Search, AlertTriangle, CheckCircle, RotateCcw, User, Wrench, Download, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UserInspectorPanel } from "./UserInspectorPanel";
 
 interface ValidationResult {
   userId: string;
@@ -37,9 +49,53 @@ interface ScanResult {
   checkedAt: string;
 }
 
-function ValidationCard({ result, onView }: { result: ValidationResult; onView?: () => void }) {
-  const disc = parseFloat(result.discrepancy);
-  const isCritical = !result.isBalanced && Math.abs(disc) > 0.01;
+function csvCell(value: string | number): string {
+  const s = String(value ?? "");
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+// Client-side export: scan results already live fully in memory (accumulated
+// across "Load next batch" pages), so re-hitting the server would just re-fetch
+// what's already on screen and risks drifting from what the admin is looking at.
+function downloadScanCsv(scanResult: ScanResult) {
+  const header = ["Severity", "Email", "User ID", "Stored Balance", "Computed Balance", "Discrepancy", "Transactions", "Errors", "Warnings"];
+  const rows = [
+    header,
+    ...scanResult.critical.map(r => ["CRITICAL", r.email ?? "", r.userId, r.storedBalance, r.computedBalance, r.discrepancy, String(r.transactionCount), r.errors.join(" | "), r.warnings.join(" | ")]),
+    ...scanResult.warnings.map(r => ["WARNING", r.email ?? "", r.userId, r.storedBalance, r.computedBalance, r.discrepancy, String(r.transactionCount), r.errors.join(" | "), r.warnings.join(" | ")]),
+  ];
+  const csv = rows.map(row => row.map(csvCell).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `ledger-scan-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function ValidationCard({
+  result,
+  onView,
+  isViewLoading,
+  onReconcile,
+  isReconciling,
+}: {
+  result: ValidationResult;
+  onView?: () => void;
+  isViewLoading?: boolean;
+  onReconcile?: () => void;
+  isReconciling?: boolean;
+}) {
+  // Severity must mirror the backend's own bucketing (errors -> critical,
+  // warnings-only -> warn) rather than re-deriving it from the PKR discrepancy
+  // alone — a TX-Points-only mismatch has a $0 PKR discrepancy but is still a
+  // real error, and was previously mislabeled with the green "OK" styling.
+  const isCritical = result.errors.length > 0;
+  const isWarning = !isCritical && result.warnings.length > 0;
+  const disc = parseFloat(result.discrepancy || "0");
   return (
     <div className={cn("rounded-xl border p-4 space-y-2", isCritical ? "border-red-300 bg-red-50" : "border-zinc-200 bg-white")}>
       <div className="flex items-start justify-between gap-2">
@@ -47,15 +103,49 @@ function ValidationCard({ result, onView }: { result: ValidationResult; onView?:
           <div className="flex items-center gap-2">
             {isCritical ? <AlertTriangle size={14} className="text-red-500" /> : <CheckCircle size={14} className="text-emerald-500" />}
             <span className="font-semibold text-sm">{result.email || result.userId.slice(0, 12) + "…"}</span>
-            <Badge variant="outline" className={isCritical ? "border-red-300 text-red-600 text-[10px]" : "border-emerald-300 text-emerald-600 text-[10px]"}>
-              {isCritical ? "CRITICAL" : result.errors.length > 0 ? "ERROR" : result.warnings.length > 0 ? "WARN" : "OK"}
+            <Badge
+              variant="outline"
+              className={
+                isCritical ? "border-red-300 text-red-600 text-[10px]" :
+                isWarning ? "border-amber-300 text-amber-600 text-[10px]" :
+                "border-emerald-300 text-emerald-600 text-[10px]"
+              }
+            >
+              {isCritical ? "CRITICAL" : isWarning ? "WARN" : "OK"}
             </Badge>
           </div>
           <div className="text-xs text-zinc-400 mt-0.5">
             {result.transactionCount} transactions · Earned Rs.{parseFloat(result.totalEarned).toFixed(2)} · Withdrawn Rs.{parseFloat(result.totalWithdrawn).toFixed(2)}
           </div>
         </div>
-        {onView && <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onView}><User size={12} /></Button>}
+        <div className="flex gap-1 shrink-0">
+          {onReconcile && isCritical && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-100"
+              onClick={onReconcile}
+              disabled={isReconciling}
+              title="Reconcile balance to computed value"
+              data-testid={`button-reconcile-${result.userId}`}
+            >
+              {isReconciling ? <Loader2 size={12} className="animate-spin" /> : <Wrench size={12} />}
+            </Button>
+          )}
+          {onView && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs"
+              onClick={onView}
+              disabled={isViewLoading}
+              title="View full profile"
+              data-testid={`button-view-${result.userId}`}
+            >
+              {isViewLoading ? <Loader2 size={12} className="animate-spin" /> : <User size={12} />}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -69,8 +159,8 @@ function ValidationCard({ result, onView }: { result: ValidationResult; onView?:
         </div>
       </div>
 
-      {isCritical && (
-        <div className="text-xs font-semibold text-red-700 bg-red-100 rounded-lg px-3 py-2">
+      {(isCritical || isWarning) && Math.abs(disc) > 0 && (
+        <div className={cn("text-xs font-semibold rounded-lg px-3 py-2", isCritical ? "text-red-700 bg-red-100" : "text-amber-700 bg-amber-100")}>
           ⚠ Discrepancy: Rs.{Math.abs(disc).toFixed(4)} {disc > 0 ? "(over-reported)" : "(under-reported)"}
         </div>
       )}
@@ -95,6 +185,17 @@ export function LedgerValidator() {
   const [singleResult, setSingleResult] = useState<ValidationResult | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+
+  // Drill-down into the full user profile (existing UserInspectorPanel), keyed
+  // off the ledger record's email since that's a small ValidationResult, not a
+  // full user object.
+  const [inspectedUser, setInspectedUser] = useState<any | null>(null);
+  const [isInspectorOpen, setIsInspectorOpen] = useState(false);
+  const [inspectingId, setInspectingId] = useState<string | null>(null);
+
+  // Reconcile confirmation flow
+  const [reconcileTarget, setReconcileTarget] = useState<ValidationResult | null>(null);
+  const [reconcileReason, setReconcileReason] = useState("");
 
   const validateMutation = useMutation({
     mutationFn: async (uid: string) => {
@@ -138,6 +239,63 @@ export function LedgerValidator() {
     scanMutation.mutate(scanResult.scanned);
   };
 
+  const handleView = async (result: ValidationResult) => {
+    if (!result.email) {
+      toast({ title: "Can't open profile", description: "This record has no email on file.", variant: "destructive" });
+      return;
+    }
+    setInspectingId(result.userId);
+    try {
+      const r = await apiRequest("GET", `/api/team/users?search=${encodeURIComponent(result.email)}&limit=5`);
+      const data = await r.json();
+      const users: any[] = data.users || [];
+      const match = users.find((u) => u.email?.toLowerCase() === result.email!.toLowerCase()) ?? users[0];
+      if (!match) {
+        toast({ title: "User not found", description: "Couldn't load the full profile for this account.", variant: "destructive" });
+        return;
+      }
+      setInspectedUser(match);
+      setIsInspectorOpen(true);
+    } catch (error) {
+      toast({ title: "Couldn't open profile", description: error instanceof Error ? error.message : "Lookup failed", variant: "destructive" });
+    } finally {
+      setInspectingId(null);
+    }
+  };
+
+  // Patches a reconciled result back into whichever piece of local state
+  // currently holds it, re-bucketing scan results between critical/warnings/
+  // cleared based on the freshly re-validated severity.
+  const applyReconciled = (updated: ValidationResult) => {
+    setSingleResult(prev => (prev && prev.userId === updated.userId ? updated : prev));
+    setScanResult(prev => {
+      if (!prev) return prev;
+      const stillCritical = updated.errors.length > 0;
+      const stillWarning = !stillCritical && updated.warnings.length > 0;
+      const nextCritical = prev.critical.filter(r => r.userId !== updated.userId);
+      const nextWarnings = prev.warnings.filter(r => r.userId !== updated.userId);
+      if (stillCritical) nextCritical.push(updated);
+      else if (stillWarning) nextWarnings.push(updated);
+      return { ...prev, critical: nextCritical, warnings: nextWarnings, flagged: nextCritical.length + nextWarnings.length };
+    });
+  };
+
+  const reconcileMutation = useMutation({
+    mutationFn: async ({ targetUserId, reason }: { targetUserId: string; reason: string }) => {
+      const r = await apiRequest("POST", `/api/admin/ledger/reconcile/${targetUserId}`, { reason });
+      return r.json() as Promise<{ user: any; validation: ValidationResult }>;
+    },
+    onSuccess: (data) => {
+      toast({ title: "Balance reconciled", description: `${data.validation.email ?? data.validation.userId} is now balanced.` });
+      applyReconciled(data.validation);
+      setReconcileTarget(null);
+      setReconcileReason("");
+    },
+    onError: (error: Error) => toast({ title: "Reconciliation failed", description: error.message, variant: "destructive" }),
+  });
+
+  const hasExportableResults = !!scanResult && ((scanResult.critical?.length ?? 0) + (scanResult.warnings?.length ?? 0) > 0);
+
   return (
     <div className="space-y-5">
       <div>
@@ -154,14 +312,21 @@ export function LedgerValidator() {
             value={userId}
             onChange={e => setUserId(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && userId.trim()) validateMutation.mutate(userId.trim()); }}
+            data-testid="input-ledger-user"
           />
-          <Button disabled={!userId.trim() || validateMutation.isPending} onClick={() => validateMutation.mutate(userId.trim())}>
+          <Button disabled={!userId.trim() || validateMutation.isPending} onClick={() => validateMutation.mutate(userId.trim())} data-testid="button-validate-user">
             <Search size={14} className="mr-1" />
             Validate
           </Button>
         </div>
         {singleResult && (
-          <ValidationCard result={singleResult} />
+          <ValidationCard
+            result={singleResult}
+            onView={() => handleView(singleResult)}
+            isViewLoading={inspectingId === singleResult.userId}
+            onReconcile={() => setReconcileTarget(singleResult)}
+            isReconciling={reconcileMutation.isPending && reconcileTarget?.userId === singleResult.userId}
+          />
         )}
       </div>
 
@@ -173,17 +338,29 @@ export function LedgerValidator() {
             <div className="text-xs text-zinc-400">Validate all active user balances. May take 10–30 seconds.</div>
           </div>
           <div className="flex gap-2">
+            {hasExportableResults && (
+              <Button variant="outline" className="h-9 text-xs" onClick={() => downloadScanCsv(scanResult!)} data-testid="button-export-ledger-csv">
+                <Download size={13} className="mr-1" />
+                Export CSV
+              </Button>
+            )}
             {scanResult && (
               <Button variant="ghost" className="h-8 w-8 p-0" onClick={() => setScanResult(null)} title="Clear">
                 <RotateCcw size={14} />
               </Button>
             )}
-            <Button onClick={handleScan} disabled={scanMutation.isPending}>
+            <Button onClick={handleScan} disabled={scanMutation.isPending} data-testid="button-run-scan">
               <Shield size={14} className="mr-1" />
               {scanMutation.isPending ? "Scanning…" : "Run Scan"}
             </Button>
           </div>
         </div>
+
+        {scanMutation.isPending && !scanResult && (
+          <div className="grid grid-cols-3 gap-2">
+            {[0, 1, 2].map(i => <div key={i} className="h-16 rounded-lg bg-zinc-100 animate-pulse" />)}
+          </div>
+        )}
 
         {scanResult && (
           <div className="space-y-3">
@@ -220,7 +397,16 @@ export function LedgerValidator() {
               <div>
                 <div className="text-xs font-bold text-red-700 mb-2 uppercase tracking-wide">⚠ Critical Discrepancies</div>
                 <div className="space-y-2">
-                  {scanResult.critical.map(r => <ValidationCard key={r.userId} result={r} />)}
+                  {scanResult.critical.map(r => (
+                    <ValidationCard
+                      key={r.userId}
+                      result={r}
+                      onView={() => handleView(r)}
+                      isViewLoading={inspectingId === r.userId}
+                      onReconcile={() => setReconcileTarget(r)}
+                      isReconciling={reconcileMutation.isPending && reconcileTarget?.userId === r.userId}
+                    />
+                  ))}
                 </div>
               </div>
             )}
@@ -230,7 +416,9 @@ export function LedgerValidator() {
               <div>
                 <div className="text-xs font-bold text-amber-600 mb-2 uppercase tracking-wide">Warnings</div>
                 <div className="space-y-2">
-                  {scanResult.warnings.map(r => <ValidationCard key={r.userId} result={r} />)}
+                  {scanResult.warnings.map(r => (
+                    <ValidationCard key={r.userId} result={r} onView={() => handleView(r)} isViewLoading={inspectingId === r.userId} />
+                  ))}
                 </div>
               </div>
             )}
@@ -244,6 +432,45 @@ export function LedgerValidator() {
           </div>
         )}
       </div>
+
+      <UserInspectorPanel user={inspectedUser} isOpen={isInspectorOpen} onClose={() => setIsInspectorOpen(false)} />
+
+      <Dialog open={!!reconcileTarget} onOpenChange={(open) => { if (!open) { setReconcileTarget(null); setReconcileReason(""); } }}>
+        <DialogContent className="max-w-md border border-zinc-200 bg-white rounded-2xl p-0 overflow-hidden shadow-xl">
+          <DialogHeader className="px-7 py-5 border-b border-zinc-100 bg-white">
+            <DialogTitle className="text-xl font-semibold text-red-500">Reconcile Balance</DialogTitle>
+            <DialogDescription className="text-zinc-400 text-xs mt-0.5">
+              {reconcileTarget?.email ?? reconcileTarget?.userId} — stored Rs.{reconcileTarget ? parseFloat(reconcileTarget.storedBalance).toFixed(2) : "0.00"} will be corrected
+              to the computed Rs.{reconcileTarget ? parseFloat(reconcileTarget.computedBalance).toFixed(2) : "0.00"}. The server re-validates live and applies the fix immediately.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="px-7 py-6 space-y-5">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest ml-1">Reason (required)</Label>
+              <Textarea
+                placeholder="e.g. Verified against transaction history — correcting rounding drift."
+                className="rounded-xl border border-zinc-300 focus:border-red-400 font-medium text-sm px-4 py-3 transition-all min-h-[80px]"
+                value={reconcileReason}
+                onChange={(e) => setReconcileReason(e.target.value)}
+                data-testid="input-reconcile-reason"
+              />
+            </div>
+          </div>
+          <DialogFooter className="px-7 py-5 bg-white border-t border-zinc-100 flex flex-col gap-2">
+            <Button
+              className="w-full h-11 bg-red-500 text-white font-semibold text-sm rounded-xl hover:bg-red-600 transition-all"
+              disabled={reconcileMutation.isPending || reconcileReason.trim().length < 5}
+              onClick={() => reconcileTarget && reconcileMutation.mutate({ targetUserId: reconcileTarget.userId, reason: reconcileReason.trim() })}
+              data-testid="button-confirm-reconcile"
+            >
+              {reconcileMutation.isPending ? <span className="flex items-center gap-1.5 justify-center"><Loader2 className="w-3.5 h-3.5 animate-spin" />Reconciling…</span> : "Apply Correction"}
+            </Button>
+            <button type="button" className="text-sm text-zinc-400 hover:text-zinc-600 transition-colors py-1" onClick={() => { setReconcileTarget(null); setReconcileReason(""); }}>
+              Cancel
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
