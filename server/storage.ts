@@ -6168,104 +6168,172 @@ export class DatabaseStorage implements IStorage {
     totalCommissionPaid: string;
     pendingCommission: string;
     thisWeekCommission: string;
+    lastWeekCommission: string;
     thisMonthCommission: string;
     avgCommissionPerReferral: string;
+    withdrawalFeeCommission: string;
+    earnEventCommission: string;
   }> {
     const now = new Date();
-    const weekAgo  = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000);
-    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const weekAgo     = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000);
+    const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const monthAgo    = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    // All-time aggregate
-    const [allTime] = await db
+    // Real referral relationships (users.referredBy) are the source of truth for
+    // "how many people has X referred" — NOT referral_commissions, which only has a
+    // row once a referred user's activity has actually generated a paid commission.
+    // Using the commission tables here undercounts referrers whose invitees haven't
+    // withdrawn / earned yet.
+    const [referralCountRow] = await db
       .select({
-        total:    sql<string>`COALESCE(SUM(${referralCommissions.commissionAmountPkr}), 0)`,
-        count:    sql<number>`COUNT(*)`,
-        referrers: sql<number>`COUNT(DISTINCT ${referralCommissions.referrerId})`,
-        invitees:  sql<number>`COUNT(DISTINCT ${referralCommissions.inviteeId})`,
+        total:  sql<number>`COUNT(*)`,
+        active: sql<number>`COUNT(*) FILTER (WHERE ${users.isActive})`,
       })
-      .from(referralCommissions);
+      .from(users)
+      .where(isNotNull(users.referredBy));
 
-    // Active referrers = referrers with ≥1 commission in last 30 days
-    const [activeRow] = await db
-      .select({ cnt: sql<number>`COUNT(DISTINCT ${referralCommissions.referrerId})` })
-      .from(referralCommissions)
-      .where(gte(referralCommissions.createdAt, monthAgo));
+    // Two commission channels feed referral earnings and both must be counted:
+    //  1) referral_commissions      — 1-tier share of the withdrawal fee (D.8)
+    //  2) referral_earn_commissions — 1% of gross on every earn event (Q1)
+    // Omitting either one under-reports real commission paid out.
+    const sumRange = async (from?: Date) => {
+      const [wd] = await db
+        .select({ total: sql<string>`COALESCE(SUM(${referralCommissions.commissionAmountPkr}), 0)` })
+        .from(referralCommissions)
+        .where(from ? gte(referralCommissions.createdAt, from) : sql`true`);
+      const [earn] = await db
+        .select({ total: sql<string>`COALESCE(SUM(${referralEarnCommissions.commissionPkr}), 0)` })
+        .from(referralEarnCommissions)
+        .where(from ? gte(referralEarnCommissions.createdAt, from) : sql`true`);
+      return { withdrawal: new Decimal(wd?.total ?? "0"), earn: new Decimal(earn?.total ?? "0") };
+    };
+    const rangeBetween = async (from: Date, to: Date) => {
+      const [wd] = await db
+        .select({ total: sql<string>`COALESCE(SUM(${referralCommissions.commissionAmountPkr}), 0)` })
+        .from(referralCommissions)
+        .where(and(gte(referralCommissions.createdAt, from), lt(referralCommissions.createdAt, to)));
+      const [earn] = await db
+        .select({ total: sql<string>`COALESCE(SUM(${referralEarnCommissions.commissionPkr}), 0)` })
+        .from(referralEarnCommissions)
+        .where(and(gte(referralEarnCommissions.createdAt, from), lt(referralEarnCommissions.createdAt, to)));
+      return new Decimal(wd?.total ?? "0").plus(new Decimal(earn?.total ?? "0"));
+    };
 
-    // This week
-    const [weekRow] = await db
-      .select({ total: sql<string>`COALESCE(SUM(${referralCommissions.commissionAmountPkr}), 0)` })
-      .from(referralCommissions)
-      .where(gte(referralCommissions.createdAt, weekAgo));
+    const [allTime, thisWeek, thisMonth, lastWeek] = await Promise.all([
+      sumRange(undefined),
+      sumRange(weekAgo),
+      sumRange(monthAgo),
+      rangeBetween(twoWeeksAgo, weekAgo),
+    ]);
 
-    // This month
-    const [monthRow] = await db
-      .select({ total: sql<string>`COALESCE(SUM(${referralCommissions.commissionAmountPkr}), 0)` })
-      .from(referralCommissions)
-      .where(gte(referralCommissions.createdAt, monthAgo));
-
-    const totalPaid  = new Decimal(allTime?.total ?? "0");
-    const referrers  = Number(allTime?.referrers) || 0;
-    const avgPerRef  = referrers > 0 ? totalPaid.div(referrers).toFixed(2) : "0.00";
+    const totalPaid   = allTime.withdrawal.plus(allTime.earn);
+    const totalReferrals = Number(referralCountRow?.total) || 0;
+    const avgPerRef   = totalReferrals > 0 ? totalPaid.div(totalReferrals).toFixed(2) : "0.00";
 
     return {
-      totalReferrals:        Number(allTime?.invitees) || 0,
-      activeReferrals:       Number(activeRow?.cnt)    || 0,
+      totalReferrals,
+      activeReferrals:       Number(referralCountRow?.active) || 0,
       totalCommissionPaid:   totalPaid.toFixed(2),
-      pendingCommission:     "0.00",          // commissions are auto-paid on withdrawal processing; no pending state
-      thisWeekCommission:    new Decimal(weekRow?.total  ?? "0").toFixed(2),
-      thisMonthCommission:   new Decimal(monthRow?.total ?? "0").toFixed(2),
+      // Commissions are credited synchronously (withdrawal approval / earn event) —
+      // there is no queued/pending state in the current architecture, so this is
+      // always "0.00" by design, not a bug. Kept for API-shape stability.
+      pendingCommission:     "0.00",
+      thisWeekCommission:    thisWeek.withdrawal.plus(thisWeek.earn).toFixed(2),
+      lastWeekCommission:    lastWeek.toFixed(2),
+      thisMonthCommission:   thisMonth.withdrawal.plus(thisMonth.earn).toFixed(2),
       avgCommissionPerReferral: avgPerRef,
+      withdrawalFeeCommission: allTime.withdrawal.toFixed(2),
+      earnEventCommission:     allTime.earn.toFixed(2),
     };
   }
 
   async adminGetReferralLeaderboard(limit = 20): Promise<any[]> {
     try {
-    const rows = await db
+    // Referral relationships (who actually referred whom) come from users.referredBy —
+    // this is the real "X referred, Y active" count, independent of whether any of
+    // those invitees have generated a commission yet (referral_commissions only has
+    // rows for invitees whose activity already paid out, which previously caused this
+    // leaderboard to under-report referralCount/activeCount for newer referrers).
+    const referralRows = await db
       .select({
-        userId:          referralCommissions.referrerId,
-        email:           users.email,
-        firstName:       users.firstName,
-        userRankTier:    users.userRankTier,
-        totalCommission: sql<string>`SUM(${referralCommissions.commissionAmountPkr})`,
-        referralCount:   sql<number>`COUNT(DISTINCT ${referralCommissions.inviteeId})`,
-        lastReferralAt:  sql<string>`MAX(${referralCommissions.createdAt})`,
+        referrerId:    users.referredBy,
+        referralCount: sql<number>`COUNT(*)`,
+        activeCount:   sql<number>`COUNT(*) FILTER (WHERE ${users.isActive})`,
       })
-      .from(referralCommissions)
-      .innerJoin(users, eq(users.id, referralCommissions.referrerId))
-      .groupBy(
-        referralCommissions.referrerId,
-        users.email,
-        users.firstName,
-        users.userRankTier,
-      )
-      .orderBy(desc(sql`SUM(${referralCommissions.commissionAmountPkr})`))
-      .limit(limit);
+      .from(users)
+      .where(isNotNull(users.referredBy))
+      .groupBy(users.referredBy);
 
-    // activeCount: how many of each referrer's invitees are still active users
-    // Computed per row via a correlated count to keep the main query clean.
-    if (rows.length === 0) return [];
+    if (referralRows.length === 0) return [];
 
-    const activeRows = await db
-      .select({
-        referrerId: referralCommissions.referrerId,
-        activeCount: sql<number>`COUNT(DISTINCT ${referralCommissions.inviteeId})`,
-      })
-      .from(referralCommissions)
-      .innerJoin(users, eq(users.id, referralCommissions.inviteeId))
-      .where(and(
-        inArray(referralCommissions.referrerId, rows.map(r => r.userId)),
-        eq(users.isActive, true),
-      ))
-      .groupBy(referralCommissions.referrerId);
+    // Both commission channels must be combined — withdrawal-fee share (D.8) and
+    // per-earn-event commission (Q1) — or total commission understates real payouts.
+    const [withdrawalRows, earnRows] = await Promise.all([
+      db.select({
+          referrerId: referralCommissions.referrerId,
+          total:      sql<string>`SUM(${referralCommissions.commissionAmountPkr})`,
+          lastAt:     sql<string>`MAX(${referralCommissions.createdAt})`,
+        })
+        .from(referralCommissions)
+        .groupBy(referralCommissions.referrerId),
+      db.select({
+          referrerId: referralEarnCommissions.referrerId,
+          total:      sql<string>`SUM(${referralEarnCommissions.commissionPkr})`,
+          lastAt:     sql<string>`MAX(${referralEarnCommissions.createdAt})`,
+        })
+        .from(referralEarnCommissions)
+        .groupBy(referralEarnCommissions.referrerId),
+    ]);
 
-    const activeMap = new Map(activeRows.map(r => [r.referrerId, Number(r.activeCount)]));
+    const withdrawalMap = new Map(withdrawalRows.map(r => [r.referrerId, r]));
+    const earnMap = new Map(earnRows.map(r => [r.referrerId, r]));
 
-    return rows.map(r => ({
-      ...r,
-      totalCommission: new Decimal(r.totalCommission ?? "0").toFixed(2),
-      referralCount:   Number(r.referralCount) || 0,
-      activeCount:     activeMap.get(r.userId) ?? 0,
-    }));
+    const merged = referralRows.map(r => {
+      const wd = withdrawalMap.get(r.referrerId as string);
+      const earn = earnMap.get(r.referrerId as string);
+      const totalCommission = new Decimal(wd?.total ?? "0").plus(new Decimal(earn?.total ?? "0"));
+      const lastAts = [wd?.lastAt, earn?.lastAt].filter(Boolean) as string[];
+      const lastReferralAt = lastAts.length
+        ? lastAts.reduce((a, b) => (new Date(a) > new Date(b) ? a : b))
+        : null;
+      return {
+        userId: r.referrerId as string,
+        referralCount: Number(r.referralCount) || 0,
+        activeCount: Number(r.activeCount) || 0,
+        totalCommission,
+        lastReferralAt,
+      };
+    });
+
+    // Sort by total commission earned (the stated sort order), then by referral
+    // count so unmonetized-but-active referrers still surface in a sensible order.
+    merged.sort((a, b) => {
+      const byCommission = b.totalCommission.comparedTo(a.totalCommission);
+      return byCommission !== 0 ? byCommission : b.referralCount - a.referralCount;
+    });
+
+    const top = merged.slice(0, limit);
+    if (top.length === 0) return [];
+
+    const referrerUsers = await db
+      .select({ id: users.id, email: users.email, firstName: users.firstName, userRankTier: users.userRankTier })
+      .from(users)
+      .where(inArray(users.id, top.map(r => r.userId)));
+    const userMap = new Map(referrerUsers.map(u => [u.id, u]));
+
+    return top.map(r => {
+      const u = userMap.get(r.userId);
+      return {
+        userId: r.userId,
+        email: u?.email ?? "",
+        firstName: u?.firstName ?? "",
+        userRankTier: u?.userRankTier ?? "E-Rank",
+        totalCommission: r.totalCommission.toFixed(2),
+        referralCount: r.referralCount,
+        activeCount: r.activeCount,
+        lastReferralAt: r.lastReferralAt,
+      };
+    });
     } catch (err) {
       logger.error({ err }, "adminGetReferralLeaderboard error");
       return [];

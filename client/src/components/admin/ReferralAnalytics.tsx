@@ -18,8 +18,11 @@ interface ReferralStats {
   totalCommissionPaid: string;
   pendingCommission: string;
   thisWeekCommission: string;
+  lastWeekCommission: string;
   thisMonthCommission: string;
   avgCommissionPerReferral: string;
+  withdrawalFeeCommission: string;
+  earnEventCommission: string;
 }
 
 interface ReferralLeaderboardEntry {
@@ -51,14 +54,40 @@ export function ReferralAnalytics() {
     },
   });
 
+  // Week-over-week commission trend. Both values come straight from the DB
+  // (no client-side derivation of money), we only compute the display delta.
+  const thisWeekNum = stats ? parseFloat(stats.thisWeekCommission || "0") : 0;
+  const lastWeekNum = stats ? parseFloat(stats.lastWeekCommission || "0") : 0;
+  const weekGrowthPct = lastWeekNum > 0
+    ? Math.round(((thisWeekNum - lastWeekNum) / lastWeekNum) * 1000) / 10
+    : (thisWeekNum > 0 ? 100 : 0);
+
   const statCards = stats ? [
     { label: "Total Referrals (L1)",   value: stats.totalReferrals,                 icon: <Users size={18} />,      color: "text-blue-600" },
     { label: "Active Referrals (L1)",  value: stats.activeReferrals,                icon: <TrendingUp size={18} />, color: "text-emerald-600" },
     { label: "Commission Paid",        value: `Rs.${parseFloat(stats.totalCommissionPaid || "0").toFixed(2)}`, icon: <DollarSign size={18} />, color: "text-orange-600" },
-    { label: "Pending Commission",     value: `Rs.${parseFloat(stats.pendingCommission || "0").toFixed(2)}`,  icon: <ChevronUp size={18} />,  color: "text-purple-600" },
-    { label: "This Week",              value: `Rs.${parseFloat(stats.thisWeekCommission || "0").toFixed(2)}`, icon: <Award size={18} />,      color: "text-zinc-700" },
+    { label: "This Month",             value: `Rs.${parseFloat(stats.thisMonthCommission || "0").toFixed(2)}`, icon: <ChevronUp size={18} />,  color: "text-purple-600" },
+    {
+      label: "This Week",
+      value: `Rs.${thisWeekNum.toFixed(2)}`,
+      icon: <Award size={18} />,
+      color: "text-zinc-700",
+      badge: lastWeekNum > 0 || thisWeekNum > 0
+        ? `${weekGrowthPct >= 0 ? "+" : ""}${weekGrowthPct}% vs last week`
+        : undefined,
+      badgeColor: weekGrowthPct >= 0 ? "text-emerald-600" : "text-red-500",
+    },
     { label: "Avg / Referral",         value: `Rs.${parseFloat(stats.avgCommissionPerReferral || "0").toFixed(2)}`, icon: <Users size={18} />, color: "text-zinc-500" },
   ] : [];
+
+  // Commission source breakdown — surfaces the two payout channels separately
+  // (withdrawal-fee share vs. per-earn-event commission) so the team can see
+  // which channel actually drives referral revenue.
+  const withdrawalShare = stats ? parseFloat(stats.withdrawalFeeCommission || "0") : 0;
+  const earnShare = stats ? parseFloat(stats.earnEventCommission || "0") : 0;
+  const sourceTotal = withdrawalShare + earnShare;
+  const withdrawalPct = sourceTotal > 0 ? Math.round((withdrawalShare / sourceTotal) * 100) : 0;
+  const earnPct = sourceTotal > 0 ? 100 - withdrawalPct : 0;
 
   return (
     <div className="space-y-5">
@@ -74,9 +103,33 @@ export function ReferralAnalytics() {
             <div className={cn("mb-1", s.color)}>{s.icon}</div>
             <div className="text-xl font-black">{s.value}</div>
             <div className="text-[11px] text-zinc-400">{s.label}</div>
+            {"badge" in s && s.badge ? (
+              <div className={cn("text-[10px] font-semibold mt-1", (s as any).badgeColor)}>{s.badge}</div>
+            ) : null}
           </div>
         ))}
       </div>
+
+      {/* Commission source breakdown — new: shows which payout channel drives revenue */}
+      {stats && sourceTotal > 0 && (
+        <div className="rounded-xl border border-zinc-200 bg-white p-3">
+          <div className="text-sm font-bold mb-2">Commission Sources</div>
+          <div className="flex h-2 rounded-full overflow-hidden bg-zinc-100">
+            <div className="bg-orange-500" style={{ width: `${withdrawalPct}%` }} />
+            <div className="bg-blue-500" style={{ width: `${earnPct}%` }} />
+          </div>
+          <div className="flex justify-between mt-2 text-[11px] text-zinc-500">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-orange-500 inline-block" />
+              Withdrawal fee share — Rs.{withdrawalShare.toFixed(2)} ({withdrawalPct}%)
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+              Per-earn commission — Rs.{earnShare.toFixed(2)} ({earnPct}%)
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Leaderboard */}
       <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden">
