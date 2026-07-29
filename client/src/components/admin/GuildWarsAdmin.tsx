@@ -5,6 +5,8 @@
  */
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
+import Decimal from "decimal.js";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -25,13 +27,66 @@ const STATUS_COLORS: Record<string, string> = {
   completed: "bg-emerald-100 text-emerald-700 border-emerald-200",
   cancelled: "bg-zinc-100 text-zinc-500 border-zinc-200",
 };
+const STATUS_FALLBACK_COLOR = "bg-zinc-100 text-zinc-500 border-zinc-200";
+
+interface AdminSeason {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  prizePoolPkr: string | null;
+  status: string;
+}
+
+interface AdminWar {
+  id: string;
+  seasonId: string | null;
+  challengerGuildId: string;
+  challengedGuildId: string;
+  challengerGuildName: string | null;
+  challengedGuildName: string | null;
+  winnerGuildName: string | null;
+  winnerId: string | null;
+  status: string;
+  createdAt: string;
+}
+
+interface AdminGuildOption {
+  id: string;
+  name: string;
+}
+
+// apiRequest() throws `Error("<status>: <raw response body>")`. Admin endpoints
+// return `{ message, errors? }` JSON on validation failure — parse it out so the
+// toast shows the actual problem instead of a raw JSON blob.
+function getErrorMessage(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  const body = raw.slice(raw.indexOf(": ") + 2);
+  try {
+    const parsed = JSON.parse(body);
+    const fieldErrors = parsed?.errors?.fieldErrors as Record<string, string[]> | undefined;
+    const firstField = fieldErrors && Object.entries(fieldErrors).find(([, msgs]) => msgs?.length);
+    if (firstField) return `${firstField[0]}: ${firstField[1][0]}`;
+    if (parsed?.message) return parsed.message as string;
+  } catch {
+    // body wasn't JSON — fall through to the raw message
+  }
+  return raw;
+}
+
+// Season/war dates are calendar-day boundaries built from `<input type="date">`
+// values (UTC midnight), not real moments in time — always render them in UTC
+// so every admin sees the same calendar day regardless of browser timezone.
+function formatCalendarDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { timeZone: "UTC" });
+}
 
 export function GuildWarsAdmin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // ── Seasons ──────────────────────────────────────────────────────────────
-  const { data: seasonsData, isLoading: seasonsLoading } = useQuery<any>({
+  const { data: seasonsData, isLoading: seasonsLoading } = useQuery<{ seasons: AdminSeason[]; activeSeason: AdminSeason | null }>({
     queryKey: ["/api/admin/guild-wars/seasons"],
     queryFn: async () => {
       const r = await apiRequest("GET", "/api/admin/guild-wars/seasons");
@@ -40,7 +95,7 @@ export function GuildWarsAdmin() {
   });
 
   // ── Wars ─────────────────────────────────────────────────────────────────
-  const { data: warsData, isLoading: warsLoading } = useQuery<any>({
+  const { data: warsData, isLoading: warsLoading } = useQuery<{ wars: AdminWar[] }>({
     queryKey: ["/api/admin/guild-wars/wars"],
     queryFn: async () => {
       const r = await apiRequest("GET", "/api/admin/guild-wars/wars");
@@ -49,7 +104,7 @@ export function GuildWarsAdmin() {
   });
 
   // ── Guild list (for creating wars) ───────────────────────────────────────
-  const { data: guildsData } = useQuery<any>({
+  const { data: guildsData } = useQuery<{ guilds: AdminGuildOption[]; total: number }>({
     queryKey: ["/api/admin/guilds", "", "active"],
     queryFn: async () => {
       const r = await apiRequest("GET", "/api/admin/guilds?status=active");
@@ -72,6 +127,11 @@ export function GuildWarsAdmin() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/admin/guild-wars/seasons"] });
     queryClient.invalidateQueries({ queryKey: ["/api/admin/guild-wars/wars"] });
+    // Member/captain-facing views (e.g. GuildWarsPanel) key their war queries as
+    // ["/api/guilds", guildId, "war", ...]. Invalidate the whole "/api/guilds"
+    // prefix so their war status refreshes right after an admin action instead
+    // of staying stale until some unrelated refetch.
+    queryClient.invalidateQueries({ queryKey: ["/api/guilds"] });
   };
 
   const createSeasonMutation = useMutation({
@@ -90,7 +150,7 @@ export function GuildWarsAdmin() {
       setSeasonForm({ name: "", startDate: "", endDate: "", prizePoolPkr: "" });
       invalidate();
     },
-    onError: (err: any) => toast({ title: "Failed", description: err?.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Failed", description: getErrorMessage(err), variant: "destructive" }),
   });
 
   const activateSeasonMutation = useMutation({
@@ -102,40 +162,43 @@ export function GuildWarsAdmin() {
       toast({ title: "Season activated" });
       invalidate();
     },
-    onError: (err: any) => toast({ title: "Failed", description: err?.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Failed", description: getErrorMessage(err), variant: "destructive" }),
   });
 
   const createWarMutation = useMutation({
     mutationFn: async (data: typeof warForm) => {
+      // seasonId/guild1Id/guild2Id are the only fields the API accepts — it sets
+      // status "active" and startedAt immediately (admin wars skip the member
+      // voting flow entirely; see the notice below the form).
       const r = await apiRequest("POST", "/api/admin/guild-wars/wars", {
         seasonId: data.seasonId,
         guild1Id: data.guild1Id,
         guild2Id: data.guild2Id,
-        startDate: new Date().toISOString(),
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        prizePoolPkr: "0",
       });
       return r.json();
     },
     onSuccess: () => {
-      toast({ title: "War created", description: "Both guilds must approve before it becomes active." });
+      toast({ title: "War created", description: "The war is active immediately — no member approval needed for admin-created matchups." });
       setShowWarModal(false);
       setWarForm({ seasonId: "", guild1Id: "", guild2Id: "" });
       invalidate();
     },
-    onError: (err: any) => toast({ title: "Failed", description: err?.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Failed", description: getErrorMessage(err), variant: "destructive" }),
   });
 
   const resolveWarMutation = useMutation({
     mutationFn: async (id: string) => {
       const r = await apiRequest("PATCH", `/api/admin/guild-wars/wars/${id}/resolve`, {});
-      return r.json();
+      return r.json() as Promise<{ winnerId: string | null; isDraw: boolean; winnerGuildName: string | null }>;
     },
-    onSuccess: (data: any) => {
-      toast({ title: "War resolved", description: `Winner: ${data?.war?.winnerGuildName ?? "N/A"}` });
+    onSuccess: (data) => {
+      toast({
+        title: "War resolved",
+        description: data.isDraw ? "The war ended in a draw." : `Winner: ${data.winnerGuildName ?? "N/A"}`,
+      });
       invalidate();
     },
-    onError: (err: any) => toast({ title: "Failed", description: err?.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Failed", description: getErrorMessage(err), variant: "destructive" }),
   });
 
   const seasons = seasonsData?.seasons ?? [];
@@ -176,8 +239,8 @@ export function GuildWarsAdmin() {
           <div className="flex-1">
             <div className="font-black text-sm text-blue-800">Active Season: {activeSeason.name}</div>
             <div className="text-xs text-blue-600 mt-0.5">
-              {new Date(activeSeason.startDate).toLocaleDateString()} — {new Date(activeSeason.endDate).toLocaleDateString()}
-              {activeSeason.prizePoolPkr && ` · Prize Pool: Rs ${parseFloat(activeSeason.prizePoolPkr).toFixed(0)}`}
+              {formatCalendarDate(activeSeason.startDate)} — {formatCalendarDate(activeSeason.endDate)}
+              {activeSeason.prizePoolPkr && ` · Prize Pool: Rs. ${new Decimal(activeSeason.prizePoolPkr).toFixed(2)}`}
             </div>
           </div>
           <Badge className="bg-blue-600 text-white border-0 font-black">LIVE</Badge>
@@ -198,7 +261,7 @@ export function GuildWarsAdmin() {
           </div>
         ) : (
           <div className="space-y-2">
-            {seasons.map((s: any) => {
+            {seasons.map((s: AdminSeason) => {
               const isActive = activeSeason?.id === s.id;
               return (
                 <div key={s.id} className={cn(
@@ -212,8 +275,8 @@ export function GuildWarsAdmin() {
                       {s.status === "completed" && <Badge variant="outline" className="text-zinc-400 text-[10px]">COMPLETED</Badge>}
                     </div>
                     <div className="text-xs text-zinc-400 mt-0.5">
-                      {new Date(s.startDate).toLocaleDateString()} — {new Date(s.endDate).toLocaleDateString()}
-                      {s.prizePoolPkr && ` · Pool: Rs ${parseFloat(s.prizePoolPkr).toFixed(0)}`}
+                      {formatCalendarDate(s.startDate)} — {formatCalendarDate(s.endDate)}
+                      {s.prizePoolPkr && ` · Pool: Rs. ${new Decimal(s.prizePoolPkr).toFixed(2)}`}
                     </div>
                   </div>
                   {!isActive && s.status !== "completed" && (
@@ -248,7 +311,7 @@ export function GuildWarsAdmin() {
           </div>
         ) : (
           <div className="space-y-2">
-            {wars.map((w: any) => (
+            {wars.map((w: AdminWar) => (
               <div key={w.id} className="rounded-xl border-[1.5px] border-[#111] bg-white p-4">
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex-1 min-w-0">
@@ -258,7 +321,7 @@ export function GuildWarsAdmin() {
                        <span className="font-black text-sm">{w.challengedGuildName ?? w.challengedGuildId?.slice(0,8) ?? "Guild B"}</span>
                       <Badge
                         variant="outline"
-                        className={cn("text-[10px] font-black", STATUS_COLORS[w.status] ?? "bg-zinc-100 text-zinc-500")}
+                        className={cn("text-[10px] font-black", STATUS_COLORS[w.status] ?? STATUS_FALLBACK_COLOR)}
                       >
                         {w.status?.replace(/_/g, " ").toUpperCase()}
                       </Badge>
@@ -354,7 +417,7 @@ export function GuildWarsAdmin() {
                 onChange={e => setWarForm(p => ({ ...p, seasonId: e.target.value }))}
               >
                 <option value="">— Select a season —</option>
-                {seasons.filter((s: any) => s.status !== "completed").map((s: any) => (
+                {seasons.filter((s: AdminSeason) => s.status !== "completed").map((s: AdminSeason) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </select>
@@ -367,7 +430,7 @@ export function GuildWarsAdmin() {
                 onChange={e => setWarForm(p => ({ ...p, guild1Id: e.target.value }))}
               >
                 <option value="">— Select Guild A —</option>
-                {guilds.filter((g: any) => g.id !== warForm.guild2Id).map((g: any) => (
+                {guilds.filter((g: AdminGuildOption) => g.id !== warForm.guild2Id).map((g: AdminGuildOption) => (
                   <option key={g.id} value={g.id}>{g.name}</option>
                 ))}
               </select>
@@ -380,13 +443,13 @@ export function GuildWarsAdmin() {
                 onChange={e => setWarForm(p => ({ ...p, guild2Id: e.target.value }))}
               >
                 <option value="">— Select Guild B —</option>
-                {guilds.filter((g: any) => g.id !== warForm.guild1Id).map((g: any) => (
+                {guilds.filter((g: AdminGuildOption) => g.id !== warForm.guild1Id).map((g: AdminGuildOption) => (
                   <option key={g.id} value={g.id}>{g.name}</option>
                 ))}
               </select>
             </div>
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700">
-              ⚔️ Both guilds must vote to approve before the war becomes active. Once active, the first guild to complete their weekly target wins.
+              ⚔️ Admin-created wars go active immediately — no member voting required. An admin must resolve the war manually; whichever guild has the higher score at that point wins the weekly bonus pool.
             </div>
           </div>
           <DialogFooter className="gap-2">
@@ -404,14 +467,4 @@ export function GuildWarsAdmin() {
       </Dialog>
     </div>
   );
-}
-
-function formatDistanceToNow(date: Date, opts?: { addSuffix?: boolean }) {
-  const ms = Date.now() - date.getTime();
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  let str = days > 0 ? `${days}d` : hours > 0 ? `${hours}h` : minutes > 0 ? `${minutes}m` : "just now";
-  return opts?.addSuffix && str !== "just now" ? `${str} ago` : str;
 }
