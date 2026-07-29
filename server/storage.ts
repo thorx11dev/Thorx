@@ -638,18 +638,13 @@ export interface IStorage {
 // Only userRankTier (E-Rank → S-Rank, PS-based) is used going forward.
 export const RANK_NAMES: string[] = [];
 
-export class DatabaseStorage implements IStorage {
-  /** Epoch-ms timestamp of the last successful leaderboard cache refresh. */
-  private _leaderboardLastRefreshedMs = 0;
-
-  constructor() {
-    this.bootstrapConfig().catch(err => {
-      logger.error({ err }, "Critical: Failed to bootstrap system configuration");
-    });
-  }
-
-  private async bootstrapConfig() {
-    const defaults = [
+// Canonical system_config seed list — single source of truth for both the
+// boot-time seeder (below) and the admin PATCH route's known-key check
+// (routes.ts `/api/admin/config/:key`). Ranks & Engine Config audit
+// (2026-07-29): several admin panels previously edited key names that did
+// not match any of these entries, so saves silently created orphan rows
+// that no engine ever read. Any admin UI must use one of these exact keys.
+export const SYSTEM_CONFIG_DEFAULTS = [
       { key: "MIN_PAYOUT", value: 100, description: "Minimum PKR required for withdrawal" },
       { key: "WITHDRAWAL_FEE_PCT", value: 15, description: "Total percentage fee deducted from every payout" },
       { key: "REFERRAL_FEE_SHARE_PCT", value: 50, description: "Share of the withdrawal fee (above) carved out to the withdrawing user's direct referrer; the rest stays with the platform" },
@@ -680,17 +675,22 @@ export class DatabaseStorage implements IStorage {
         description: "Waterfall priority list for CPA Task Providers" 
       },
       // ── THORX v3 — Engine Splits (Part J) ────────────────────────────────
-      { key: "ENGINE_A_THORX_CUT_PCT", value: 40, description: "Engine A (video ads): Thorx profit cut %" },
-      { key: "ENGINE_A_USER_CUT_PCT", value: 60, description: "Engine A: user payout % (100 - cut)" },
-      { key: "ENGINE_B_THORX_CUT_PCT", value: 40, description: "Engine B (CPA offers): Thorx profit cut %" },
-      { key: "ENGINE_B_USER_CUT_PCT", value: 60, description: "Engine B: user payout %" },
+      // Note: Engine C never pays the user an immediate PKR share (100% of the
+      // gross is split between Thorx cut / guild pool / bonus pool below), so
+      // there is no "ENGINE_C_USER_CUT_PCT" — deliberately omitted (Ranks &
+      // Engine Config audit, 2026-07-29: a prior seeded copy of that key, plus
+      // ENGINE_A/B_USER_CUT_PCT, were dead — never read by recordEarnEvent,
+      // which derives the user cut as 100 - thorxCutPct instead).
+      { key: "ENGINE_A_THORX_CUT_PCT", value: 40, description: "Engine A (video ads): Thorx profit cut % (user keeps 100 - this)" },
+      { key: "ENGINE_B_THORX_CUT_PCT", value: 40, description: "Engine B (CPA offers): Thorx profit cut % (user keeps 100 - this)" },
       { key: "ENGINE_C_THORX_CUT_PCT", value: 15, description: "Engine C (guild tasks): Thorx direct profit cut %" },
       { key: "ENGINE_C_GUILD_POOL_PCT", value: 80, description: "Engine C: % locked in the guild weekly bonus pool (distributed Sunday)" },
       { key: "ENGINE_C_BONUS_PCT", value: 5, description: "Engine C: % added to bonus pool — paid to guild on target hit, otherwise goes to treasury" },
-      { key: "ENGINE_C_USER_CUT_PCT", value: 0, description: "Engine C: user immediate payout % (0 — all PKR goes to pool, distributed Sunday)" },
       // ── Thorx Card ────────────────────────────────────────────────────────
-      { key: "CARD_VARIANCE_MIN", value: 0.80, description: "Thorx Card random variance lower bound" },
-      { key: "CARD_VARIANCE_MAX", value: 1.20, description: "Thorx Card random variance upper bound" },
+      // Base variance bounds are derived per-engine from ENGINE_{A,B,C}_ILLUSION_VARIANCE_PCT
+      // above (min = 1 - pct/100, max = 1 + pct/100) — there is no separate global
+      // CARD_VARIANCE_MIN/MAX; a previously-seeded pair of those keys was dead
+      // (never read by drawThorxCard's caller) and has been removed.
       { key: "A_RANK_CARD_BONUS_PCT", value: 5, description: "A-Rank: expand card variance bounds by ±N%" },
       { key: "S_RANK_CARD_BONUS_PCT", value: 10, description: "S-Rank: expand card variance bounds by ±N%" },
       // ── PS System ─────────────────────────────────────────────────────────
@@ -760,7 +760,24 @@ export class DatabaseStorage implements IStorage {
         ]),
         description: "JSON array of ad inventory items {id,reward,duration,type,label}; admin-editable at runtime",
       },
-    ];
+    ] as const;
+
+/** Fast lookup set built once from {@link SYSTEM_CONFIG_DEFAULTS} — used by the
+ * admin config PATCH route to flag keys that don't match any known setting. */
+export const KNOWN_SYSTEM_CONFIG_KEYS: ReadonlySet<string> = new Set(SYSTEM_CONFIG_DEFAULTS.map(d => d.key));
+
+export class DatabaseStorage implements IStorage {
+  /** Epoch-ms timestamp of the last successful leaderboard cache refresh. */
+  private _leaderboardLastRefreshedMs = 0;
+
+  constructor() {
+    this.bootstrapConfig().catch(err => {
+      logger.error({ err }, "Critical: Failed to bootstrap system configuration");
+    });
+  }
+
+  private async bootstrapConfig() {
+    const defaults = SYSTEM_CONFIG_DEFAULTS;
 
     // R-18: Single bulk upsert — only inserts keys that don't already exist.
     // Replaces 57 sequential read+insert pairs (114 round-trips) with one query.

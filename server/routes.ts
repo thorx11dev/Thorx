@@ -4,7 +4,7 @@ import Decimal from "decimal.js";
 import crypto from "crypto";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { storage } from "./storage";
+import { storage, KNOWN_SYSTEM_CONFIG_KEYS } from "./storage";
 import { pool, db } from "./db";
 import { initRealtime, broadcastUserUpdated, broadcastTeamRefresh, broadcastGuildMessage, broadcastGuildEvent, broadcastToUser, closeUserSockets } from "./realtime";
 import { insertRegistrationSchema, insertUserSchema, insertWithdrawalSchema, users, teamKeys, adViews, systemConfig, weeklyTasks, auditLogs, insertHilltopAdsConfigSchema, insertHilltopAdsZoneSchema, passwordResetTokens, insertEngineBTaskSchema, engineBRecords, guildCreationRequests, guildMembers, guildProfiles, guildWars, guilds, captainMessages } from "@shared/schema";
@@ -533,7 +533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         value: z.union([z.string(), z.number(), z.boolean(), z.array(z.unknown())]),
       }).parse(req.body);
       const config = await storage.updateSystemConfig(req.params.key, value, getThorxPrincipalId(req) as string);
-      
+
       // Audit log for critical system change
       await storage.createAuditLog({
         adminId: getThorxPrincipalId(req) as string,
@@ -544,7 +544,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ipAddress: req.ip || "unknown"
       });
 
-      res.json({ success: true, config });
+      // Ranks & Engine Config audit (2026-07-29): several admin panels used to
+      // save keys that no engine ever reads (e.g. PS_THRESHOLD_E, ENGINE_A_USER_SPLIT).
+      // Those saves succeeded silently — an admin had no way to tell the value
+      // was going nowhere. Surface a flag here so any admin UI can warn instead
+      // of showing a plain "Saved" for a key nothing consumes.
+      const isKnownKey = KNOWN_SYSTEM_CONFIG_KEYS.has(req.params.key);
+      if (!isKnownKey) {
+        logger.warn({ key: req.params.key }, "[AdminConfig] PATCH for a key not in the known system_config list — verify a server module actually reads it.");
+      }
+
+      res.json({ success: true, config, isKnownKey });
     } catch (error) {
       res.status(500).json({ message: "Failed to update system configuration" });
     }

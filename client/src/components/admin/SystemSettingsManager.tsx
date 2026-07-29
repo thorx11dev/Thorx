@@ -125,13 +125,19 @@ export function SystemSettingsManager() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { label: "Engine A — Video Ads", cutKey: "ENGINE_A_THORX_CUT_PCT", min: 20, max: 70, color: "#f97316" },
-            { label: "Engine B — CPA Offers", cutKey: "ENGINE_B_THORX_CUT_PCT", min: 20, max: 70, color: "#7c3aed" },
-            { label: "Engine C — Guild Tasks", cutKey: "ENGINE_C_THORX_CUT_PCT", min: 10, max: 40, color: "#16a34a" },
-          ].map(({ label, cutKey, min, max, color }) => {
-            const cut = Number(localConfigs[cutKey] ?? (cutKey === "ENGINE_C_THORX_CUT_PCT" ? 20 : 40));
-            const pool = cutKey === "ENGINE_C_THORX_CUT_PCT" ? Number(localConfigs["ENGINE_C_POOL_PCT"] ?? 35) : 0;
-            const userGets = 100 - cut - pool;
+            { label: "Engine A — Video Ads", cutKey: "ENGINE_A_THORX_CUT_PCT", min: 20, max: 70, color: "#f97316", isEngineC: false },
+            { label: "Engine B — CPA Offers", cutKey: "ENGINE_B_THORX_CUT_PCT", min: 20, max: 70, color: "#7c3aed", isEngineC: false },
+            { label: "Engine C — Guild Tasks", cutKey: "ENGINE_C_THORX_CUT_PCT", min: 10, max: 40, color: "#16a34a", isEngineC: true },
+          ].map(({ label, cutKey, min, max, color, isEngineC }) => {
+            const cut = Number(localConfigs[cutKey] ?? (isEngineC ? 15 : 40));
+            // Engine C never pays the user an immediate PKR share — 100% of gross
+            // is split between Thorx cut / guild pool / bonus pool (paid Sunday).
+            // ENGINE_C_GUILD_POOL_PCT and ENGINE_C_BONUS_PCT are the real keys
+            // read by server/storage.ts recordEarnEvent() (the old "ENGINE_C_POOL_PCT"
+            // key here never matched anything the engine reads).
+            const pool = isEngineC ? Number(localConfigs["ENGINE_C_GUILD_POOL_PCT"] ?? 80) : 0;
+            const bonus = isEngineC ? Number(localConfigs["ENGINE_C_BONUS_PCT"] ?? 5) : 0;
+            const userGets = isEngineC ? 0 : 100 - cut;
             return (
               <div key={cutKey} className="p-4 bg-white border-[1.5px] border-[#111]/10 rounded-2xl space-y-3">
                 <div className="text-[10px] font-black uppercase tracking-widest" style={{ color }}>{label}</div>
@@ -145,23 +151,45 @@ export function SystemSettingsManager() {
                     style={{ accentColor: color }}
                   />
                 </div>
-                {cutKey === "ENGINE_C_THORX_CUT_PCT" && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] font-bold text-zinc-500">
-                      <span>Guild Pool</span><span className="font-black text-[#111]">{pool}%</span>
+                {isEngineC && (
+                  <>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[10px] font-bold text-zinc-500">
+                        <span>Guild Pool (Sunday payout)</span><span className="font-black text-[#111]">{pool}%</span>
+                      </div>
+                      <input type="range" min={20} max={90} value={pool}
+                        onChange={e => updateValue("ENGINE_C_GUILD_POOL_PCT", parseInt(e.target.value))}
+                        className="w-full h-2 rounded-full cursor-pointer"
+                        style={{ accentColor: color }}
+                      />
                     </div>
-                    <input type="range" min={20} max={50} value={pool}
-                      onChange={e => updateValue("ENGINE_C_POOL_PCT", parseInt(e.target.value))}
-                      className="w-full h-2 rounded-full cursor-pointer"
-                      style={{ accentColor: color }}
-                    />
-                  </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[10px] font-bold text-zinc-500">
+                        <span>Bonus Pool (on target hit)</span><span className="font-black text-[#111]">{bonus}%</span>
+                      </div>
+                      <input type="range" min={0} max={20} value={bonus}
+                        onChange={e => updateValue("ENGINE_C_BONUS_PCT", parseInt(e.target.value))}
+                        className="w-full h-2 rounded-full cursor-pointer"
+                        style={{ accentColor: color }}
+                      />
+                    </div>
+                  </>
                 )}
-                <div className="text-[10px] font-bold text-zinc-400">User Gets: <span className="font-black text-emerald-600">{userGets}%</span></div>
+                <div className="text-[10px] font-bold text-zinc-400">
+                  {isEngineC
+                    ? <>Immediate User Share: <span className="font-black text-zinc-500">0%</span> (locked into pool, distributed Sunday)</>
+                    : <>User Gets: <span className="font-black text-emerald-600">{userGets}%</span></>}
+                </div>
+                {isEngineC && cut + pool + bonus !== 100 && (
+                  <div className="text-[10px] font-bold text-amber-600">⚠ Cut + Pool + Bonus = {cut + pool + bonus}% (should total 100%)</div>
+                )}
                 <div className="flex gap-2">
                   <Button size="sm" className="flex-1 h-7 text-[10px] font-black" onClick={() => {
                     saveMutation.mutate({ key: cutKey, value: cut });
-                    if (cutKey === "ENGINE_C_THORX_CUT_PCT") saveMutation.mutate({ key: "ENGINE_C_POOL_PCT", value: pool });
+                    if (isEngineC) {
+                      saveMutation.mutate({ key: "ENGINE_C_GUILD_POOL_PCT", value: pool });
+                      saveMutation.mutate({ key: "ENGINE_C_BONUS_PCT", value: bonus });
+                    }
                   }}>Save</Button>
                 </div>
               </div>
@@ -181,43 +209,72 @@ export function SystemSettingsManager() {
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">Multiplier range for the randomized reward card draw</p>
           </div>
         </div>
+        {/*
+          Ranks & Engine Config audit (2026-07-29): this panel used to edit
+          CARD_MIN_MULTIPLIER / CARD_MAX_MULTIPLIER / CARD_ARANK_BONUS_PCT /
+          CARD_SRANK_BONUS_PCT — none of which exist anywhere in the earning
+          engine. The real variance is per-engine (ENGINE_{A,B,C}_ILLUSION_VARIANCE_PCT,
+          e.g. 10 = ±10% band) plus a global A/S-Rank bonus that widens that
+          band further (A_RANK_CARD_BONUS_PCT / S_RANK_CARD_BONUS_PCT). See
+          server/storage.ts recordEarnEvent() and server/modules/thorx-card.ts.
+        */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
+            <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Per-Engine Variance (±%)</div>
             {[
-              { label: "Min Multiplier ×", key: "CARD_MIN_MULTIPLIER", min: 0.5, max: 1.0, step: 0.05, def: 0.80 },
-              { label: "Max Multiplier ×", key: "CARD_MAX_MULTIPLIER", min: 1.0, max: 1.5, step: 0.05, def: 1.20 },
-              { label: "A-Rank Bonus %", key: "CARD_ARANK_BONUS_PCT", min: 0, max: 15, step: 1, def: 5 },
-              { label: "S-Rank Bonus %", key: "CARD_SRANK_BONUS_PCT", min: 0, max: 20, step: 1, def: 10 },
-            ].map(({ label, key, min, max, step, def }) => {
-              const val = localConfigs[key] ?? def;
+              { label: "Engine A — Video Ads", key: "ENGINE_A_ILLUSION_VARIANCE_PCT", def: 10 },
+              { label: "Engine B — CPA Offers", key: "ENGINE_B_ILLUSION_VARIANCE_PCT", def: 10 },
+              { label: "Engine C — Guild Tasks", key: "ENGINE_C_ILLUSION_VARIANCE_PCT", def: 10 },
+            ].map(({ label, key, def }) => {
+              const val = Number(localConfigs[key] ?? def);
               return (
                 <div key={key} className="space-y-1">
                   <div className="flex justify-between text-[10px] font-bold text-zinc-500">
                     <span>{label}</span>
-                    <span className="font-black text-[#111]">{Number(val).toFixed(key.includes('MULTIPLIER') ? 2 : 0)}</span>
+                    <span className="font-black text-[#111]">±{val}%</span>
                   </div>
-                  <input type="range" min={min} max={max} step={step} value={val}
-                    onChange={e => updateValue(key, parseFloat(e.target.value))}
+                  <input type="range" min={0} max={50} step={1} value={val}
+                    onChange={e => updateValue(key, parseInt(e.target.value))}
                     className="w-full h-2 rounded-full accent-black cursor-pointer"
                   />
-                  <Button size="sm" className="h-6 text-[9px] font-black px-3" onClick={() => saveMutation.mutate({ key, value: parseFloat(String(val)) })}>Save</Button>
+                  <Button size="sm" className="h-6 text-[9px] font-black px-3" onClick={() => saveMutation.mutate({ key, value: val })}>Save</Button>
                 </div>
               );
             })}
           </div>
-          <div className="space-y-3">
-            <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Presets</div>
+          <div className="space-y-4">
+            <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Rank Bonus (widens the band ±%)</div>
             {[
-              { label: "Stable (0.90×–1.10×)", min: 0.90, max: 1.10 },
-              { label: "Standard (0.80×–1.20×)", min: 0.80, max: 1.20 },
-              { label: "Jackpot (0.50×–1.50×)", min: 0.50, max: 1.50 },
-            ].map(({ label, min, max }) => (
+              { label: "A-Rank Bonus %", key: "A_RANK_CARD_BONUS_PCT", min: 0, max: 15, def: 5 },
+              { label: "S-Rank Bonus %", key: "S_RANK_CARD_BONUS_PCT", min: 0, max: 20, def: 10 },
+            ].map(({ label, key, min, max, def }) => {
+              const val = Number(localConfigs[key] ?? def);
+              return (
+                <div key={key} className="space-y-1">
+                  <div className="flex justify-between text-[10px] font-bold text-zinc-500">
+                    <span>{label}</span>
+                    <span className="font-black text-[#111]">{val}%</span>
+                  </div>
+                  <input type="range" min={min} max={max} step={1} value={val}
+                    onChange={e => updateValue(key, parseInt(e.target.value))}
+                    className="w-full h-2 rounded-full accent-black cursor-pointer"
+                  />
+                  <Button size="sm" className="h-6 text-[9px] font-black px-3" onClick={() => saveMutation.mutate({ key, value: val })}>Save</Button>
+                </div>
+              );
+            })}
+            <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pt-2">Presets (all engines)</div>
+            {[
+              { label: "Stable (±10%)", pct: 10 },
+              { label: "Standard (±20%)", pct: 20 },
+              { label: "Jackpot (±50%)", pct: 50 },
+            ].map(({ label, pct }) => (
               <Button key={label} variant="outline" className="w-full h-9 text-xs font-black border-[1.5px] border-[#111] justify-start"
                 onClick={() => {
-                  updateValue("CARD_MIN_MULTIPLIER", min);
-                  updateValue("CARD_MAX_MULTIPLIER", max);
-                  saveMutation.mutate({ key: "CARD_MIN_MULTIPLIER", value: min });
-                  saveMutation.mutate({ key: "CARD_MAX_MULTIPLIER", value: max });
+                  (["ENGINE_A_ILLUSION_VARIANCE_PCT", "ENGINE_B_ILLUSION_VARIANCE_PCT", "ENGINE_C_ILLUSION_VARIANCE_PCT"] as const).forEach(key => {
+                    updateValue(key, pct);
+                    saveMutation.mutate({ key, value: pct });
+                  });
                 }}>
                 {label}
               </Button>

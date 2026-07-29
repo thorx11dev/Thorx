@@ -1,8 +1,16 @@
 /**
  * RanksCustomizer — THORX v3 (spec F.16)
- * Admin tool to configure PS thresholds, engine splits, and rank labels.
- * PATCH /api/admin/config/:key for each setting.
+ * Admin tool to configure PS rank thresholds, engine splits, Thorx Card
+ * variance, and PS awards. PATCH /api/admin/config/:key for each setting.
  * Uses E-Rank, D-Rank, C-Rank, B-Rank, A-Rank, S-Rank labels — never old Urdu names.
+ *
+ * Ranks & Engine Config audit (2026-07-29): every config key in this file was
+ * previously invented rather than matching what the engines actually read —
+ * saves succeeded with a "Saved" toast but silently changed nothing. All keys
+ * below now match the single source of truth in server/storage.ts
+ * (SYSTEM_CONFIG_DEFAULTS) and are verified against server/modules/ps-engine.ts
+ * and server/modules/thorx-card.ts. See replit.md / audit notes for the
+ * before/after key mapping.
  */
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -16,41 +24,96 @@ import { cn } from "@/lib/utils";
 
 const RANKS = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
 
+// Read by server/modules/ps-engine.ts computeRankTier(). E-Rank has no
+// threshold — it is the hard floor (invariant #7 of the v3 spec): PS can
+// never drop a user below it, so there is nothing to configure for it.
 const PS_THRESHOLD_DEFAULTS: Record<string, number> = {
-  "PS_THRESHOLD_E": 0,
-  "PS_THRESHOLD_D": 1000,
-  "PS_THRESHOLD_C": 3000,
-  "PS_THRESHOLD_B": 6000,
-  "PS_THRESHOLD_A": 10000,
-  "PS_THRESHOLD_S": 20000,
+  "PS_RANK_D_MIN": 1000,
+  "PS_RANK_C_MIN": 3000,
+  "PS_RANK_B_MIN": 6000,
+  "PS_RANK_A_MIN": 10000,
+  "PS_RANK_S_MIN": 20000,
 };
 
+// Read by server/storage.ts recordEarnEvent(). All values are 0-100 percentages
+// of the GROSS PKR that go to Thorx's profit cut (not the user's share) — the
+// user share is derived as 100 - cut. Engine C additionally locks a % into the
+// weekly guild pool and a % into a bonus pool; it never pays the user directly
+// (100% of the user's immediate cut is 0 — the pool payout happens Sunday).
 const ENGINE_SPLIT_DEFAULTS: Record<string, number> = {
-  "ENGINE_A_USER_SPLIT": 0.60,  // 60% to user
-  "ENGINE_B_USER_SPLIT": 0.45,  // 45% to user (Engine B CPA: 40/60 in spec — user keeps 45%)
-  "ENGINE_C_MEMBER_SPLIT": 0.70,  // 70% to members, 30% to captain
-  "ENGINE_C_CAPTAIN_SPLIT": 0.30,
+  "ENGINE_A_THORX_CUT_PCT": 40,
+  "ENGINE_B_THORX_CUT_PCT": 40,
+  "ENGINE_C_THORX_CUT_PCT": 15,
+  "ENGINE_C_GUILD_POOL_PCT": 80,
+  "ENGINE_C_BONUS_PCT": 5,
 };
 
+// Read by server/storage.ts recordEarnEvent() / server/modules/thorx-card.ts.
+// Per-engine illusion variance (%) sets the base ± band on the TX-Point card
+// draw (e.g. 10 = card shows between 90% and 110% of the target points).
+// A/S-Rank bonus % widens that band further for higher-rank users.
 const VARIANCE_DEFAULTS: Record<string, number> = {
-  "CARD_VARIANCE_PCT": 0.25,   // ±25% default variance on TX-Point card draw
-  "CARD_VARIANCE_A_RANK": 0.30,  // A-Rank gets ±30%
-  "CARD_VARIANCE_S_RANK": 0.35,  // S-Rank gets ±35%
+  "ENGINE_A_ILLUSION_VARIANCE_PCT": 10,
+  "ENGINE_B_ILLUSION_VARIANCE_PCT": 10,
+  "ENGINE_C_ILLUSION_VARIANCE_PCT": 10,
+  "A_RANK_CARD_BONUS_PCT": 5,
+  "S_RANK_CARD_BONUS_PCT": 10,
 };
 
+// Read by server/modules/ps-engine.ts awardTaskPS() / processStreak() /
+// applyInactivityPenalties().
 const PS_AWARD_DEFAULTS: Record<string, number> = {
-  "PS_PER_ENGINE_A_EVENT": 5,
-  "PS_PER_ENGINE_B_EVENT": 15,
-  "PS_PER_INDIRECT_TASK": 15,
-  "PS_STREAK_DAY_1": 5,
-  "PS_STREAK_DAY_2": 10,
-  "PS_STREAK_3PLUS": 20,
+  "PS_ENGINE_A_REWARD": 5,
+  "PS_ENGINE_B_REWARD": 25,
+  "PS_ENGINE_C_REWARD": 15,
+  "PS_STREAK_DAY1": 5,
+  "PS_STREAK_DAY2": 10,
+  "PS_STREAK_DAY3_PLUS": 20,
   "PS_INACTIVITY_PENALTY": 10,
+  "PS_INACTIVITY_HOURS": 48,
+};
+
+const LABELS: Record<string, string> = {
+  "PS_RANK_D_MIN": "D-Rank", "PS_RANK_C_MIN": "C-Rank", "PS_RANK_B_MIN": "B-Rank",
+  "PS_RANK_A_MIN": "A-Rank", "PS_RANK_S_MIN": "S-Rank",
+  "ENGINE_A_THORX_CUT_PCT": "Engine A — Thorx cut",
+  "ENGINE_B_THORX_CUT_PCT": "Engine B — Thorx cut",
+  "ENGINE_C_THORX_CUT_PCT": "Engine C — Thorx cut",
+  "ENGINE_C_GUILD_POOL_PCT": "Engine C — Guild pool",
+  "ENGINE_C_BONUS_PCT": "Engine C — Bonus pool",
+  "ENGINE_A_ILLUSION_VARIANCE_PCT": "Engine A variance",
+  "ENGINE_B_ILLUSION_VARIANCE_PCT": "Engine B variance",
+  "ENGINE_C_ILLUSION_VARIANCE_PCT": "Engine C variance",
+  "A_RANK_CARD_BONUS_PCT": "A-Rank bonus",
+  "S_RANK_CARD_BONUS_PCT": "S-Rank bonus",
+  "PS_ENGINE_A_REWARD": "Engine A task",
+  "PS_ENGINE_B_REWARD": "Engine B task",
+  "PS_ENGINE_C_REWARD": "Engine C / guild task",
+  "PS_STREAK_DAY1": "Streak — day 1",
+  "PS_STREAK_DAY2": "Streak — day 2",
+  "PS_STREAK_DAY3_PLUS": "Streak — day 3+",
+  "PS_INACTIVITY_PENALTY": "Inactivity penalty",
+  "PS_INACTIVITY_HOURS": "Inactivity threshold",
+};
+
+const DESCRIPTIONS: Record<string, string> = {
+  "ENGINE_A_THORX_CUT_PCT": "% of gross PKR kept by Thorx; user keeps the rest",
+  "ENGINE_B_THORX_CUT_PCT": "% of gross PKR kept by Thorx; user keeps the rest",
+  "ENGINE_C_THORX_CUT_PCT": "% of gross PKR kept by Thorx immediately",
+  "ENGINE_C_GUILD_POOL_PCT": "% locked into the guild's weekly pool (paid out Sunday)",
+  "ENGINE_C_BONUS_PCT": "% added to the pool only if the guild hits its weekly target",
+  "ENGINE_A_ILLUSION_VARIANCE_PCT": "e.g. 10 = card shows ±10% of target points",
+  "ENGINE_B_ILLUSION_VARIANCE_PCT": "e.g. 10 = card shows ±10% of target points",
+  "ENGINE_C_ILLUSION_VARIANCE_PCT": "e.g. 10 = card shows ±10% of target points",
+  "A_RANK_CARD_BONUS_PCT": "Widens A-Rank users' card variance band by ±N%",
+  "S_RANK_CARD_BONUS_PCT": "Widens S-Rank users' card variance band by ±N%",
+  "PS_INACTIVITY_PENALTY": "PS deducted per day once a user is inactive",
+  "PS_INACTIVITY_HOURS": "Hours of inactivity before the penalty starts applying",
 };
 
 type Section = "thresholds" | "splits" | "variance" | "ps_awards";
 
-function useAdminConfigs(keys: string[]) {
+function useAdminConfigs() {
   return useQuery<Record<string, any>>({
     queryKey: ["/api/admin/config"],
     queryFn: async () => {
@@ -116,17 +179,23 @@ export function RanksCustomizer() {
   const [localEdits, setLocalEdits] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
 
-  const { data: dbConfigs = {}, refetch } = useAdminConfigs([]);
+  const { data: dbConfigs = {}, refetch } = useAdminConfigs();
 
   const saveMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: any }) => {
       const r = await apiRequest("PATCH", `/api/admin/config/${key}`, { value });
       return r.json();
     },
-    onSuccess: (_, { key }) => {
-      toast({ title: "Saved", description: `${key} updated.` });
+    onSuccess: (data, { key }) => {
       setSaving(null);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/config"] });
+      if (data?.isKnownKey === false) {
+        // Should never happen for keys defined in this file — surfaced defensively
+        // in case a key here ever drifts from the backend's known-keys list again.
+        toast({ title: "Saved, but unrecognized", description: `${key} isn't read by any engine — check server/storage.ts SYSTEM_CONFIG_DEFAULTS.`, variant: "destructive" });
+      } else {
+        toast({ title: "Saved", description: `${key} updated.` });
+      }
     },
     onError: (_, { key }) => {
       setSaving(null);
@@ -172,13 +241,15 @@ export function RanksCustomizer() {
       <div className="rounded-xl border border-zinc-200 bg-white p-4">
         <div className="text-sm font-bold mb-3">Rank Tier System</div>
         <div className="flex flex-wrap gap-2">
-          {RANKS.map((r, i) => {
-            const psKey = `PS_THRESHOLD_${r.split("-")[0]}`;
-            const threshold = dbConfigs[psKey]?.value ?? PS_THRESHOLD_DEFAULTS[psKey] ?? 0;
+          {RANKS.map((r) => {
+            const letter = r.split("-")[0];
+            const psKey = `PS_RANK_${letter}_MIN`;
+            const isFloor = letter === "E";
+            const threshold = isFloor ? 0 : (dbConfigs[psKey]?.value ?? dbConfigs[psKey] ?? PS_THRESHOLD_DEFAULTS[psKey] ?? 0);
             return (
               <div key={r} className="rounded-lg border border-zinc-200 px-3 py-2 text-center min-w-[80px]">
                 <RankBadge rank={r} size="sm" className="mb-1" />
-                <div className="text-xs text-zinc-500">{threshold.toLocaleString()}+ PS</div>
+                <div className="text-xs text-zinc-500">{isFloor ? "Floor (0" : Number(threshold).toLocaleString()}{isFloor ? ")" : "+ PS"}</div>
               </div>
             );
           })}
@@ -199,43 +270,40 @@ export function RanksCustomizer() {
       <div className="rounded-xl border border-zinc-200 bg-white p-4">
         {activeSection === "thresholds" && (
           <div>
-            <div className="text-xs text-zinc-500 mb-3">Minimum PS required to reach each rank tier. Server-enforced by ps-engine.ts.</div>
-            {RANKS.map(rank => {
-              const letter = rank.split("-")[0];
-              const configKey = `PS_THRESHOLD_${letter}`;
-              return <ConfigRow key={configKey} label={rank} configKey={configKey}
-                defaultVal={PS_THRESHOLD_DEFAULTS[configKey] ?? 0}
-                description={`Min PS for ${rank} tier`} suffix="PS" {...commonProps} />;
-            })}
+            <div className="text-xs text-zinc-500 mb-3">Minimum PS required to reach each rank tier. Server-enforced by ps-engine.ts. E-Rank is a fixed floor (no PS minimum — can never be demoted below it).</div>
+            {Object.entries(PS_THRESHOLD_DEFAULTS).map(([key, def]) => (
+              <ConfigRow key={key} label={LABELS[key]} configKey={key}
+                defaultVal={def} suffix="PS" description={`Min PS for ${LABELS[key]} tier`} {...commonProps} />
+            ))}
           </div>
         )}
 
         {activeSection === "splits" && (
           <div>
-            <div className="text-xs text-zinc-500 mb-3">Engine earn split ratios. Must sum to 1.0 within each engine.</div>
+            <div className="text-xs text-zinc-500 mb-3">Engine profit-cut percentages (0–100), applied to gross PKR. Engine A/B: Thorx keeps this %, user keeps the rest. Engine C: split three ways, no immediate user payout — Thorx cut + guild pool + bonus pool should sum to 100.</div>
             {Object.entries(ENGINE_SPLIT_DEFAULTS).map(([key, def]) => (
-              <ConfigRow key={key} label={key.replace(/_/g, " ")} configKey={key}
-                defaultVal={def} suffix="(0–1)" description="Fraction of gross PKR credited to user/role" {...commonProps} />
+              <ConfigRow key={key} label={LABELS[key]} configKey={key}
+                defaultVal={def} suffix="%" description={DESCRIPTIONS[key]} {...commonProps} />
             ))}
           </div>
         )}
 
         {activeSection === "variance" && (
           <div>
-            <div className="text-xs text-zinc-500 mb-3">TX-Point card variance per rank. Range: [1−v, 1+v] × base points.</div>
+            <div className="text-xs text-zinc-500 mb-3">TX-Point card variance per engine, plus rank bonuses that widen the band further. Range: [1−v, 1+v] × target points, where v = variance% ÷ 100 (± rank bonus for A/S-Rank).</div>
             {Object.entries(VARIANCE_DEFAULTS).map(([key, def]) => (
-              <ConfigRow key={key} label={key.replace(/_/g, " ")} configKey={key}
-                defaultVal={def} suffix="(0–1)" description="e.g. 0.25 = ±25% variance on card draw" {...commonProps} />
+              <ConfigRow key={key} label={LABELS[key]} configKey={key}
+                defaultVal={def} suffix="%" description={DESCRIPTIONS[key]} {...commonProps} />
             ))}
           </div>
         )}
 
         {activeSection === "ps_awards" && (
           <div>
-            <div className="text-xs text-zinc-500 mb-3">PS points awarded per event type.</div>
+            <div className="text-xs text-zinc-500 mb-3">PS points awarded per event type, and the inactivity penalty that can lower it (never below the E-Rank floor of 0).</div>
             {Object.entries(PS_AWARD_DEFAULTS).map(([key, def]) => (
-              <ConfigRow key={key} label={key.replace(/_/g, " ")} configKey={key}
-                defaultVal={def} suffix="PS" {...commonProps} />
+              <ConfigRow key={key} label={LABELS[key]} configKey={key}
+                defaultVal={def} suffix={key === "PS_INACTIVITY_HOURS" ? "hrs" : "PS"} description={DESCRIPTIONS[key]} {...commonProps} />
             ))}
           </div>
         )}
