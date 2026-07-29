@@ -4,8 +4,8 @@
  * GET /api/admin/ledger/validate/:userId and /api/admin/ledger/validate/scan
  * POST /api/admin/ledger/reconcile/:userId
  */
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Shield, Search, AlertTriangle, CheckCircle, RotateCcw, User, Wrench, Download, Loader2 } from "lucide-react";
+import { Shield, Search, AlertTriangle, CheckCircle, RotateCcw, User, Wrench, Download, Loader2, History, Wallet, ListFilter, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
 import { UserInspectorPanel } from "./UserInspectorPanel";
 
 interface ValidationResult {
@@ -62,12 +63,27 @@ function csvCell(value: string | number): string {
 // Client-side export: scan results already live fully in memory (accumulated
 // across "Load next batch" pages), so re-hitting the server would just re-fetch
 // what's already on screen and risks drifting from what the admin is looking at.
+// 2026-07-29 audit fix: the export previously omitted the referral cash wallet
+// figures and the scan timestamp entirely, so a downloaded report couldn't be
+// cross-referenced against when it was taken or against cash-wallet drift that
+// the UI itself now flags.
 function downloadScanCsv(scanResult: ScanResult) {
-  const header = ["Severity", "Email", "User ID", "Stored Balance", "Computed Balance", "Discrepancy", "Transactions", "Errors", "Warnings"];
+  const header = [
+    "Severity", "Email", "User ID", "Checked At",
+    "Stored Balance", "Computed Balance", "Discrepancy",
+    "Stored Cash Balance", "Computed Cash Balance", "Cash Discrepancy",
+    "Transactions", "Errors", "Warnings",
+  ];
+  const toRow = (severity: string, r: ValidationResult) => [
+    severity, r.email ?? "", r.userId, scanResult.checkedAt,
+    r.storedBalance, r.computedBalance, r.discrepancy,
+    r.storedCashBalance ?? "", r.computedCashBalance ?? "", r.cashDiscrepancy ?? "",
+    String(r.transactionCount), r.errors.join(" | "), r.warnings.join(" | "),
+  ];
   const rows = [
     header,
-    ...scanResult.critical.map(r => ["CRITICAL", r.email ?? "", r.userId, r.storedBalance, r.computedBalance, r.discrepancy, String(r.transactionCount), r.errors.join(" | "), r.warnings.join(" | ")]),
-    ...scanResult.warnings.map(r => ["WARNING", r.email ?? "", r.userId, r.storedBalance, r.computedBalance, r.discrepancy, String(r.transactionCount), r.errors.join(" | "), r.warnings.join(" | ")]),
+    ...scanResult.critical.map(r => toRow("CRITICAL", r)),
+    ...scanResult.warnings.map(r => toRow("WARNING", r)),
   ];
   const csv = rows.map(row => row.map(csvCell).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -87,12 +103,20 @@ function ValidationCard({
   isViewLoading,
   onReconcile,
   isReconciling,
+  onShowHistory,
+  selectable,
+  selected,
+  onToggleSelect,
 }: {
   result: ValidationResult;
   onView?: () => void;
   isViewLoading?: boolean;
   onReconcile?: () => void;
   isReconciling?: boolean;
+  onShowHistory?: () => void;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   // Severity must mirror the backend's own bucketing (errors -> critical,
   // warnings-only -> warn) rather than re-deriving it from the PKR discrepancy
@@ -101,26 +125,45 @@ function ValidationCard({
   const isCritical = result.errors.length > 0;
   const isWarning = !isCritical && result.warnings.length > 0;
   const disc = parseFloat(result.discrepancy || "0");
+  // Referral cash wallet check (2026-07-29 audit addition) — only render this
+  // block when the backend actually sent cash-balance fields (older cached
+  // responses / other callers may not include them) so the card doesn't show
+  // a misleading "Rs.0.00 vs Rs.0.00" for users with zero referral activity.
+  const hasCashData = result.computedCashBalance !== undefined && result.storedCashBalance !== undefined;
+  const cashDisc = parseFloat(result.cashDiscrepancy || "0");
+  const cashMismatch = hasCashData && Math.abs(cashDisc) > 0.01;
   return (
     <div className={cn("rounded-xl border p-4 space-y-2", isCritical ? "border-red-300 bg-red-50" : "border-zinc-200 bg-white")}>
       <div className="flex items-start justify-between gap-2">
-        <div>
-          <div className="flex items-center gap-2">
-            {isCritical ? <AlertTriangle size={14} className="text-red-500" /> : <CheckCircle size={14} className="text-emerald-500" />}
-            <span className="font-semibold text-sm">{result.email || result.userId.slice(0, 12) + "…"}</span>
-            <Badge
-              variant="outline"
-              className={
-                isCritical ? "border-red-300 text-red-600 text-[10px]" :
-                isWarning ? "border-amber-300 text-amber-600 text-[10px]" :
-                "border-emerald-300 text-emerald-600 text-[10px]"
-              }
-            >
-              {isCritical ? "CRITICAL" : isWarning ? "WARN" : "OK"}
-            </Badge>
-          </div>
-          <div className="text-xs text-zinc-400 mt-0.5">
-            {result.transactionCount} transactions · Earned Rs.{parseFloat(result.totalEarned).toFixed(2)} · Withdrawn Rs.{parseFloat(result.totalWithdrawn).toFixed(2)}
+        <div className="flex items-start gap-2">
+          {selectable && (
+            <input
+              type="checkbox"
+              className="mt-1 h-3.5 w-3.5 accent-red-600"
+              checked={!!selected}
+              onChange={onToggleSelect}
+              aria-label={`Select ${result.email ?? result.userId} for bulk reconcile`}
+              data-testid={`checkbox-select-${result.userId}`}
+            />
+          )}
+          <div>
+            <div className="flex items-center gap-2">
+              {isCritical ? <AlertTriangle size={14} className="text-red-500" /> : <CheckCircle size={14} className="text-emerald-500" />}
+              <span className="font-semibold text-sm">{result.email || result.userId.slice(0, 12) + "…"}</span>
+              <Badge
+                variant="outline"
+                className={
+                  isCritical ? "border-red-300 text-red-600 text-[10px]" :
+                  isWarning ? "border-amber-300 text-amber-600 text-[10px]" :
+                  "border-emerald-300 text-emerald-600 text-[10px]"
+                }
+              >
+                {isCritical ? "CRITICAL" : isWarning ? "WARN" : "OK"}
+              </Badge>
+            </div>
+            <div className="text-xs text-zinc-400 mt-0.5">
+              {result.transactionCount} transactions · Earned Rs.{parseFloat(result.totalEarned).toFixed(2)} · Withdrawn Rs.{parseFloat(result.totalWithdrawn).toFixed(2)}
+            </div>
           </div>
         </div>
         <div className="flex gap-1 shrink-0">
@@ -135,6 +178,18 @@ function ValidationCard({
               data-testid={`button-reconcile-${result.userId}`}
             >
               {isReconciling ? <Loader2 size={12} className="animate-spin" /> : <Wrench size={12} />}
+            </Button>
+          )}
+          {onShowHistory && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs"
+              onClick={onShowHistory}
+              title="View reconciliation history"
+              data-testid={`button-history-${result.userId}`}
+            >
+              <History size={12} />
             </Button>
           )}
           {onView && (
@@ -170,14 +225,35 @@ function ValidationCard({
         </div>
       )}
 
+      {/* Referral cash wallet (2026-07-29 audit addition) — previously this
+          wallet had zero visibility anywhere in the UI even though the backend
+          now validates it. */}
+      {hasCashData && (parseFloat(result.storedCashBalance || "0") !== 0 || parseFloat(result.computedCashBalance || "0") !== 0 || cashMismatch) && (
+        <div className={cn("rounded-lg p-2 space-y-1", cashMismatch ? "bg-red-100" : "bg-zinc-50")}>
+          <div className="flex items-center gap-1 text-[10px] text-zinc-400">
+            <Wallet size={10} /> Referral Cash Wallet
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="text-[10px] text-zinc-400">Stored</div>
+              <div className="font-semibold text-sm">Rs.{parseFloat(result.storedCashBalance || "0").toFixed(2)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-zinc-400">Computed</div>
+              <div className={cn("font-semibold text-sm", cashMismatch ? "text-red-700" : "")}>Rs.{parseFloat(result.computedCashBalance || "0").toFixed(2)}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {result.errors.length > 0 && (
         <div className="space-y-0.5">
-          {result.errors.map((e, i) => <div key={i} className="text-[11px] text-red-600">• {e}</div>)}
+          {result.errors.map((e, i) => <div key={`${result.userId}-err-${i}-${e}`} className="text-[11px] text-red-600">• {e}</div>)}
         </div>
       )}
       {result.warnings.length > 0 && (
         <div className="space-y-0.5">
-          {result.warnings.map((w, i) => <div key={i} className="text-[11px] text-amber-600">• {w}</div>)}
+          {result.warnings.map((w, i) => <div key={`${result.userId}-warn-${i}-${w}`} className="text-[11px] text-amber-600">• {w}</div>)}
         </div>
       )}
     </div>
@@ -202,6 +278,22 @@ export function LedgerValidator() {
   // Reconcile confirmation flow
   const [reconcileTarget, setReconcileTarget] = useState<ValidationResult | null>(null);
   const [reconcileReason, setReconcileReason] = useState("");
+
+  // Reconciliation history (audit trail) drill-down
+  const [historyTarget, setHistoryTarget] = useState<ValidationResult | null>(null);
+
+  // Scan-result search/filter (2026-07-29 audit addition) — a "Full Ledger
+  // Scan" can return hundreds of flagged accounts; without this an admin has
+  // no way to find a specific user or triage by discrepancy size.
+  const [scanSearch, setScanSearch] = useState("");
+  const [minDiscrepancy, setMinDiscrepancy] = useState("");
+
+  // Bulk reconcile (2026-07-29 audit addition) — selection of critical rows
+  // to correct in one pass instead of clicking each account individually.
+  const [bulkSelection, setBulkSelection] = useState<Set<string>>(new Set());
+  const [bulkReason, setBulkReason] = useState("");
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number; failed: string[] } | null>(null);
 
   const validateMutation = useMutation({
     mutationFn: async (uid: string) => {
@@ -312,7 +404,92 @@ export function LedgerValidator() {
     onError: (error: Error) => toast({ title: "Reconciliation failed", description: error.message, variant: "destructive" }),
   });
 
+  // Audit trail — history of past LEDGER_RECONCILE / balance-adjustment actions
+  // for the user currently open in the history dialog.
+  const { data: historyData, isLoading: historyLoading } = useQuery<{ trail: Array<{
+    id: string; action: string; metadata: any; createdAt: string;
+    adminFirstName: string; adminLastName: string; adminEmail: string;
+  }> }>({
+    queryKey: ["/api/admin/ledger/audit-trail", historyTarget?.userId],
+    queryFn: async () => {
+      const r = await apiRequest("GET", `/api/admin/ledger/audit-trail/${historyTarget!.userId}`);
+      return r.json();
+    },
+    enabled: !!historyTarget?.userId,
+    staleTime: 15000,
+  });
+
+  // Bulk reconcile (2026-07-29 audit addition). Deliberately reuses the exact
+  // same audited single-user endpoint (server re-validates + re-derives the
+  // correction server-side per account) rather than a new bulk endpoint —
+  // this keeps the one money-moving code path all reconciliation flows share,
+  // and just orchestrates it sequentially from the client with visible progress.
+  const runBulkReconcile = async (userIds: string[], reason: string) => {
+    setBulkProgress({ done: 0, total: userIds.length, failed: [] });
+    const failed: string[] = [];
+    for (let i = 0; i < userIds.length; i++) {
+      const targetUserId = userIds[i];
+      try {
+        const r = await apiRequest("POST", `/api/admin/ledger/reconcile/${targetUserId}`, { reason });
+        const data = await r.json() as { user: any; validation: ValidationResult };
+        applyReconciled(data.validation);
+      } catch {
+        failed.push(targetUserId);
+      }
+      setBulkProgress({ done: i + 1, total: userIds.length, failed: [...failed] });
+    }
+    queryClient.invalidateQueries({ queryKey: ["/api/team/users"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/reconciliation"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/team/metrics"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/founder/profit-summary"] });
+    toast({
+      title: "Bulk reconcile complete",
+      description: failed.length === 0
+        ? `${userIds.length} account(s) reconciled successfully.`
+        : `${userIds.length - failed.length} succeeded, ${failed.length} failed — see progress details.`,
+      variant: failed.length === 0 ? "default" : "destructive",
+    });
+    setBulkSelection(new Set());
+    setBulkReason("");
+    setBulkConfirmOpen(false);
+  };
+
+  const toggleBulkSelect = (id: string) => {
+    setBulkSelection(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   const hasExportableResults = !!scanResult && ((scanResult.critical?.length ?? 0) + (scanResult.warnings?.length ?? 0) > 0);
+
+  // Apply search + minimum-discrepancy filters to the scan's critical/warning
+  // buckets without mutating the underlying accumulated scan state.
+  const filterRows = (rows: ValidationResult[]): ValidationResult[] => {
+    const min = parseFloat(minDiscrepancy);
+    return rows.filter(r => {
+      if (scanSearch.trim()) {
+        const needle = scanSearch.trim().toLowerCase();
+        const haystack = `${r.email ?? ""} ${r.userId}`.toLowerCase();
+        if (!haystack.includes(needle)) return false;
+      }
+      if (!isNaN(min) && min > 0) {
+        if (Math.abs(parseFloat(r.discrepancy || "0")) < min) return false;
+      }
+      return true;
+    });
+  };
+
+  const filteredCritical = useMemo(
+    () => (scanResult ? filterRows(scanResult.critical) : []),
+    [scanResult, scanSearch, minDiscrepancy]
+  );
+  const filteredWarnings = useMemo(
+    () => (scanResult ? filterRows(scanResult.warnings) : []),
+    [scanResult, scanSearch, minDiscrepancy]
+  );
+  const isFiltering = scanSearch.trim().length > 0 || (!!minDiscrepancy && parseFloat(minDiscrepancy) > 0);
 
   return (
     <div className="space-y-5">
@@ -323,9 +500,10 @@ export function LedgerValidator() {
 
       {/* Single user lookup */}
       <div className="rounded-xl border border-zinc-200 bg-white p-4 space-y-3">
-        <div className="text-sm font-semibold">Single User Validation</div>
+        <Label htmlFor="ledger-user-input" className="text-sm font-semibold text-zinc-900">Single User Validation</Label>
         <div className="flex gap-2">
           <Input
+            id="ledger-user-input"
             placeholder="User ID or email…"
             value={userId}
             onChange={e => setUserId(e.target.value)}
@@ -333,7 +511,7 @@ export function LedgerValidator() {
             data-testid="input-ledger-user"
           />
           <Button disabled={!userId.trim() || validateMutation.isPending} onClick={() => validateMutation.mutate(userId.trim())} data-testid="button-validate-user">
-            <Search size={14} className="mr-1" />
+            {validateMutation.isPending ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Search size={14} className="mr-1" />}
             Validate
           </Button>
         </div>
@@ -344,6 +522,7 @@ export function LedgerValidator() {
             isViewLoading={inspectingId === singleResult.userId}
             onReconcile={() => setReconcileTarget(singleResult)}
             isReconciling={reconcileMutation.isPending && reconcileTarget?.userId === singleResult.userId}
+            onShowHistory={() => setHistoryTarget(singleResult)}
           />
         )}
       </div>
@@ -410,12 +589,86 @@ export function LedgerValidator() {
               </div>
             )}
 
+            {/* Search / filter (2026-07-29 audit addition) — flat lists don't
+                scale once a scan flags hundreds of accounts. */}
+            {scanResult.flagged > 0 && (
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+                <ListFilter size={13} className="text-zinc-400 shrink-0" />
+                <Input
+                  placeholder="Filter by email or user ID…"
+                  value={scanSearch}
+                  onChange={e => setScanSearch(e.target.value)}
+                  className="h-8 text-xs flex-1 min-w-[160px] bg-white"
+                  data-testid="input-scan-filter"
+                />
+                <Input
+                  placeholder="Min Rs. discrepancy"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={minDiscrepancy}
+                  onChange={e => setMinDiscrepancy(e.target.value)}
+                  className="h-8 text-xs w-40 bg-white"
+                  data-testid="input-scan-min-discrepancy"
+                />
+                {(scanSearch || minDiscrepancy) && (
+                  <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setScanSearch(""); setMinDiscrepancy(""); }}>
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Bulk reconcile (2026-07-29 audit addition) — selecting critical
+                accounts here and confirming re-runs the same audited
+                single-user reconcile endpoint for each selection in sequence. */}
+            {filteredCritical.length > 0 && (
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                <div className="text-xs font-semibold text-red-700 flex items-center gap-1.5">
+                  <Layers size={13} />
+                  {bulkSelection.size > 0 ? `${bulkSelection.size} selected for bulk reconcile` : "Select critical accounts to bulk-reconcile"}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => setBulkSelection(new Set(filteredCritical.map(r => r.userId)))}
+                    data-testid="button-select-all-critical"
+                  >
+                    Select all ({filteredCritical.length})
+                  </Button>
+                  {bulkSelection.size > 0 && (
+                    <>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setBulkSelection(new Set())}>
+                        Clear
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs bg-red-600 hover:bg-red-700 text-white"
+                        onClick={() => setBulkConfirmOpen(true)}
+                        data-testid="button-bulk-reconcile"
+                      >
+                        <Wrench size={12} className="mr-1" /> Reconcile Selected
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {isFiltering && (
+              <div className="text-[11px] text-zinc-400">
+                Showing {filteredCritical.length + filteredWarnings.length} of {scanResult.flagged} flagged account(s) matching filters.
+              </div>
+            )}
+
             {/* Critical */}
-            {(scanResult.critical?.length ?? 0) > 0 && (
+            {filteredCritical.length > 0 && (
               <div>
                 <div className="text-xs font-bold text-red-700 mb-2 uppercase tracking-wide">⚠ Critical Discrepancies</div>
                 <div className="space-y-2">
-                  {scanResult.critical.map(r => (
+                  {filteredCritical.map(r => (
                     <ValidationCard
                       key={r.userId}
                       result={r}
@@ -423,6 +676,10 @@ export function LedgerValidator() {
                       isViewLoading={inspectingId === r.userId}
                       onReconcile={() => setReconcileTarget(r)}
                       isReconciling={reconcileMutation.isPending && reconcileTarget?.userId === r.userId}
+                      onShowHistory={() => setHistoryTarget(r)}
+                      selectable
+                      selected={bulkSelection.has(r.userId)}
+                      onToggleSelect={() => toggleBulkSelect(r.userId)}
                     />
                   ))}
                 </div>
@@ -430,15 +687,19 @@ export function LedgerValidator() {
             )}
 
             {/* Warnings */}
-            {(scanResult.warnings?.length ?? 0) > 0 && (
+            {filteredWarnings.length > 0 && (
               <div>
                 <div className="text-xs font-bold text-amber-600 mb-2 uppercase tracking-wide">Warnings</div>
                 <div className="space-y-2">
-                  {scanResult.warnings.map(r => (
-                    <ValidationCard key={r.userId} result={r} onView={() => handleView(r)} isViewLoading={inspectingId === r.userId} />
+                  {filteredWarnings.map(r => (
+                    <ValidationCard key={r.userId} result={r} onView={() => handleView(r)} isViewLoading={inspectingId === r.userId} onShowHistory={() => setHistoryTarget(r)} />
                   ))}
                 </div>
               </div>
+            )}
+
+            {isFiltering && filteredCritical.length === 0 && filteredWarnings.length === 0 && (
+              <div className="text-center py-6 text-zinc-400 text-sm">No flagged accounts match the current filters.</div>
             )}
 
             {scanResult.flagged === 0 && (
@@ -487,6 +748,123 @@ export function LedgerValidator() {
               Cancel
             </button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk reconcile confirmation (2026-07-29 audit addition) */}
+      <Dialog open={bulkConfirmOpen} onOpenChange={(open) => { if (!open && !bulkProgress) { setBulkConfirmOpen(false); setBulkReason(""); } }}>
+        <DialogContent className="max-w-md border border-zinc-200 bg-white rounded-2xl p-0 overflow-hidden shadow-xl">
+          <DialogHeader className="px-7 py-5 border-b border-zinc-100 bg-white">
+            <DialogTitle className="text-xl font-semibold text-red-500">Bulk Reconcile {bulkSelection.size} Account(s)</DialogTitle>
+            <DialogDescription className="text-zinc-400 text-xs mt-0.5">
+              Each account will be re-validated and corrected server-side, one at a time, using the same reason. This cannot be undone in bulk.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="px-7 py-6 space-y-5">
+            {!bulkProgress ? (
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest ml-1">Reason (required, applies to all)</Label>
+                <Textarea
+                  placeholder="e.g. Monthly ledger audit — batch correction of confirmed drift."
+                  className="rounded-xl border border-zinc-300 focus:border-red-400 font-medium text-sm px-4 py-3 transition-all min-h-[80px]"
+                  value={bulkReason}
+                  onChange={(e) => setBulkReason(e.target.value)}
+                  data-testid="input-bulk-reconcile-reason"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="text-sm font-semibold">{bulkProgress.done} / {bulkProgress.total} processed</div>
+                <div className="h-2 rounded-full bg-zinc-100 overflow-hidden">
+                  <div className="h-full bg-red-500 transition-all" style={{ width: `${(bulkProgress.done / bulkProgress.total) * 100}%` }} />
+                </div>
+                {bulkProgress.failed.length > 0 && (
+                  <div className="text-xs text-red-600">{bulkProgress.failed.length} failed (already balanced, or another error) — check individually.</div>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="px-7 py-5 bg-white border-t border-zinc-100 flex flex-col gap-2">
+            {!bulkProgress ? (
+              <>
+                <Button
+                  className="w-full h-11 bg-red-500 text-white font-semibold text-sm rounded-xl hover:bg-red-600 transition-all"
+                  disabled={bulkReason.trim().length < 5}
+                  onClick={() => runBulkReconcile(Array.from(bulkSelection), bulkReason.trim())}
+                  data-testid="button-confirm-bulk-reconcile"
+                >
+                  Reconcile {bulkSelection.size} Account(s)
+                </Button>
+                <button type="button" className="text-sm text-zinc-400 hover:text-zinc-600 transition-colors py-1" onClick={() => { setBulkConfirmOpen(false); setBulkReason(""); }}>
+                  Cancel
+                </button>
+              </>
+            ) : bulkProgress.done === bulkProgress.total ? (
+              <Button
+                className="w-full h-11 bg-zinc-900 text-white font-semibold text-sm rounded-xl hover:bg-zinc-800 transition-all"
+                onClick={() => setBulkProgress(null)}
+                data-testid="button-close-bulk-progress"
+              >
+                Done
+              </Button>
+            ) : (
+              <div className="flex items-center justify-center gap-1.5 text-sm text-zinc-400 py-1">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Processing…
+              </div>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reconciliation history / audit trail (2026-07-29 audit addition) */}
+      <Dialog open={!!historyTarget} onOpenChange={(open) => { if (!open) setHistoryTarget(null); }}>
+        <DialogContent className="max-w-lg border border-zinc-200 bg-white rounded-2xl p-0 overflow-hidden shadow-xl">
+          <DialogHeader className="px-7 py-5 border-b border-zinc-100 bg-white">
+            <DialogTitle className="text-xl font-semibold flex items-center gap-2"><History size={18} /> Reconciliation History</DialogTitle>
+            <DialogDescription className="text-zinc-400 text-xs mt-0.5">
+              {historyTarget?.email ?? historyTarget?.userId} — past ledger corrections and balance adjustments.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="px-7 py-6 max-h-[420px] overflow-y-auto space-y-3">
+            {historyLoading ? (
+              <div className="flex items-center justify-center py-8 text-zinc-400"><Loader2 className="w-5 h-5 animate-spin" /></div>
+            ) : !historyData?.trail?.length ? (
+              <div className="text-center py-8 text-sm text-zinc-400">No past reconciliations or balance adjustments on record for this account.</div>
+            ) : (
+              historyData.trail.map(entry => (
+                <div key={entry.id} className="rounded-lg border border-zinc-200 p-3 space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge variant="outline" className="text-[10px] border-zinc-300">
+                      {entry.action === "LEDGER_RECONCILE" ? "Ledger Reconcile" : entry.action === "BALANCE_ADJUST_ADD" ? "Balance Added" : "Balance Subtracted"}
+                    </Badge>
+                    <span className="text-[11px] text-zinc-400">{formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })}</span>
+                  </div>
+                  <div className="text-xs text-zinc-600">
+                    By {entry.adminFirstName} {entry.adminLastName} ({entry.adminEmail})
+                  </div>
+                  {entry.metadata?.reason && (
+                    <div className="text-xs text-zinc-500 italic">"{entry.metadata.reason}"</div>
+                  )}
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-zinc-400">
+                    {entry.metadata?.pkrDiscrepancyCorrected !== undefined && (
+                      <span>PKR corrected: {entry.metadata.pkrDiscrepancyCorrected}</span>
+                    )}
+                    {entry.metadata?.pointsMismatchCorrected !== undefined && entry.metadata.pointsMismatchCorrected !== 0 && (
+                      <span>Points corrected: {entry.metadata.pointsMismatchCorrected}</span>
+                    )}
+                    {/* Manual balance adjustments (BALANCE_ADJUST_ADD/SUBTRACT) log
+                        previous_balance/new_balance/variance, not the reconcile
+                        endpoint's pkrDiscrepancyCorrected — surface whichever shape
+                        this entry actually has. */}
+                    {entry.metadata?.variance !== undefined && <span>Variance: Rs.{entry.metadata.variance}</span>}
+                    {entry.metadata?.previous_balance !== undefined && entry.metadata?.new_balance !== undefined && (
+                      <span>Rs.{entry.metadata.previous_balance} → Rs.{entry.metadata.new_balance}</span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

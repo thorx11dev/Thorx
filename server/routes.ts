@@ -9,7 +9,7 @@ import { pool, db } from "./db";
 import { initRealtime, broadcastUserUpdated, broadcastTeamRefresh, broadcastGuildMessage, broadcastGuildEvent, broadcastToUser, closeUserSockets } from "./realtime";
 import { insertRegistrationSchema, insertUserSchema, insertWithdrawalSchema, users, teamKeys, adViews, systemConfig, weeklyTasks, auditLogs, insertHilltopAdsConfigSchema, insertHilltopAdsZoneSchema, passwordResetTokens, insertEngineBTaskSchema, engineBRecords, guildCreationRequests, guildMembers, guildProfiles, guildWars, guilds, captainMessages } from "@shared/schema";
 import { TRUST_STATUSES } from "@shared/constants";
-import { eq, sql, and, desc, or } from "drizzle-orm";
+import { eq, sql, and, desc, or, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { validateEmailServer, validatePhoneServer, normalizePhoneNumber } from "./validation";
 import { hilltopAdsService } from "./hilltopads-service";
@@ -1814,6 +1814,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const msg = error instanceof Error ? error.message : "Ledger validation failed";
       logger.error({ err: error }, "Ledger validation error:");
       res.status(400).json({ message: msg });
+    }
+  });
+
+  // Ledger audit trail for a single user — surfaces past LEDGER_RECONCILE and
+  // BALANCE_ADJUST_* actions so an admin can see whether/why an account was
+  // previously corrected before deciding to reconcile it again (continuation
+  // of the 2026-07-29 ledger audit — LedgerValidator.tsx previously had no
+  // visibility into this history at all).
+  app.get("/api/admin/ledger/audit-trail/:userId", requirePermission("VIEW_FINANCE"), adminActionRateLimiter, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const trail = await db
+        .select({
+          id: auditLogs.id,
+          action: auditLogs.action,
+          metadata: auditLogs.details,
+          createdAt: auditLogs.createdAt,
+          adminFirstName: users.firstName,
+          adminLastName: users.lastName,
+          adminEmail: users.email,
+        })
+        .from(auditLogs)
+        .innerJoin(users, eq(auditLogs.adminId, users.id))
+        .where(
+          and(
+            eq(auditLogs.targetType, "user"),
+            eq(auditLogs.targetId, userId),
+            inArray(auditLogs.action, ["LEDGER_RECONCILE", "BALANCE_ADJUST_ADD", "BALANCE_ADJUST_SUBTRACT"]),
+          )
+        )
+        .orderBy(desc(auditLogs.createdAt))
+        .limit(25);
+      res.json({ trail });
+    } catch (error) {
+      logger.error({ err: error }, "Fetch ledger audit trail error:");
+      res.status(500).json({ message: "Failed to fetch ledger audit trail" });
     }
   });
 
