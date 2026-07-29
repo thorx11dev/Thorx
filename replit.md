@@ -28,9 +28,20 @@ an explicit request. See `IMPORT_SETUP.md` for the optional commands.
 
 ### Founder account
 
-A founder-level account has been provisioned via `POST /api/bootstrap-founder` (dev-only endpoint).
+A founder-level account has been provisioned using `scripts/provision-founder.mjs`.
 Login email: `thorx11dev@gmail.com` — role: `founder` with `permissions: ["all"]`.
-The bootstrap endpoint is disabled in production (`NODE_ENV=production`).
+
+To re-provision or reset the founder account on a fresh import, run:
+
+```bash
+FOUNDER_EMAIL=thorx11dev@gmail.com \
+FOUNDER_PASSWORD=<password> \
+FOUNDER_FIRST_NAME=Thorx \
+FOUNDER_LAST_NAME=X \
+node scripts/provision-founder.mjs
+```
+
+The script is idempotent: safe to re-run; it upserts the role and password hash without touching other data.
 
 ## Production build
 
