@@ -212,7 +212,19 @@ function buildLedgerValidationResult(
   transactionCount: number,
   totalFees: string | number,
 ): LedgerValidationResult {
-  const computedBalanceD = new Decimal(unwithdrawnPkr || 0);
+  // R-Audit (2026-07-29, CRITICAL): processWithdrawal debits availableBalance by
+  // the NET payout (post-fee) but marks the FULL gross ledger value as withdrawn
+  // (see processWithdrawal's explicit "defined in terms of net amount" comment).
+  // That gap is intentional — the fee is platform revenue, not user balance — but
+  // it means availableBalance is permanently "ahead of" the unwithdrawn-ledger sum
+  // by exactly the user's lifetime completed-withdrawal fees. Previously totalFees
+  // was queried and returned for display but never folded into computedBalanceD,
+  // so every user who ever paid a withdrawal fee was flagged as a CRITICAL
+  // mismatch for the fee amount — and clicking "Reconcile" would have wrongly
+  // subtracted that same fee from the user's balance a second time. Adding it
+  // back here makes computedBalanceD represent what availableBalance should
+  // actually equal.
+  const computedBalanceD = new Decimal(unwithdrawnPkr || 0).plus(new Decimal(totalFees || 0));
   const storedBalanceD = new Decimal(user.availableBalance || "0");
   // users.availableBalance is DECIMAL(10,2) — every write to it is rounded to 2dp
   // by Postgres, while the ledger (user_transactions.realPkrValue) carries 4dp of

@@ -5,7 +5,7 @@
  * POST /api/admin/ledger/reconcile/:userId
  */
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -181,6 +181,7 @@ function ValidationCard({
 
 export function LedgerValidator() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [userId, setUserId] = useState("");
   const [singleResult, setSingleResult] = useState<ValidationResult | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -290,6 +291,18 @@ export function LedgerValidator() {
       applyReconciled(data.validation);
       setReconcileTarget(null);
       setReconcileReason("");
+      // R-Audit (2026-07-29): a reconcile changes availableBalance/txPointsBalance
+      // (and possibly totalEarnings), which several other admin surfaces read —
+      // UserManager's user list, AdminDashboard/team-metrics, the reconciliation
+      // panel, and PayoutControl's own ledger-mismatch check for this user. None
+      // of those were being invalidated, so they kept showing stale figures until
+      // an unrelated refetch happened to occur.
+      queryClient.invalidateQueries({ queryKey: ["/api/team/users"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${data.validation.userId}/network`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/reconciliation"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/team/metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/founder/profit-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ledger/validate", data.validation.userId] });
     },
     onError: (error: Error) => toast({ title: "Reconciliation failed", description: error.message, variant: "destructive" }),
   });
