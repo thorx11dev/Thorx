@@ -384,7 +384,7 @@ export interface IStorage {
 
   // Team keys for managing team member access
   createTeamKey(teamKey: InsertTeamKey, tx?: any): Promise<TeamKey>;
-  getTeamKeysByUser(userId: string): Promise<TeamKey[]>;
+  getTeamKeysByUser(userId: string, tx?: any): Promise<TeamKey[]>;
   updateTeamKey(keyId: string, updates: Partial<InsertTeamKey>): Promise<TeamKey | undefined>;
   getTeamMembers(): Promise<Array<User & { teamKey: TeamKey | null }>>;
   
@@ -1713,8 +1713,9 @@ export class DatabaseStorage implements IStorage {
     return teamKey;
   }
 
-  async getTeamKeysByUser(userId: string): Promise<TeamKey[]> {
-    return await db
+  async getTeamKeysByUser(userId: string, tx?: any): Promise<TeamKey[]> {
+    const client = tx || db;
+    return await client
       .select()
       .from(teamKeys)
       .where(eq(teamKeys.userId, userId))

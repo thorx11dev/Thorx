@@ -24,7 +24,7 @@ import { runWeeklyGuildReset } from "./modules/guild-reset";
 import bcrypt from "bcrypt";
 import { logger } from "./lib/logger";
 import { Sentry } from "./lib/sentry";
-import { sendPasswordResetEmail } from "./lib/email";
+import { sendPasswordResetEmail, sendTeamInvitationEmail } from "./lib/email";
 
 // ── H-01: Withdrawal idempotency cache ───────────────────────────────────────
 // Short-TTL in-memory store that deduplicates concurrent/retried withdrawal
@@ -468,6 +468,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { email, role, permissions } = result.data;
+
+      // Only founders can invite someone directly into the admin role — mirrors
+      // the identical restriction on the direct-add (/api/team/members) path.
+      if (role === 'admin' && req.userProfile.role !== 'founder') {
+        return res.status(403).json({ message: "Only founders can invite a new member as Admin." });
+      }
+
+      // Invitations are for onboarding genuinely new people. An email that
+      // already has an account should be granted access directly instead
+      // (Add Member), so accepting the invite later never collides with an
+      // existing account.
+      const existingUser = await storage.getUserByEmail(email.toLowerCase());
+      if (existingUser) {
+        return res.status(409).json({ message: "This email already has a THORX account. Use Add Member to grant it team access directly." });
+      }
+
       const token = crypto.randomBytes(32).toString('hex');
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 48); // 48 hour TTL
@@ -481,11 +497,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdBy: getThorxPrincipalId(req) as string
       });
 
-      // In a real app, send mail here. For now, return the token for manual testing.
-      res.status(201).json({ 
-        message: "Invitation generated", 
+      const inviteUrl = `${req.protocol}://${req.get('host')}/auth?invite=${token}`;
+
+      // Best-effort — email delivery is optional (RESEND_API_KEY may be
+      // unset). The invite link returned below always works for manual
+      // sharing regardless of whether the email went out.
+      let emailSent = false;
+      try {
+        await sendTeamInvitationEmail({
+          to: email,
+          role,
+          inviteUrl,
+          invitedByName: `${req.userProfile.firstName} ${req.userProfile.lastName}`.trim(),
+        });
+        emailSent = true;
+      } catch (emailErr) {
+        logger.error({ err: emailErr }, "Team invitation email send failed (non-blocking):");
+      }
+
+      await storage.createAuditLog({
+        adminId: req.userProfile.id,
+        action: "TEAM_INVITATION_CREATED",
+        targetType: "system",
+        targetId: invitation.id,
+        details: { email, role, emailSent },
+        ipAddress: req.ip,
+      });
+
+      res.status(201).json({
+        message: emailSent ? "Invitation sent" : "Invitation generated — email delivery is not configured, share the link manually",
         invitationId: invitation.id,
-        inviteUrl: `${req.protocol}://${req.get('host')}/auth?invite=${token}`
+        emailSent,
+        inviteUrl
       });
     } catch (error) {
       logger.error({ err: error }, "Invite error:");
@@ -503,6 +546,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ email: invitation.email, role: invitation.role });
     } catch (error) {
       res.status(500).json({ message: "Verification failed" });
+    }
+  });
+
+  const acceptInvitationSchema = z.object({
+    token: z.string().min(1),
+    firstName: z.string().trim().min(1, "First name is required").max(100),
+    lastName: z.string().trim().min(1, "Last name is required").max(100),
+    password: z.string()
+      .min(6, "Password must be at least 6 characters")
+      .max(128)
+      .refine(
+        (pwd) => pwd.length < 8 || /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(pwd),
+        "For passwords of 8+ characters, include at least one uppercase letter, one lowercase letter, and one number.",
+      ),
+  });
+
+  // Completes the invitation loop: consumes the token, creates the actual
+  // account (this previously did not exist anywhere — invitations could be
+  // generated and verified but never turned into a real login), and logs
+  // the new team member straight into the portal. Public route: the person
+  // has no session yet, so it is gated purely by possession of the token.
+  app.post("/api/team/invitations/accept", authRateLimiter, async (req, res) => {
+    try {
+      const parsed = acceptInvitationSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.errors[0]?.message || "Validation failed" });
+      }
+      const { token, firstName, lastName, password } = parsed.data;
+
+      const invitation = await storage.getTeamInvitationByToken(token);
+      if (!invitation) {
+        return res.status(404).json({ message: "Invitation invalid, expired, or already consumed" });
+      }
+
+      const existingUser = await storage.getUserByEmail(invitation.email);
+      if (existingUser) {
+        return res.status(409).json({ message: "An account with this email already exists. Please sign in instead." });
+      }
+
+      const newUser = await storage.createUser({
+        firstName,
+        lastName,
+        email: invitation.email,
+        phone: "",
+        identity: `TEAM_${invitation.role.toUpperCase()}_${Date.now()}`,
+        referralCode: '',
+        role: invitation.role,
+        passwordHash: password,
+        password: password,
+        name: `${firstName} ${lastName}`,
+      } as any);
+
+      const grantedPermissions = invitation.role === 'team' ? ((invitation.permissions as string[] | null) || []) : [];
+
+      // Same pattern as POST /api/team/members: role/permissions and the
+      // mirrored team_keys row must land together.
+      await db.transaction(async (tx) => {
+        await tx.update(users).set({ permissions: grantedPermissions }).where(eq(users.id, newUser.id));
+        await storage.createTeamKey({
+          userId: newUser.id,
+          keyName: `TEAM-ACCESS-${invitation.role.toUpperCase()}-${Date.now()}`,
+          accessLevel: invitation.role,
+          permissions: grantedPermissions,
+        }, tx);
+      });
+
+      await storage.markUserEmailVerified(newUser.id);
+      await storage.consumeTeamInvitation(invitation.id);
+
+      await storage.createAuditLog({
+        adminId: invitation.createdBy,
+        action: "TEAM_INVITATION_ACCEPTED",
+        targetType: "system",
+        targetId: newUser.id,
+        details: { email: invitation.email, role: invitation.role },
+        ipAddress: req.ip,
+      });
+
+      // Regenerate session ID to prevent fixation before assigning identity
+      await new Promise<void>((resolve, reject) => {
+        req.session.regenerate((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
+      req.session.userId = newUser.id;
+      req.session.user = {
+        id: newUser.id,
+        email: newUser.email,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        role: invitation.role,
+      };
+
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
+      broadcastTeamRefresh("team_member_added");
+
+      const freshUser = await storage.getUserById(newUser.id);
+      res.status(201).json({ success: true, user: sanitizeUser(freshUser || newUser) });
+    } catch (error) {
+      logger.error({ err: error }, "Invitation acceptance error:");
+      res.status(500).json({ message: "Failed to activate invitation" });
     }
   });
 
@@ -1420,7 +1572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ── Admin: Weekly Task Manager ────────────────────────────────────────────────
-  app.get("/api/admin/weekly-tasks", requireTeamRole, async (req, res) => {
+  app.get("/api/admin/weekly-tasks", requirePermission("MANAGE_TASKS"), async (req, res) => {
     try {
       const tasks = await storage.getAllWeeklyTasks();
       res.json({ tasks });
@@ -4233,7 +4385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // --- Tasks Management (Admin) ---
   // ── Engine B Admin CRUD ───────────────────────────────────────────────────────
-  app.get("/api/admin/engine-b-tasks", requireTeamRole, async (req, res) => {
+  app.get("/api/admin/engine-b-tasks", requirePermission("MANAGE_TASKS"), async (req, res) => {
     try {
       const tasks = await storage.getEngineBTasks();
       res.json(tasks);
@@ -4709,7 +4861,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (!req.userProfile) return res.status(401).send();
       const patchMemberSchema = z.object({
-        accessLevel: z.string().min(1).max(50).optional(),
+        accessLevel: z.enum(["admin", "team"]).optional(),
         isActive: z.boolean().optional(),
       });
       const parsedPatch = patchMemberSchema.safeParse(req.body);
@@ -4756,7 +4908,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Synchronize associated key
         if (accessLevel || isActive !== undefined) {
-          const existingKeys = await storage.getTeamKeysByUser(id);
+          const existingKeys = await storage.getTeamKeysByUser(id, tx);
           if (existingKeys.length > 0) {
             const keyUpdates: any = {};
             if (accessLevel) keyUpdates.accessLevel = accessLevel;
@@ -4865,11 +5017,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/team/members/:id/permissions", requireTeamRole, adminActionRateLimiter, async (req, res) => {
+  app.patch("/api/team/members/:id/permissions", requirePermission("MANAGE_TEAM"), adminActionRateLimiter, async (req, res) => {
     try {
       if (!req.userProfile) return res.status(401).send();
-      if (req.userProfile.role !== 'founder') {
-        return res.status(403).json({ message: "Only Founders can modify granular access protocols." });
+      // Consistent with the other 4 team-key routes: any admin-or-founder
+      // holding MANAGE_TEAM can act, not founders exclusively. Previously this
+      // route hard-blocked admins even though they can already set initial
+      // permissions via POST /api/team/members — that dead-end (admin could
+      // create but never edit) is what this aligns.
+      const actorRole = req.userProfile.role;
+      if (actorRole !== 'founder' && actorRole !== 'admin') {
+        return res.status(403).json({ message: "Insufficient authorization to modify access permissions." });
       }
 
       const { id } = req.params;
@@ -4882,6 +5040,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const targetUser = await storage.getUserById(id);
       if (!targetUser) return res.status(404).json({ message: "Target node detached." });
+
+      // Founders are immutable by non-founders (mirrors PATCH /:id and DELETE).
+      if (targetUser.role === 'founder' && actorRole !== 'founder') {
+        return res.status(403).json({ message: "Founding nodes cannot be altered." });
+      }
 
       const existingKeys = await storage.getTeamKeysByUser(id);
       if (existingKeys.length === 0) {
