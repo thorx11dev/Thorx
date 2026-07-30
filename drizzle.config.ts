@@ -11,4 +11,8 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL,
   },
+  // `session` is owned/managed by connect-pg-simple (created via raw SQL, not
+  // part of shared/schema.ts). Without this, `drizzle-kit push` treats it as
+  // an untracked table and offers to DROP it on every push. Exclude it here.
+  tablesFilter: ["!session"],
 });

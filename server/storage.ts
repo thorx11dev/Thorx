@@ -138,6 +138,8 @@ import { eq, desc, asc, and, or, sql, inArray, ilike, gte, lte, lt, ne, isNotNul
 import { randomUUID } from "crypto";
 import bcrypt from "bcrypt";
 import { encryptCredential, decryptCredential, isEncrypted } from "./utils/credential-crypto";
+import { inferAuditCategory, type RequestContext } from "./request-context";
+import { describeAuditLog } from "./audit-descriptions";
 
 // ── Points Ledger config defaults ────────────────────────────────────────────
 // Real values are read via getSystemConfigValue() from system_config at runtime
@@ -411,7 +413,6 @@ export interface IStorage {
 
   // Scalable Data Architecture methods
   getUsersPaginated(params: { page: number, limit: number, search?: string, sort?: string, sortOrder?: 'asc' | 'desc', ids?: string[] }): Promise<{ users: User[], totalCount: number }>;
-  getAuditLogsPaginated(params: { page: number, limit: number, search?: string, ids?: string[], period?: string }): Promise<{ logs: AuditLog[], totalCount: number }>;
   getWithdrawalsPaginated(params: { page: number, limit: number, search?: string, status?: string, ids?: string[], sort?: string }): Promise<{ withdrawals: Array<Withdrawal & { user: User }>, totalCount: number }>;
   bulkUpdateWithdrawalStatus(ids: string[], status: string, adminId: string): Promise<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }>;
   
@@ -510,8 +511,24 @@ export interface IStorage {
   }>;
   refreshLeaderboardCache(): Promise<void>;
   updateWithdrawalStatus(id: string, status: string, adminId: string, transactionId?: string, rejectionReason?: string): Promise<Withdrawal>;
-  createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
+  createAuditLog(log: InsertAuditLog, context?: RequestContext): Promise<AuditLog>;
   getAuditLogs(limit?: number): Promise<AuditLog[]>;
+  getAuditLogsPaginated(params: {
+    page: number;
+    limit: number;
+    search?: string;
+    ids?: string[];
+    period?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    targetType?: string;
+    targetId?: string;
+    category?: string;
+    action?: string;
+    actorId?: string;
+    ipAddress?: string;
+  }): Promise<{ logs: any[]; totalCount: number }>;
+  getDistinctAuditActions(category?: string): Promise<string[]>;
   createInternalNote(note: InsertInternalNote): Promise<InternalNote>;
   getInternalNotes(targetType: string, targetId: string): Promise<Array<InternalNote & { admin: { firstName: string, lastName: string } }>>;
   adjustUserBalance(userId: string, amount: string, type: 'add' | 'subtract', adminId: string, reason: string, creditIntent?: 'verified_deposit' | 'admin_credit', txPointsDelta?: number): Promise<User>;
@@ -3870,10 +3887,28 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async createAuditLog(log: InsertAuditLog): Promise<AuditLog> {
+  async createAuditLog(log: InsertAuditLog, context?: RequestContext): Promise<AuditLog> {
+    const category = log.category ?? inferAuditCategory({
+      targetType: log.targetType,
+      actorId: log.adminId,
+      targetId: log.targetId,
+      actorRole: log.actorRole,
+    });
     const [newLog] = await db
       .insert(auditLogs)
-      .values(log)
+      .values({
+        ...log,
+        category,
+        // Explicit fields on `log` win over auto-captured context (callers
+        // occasionally already resolve one of these themselves).
+        ipAddress: log.ipAddress ?? context?.ipAddress ?? undefined,
+        userAgent: log.userAgent ?? context?.userAgent ?? undefined,
+        deviceType: log.deviceType ?? context?.deviceType ?? undefined,
+        browser: log.browser ?? context?.browser ?? undefined,
+        os: log.os ?? context?.os ?? undefined,
+        country: log.country ?? context?.country ?? undefined,
+        city: log.city ?? context?.city ?? undefined,
+      })
       .returning();
     return newLog;
   }

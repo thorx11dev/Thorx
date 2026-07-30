@@ -436,7 +436,12 @@ export const hilltopAdsZones = pgTable("hilltop_ads_zones", {
   index("hilltop_ads_zones_ad_format_idx").on(table.adFormat),
 ]);
 
-// Audit logs for administrative actions
+// Deep activity ledger — despite the historical name/column ("admin_id"), this
+// table records EVERY tracked action platform-wide: team/admin actions, guild
+// activity, and regular users' own self-service changes. `adminId` is really
+// "actorId" (the id of whoever performed the action, of any role) — kept as-is
+// to avoid an invasive rename across ~60 existing call sites; `category` is the
+// field that actually buckets a row for the Team/Guild/User Logs views below.
 export const auditLogs = pgTable("audit_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   adminId: varchar("admin_id").notNull().references(() => users.id),
@@ -445,6 +450,15 @@ export const auditLogs = pgTable("audit_logs", {
   targetId: varchar("target_id").notNull(),
   details: jsonb("details").notNull().default(sql`'{}'::jsonb`),
   ipAddress: text("ip_address"),
+  // Revamp (2026-07-30): deep tracking fields for the Team Portal Audit Logs page.
+  category: text("category").notNull().default("team"), // "team" | "guild" | "user"
+  actorRole: text("actor_role"), // role snapshot at write time: "founder" | "admin" | "team" | "user"
+  userAgent: text("user_agent"),
+  deviceType: text("device_type"), // "desktop" | "mobile" | "tablet" | "unknown"
+  browser: text("browser"),
+  os: text("os"),
+  country: text("country"),
+  city: text("city"),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("audit_logs_admin_id_idx").on(table.adminId),
@@ -454,6 +468,7 @@ export const auditLogs = pgTable("audit_logs", {
   index("audit_logs_created_at_idx").on(table.createdAt),
   // 2.2 — Composite for admin user-audit view: filters on target + time range
   index("audit_logs_target_user_created_idx").on(table.targetId, table.createdAt),
+  index("audit_logs_category_created_idx").on(table.category, table.createdAt),
 ]);
 
 // Internal notes for team collaboration
