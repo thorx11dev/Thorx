@@ -173,12 +173,26 @@ const FORMATTERS: Record<string, Formatter> = {
     const fields = Array.isArray(updatedFields) && updatedFields.length ? updatedFields.map(titleCase).join(", ") : "profile";
     return `${log.actorName} updated their guild's ${fields}.`;
   },
+  GUILD_MEMBER_NUDGED: (log) => `${log.actorName} nudged an inactive guild member.`,
+  GUILD_MEMBER_PINNED: (log) => {
+    const { unpinned } = d(log.details);
+    return unpinned ? `${log.actorName} unpinned their guild's featured member.` : `${log.actorName} pinned a member as their guild's featured member.`;
+  },
+  GUILD_WEEKLY_TASK_COMPLETED: (log) => {
+    const { taskName, pointsCredited } = d(log.details);
+    return `${log.actorName} completed the weekly guild task${taskName ? ` "${taskName}"` : ""}${pointsCredited ? ` (+${pointsCredited} pts)` : ""}.`;
+  },
 
   // User self-service financial action (Users Logs tab).
   WITHDRAWAL_REQUESTED: (log) => {
     const { amount, source } = d(log.details);
     return `${log.actorName} requested a withdrawal${amount !== undefined ? ` of ${pkr(amount)}` : ""}${source === "referral" ? " from referral earnings" : ""}.`;
   },
+
+  // User self-service account actions (Users Logs tab).
+  USER_REGISTERED: (log) => `${log.actorName} created a new THORX account${d(log.details).referredBy ? " via a referral" : ""}.`,
+  PASSWORD_RESET: (log) => `${log.actorName} reset their password via an emailed link.`,
+  EMAIL_VERIFIED: (log) => `${log.actorName} confirmed their email address.`,
 
   // Team communication / notification actions.
   GLOBAL_NOTIFICATION_SENT: (log) => `${log.actorName} broadcast a notification to all users${d(log.details).title ? `: "${d(log.details).title}"` : ""}.`,

@@ -1239,6 +1239,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const withdrawal = await storage.createWithdrawal(withdrawalData);
 
+      try {
+        await storage.createAuditLog({
+          adminId: userId,
+          actorRole: req.userProfile?.role,
+          action: "WITHDRAWAL_REQUESTED",
+          targetType: "user",
+          targetId: userId,
+          details: { amount: withdrawalData.amount, method: withdrawalData.method, withdrawalId: withdrawal.id },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (WITHDRAWAL_REQUESTED):");
+      }
+
       const responseBody = { success: true, withdrawal, message: "Withdrawal request submitted successfully" };
       // H-01: Cache the successful response so retried requests with the same key
       // return the same 201 without creating a duplicate withdrawal.
@@ -1405,6 +1418,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // immediately rather than waiting for a manual refresh.
       broadcastUserUpdated(req.params.userId, "guild_removed");
       broadcastGuildEvent(req.params.id, 'guild.member_removed', { userId: req.params.userId, guildId: req.params.id });
+      try {
+        await storage.createAuditLog({
+          adminId: captainId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_MEMBER_KICKED",
+          targetType: "guild",
+          targetId: req.params.id,
+          details: { removedUserId: req.params.userId },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_MEMBER_KICKED):");
+      }
       res.json({ success: true });
     } catch (error) {
       logger.error({ err: error }, "Remove guild member error:");
@@ -1516,6 +1541,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       broadcastGuildEvent(membership.guildId, 'guild.weekly_points', {
         userId, guildId: membership.guildId, pointsCredited: earnResult?.pointsCredited ?? 0
       });
+      try {
+        await storage.createAuditLog({
+          adminId: userId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_WEEKLY_TASK_COMPLETED",
+          targetType: "guild",
+          targetId: membership.guildId,
+          details: { taskId: req.params.taskId, taskName: (task as any)?.name, pointsCredited: earnResult?.pointsCredited ?? 0 },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_WEEKLY_TASK_COMPLETED):");
+      }
       res.status(201).json({ record, earnResult });
     } catch (error) {
       logger.error({ err: error }, "Complete weekly task error:");
@@ -1544,6 +1581,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid settings.", errors: parsed.error.flatten().fieldErrors });
       }
       const { name, description, minRankRequired, recruitmentOpen, isPublic, pinnedMemberId, avatarUrl } = parsed.data;
+      const beforeGuild = await storage.getGuildById(req.params.id);
       const guild = await storage.updateGuildSettings(req.params.id, userId, {
         name,
         description: description ?? undefined,
@@ -1555,6 +1593,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       // Notify all guild members of settings change
       broadcastGuildEvent(req.params.id, 'guild.settings_updated', { guildId: req.params.id });
+      try {
+        const diff = diffFields(beforeGuild, guild, ["name", "description", "minRankRequired", "recruitmentOpen", "isPublic", "pinnedMemberId", "avatarUrl"]);
+        await storage.createAuditLog({
+          adminId: userId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_SETTINGS_UPDATED",
+          targetType: "guild",
+          targetId: req.params.id,
+          details: { diff, updatedFields: Object.keys(parsed.data) },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_SETTINGS_UPDATED):");
+      }
       res.json({ guild });
     } catch (error) {
       logger.error({ err: error }, "Update guild settings error:");
@@ -1576,6 +1627,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         announcement: text,
         postedAt: new Date().toISOString(),
       });
+      try {
+        await storage.createAuditLog({
+          adminId: userId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_ANNOUNCEMENT_POSTED",
+          targetType: "guild",
+          targetId: req.params.id,
+          details: { preview: text.length > 120 ? `${text.slice(0, 120)}…` : text },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_ANNOUNCEMENT_POSTED):");
+      }
       res.json({ guild });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to post announcement";
@@ -1587,6 +1650,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getThorxPrincipalId(req) as string;
       const guild = await storage.clearGuildAnnouncement(req.params.id, userId);
+      try {
+        await storage.createAuditLog({
+          adminId: userId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_ANNOUNCEMENT_DELETED",
+          targetType: "guild",
+          targetId: req.params.id,
+          details: {},
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_ANNOUNCEMENT_DELETED):");
+      }
       res.json({ guild });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to clear announcement";
@@ -1598,9 +1673,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/guilds/:id/pin/:memberId", requireSessionAuth, async (req, res) => {
     try {
       const userId = getThorxPrincipalId(req) as string;
+      const unpinned = req.params.memberId === "unpin";
       const guild = await storage.updateGuildSettings(req.params.id, userId, {
-        pinnedMemberId: req.params.memberId === "unpin" ? null : req.params.memberId,
+        pinnedMemberId: unpinned ? null : req.params.memberId,
       });
+      try {
+        await storage.createAuditLog({
+          adminId: userId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_MEMBER_PINNED",
+          targetType: "guild",
+          targetId: req.params.id,
+          details: unpinned ? { unpinned: true } : { pinnedMemberId: req.params.memberId },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_MEMBER_PINNED):");
+      }
       res.json({ guild });
     } catch (error) {
       logger.error({ err: error }, "Pin member error:");
@@ -3910,6 +3998,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       debugLog(`[POST /api/register] User created: ${newUser.id}`);
 
+      try {
+        await storage.createAuditLog({
+          adminId: newUser.id,
+          actorRole: "user",
+          action: "USER_REGISTERED",
+          targetType: "user",
+          targetId: newUser.id,
+          details: { email: newUser.email, referredBy: referredBy ?? null, viaReferralCode: !!referralCode },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (USER_REGISTERED):");
+      }
+
       // Store device fingerprint if provided
       if (deviceFingerprint && typeof deviceFingerprint === "string") {
         try {
@@ -4055,6 +4156,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Close any active WS sessions — forces re-login on all devices
       closeUserSockets(record.userId, 4001, "Password reset — please log in again");
 
+      try {
+        await storage.createAuditLog({
+          adminId: record.userId,
+          actorRole: "user",
+          action: "PASSWORD_RESET",
+          targetType: "user",
+          targetId: record.userId,
+          details: { method: "email_token" },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (PASSWORD_RESET):");
+      }
+
       logger.info({ userId: record.userId }, "[ResetPassword] Password updated via email token");
       res.json({ success: true, message: "Password updated successfully. Please log in with your new password." });
     } catch (err) {
@@ -4076,6 +4190,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found", error: "NOT_FOUND" });
       }
       await storage.markUserEmailVerified(user.id);
+      try {
+        await storage.createAuditLog({
+          adminId: userId,
+          actorRole: req.userProfile?.role,
+          action: "EMAIL_VERIFIED",
+          targetType: "user",
+          targetId: user.id,
+          details: {},
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (EMAIL_VERIFIED):");
+      }
       res.json({ success: true, message: "Email verification confirmed" });
     } catch (error) {
       logger.error({ err: error }, "Mark verified error:");
@@ -4321,6 +4447,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "User not found",
           error: "USER_NOT_FOUND"
         });
+      }
+
+      // Audit log for self-service profile change — enriched with before/after diff
+      try {
+        const profilePictureChanged = resolvedProfilePicture !== undefined;
+        const diff = diffFields(existingRow, updatedUser, ["firstName", "lastName", "phone", "identity", "avatar"]);
+        await storage.createAuditLog({
+          adminId: userId,
+          actorRole: req.userProfile?.role,
+          action: "UPDATE_PROFILE",
+          targetType: "user",
+          targetId: updatedUser.id,
+          details: {
+            fields: Object.keys(updatePayload).filter((k) => (updatePayload as Record<string, unknown>)[k] !== undefined),
+            diff,
+            profilePictureChanged,
+          },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "UPDATE_PROFILE audit log failed (non-blocking):");
       }
 
       // Update session data if name changed
@@ -5557,6 +5703,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const membership = await storage.applyToGuildWithCoverLetter(req.params.id, userId, coverLetter.trim());
       broadcastGuildEvent(req.params.id, 'guild.application_received', { userId, guildId: req.params.id });
+      try {
+        await storage.createAuditLog({
+          adminId: userId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_APPLICATION_SUBMITTED",
+          targetType: "guild_application",
+          targetId: membership.id,
+          details: { guildId: req.params.id },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_APPLICATION_SUBMITTED):");
+      }
       res.status(201).json({ membership });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to submit guild application";
@@ -5582,6 +5740,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         broadcastToUser(membership.userId, 'guild.application_decided', { action, guildId: req.params.id });
       }
       broadcastGuildEvent(req.params.id, 'guild.application_decided_notify', { action, guildId: req.params.id });
+      try {
+        await storage.createAuditLog({
+          adminId: captainId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_APPLICATION_DECIDED",
+          targetType: "guild_application",
+          targetId: req.params.applicationId,
+          details: { decision: action === "accept" ? "approved" : "rejected", applicantUserId: membership?.userId, rejectionReason },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_APPLICATION_DECIDED):");
+      }
       res.json({ membership });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to decide application";
@@ -5635,6 +5805,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const captainId = getThorxPrincipalId(req) as string;
       await storage.nudgeGuildMember(req.params.id, captainId, req.params.userId);
       broadcastToUser(req.params.userId, 'guild.nudge_received', { guildId: req.params.id });
+      try {
+        await storage.createAuditLog({
+          adminId: captainId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_MEMBER_NUDGED",
+          targetType: "guild",
+          targetId: req.params.id,
+          details: { nudgedUserId: req.params.userId },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_MEMBER_NUDGED):");
+      }
       res.json({ success: true });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to nudge member";
@@ -5647,6 +5829,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const captainId = getThorxPrincipalId(req) as string;
       await storage.setGuildMemberMvp(req.params.id, captainId, req.params.userId);
       broadcastGuildEvent(req.params.id, 'guild.mvp_selected', { userId: req.params.userId, guildId: req.params.id });
+      try {
+        await storage.createAuditLog({
+          adminId: captainId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_MVP_ASSIGNED",
+          targetType: "guild",
+          targetId: req.params.id,
+          details: { mvpUserId: req.params.userId },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_MVP_ASSIGNED):");
+      }
       res.json({ success: true });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to set MVP";
@@ -5761,6 +5955,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const withdrawal = await storage.createReferralCashWithdrawal(
         userId, amount, method, accountName, accountNumber, accountDetails ?? {}
       );
+      try {
+        await storage.createAuditLog({
+          adminId: userId,
+          actorRole: req.userProfile?.role,
+          action: "WITHDRAWAL_REQUESTED",
+          targetType: "user",
+          targetId: userId,
+          details: { amount, method, source: "referral", withdrawalId: withdrawal.id },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (WITHDRAWAL_REQUESTED referral):");
+      }
       res.status(201).json({ withdrawal });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to submit referral withdrawal";
@@ -6157,6 +6363,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [request] = await db.insert(guildCreationRequests)
         .values({ userId, guildName: parsed.data.guildName, description: parsed.data.description, reason: parsed.data.reason })
         .returning();
+      try {
+        await storage.createAuditLog({
+          adminId: userId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_CREATION_REQUESTED",
+          targetType: "guild_creation_request",
+          targetId: request.id,
+          details: { name: parsed.data.guildName },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_CREATION_REQUESTED):");
+      }
       res.status(201).json({ request });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to submit guild creation request";
@@ -6345,6 +6563,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Notify all challenger guild members to vote
       broadcastGuildEvent(req.params.id, 'guild.war_challenge_initiated', { warId: war.id, challengedGuildId: parsed.data.challengedGuildId });
+      try {
+        await storage.createAuditLog({
+          adminId: captainId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_WAR_CHALLENGED",
+          targetType: "guild_war",
+          targetId: war.id,
+          details: { challengerGuildId: req.params.id, challengedGuildId: parsed.data.challengedGuildId },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_WAR_CHALLENGED):");
+      }
       res.status(201).json({ war });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to initiate challenge";
@@ -6391,6 +6621,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const war = await cancelWar(req.params.warId, captainId);
       broadcastGuildEvent(req.params.id, 'guild.war_cancelled', { warId: req.params.warId });
       broadcastGuildEvent(war.challengedGuildId, 'guild.war_cancelled', { warId: req.params.warId });
+      try {
+        await storage.createAuditLog({
+          adminId: captainId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_WAR_CANCELLED",
+          targetType: "guild_war",
+          targetId: req.params.warId,
+          details: { guildId: req.params.id },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_WAR_CANCELLED):");
+      }
       res.json({ war });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to cancel war";
@@ -6461,6 +6703,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: "info",
       });
       broadcastToUser(parsed.data.memberId, 'guild.assistant_captain_appointed', { guildId: req.params.id });
+      try {
+        await storage.createAuditLog({
+          adminId: captainId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_ASSISTANT_CAPTAIN_ASSIGNED",
+          targetType: "guild",
+          targetId: req.params.id,
+          details: { assistantUserId: parsed.data.memberId },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_ASSISTANT_CAPTAIN_ASSIGNED):");
+      }
       res.json({ success: true });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to set assistant captain";
@@ -6479,6 +6733,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await db.update(guilds)
         .set({ assistantCaptainId: null, assistantPermissions: [], updatedAt: new Date() })
         .where(eq(guilds.id, req.params.id));
+      try {
+        await storage.createAuditLog({
+          adminId: captainId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_ASSISTANT_CAPTAIN_REMOVED",
+          targetType: "guild",
+          targetId: req.params.id,
+          details: { removedAssistantUserId: guild.assistantCaptainId },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_ASSISTANT_CAPTAIN_REMOVED):");
+      }
       res.json({ success: true });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to remove assistant captain";
@@ -6503,6 +6769,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await db.update(guilds)
         .set({ assistantPermissions: parsed.data.permissions, updatedAt: new Date() })
         .where(eq(guilds.id, req.params.id));
+      try {
+        await storage.createAuditLog({
+          adminId: captainId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_ASSISTANT_CAPTAIN_PERMISSIONS_UPDATED",
+          targetType: "guild",
+          targetId: req.params.id,
+          details: { assistantUserId: guild.assistantCaptainId, permissions: parsed.data.permissions },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_ASSISTANT_CAPTAIN_PERMISSIONS_UPDATED):");
+      }
       res.json({ success: true, permissions: parsed.data.permissions });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to update permissions";
@@ -6569,6 +6847,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             favoriteMemberId: parsed.data.favoriteMemberId,
           })
           .returning();
+      }
+      try {
+        await storage.createAuditLog({
+          adminId: userId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_PROFILE_UPDATED",
+          targetType: "guild",
+          targetId: req.params.id,
+          details: { updatedFields: Object.keys(parsed.data), created: !existing },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_PROFILE_UPDATED):");
       }
       res.json({ profile });
     } catch (error) {
