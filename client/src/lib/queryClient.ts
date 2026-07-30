@@ -4,7 +4,20 @@ import { getApiOrigin } from "@/lib/apiOrigin";
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    // API errors are JSON bodies like {"message": "..."} — surface the clean
+    // message instead of the raw JSON blob so every caller's error.message
+    // (toasts, etc.) reads as human text. Falls back to raw text if the body
+    // isn't JSON (e.g. an HTML error page or empty body).
+    let message = text;
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed && typeof parsed.message === "string") {
+        message = parsed.message;
+      }
+    } catch {
+      // Not JSON — keep the raw text.
+    }
+    throw new Error(`${res.status}: ${message}`);
   }
 }
 

@@ -14,7 +14,10 @@ import {
   ChevronUp,
   ShieldCheck,
   LayoutDashboard,
-  Loader2
+  Loader2,
+  Mail,
+  Copy,
+  Check
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -47,8 +50,11 @@ export function TeamKeysManager() {
   const [newMemberRole, setNewMemberRole] = useState("team");
   const [newMemberPermissions, setNewMemberPermissions] = useState<string[]>([]);
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
+  const [pendingInvite, setPendingInvite] = useState<{ email: string; url: string } | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const ADMIN_SECTIONS = [
+    { id: "tasks", name: "Task Manager" },
     { id: "payouts", name: "Payout Queue" },
     { id: "users", name: "User CRM" },
     { id: "inbox", name: "Inbox" },
@@ -73,17 +79,42 @@ export function TeamKeysManager() {
 
   const addMemberMutation = useMutation({
     mutationFn: async ({ email, role, permissions }: { email: string; role: string, permissions?: string[] }) => {
-      return await apiRequest("POST", "/api/team/members", { email, role, permissions });
+      try {
+        const res = await apiRequest("POST", "/api/team/members", { email, role, permissions });
+        return { mode: "direct" as const, data: await res.json() };
+      } catch (error: any) {
+        // Target has no THORX account yet — fall back to the invitation flow
+        // instead of surfacing a dead-end "unverified" error.
+        if (typeof error?.message === "string" && error.message.startsWith("404")) {
+          const res = await apiRequest("POST", "/api/team/invitations", { email, role, permissions });
+          return { mode: "invite" as const, data: await res.json() };
+        }
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['/api/team/members'] });
-      toast({ title: "Cryptographic Key Minted", description: "Node access granted successfully." });
-      setNewMemberEmail("");
-      setNewMemberPermissions([]);
-      setIsDialogOpen(false);
+      if (result.mode === "invite") {
+        if (result.data.emailSent) {
+          toast({ title: "Invitation Sent", description: `An activation email was sent to ${newMemberEmail}.` });
+          setNewMemberEmail("");
+          setNewMemberPermissions([]);
+          setIsDialogOpen(false);
+        } else {
+          // No email provider configured — hand the admin a shareable link instead
+          // of silently dropping the invitation on the floor.
+          setPendingInvite({ email: newMemberEmail, url: result.data.inviteUrl });
+        }
+      } else {
+        toast({ title: "Cryptographic Key Minted", description: "Node access granted successfully." });
+        setNewMemberEmail("");
+        setNewMemberPermissions([]);
+        setIsDialogOpen(false);
+      }
     },
     onError: (error: Error) => {
-      toast({ title: "Issuance Failed", description: error.message || "Target node unverified or missing.", variant: "destructive" });
+      const message = (error.message || "").replace(/^\d+:\s*/, "");
+      toast({ title: "Issuance Failed", description: message || "Target node unverified or missing.", variant: "destructive" });
     }
   });
 
@@ -159,7 +190,18 @@ export function TeamKeysManager() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog
+            open={isDialogOpen}
+            onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) {
+                // Wipe transient invite state so a stale link/copy indicator
+                // never reappears the next time the dialog is opened.
+                setPendingInvite(null);
+                setLinkCopied(false);
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button className="h-10 bg-[#111] text-white border-[1.5px] border-[#111] font-black text-xs px-6 hover:bg-primary hover:text-white rounded-full transition-all uppercase shadow-sm">
                 Add Member
@@ -168,9 +210,64 @@ export function TeamKeysManager() {
             <DialogContent className="bg-background border-[#111] border-[1.5px] rounded-[2rem] p-8 max-w-md">
               <DialogHeader>
                 <DialogTitle className="text-3xl font-black tracking-tighter uppercase text-[#111]">
-                  Add Member
+                  {pendingInvite ? "Invite Ready" : "Add Member"}
                 </DialogTitle>
               </DialogHeader>
+
+              {pendingInvite ? (
+                <div className="space-y-6 mt-4">
+                  <div className="flex items-start gap-3 p-4 border-2 border-[#111]/10 rounded-2xl bg-zinc-50">
+                    <Mail className="w-5 h-5 text-zinc-400 mt-0.5 shrink-0" />
+                    <p className="text-xs font-bold text-zinc-600 leading-relaxed">
+                      <span className="text-[#111]">{pendingInvite.email}</span> has no THORX account yet, and no
+                      email provider is configured to deliver invitations automatically. Share this activation
+                      link with them manually — it expires in 48 hours.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black tracking-widest uppercase text-zinc-500">Activation Link</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        readOnly
+                        value={pendingInvite.url}
+                        onFocus={(e) => e.currentTarget.select()}
+                        className="flex-1 h-12 px-4 bg-white border-[1.5px] border-[#111] rounded-full font-mono text-[11px] text-[#111] outline-none"
+                        data-testid="input-invite-link"
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(pendingInvite.url);
+                          } catch {
+                            // Clipboard API unavailable (e.g. insecure context) —
+                            // the field above is still selectable/copyable manually.
+                          }
+                          setLinkCopied(true);
+                          setTimeout(() => setLinkCopied(false), 2000);
+                        }}
+                        className="h-12 w-12 shrink-0 bg-[#111] text-white border-[1.5px] border-[#111] rounded-full hover:bg-primary transition-all"
+                        data-testid="button-copy-invite-link"
+                      >
+                        {linkCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setNewMemberEmail("");
+                      setNewMemberPermissions([]);
+                      setPendingInvite(null);
+                      setLinkCopied(false);
+                      setIsDialogOpen(false);
+                    }}
+                    className="w-full h-12 bg-primary text-white border-[1.5px] border-[#111] font-black text-xs rounded-full hover:bg-primary/80 transition-colors uppercase"
+                  >
+                    Done
+                  </Button>
+                </div>
+              ) : (
               <div className="space-y-6 mt-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black tracking-widest uppercase text-zinc-500">Email</label>
@@ -223,10 +320,11 @@ export function TeamKeysManager() {
                   className="w-full h-12 bg-primary text-white border-[1.5px] border-[#111] font-black text-xs rounded-full hover:bg-primary/80 transition-colors uppercase disabled:opacity-50"
                 >
                   {addMemberMutation.isPending
-                    ? <span className="flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" />Generating Token…</span>
+                    ? <span className="flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" />Processing…</span>
                     : "Process Key Issuance"}
                 </Button>
               </div>
+              )}
             </DialogContent>
           </Dialog>
         </div>

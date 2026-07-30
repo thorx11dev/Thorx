@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, ReactNode } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearchParams } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -17,6 +17,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { getDeviceFingerprint } from "@/lib/fingerprint";
+import { InviteAcceptCard } from "@/components/auth/InviteAcceptCard";
 
 // Animated Placeholder Component
 function AnimatedPlaceholder({ examples, className = "text-muted-foreground" }: { examples: string[]; className?: string }) {
@@ -289,6 +290,8 @@ type AuthView = 'register' | 'login' | 'verify-otp' | 'forgot-password';
 
 export default function Auth() {
   const [, setLocation] = useLocation();
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get("invite");
   const [activeTab, setActiveTab] = useState("register");
   const [authView, setAuthView] = useState<AuthView>('register');
   const [showPassword, setShowPassword] = useState(false);
@@ -516,6 +519,13 @@ export default function Auth() {
       setIsSubmitting(false);
     }
   };
+
+  // A ?invite=TOKEN link (issued from Team Keys) replaces the normal
+  // login/register tabs entirely with the invitation-acceptance flow — it's a
+  // one-time entry point, not another tab in the existing state machine.
+  if (inviteToken) {
+    return <InviteAcceptCard token={inviteToken} />;
+  }
 
   return (
     <motion.div

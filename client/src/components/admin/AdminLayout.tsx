@@ -53,6 +53,20 @@ export function AdminLayout({ children, activeSection, onSectionChange, title }:
     { id: "settings", icon: Settings, label: "Settings" },
   ];
 
+  // Team-role members only see what they've been granted (mirrors AdminSidebar's
+  // desktop filtering). Without this, the mobile nav offered tabs a team member
+  // had no permission for — TeamPortal's content gate still blocked the page
+  // itself, but the dead nav entry was a confusing, ungranted-looking dead end.
+  const visibleNavItems = adminNavItems.filter((item) => {
+    if (!user) return false;
+    if (user.role === "founder" || user.role === "admin") return true;
+    if (user.role === "team") {
+      if (item.id === "dashboard") return true;
+      return (user.permissions || []).includes(item.id);
+    }
+    return false;
+  });
+
   return (
     <div className="admin-portal flex flex-col min-h-screen bg-background font-sans text-foreground selection:bg-primary selection:text-white relative">
       
@@ -94,13 +108,13 @@ export function AdminLayout({ children, activeSection, onSectionChange, title }:
         {/* Mobile Navigation - matching User Portal */}
         <div className="lg:hidden">
           <MobileNavBar
-            sections={adminNavItems.map(item => ({
+            sections={visibleNavItems.map(item => ({
               id: item.id,
               icon: item.icon,
               name: item.label
             }))}
-            currentSection={adminNavItems.findIndex(i => i.id === activeSection)}
-            onSectionChange={(index) => onSectionChange(adminNavItems[index].id)}
+            currentSection={visibleNavItems.findIndex(i => i.id === activeSection)}
+            onSectionChange={(index) => onSectionChange(visibleNavItems[index].id)}
           />
         </div>
       </div>
