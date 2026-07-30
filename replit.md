@@ -65,6 +65,10 @@ The script is idempotent: safe to re-run; it upserts the role, password hash, an
 
 ## Setup notes (this import — 2026-07-30)
 
+- 2026-07-30 (this import): `postgresql-16` module was missing from `.replit` after import — restored. `DATABASE_URL` and `SESSION_SECRET` already present as Replit environment secrets. Bootstrap script ran `npm install` + `npx drizzle-kit push --force` automatically on first `npm run dev` (no conflicts, "Changes applied"). App confirmed running on port 5000 (landing page renders, `/api/health` returns `{"status":"healthy","db":"connected"}`). Founder account (Aon Imran / thorx11dev@gmail.com, role: founder, permissions: `["all"]`) provisioned via `POST /api/bootstrap-founder`. Full auth regression passed: unauthenticated `/api/user` (401) → founder login (200, role: founder, firstName: Aon, lastName: Imran) → `/api/user` (200, full founder profile with permissions: ["all"]) → `/api/admin/config` (200) → `/api/team/members` (200, 1 member). Only the founder account exists in the `users` table.
+
+### Previous import notes
+
 ### Steps performed on fresh import
 1. `DATABASE_URL` and `SESSION_SECRET` were already present as Replit environment secrets (auto-injected / previously set).
 2. Ran `npm install` — all dependencies installed successfully.
