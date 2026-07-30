@@ -102,8 +102,8 @@ export function diffFields<T extends Record<string, any>>(
   const changes: Record<string, { before: unknown; after: unknown }> = {};
   if (!before || !after) return changes;
   for (const key of keys) {
-    const beforeVal = before[key];
-    const afterVal = after[key];
+    const beforeVal = before[key] as unknown;
+    const afterVal = after[key] as unknown;
     const a = beforeVal instanceof Date ? beforeVal.toISOString() : beforeVal;
     const b = afterVal instanceof Date ? afterVal.toISOString() : afterVal;
     if (JSON.stringify(a) !== JSON.stringify(b)) {

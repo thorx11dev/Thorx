@@ -59,7 +59,15 @@ type Formatter = (log: AuditLogForDescription) => string;
 // Exact-match templates for known static action codes.
 const FORMATTERS: Record<string, Formatter> = {
   UPDATE_PROFILE: (log) => {
-    const fields = d(log.details).fields;
+    const { fields, diff, profilePictureChanged } = d(log.details);
+    if (diff && Object.keys(diff).length) {
+      const parts = Object.entries(diff).map(([k, v]: [string, any]) => `${titleCase(k)}: "${v?.before ?? "—"}" → "${v?.after ?? "—"}"`);
+      if (profilePictureChanged) parts.push("profile picture changed");
+      return `${log.actorName} updated their profile (${parts.join(", ")}).`;
+    }
+    if (profilePictureChanged && !(Array.isArray(fields) && fields.length)) {
+      return `${log.actorName} updated their profile picture.`;
+    }
     const fieldList = Array.isArray(fields) && fields.length ? fields.map(titleCase).join(", ") : "profile details";
     return `${log.actorName} updated their ${fieldList}.`;
   },
@@ -129,6 +137,48 @@ const FORMATTERS: Record<string, Formatter> = {
   ADMIN_TARGET_DIFFICULTY_SET: (log) => `${log.actorName} changed a guild's target difficulty${d(log.details).difficulty ? ` to "${d(log.details).difficulty}"` : ""}.`,
   ADMIN_GUILD_MEMBER_KICKED: (log) => `${log.actorName} removed a member from a guild.`,
   RECLASSIFY_EARNING: (log) => `${log.actorName} reclassified an earning record${d(log.details).newType ? ` as "${d(log.details).newType}"` : ""}.`,
+
+  // Guild self-service actions (Guilds Logs tab).
+  GUILD_CREATED: (log) => `${log.actorName} created a new guild${d(log.details).name ? ` "${d(log.details).name}"` : ""}.`,
+  GUILD_JOIN_REQUESTED: (log) => `${log.actorName} requested to join a guild.`,
+  GUILD_JOINED: (log) => `${log.actorName} joined a guild.`,
+  GUILD_LEFT: (log) => `${log.actorName} left a guild.`,
+  GUILD_MEMBER_KICKED: (log) => `${log.actorName} removed a member from their guild.`,
+  GUILD_SETTINGS_UPDATED: (log) => {
+    const { diff, updatedFields } = d(log.details);
+    if (diff && Object.keys(diff).length) {
+      const parts = Object.entries(diff).map(([k, v]: [string, any]) => `${titleCase(k)} → ${v?.after ?? "?"}`);
+      return `${log.actorName} updated guild settings (${parts.join(", ")}).`;
+    }
+    const fields = Array.isArray(updatedFields) && updatedFields.length ? updatedFields.map(titleCase).join(", ") : "settings";
+    return `${log.actorName} updated guild ${fields}.`;
+  },
+  GUILD_ANNOUNCEMENT_POSTED: (log) => `${log.actorName} posted a guild announcement${d(log.details).preview ? `: "${d(log.details).preview}"` : ""}.`,
+  GUILD_ANNOUNCEMENT_DELETED: (log) => `${log.actorName} deleted the guild announcement.`,
+  GUILD_APPLICATION_SUBMITTED: (log) => `${log.actorName} applied to join a guild.`,
+  GUILD_APPLICATION_DECIDED: (log) => {
+    const decision = d(log.details).decision;
+    const verb = decision === "approved" || decision === true ? "approved" : decision === "rejected" || decision === false ? "rejected" : "decided on";
+    return `${log.actorName} ${verb} a guild join application.`;
+  },
+  GUILD_MVP_ASSIGNED: (log) => `${log.actorName} named a guild member MVP.`,
+  GUILD_CREATION_REQUESTED: (log) => `${log.actorName} requested to create a new guild${d(log.details).name ? ` called "${d(log.details).name}"` : ""}.`,
+  GUILD_WAR_CHALLENGED: (log) => `${log.actorName} challenged another guild to a war.`,
+  GUILD_WAR_CANCELLED: (log) => `${log.actorName} cancelled a guild war.`,
+  GUILD_ASSISTANT_CAPTAIN_ASSIGNED: (log) => `${log.actorName} assigned a member as assistant captain.`,
+  GUILD_ASSISTANT_CAPTAIN_REMOVED: (log) => `${log.actorName} removed a member's assistant captain role.`,
+  GUILD_ASSISTANT_CAPTAIN_PERMISSIONS_UPDATED: (log) => `${log.actorName} updated an assistant captain's permissions.`,
+  GUILD_PROFILE_UPDATED: (log) => {
+    const updatedFields = d(log.details).updatedFields;
+    const fields = Array.isArray(updatedFields) && updatedFields.length ? updatedFields.map(titleCase).join(", ") : "profile";
+    return `${log.actorName} updated their guild's ${fields}.`;
+  },
+
+  // User self-service financial action (Users Logs tab).
+  WITHDRAWAL_REQUESTED: (log) => {
+    const { amount, source } = d(log.details);
+    return `${log.actorName} requested a withdrawal${amount !== undefined ? ` of ${pkr(amount)}` : ""}${source === "referral" ? " from referral earnings" : ""}.`;
+  },
 };
 
 // Prefix-based templates for dynamically-suffixed action codes

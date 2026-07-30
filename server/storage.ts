@@ -4683,7 +4683,7 @@ export class DatabaseStorage implements IStorage {
     return { users: results, totalCount: Number(countResult?.count || 0) };
   }
 
-  async getAuditLogsPaginated(params: { page: number, limit: number, search?: string, ids?: string[], period?: string, targetType?: string, targetId?: string }): Promise<{ logs: any[], totalCount: number }> {
+  async getAuditLogsPaginated(params: { page: number, limit: number, search?: string, ids?: string[], period?: string, dateFrom?: string, dateTo?: string, targetType?: string, targetId?: string, category?: string, action?: string, actorId?: string, ipAddress?: string }): Promise<{ logs: any[], totalCount: number }> {
     const offset = (params.page - 1) * params.limit;
     const conditions = [];
 
@@ -4692,7 +4692,8 @@ export class DatabaseStorage implements IStorage {
       conditions.push(or(
         ilike(auditLogs.action, searchPattern),
         ilike(users.firstName, searchPattern),
-        ilike(users.lastName, searchPattern)
+        ilike(users.lastName, searchPattern),
+        ilike(users.email, searchPattern)
       ));
     }
 
@@ -4708,7 +4709,38 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(auditLogs.targetId, params.targetId));
     }
 
-    if (params.period && params.period !== 'all_time') {
+    if (params.category && params.category !== 'all') {
+      conditions.push(eq(auditLogs.category, params.category));
+    }
+
+    if (params.action && params.action !== 'ALL') {
+      conditions.push(eq(auditLogs.action, params.action));
+    }
+
+    if (params.actorId) {
+      conditions.push(eq(auditLogs.adminId, params.actorId));
+    }
+
+    if (params.ipAddress) {
+      conditions.push(ilike(auditLogs.ipAddress, `%${params.ipAddress}%`));
+    }
+
+    // An explicit date range takes priority over the `period` preset — the
+    // frontend never sends both, but if it did, an exact range is the more
+    // specific ask.
+    if (params.dateFrom || params.dateTo) {
+      if (params.dateFrom) {
+        const from = new Date(params.dateFrom);
+        if (!isNaN(from.getTime())) conditions.push(gte(auditLogs.createdAt, from));
+      }
+      if (params.dateTo) {
+        const to = new Date(params.dateTo);
+        if (!isNaN(to.getTime())) {
+          to.setHours(23, 59, 59, 999);
+          conditions.push(lte(auditLogs.createdAt, to));
+        }
+      }
+    } else if (params.period && params.period !== 'all_time') {
       const startDate = new Date();
       switch (params.period) {
         case 'today':
@@ -4748,7 +4780,9 @@ export class DatabaseStorage implements IStorage {
       log: auditLogs,
       admin: {
         firstName: users.firstName,
-        lastName: users.lastName
+        lastName: users.lastName,
+        email: users.email,
+        role: users.role,
       }
     })
     .from(auditLogs)
@@ -4759,9 +4793,31 @@ export class DatabaseStorage implements IStorage {
     .orderBy(desc(auditLogs.createdAt));
 
     return { 
-      logs: results.map(r => ({ ...r.log, admin: r.admin })), 
+      logs: results.map(r => {
+        const actorName = [r.admin.firstName, r.admin.lastName].filter(Boolean).join(" ").trim() || r.admin.email || "Someone";
+        return {
+          ...r.log,
+          admin: r.admin,
+          description: describeAuditLog({
+            action: r.log.action,
+            targetType: r.log.targetType,
+            targetId: r.log.targetId,
+            details: r.log.details,
+            actorName,
+          }),
+        };
+      }), 
       totalCount: Number(countResult?.count || 0) 
     };
+  }
+
+  async getDistinctAuditActions(category?: string): Promise<string[]> {
+    const whereClause = category && category !== 'all' ? eq(auditLogs.category, category) : undefined;
+    const rows = await db.selectDistinct({ action: auditLogs.action })
+      .from(auditLogs)
+      .where(whereClause)
+      .orderBy(asc(auditLogs.action));
+    return rows.map(r => r.action);
   }
 
   async getWithdrawalsPaginated(params: { page: number, limit: number, search?: string, status?: string, ids?: string[], sort?: string }): Promise<{ withdrawals: Array<Withdrawal & { user: User }>, totalCount: number }> {
