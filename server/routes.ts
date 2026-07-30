@@ -25,6 +25,7 @@ import bcrypt from "bcrypt";
 import { logger } from "./lib/logger";
 import { Sentry } from "./lib/sentry";
 import { sendPasswordResetEmail, sendTeamInvitationEmail } from "./lib/email";
+import { getRequestContext, diffFields } from "./request-context";
 
 // ── H-01: Withdrawal idempotency cache ───────────────────────────────────────
 // Short-TTL in-memory store that deduplicates concurrent/retried withdrawal
