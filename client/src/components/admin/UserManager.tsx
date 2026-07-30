@@ -1072,14 +1072,22 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
               <Label className="text-[10px] font-black tracking-widest uppercase text-zinc-500 ml-2 mb-2 block">Select status</Label>
               <div className="space-y-1">
                 {TRUST_STATUS_OPTIONS.map((s) => (
-                  <button
+                  <div
                     key={s}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setSelectedTrustStatus(s)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-zinc-50 transition-colors text-left"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedTrustStatus(s);
+                      }
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-zinc-50 transition-colors text-left cursor-pointer"
                   >
-                    <Checkbox checked={selectedTrustStatus === s} className="border-zinc-300 data-[state=checked]:bg-[#111] data-[state=checked]:border-[#111]" />
+                    <Checkbox checked={selectedTrustStatus === s} className="pointer-events-none border-zinc-300 data-[state=checked]:bg-[#111] data-[state=checked]:border-[#111]" />
                     <span className="text-sm font-semibold text-[#111]">{s}</span>
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>

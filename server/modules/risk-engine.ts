@@ -213,16 +213,6 @@ async function signalCircularReferral(userId: string): Promise<RiskSignal> {
   };
 }
 
-/** Signal 7 — Task Completion Speed (max 10 pts)
- *  Daily tasks require visiting an external URL and following
- *  instructions before completion. Repeated completions within
- *  a couple of seconds of being clicked are not physically plausible.
- */
-/** Signal 7 — Task Completion Speed: retired with daily_tasks system. Always returns 0. */
-async function signalTaskCompletionSpeed(_userId: string): Promise<RiskSignal> {
-  return { name: "Task Completion Speed", score: 0, detail: "Signal retired — daily_tasks system removed." };
-}
-
 /** Signal 5 — Cash-out Velocity (max 10 pts)
  *  Withdrawals initiated within hours of earning suggest automated scripts.
  */
@@ -275,7 +265,6 @@ export async function scoreUser(userId: string): Promise<RiskResult> {
     signalChainLinearity(userId, referralCount),
     signalCashoutVelocity(userId),
     signalCircularReferral(userId),
-    signalTaskCompletionSpeed(userId),
   ]);
 
   const riskScore = Math.min(100, signals.reduce((sum, s) => sum + s.score, 0));
