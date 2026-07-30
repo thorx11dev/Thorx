@@ -63,13 +63,7 @@ The script is idempotent: safe to re-run; it upserts the role, password hash, an
 - `server/routes.ts` — all API routes
 - `server/storage.ts` — database access layer
 
-## Founder account
-
-- Role: `founder` (full access to team portal)
-- Created via `POST /api/bootstrap-founder` (one-time; blocked once any team member exists)
-- A founder account exists in this environment's database: `thorx11dev@gmail.com` / name "Thorx X" (password set by the user, not stored here). Log in via the normal `/login` flow at `/team-portal` or `/team`.
-
-## Setup notes (this import — 2026-07-22)
+## Setup notes (this import — 2026-07-30)
 
 ### Steps performed on fresh import
 1. `DATABASE_URL` and `SESSION_SECRET` were already present as Replit environment secrets (auto-injected / previously set).
