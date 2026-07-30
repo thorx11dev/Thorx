@@ -518,12 +518,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.createAuditLog({
         adminId: req.userProfile.id,
+        actorRole: req.userProfile?.role,
         action: "TEAM_INVITATION_CREATED",
         targetType: "system",
         targetId: invitation.id,
         details: { email, role, emailSent },
-        ipAddress: req.ip,
-      });
+      }, getRequestContext(req));
 
       res.status(201).json({
         message: emailSent ? "Invitation sent" : "Invitation generated — email delivery is not configured, share the link manually",
@@ -622,8 +622,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         targetType: "system",
         targetId: newUser.id,
         details: { email: invitation.email, role: invitation.role },
-        ipAddress: req.ip,
-      });
+      }, getRequestContext(req));
 
       // Regenerate session ID to prevent fixation before assigning identity
       await new Promise<void>((resolve, reject) => {
@@ -776,12 +775,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (adminId) {
           await storage.createAuditLog({
             adminId,
+            actorRole: req.userProfile?.role,
             action: "USER_SUSPENDED",
             targetType: "user",
             targetId: id,
             details: { email: user.email, role: user.role, previousIsActive: user.isActive },
-            ipAddress: req.ip,
-          });
+          }, getRequestContext(req));
         }
       } else if (action === "adjust_balance" && payload && payload.amount !== undefined) {
         // Route through adjustUserBalance so every balance change creates an audit log (Finding 1-D)
@@ -1031,6 +1030,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       debugLog(`[PATCH] Updating persistent DB user...`);
+
+      // Fetch "before" state for audit diff (non-anonymous path only)
+      const beforeUser = await storage.getUserById(req.params.id);
       
       // Elite Validation Layer (Enterprise Standard)
       const updateData: any = {
@@ -1051,15 +1053,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user) {
         (user as any).name = `${user.firstName} ${user.lastName || ""}`.trim();
         
-        // Audit log for profile change
-        await storage.createAuditLog({
-          adminId: principalId,
-          action: "UPDATE_PROFILE",
-          targetType: "user",
-          targetId: user.id,
-          details: { fields: Object.keys(updateData).filter(k => updateData[k] !== undefined) },
-          ipAddress: req.ip || "unknown"
-        });
+        // Audit log for profile change — enriched with before/after diff
+        try {
+          const profilePictureChanged = resolvedProfilePicture !== undefined;
+          const diff = diffFields(beforeUser, user, ["firstName", "lastName", "avatar"]);
+          await storage.createAuditLog({
+            adminId: principalId,
+            actorRole: req.userProfile?.role,
+            action: "UPDATE_PROFILE",
+            targetType: "user",
+            targetId: user.id,
+            details: {
+              fields: Object.keys(updateData).filter(k => updateData[k] !== undefined),
+              diff,
+              profilePictureChanged,
+            },
+          }, getRequestContext(req));
+        } catch (auditErr) {
+          logger.error({ err: auditErr }, "UPDATE_PROFILE audit log failed (non-blocking):");
+        }
       }
       
       debugLog(`[PATCH] DB Update Result:`, { id: user?.id, newAvatar: user?.avatar });
@@ -1897,12 +1909,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.createAuditLog({
         adminId,
+        actorRole: req.userProfile?.role,
         action: "GUILD_DIRECTORY_EXPORTED",
         targetType: "system",
         targetId: ids ? "selected_guilds" : "guild_directory",
         details: { count: rows.length, status: status ?? null, search: search ?? null, ids: ids ?? null },
-        ipAddress: req.ip,
-      });
+      }, getRequestContext(req));
 
       res.send(csvContent);
     } catch (error) {
@@ -1928,12 +1940,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (adminId) {
         await storage.createAuditLog({
           adminId,
+          actorRole: req.userProfile?.role,
           action: "LEDGER_SCAN",
           targetType: "system",
           targetId: "ledger",
           details: { limit, offset, scanned: result.scanned, flagged: result.flagged },
-          ipAddress: req.ip,
-        });
+        }, getRequestContext(req));
       }
       res.json(result);
     } catch (error) {
@@ -1949,12 +1961,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (adminId) {
         await storage.createAuditLog({
           adminId,
+          actorRole: req.userProfile?.role,
           action: "LEDGER_VALIDATE_USER",
           targetType: "user",
           targetId: result.userId,
           details: { email: result.email, isBalanced: result.isBalanced, discrepancy: result.discrepancy },
-          ipAddress: req.ip,
-        });
+        }, getRequestContext(req));
       }
       res.json(result);
     } catch (error) {
@@ -2063,6 +2075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.createAuditLog({
         adminId,
+        actorRole: req.userProfile?.role,
         action: "LEDGER_RECONCILE",
         targetType: "user",
         targetId: userId,
@@ -2074,8 +2087,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           storedBalanceBefore: before.storedBalance,
           computedBalance: before.computedBalance,
         },
-        ipAddress: req.ip,
-      });
+      }, getRequestContext(req));
 
       broadcastUserUpdated(userId, "balance_adjusted");
       const after = await storage.adminValidateLedger(userId);
@@ -2179,12 +2191,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.createAuditLog({
         adminId,
+        actorRole: req.userProfile?.role,
         action: "GUILD_STRIKE_HISTORY_EXPORTED",
         targetType: "guild",
         targetId: req.params.id,
         details: { count: strikes.length },
-        ipAddress: req.ip,
-      });
+      }, getRequestContext(req));
 
       res.send(csvContent);
     } catch (error) {
@@ -2954,11 +2966,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Audit log — engine config changes must be traceable (enterprise §8)
       await storage.createAuditLog({
         adminId: (req as any).user?.id,
+        actorRole: (req as any).user?.role,
         action: "ENGINE_CONFIG_UPDATE",
         targetType: "system",
         targetId: "AD_INVENTORY_JSON",
         details: { itemCount: items.length, updatedBy: (req as any).user?.email },
-      });
+      }, getRequestContext(req));
       res.json({ success: true, items });
     } catch (error) {
       logger.error({ err: error }, "Patch ad-inventory error");
@@ -3132,11 +3145,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Audit log — manual health recalculations must be traceable (enterprise §8)
       await storage.createAuditLog({
         adminId: req.userProfile?.id,
+        actorRole: req.userProfile?.role,
         action: "SYSTEM_HEALTH_RECALCULATE",
         targetType: "system",
         targetId: "health_engine",
         details: { triggeredBy: req.userProfile?.email, overallScore: (snap as any)?.overallScore },
-      });
+      }, getRequestContext(req));
       res.json({ ...snap, isStale: isSnapshotStale(snap?.recordedAt) });
     } catch (error) {
       logger.error({ err: error }, "Recalculate health error:");
@@ -3160,12 +3174,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (adminId) {
         await storage.createAuditLog({
           adminId,
+          actorRole: req.userProfile?.role,
           action: "RECONCILIATION_VIEW",
           targetType: "system",
           targetId: "reconciliation",
           details: { netPlatformLiquidity: data.netPlatformLiquidity, unverifiedCreditExposure: data.unverifiedCreditExposure },
-          ipAddress: req.ip,
-        });
+        }, getRequestContext(req));
       }
       res.json(data);
     } catch (error) {
@@ -3274,12 +3288,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Audit log after streaming completes
       await storage.createAuditLog({
         adminId: req.userProfile!.id,
+        actorRole: req.userProfile?.role,
         action: "LEDGER_EXPORTED",
         targetType: "system",
         targetId: "user_directory",
         details: { exportType: ids ? "selective" : "full", records: totalRecords, search, ids },
-        ipAddress: req.ip,
-      });
+      }, getRequestContext(req));
 
       res.end();
     } catch (error) {
@@ -3298,12 +3312,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.userProfile && targetUser) {
         await storage.createAuditLog({
           adminId: req.userProfile.id,
+          actorRole: req.userProfile?.role,
           action: "USER_DEACTIVATED",
           targetType: "user",
           targetId: id,
           details: { email: targetUser.email, role: targetUser.role },
-          ipAddress: req.ip
-        });
+        }, getRequestContext(req));
       }
 
       // closeUserSockets handles active WS sessions for deactivated accounts
@@ -3343,12 +3357,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log the action with Full Financial Diff Tracking
       await storage.createAuditLog({
         adminId: req.userProfile.id,
+        actorRole: req.userProfile?.role,
         action: `WITHDRAWAL_${status.toUpperCase()}`,
         targetType: "withdrawal",
         targetId: withdrawalId,
         details: { status, amount: updated.amount, beneficiary: updated.userId, transactionId, rejectionReason },
-        ipAddress: req.ip
-      });
+      }, getRequestContext(req));
 
       // Broadcast generic user update (invalidates all OWN_DATA_QUERY_KEYS)
       broadcastUserUpdated(updated.userId, `withdrawal_${status}`);
@@ -3990,6 +4004,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           await storage.createAuditLog({
             adminId: user.id,
+            actorRole: user.role,
             action: "ADMIN_AUTH_SUCCESS",
             targetType: "system",
             targetId: user.id,
@@ -3997,8 +4012,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               role: user.role,
               method: "password"
             },
-            ipAddress: req.ip
-          });
+          }, getRequestContext(req));
         } catch (e) {
           logger.error({ err: e }, "Failed to write access log");
         }
@@ -4842,12 +4856,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.createAuditLog({
         adminId: req.userProfile.id,
+        actorRole: req.userProfile?.role,
         action: "TEAM_MEMBER_ADDED",
         targetType: "system",
         targetId: targetUser.id,
         details: { email: targetUser.email, role, permissions: grantedPermissions },
-        ipAddress: req.ip,
-      });
+      }, getRequestContext(req));
 
       broadcastUserUpdated(targetUser.id, "team_privileges_updated");
       broadcastTeamRefresh("team_member_added");
@@ -4921,12 +4935,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.createAuditLog({
         adminId: req.userProfile.id,
+        actorRole: req.userProfile?.role,
         action: "TEAM_MEMBER_UPDATED",
         targetType: "system",
         targetId: id,
         details: { email: targetUser.email, oldRole, newRole: accessLevel ?? oldRole, oldIsActive, newIsActive: isActive ?? oldIsActive },
-        ipAddress: req.ip,
-      });
+      }, getRequestContext(req));
 
       broadcastUserUpdated(id, "team_privileges_updated");
       broadcastTeamRefresh("team_member_updated");
@@ -4963,12 +4977,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.createAuditLog({
         adminId: req.userProfile.id,
+        actorRole: req.userProfile?.role,
         action: "RANK_TIER_MANUALLY_SET",
         targetType: "user",
         targetId: id,
         details: { oldTier, newTier: rank, locked: !!locked },
-        ipAddress: req.ip,
-      });
+      }, getRequestContext(req));
 
       broadcastUserUpdated(id, "rank_updated", { oldRank: oldTier, newRank: rank });
       res.json(sanitizeUser(updatedUser));
@@ -5003,12 +5017,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.createAuditLog({
         adminId: req.userProfile.id,
+        actorRole: req.userProfile?.role,
         action: "TRUST_STATUS_SET",
         targetType: "user",
         targetId: id,
         details: { oldStatus: targetUser.trustStatus || null, newStatus: status, reason: status === null ? null : safeReason },
-        ipAddress: req.ip
-      });
+      }, getRequestContext(req));
 
       broadcastUserUpdated(id, "trust_status_updated");
       res.json(sanitizeUser(updatedUser));
@@ -5062,12 +5076,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.createAuditLog({
         adminId: req.userProfile.id,
+        actorRole: req.userProfile?.role,
         action: "TEAM_PERMISSIONS_UPDATED",
         targetType: "system",
         targetId: id,
         details: { email: targetUser.email, newPermissions: permissions },
-        ipAddress: req.ip
-      });
+      }, getRequestContext(req));
 
       broadcastUserUpdated(id, "team_permissions_updated");
       broadcastTeamRefresh("team_permissions_updated");
