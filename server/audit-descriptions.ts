@@ -179,6 +179,15 @@ const FORMATTERS: Record<string, Formatter> = {
     const { amount, source } = d(log.details);
     return `${log.actorName} requested a withdrawal${amount !== undefined ? ` of ${pkr(amount)}` : ""}${source === "referral" ? " from referral earnings" : ""}.`;
   },
+
+  // Team communication / notification actions.
+  GLOBAL_NOTIFICATION_SENT: (log) => `${log.actorName} broadcast a notification to all users${d(log.details).title ? `: "${d(log.details).title}"` : ""}.`,
+  USER_NOTIFICATION_SENT: (log) => `${log.actorName} sent a notification to a user${d(log.details).title ? `: "${d(log.details).title}"` : ""}.`,
+  ADMIN_EMAIL_SENT: (log) => `${log.actorName} sent an email${d(log.details).subject ? `: "${d(log.details).subject}"` : ""}${d(log.details).to ? ` to ${d(log.details).to}` : ""}.`,
+  TEAM_ROLE_UPDATED: (log) => {
+    const { oldRole, newRole } = d(log.details);
+    return `${log.actorName} changed a team member's role${oldRole && newRole ? ` from "${oldRole}" to "${newRole}"` : ""}.`;
+  },
 };
 
 // Prefix-based templates for dynamically-suffixed action codes
