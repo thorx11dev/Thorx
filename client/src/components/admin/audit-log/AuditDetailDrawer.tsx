@@ -9,7 +9,7 @@
  */
 import React from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Terminal, Monitor, MapPin, Clock, User, Shield } from "lucide-react";
+import { Terminal, Monitor, MapPin, Clock, User, Shield, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AuditLogRow } from "./types";
 import {
@@ -35,7 +35,7 @@ function MetaRow({
   value,
   mono = false,
 }: {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: LucideIcon;
   label: string;
   value: string;
   mono?: boolean;

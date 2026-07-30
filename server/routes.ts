@@ -26,6 +26,7 @@ import { logger } from "./lib/logger";
 import { Sentry } from "./lib/sentry";
 import { sendPasswordResetEmail, sendTeamInvitationEmail } from "./lib/email";
 import { getRequestContext, diffFields } from "./request-context";
+import { describeAuditLog } from "./audit-descriptions";
 
 // ── H-01: Withdrawal idempotency cache ───────────────────────────────────────
 // Short-TTL in-memory store that deduplicates concurrent/retried withdrawal
@@ -1310,6 +1311,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "B-Rank or higher required to create a guild.", error: "RANK_GATE" });
       }
       const guild = await storage.createGuild({ name, description, captainId: userId });
+      try {
+        await storage.createAuditLog({
+          adminId: userId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_CREATED",
+          targetType: "guild",
+          targetId: guild.id,
+          details: { name: guild.name },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_CREATED):");
+      }
       res.status(201).json({ guild });
     } catch (error) {
       logger.error({ err: error }, "Create guild error:");
@@ -1364,6 +1377,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // updates in real-time without requiring a page refresh.
       broadcastUserUpdated(userId, "guild_left");
       broadcastGuildEvent(req.params.id, 'guild.member_left', { userId, guildId: req.params.id });
+      try {
+        await storage.createAuditLog({
+          adminId: userId,
+          actorRole: req.userProfile?.role,
+          action: "GUILD_LEFT",
+          targetType: "guild",
+          targetId: req.params.id,
+          details: {},
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (GUILD_LEFT):");
+      }
       res.json({ success: true });
     } catch (error) {
       logger.error({ err: error }, "Leave guild error:");
@@ -3389,65 +3414,216 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const ids = req.query.ids ? (req.query.ids as string).split(',') : undefined;
       const targetType = req.query.targetType as string | undefined;
       const targetId = req.query.targetId as string | undefined;
+      const category = req.query.category as string | undefined;
+      const action = req.query.action as string | undefined;
+      const actorId = req.query.actorId as string | undefined;
+      const ipAddress = req.query.ipAddress as string | undefined;
+      const dateFrom = req.query.dateFrom as string | undefined;
+      const dateTo = req.query.dateTo as string | undefined;
 
-      const result = await storage.getAuditLogsPaginated({ page, limit, search, period, ids, targetType, targetId });
-      res.json(result);
+      const result = await storage.getAuditLogsPaginated({
+        page, limit, search, period, ids, targetType, targetId,
+        category, action, actorId, ipAddress, dateFrom, dateTo,
+      });
+
+      // Attach human-readable description to each log row
+      const logsWithDescription = result.logs.map((log: any) => {
+        const actorName = log.admin
+          ? `${log.admin.firstName ?? ""} ${log.admin.lastName ?? ""}`.trim() || "A user"
+          : "A user";
+        return {
+          ...log,
+          description: describeAuditLog({
+            action: log.action,
+            targetType: log.targetType,
+            targetId: log.targetId,
+            details: log.details,
+            actorName,
+          }),
+        };
+      });
+
+      res.json({ ...result, logs: logsWithDescription });
     } catch (error) {
       logger.error({ err: error }, "Fetch audit logs error:");
       res.status(500).json({ message: "Failed to fetch audit logs" });
     }
   });
 
-  app.get("/api/admin/audit-logs/export", requirePermission("VIEW_AUDIT_LOGS"), async (req, res) => {
+  app.get("/api/admin/audit-logs/actions", requirePermission("VIEW_AUDIT_LOGS"), async (req, res) => {
+    try {
+      const category = req.query.category as string | undefined;
+      const actions = await storage.getDistinctAuditActions(category);
+      res.json({ actions });
+    } catch (error) {
+      logger.error({ err: error }, "Fetch distinct audit actions error:");
+      res.status(500).json({ message: "Failed to fetch audit actions" });
+    }
+  });
+
+  app.get("/api/admin/audit-logs/export", requirePermission("VIEW_AUDIT_LOGS"), adminActionRateLimiter, async (req, res) => {
     try {
       const search = req.query.search as string;
       const period = req.query.period as string;
       const ids = req.query.ids ? (req.query.ids as string).split(',') : undefined;
+      const category = req.query.category as string | undefined;
+      const action = req.query.action as string | undefined;
+      const actorId = req.query.actorId as string | undefined;
+      const ipAddress = req.query.ipAddress as string | undefined;
+      const dateFrom = req.query.dateFrom as string | undefined;
+      const dateTo = req.query.dateTo as string | undefined;
+      const format = (req.query.format as string | undefined) || "csv";
 
-      const { logs } = await storage.getAuditLogsPaginated({ 
-        page: 1, 
-        limit: 10000, 
-        search, 
-        period, 
-        ids 
+      const { logs } = await storage.getAuditLogsPaginated({
+        page: 1,
+        limit: 10000,
+        search,
+        period,
+        ids,
+        category,
+        action,
+        actorId,
+        ipAddress,
+        dateFrom,
+        dateTo,
       });
 
-      const headers = ["ID", "Admin Name", "Admin ID", "Action", "Target Type", "Target ID", "Details", "IP Address", "Timestamp"];
-      const rows = logs.map(l => [
-        l.id,
-        l.admin ? `${l.admin.firstName} ${l.admin.lastName}` : "Unknown",
-        l.adminId,
-        l.action,
-        l.targetType,
-        l.targetId,
-        JSON.stringify(l.details),
-        l.ipAddress || "Internal",
-        new Date(l.createdAt).toISOString()
-      ]);
+      // Build enriched rows with description, device, location
+      const enrichedLogs = logs.map((l: any) => {
+        const actorName = l.admin
+          ? `${l.admin.firstName ?? ""} ${l.admin.lastName ?? ""}`.trim() || "A user"
+          : "A user";
+        const description = describeAuditLog({
+          action: l.action,
+          targetType: l.targetType,
+          targetId: l.targetId,
+          details: l.details,
+          actorName,
+        });
+        const device = [l.deviceType, l.browser, l.os].filter(Boolean).join(" / ") || "";
+        const location = [l.city, l.country].filter(Boolean).join(", ") || "";
+        return { ...l, actorName, description, device, location };
+      });
 
-      const csvContent = [
-        headers.join(","),
-        ...rows.map(row => row.map(cell => `"${String(cell || "").replace(/"/g, '""')}"`).join(","))
-      ].join("\n");
-
-      res.setHeader("Content-Type", "text/csv");
-      const filename = ids ? "THORX-Selected-Audit-Logs" : `THORX-Audit-Logs-${period || 'all'}`;
-      res.setHeader("Content-Disposition", `attachment; filename=${filename}-${new Date().toISOString().split('T')[0]}.csv`);
-      
       // Log Data Exfiltration
       await storage.createAuditLog({
         adminId: req.userProfile!.id,
+        actorRole: req.userProfile?.role,
         action: "LEDGER_EXPORTED",
         targetType: "system",
         targetId: "audit_logs",
-        details: { exportType: ids ? "selective" : "period", records: rows.length, search, period, ids },
-        ipAddress: req.ip
-      });
+        details: { exportType: ids ? "selective" : "period", records: enrichedLogs.length, search, period, ids, format },
+      }, getRequestContext(req));
 
-      res.send(csvContent);
+      if (format === "pdf") {
+        // ── PDF export ──────────────────────────────────────────────────────
+        const PDFDocument = (await import("pdfkit")).default;
+        const doc = new PDFDocument({ margin: 40, size: "A4", layout: "landscape" });
+
+        res.setHeader("Content-Type", "application/pdf");
+        const pdfFilename = ids ? "THORX-Selected-Audit-Logs" : `THORX-Audit-Logs-${period || "all"}`;
+        res.setHeader("Content-Disposition", `attachment; filename=${pdfFilename}-${new Date().toISOString().split("T")[0]}.pdf`);
+        doc.pipe(res);
+
+        // Title page header
+        doc.fontSize(18).font("Helvetica-Bold").text("THORX Audit Logs Export", { align: "center" });
+        doc.fontSize(10).font("Helvetica").text(`Generated: ${new Date().toISOString()}`, { align: "center" });
+        doc.moveDown(1);
+
+        // Column definitions
+        const colWidths = [120, 80, 80, 60, 60, 80, 60, 60];
+        const colHeaders = ["Description", "Action", "Actor", "Target Type", "Target ID", "Timestamp", "IP Address", "Category"];
+        const pageWidth = doc.page.width - 80; // margins
+
+        // Normalise column widths to fit page
+        const totalW = colWidths.reduce((a, b) => a + b, 0);
+        const scale = pageWidth / totalW;
+        const scaledWidths = colWidths.map(w => w * scale);
+
+        const drawRow = (cells: string[], isHeader: boolean) => {
+          const startX = 40;
+          let x = startX;
+          const y = doc.y;
+          const rowH = 18;
+
+          if (isHeader) {
+            doc.rect(startX, y, pageWidth, rowH).fill("#2d2d2d");
+            doc.fillColor("white").fontSize(7).font("Helvetica-Bold");
+          } else {
+            doc.fillColor("black").fontSize(7).font("Helvetica");
+          }
+
+          cells.forEach((cell, i) => {
+            const w = scaledWidths[i] ?? 60;
+            doc.text(String(cell ?? "").slice(0, 80), x + 2, y + 5, { width: w - 4, lineBreak: false });
+            x += w;
+          });
+
+          if (!isHeader) {
+            doc.moveTo(startX, y + rowH).lineTo(startX + pageWidth, y + rowH).strokeColor("#e0e0e0").stroke();
+          }
+
+          doc.fillColor("black");
+          doc.y = y + rowH;
+        };
+
+        drawRow(colHeaders, true);
+
+        for (const l of enrichedLogs) {
+          if (doc.y > doc.page.height - 60) {
+            doc.addPage({ layout: "landscape" });
+            drawRow(colHeaders, true);
+          }
+          drawRow([
+            l.description,
+            l.action,
+            l.actorName,
+            l.targetType,
+            l.targetId,
+            new Date(l.createdAt).toISOString(),
+            l.ipAddress || "Internal",
+            l.category || "",
+          ], false);
+        }
+
+        doc.end();
+      } else {
+        // ── CSV export (default) ────────────────────────────────────────────
+        const headers = [
+          "ID", "Admin Name", "Admin ID", "Action", "Target Type", "Target ID",
+          "Details", "IP Address", "Timestamp",
+          "Category", "Actor Role", "Description", "Device", "Location",
+        ];
+        const rows = enrichedLogs.map((l: any) => [
+          l.id,
+          l.admin ? `${l.admin.firstName} ${l.admin.lastName}` : "Unknown",
+          l.adminId,
+          l.action,
+          l.targetType,
+          l.targetId,
+          JSON.stringify(l.details),
+          l.ipAddress || "Internal",
+          new Date(l.createdAt).toISOString(),
+          l.category || "",
+          l.admin?.role || "",
+          l.description,
+          l.device,
+          l.location,
+        ]);
+
+        const csvContent = [
+          headers.join(","),
+          ...rows.map((row: any[]) => row.map(cell => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")),
+        ].join("\n");
+
+        res.setHeader("Content-Type", "text/csv");
+        const filename = ids ? "THORX-Selected-Audit-Logs" : `THORX-Audit-Logs-${period || "all"}`;
+        res.setHeader("Content-Disposition", `attachment; filename=${filename}-${new Date().toISOString().split("T")[0]}.csv`);
+        res.send(csvContent);
+      }
     } catch (error) {
       logger.error({ err: error }, "Export audit logs error:");
-      res.status(500).json({ message: "Failed to export audit report" });
+      if (!res.headersSent) res.status(500).json({ message: "Failed to export audit report" });
     }
   });
 
@@ -5124,12 +5300,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.createAuditLog({
         adminId: req.userProfile.id,
+        actorRole: req.userProfile?.role,
         action: "TEAM_KEY_REVOKED",
         targetType: "system",
         targetId: id,
         details: { email: targetUser.email, originalRole: targetUser.role },
-        ipAddress: req.ip
-      });
+      }, getRequestContext(req));
 
       res.json({ success: true, message: "Node detached and wiped." });
     } catch (e) {
@@ -5259,6 +5435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // assignment, or notes. All risk-case decisions must be auditable.
       await storage.createAuditLog({
         adminId: adminId as string,
+        actorRole: req.userProfile?.role,
         action: "RISK_CASE_UPDATED",
         targetType: "user",
         targetId: updated.userId,
@@ -5270,8 +5447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...(resolution               && { resolution }),
           ...(trustStatusOutcome       && { trustStatusOutcome }),
         },
-        ipAddress: req.ip,
-      });
+      }, getRequestContext(req));
 
       // ── Trust Status outcome ─────────────────────────────────────────────
       // Trust Status is the resolution of a risk case: an admin investigates
@@ -5334,12 +5510,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // how many users were flagged/critical at each point in time.
       await storage.createAuditLog({
         adminId: adminId as string,
+        actorRole: req.userProfile?.role,
         action: "RISK_SCAN_TRIGGERED",
         targetType: "system",
         targetId: "risk_engine",
         details: { scanned: (result as any).scanned, flagged: (result as any).flagged, critical: (result as any).critical },
-        ipAddress: req.ip,
-      });
+      }, getRequestContext(req));
 
       res.json({ ok: true, ...result });
     } catch (err) {
@@ -6073,12 +6249,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // in that guild's own activity log below.
         await storage.createAuditLog({
           adminId,
+          actorRole: req.userProfile?.role,
           action: "GUILD_CREATION_REQUEST_APPROVED",
           targetType: "guild",
           targetId: guild.id,
           details: { requestId: request.id, guildName: guild.name, captainId: request.userId, adminNote: parsed.data.adminNote ?? null },
-          ipAddress: req.ip,
-        });
+        }, getRequestContext(req));
         res.json({ success: true, guild });
       } else {
         await db.update(guildCreationRequests)
@@ -6093,12 +6269,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         broadcastToUser(request.userId, 'guild.creation_rejected', { reason: parsed.data.adminNote });
         await storage.createAuditLog({
           adminId,
+          actorRole: req.userProfile?.role,
           action: "GUILD_CREATION_REQUEST_REJECTED",
           targetType: "guild_creation_request",
           targetId: request.id,
           details: { guildName: request.guildName, requestedBy: request.userId, adminNote: parsed.data.adminNote ?? null },
-          ipAddress: req.ip,
-        });
+        }, getRequestContext(req));
         res.json({ success: true });
       }
     } catch (error) {
