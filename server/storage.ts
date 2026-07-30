@@ -800,15 +800,15 @@ export const SYSTEM_CONFIG_DEFAULTS = [
       { key: "MAX_ADS_PER_DAY", value: 20, description: "Maximum ad views a user can earn from per day" },
       // ── Risk Engine ───────────────────────────────────────────────────────────
       { key: "RISK_CASHOUT_WINDOW_HOURS", value: 1, description: "Cash-out velocity signal: withdrawals within this many hours of earning trigger risk points" },
-      // System Settings audit (2026-07-29): these 8 keys are genuinely read by
+      // System Settings audit (2026-07-29): these keys are genuinely read by
       // refreshLeaderboardCache() (SCORE_WEIGHT_*/SCORE_COHORT_DISCOUNT_DAYS)
-      // and risk-engine.ts (RISK_VELOCITY_THRESHOLD/RISK_BOT_EARNINGS_PER_REF/
-      // RISK_TASK_SPEED_SECONDS) with getSystemConfigValue() fallbacks, and the
-      // "Performance & Risk Scoring" admin panel writes them — but they were
-      // never added here, so KNOWN_SYSTEM_CONFIG_KEYS (derived from this list)
-      // incorrectly flagged every save from that panel as "unknown key" and
-      // they were never bootstrap-seeded into system_config. Defaults below
-      // must match the fallback literals at the read sites exactly.
+      // and risk-engine.ts (RISK_VELOCITY_THRESHOLD/RISK_BOT_EARNINGS_PER_REF)
+      // with getSystemConfigValue() fallbacks, and the "Performance & Risk
+      // Scoring" admin panel writes them — but they were never added here, so
+      // KNOWN_SYSTEM_CONFIG_KEYS (derived from this list) incorrectly flagged
+      // every save from that panel as "unknown key" and they were never
+      // bootstrap-seeded into system_config. Defaults below must match the
+      // fallback literals at the read sites exactly.
       { key: "SCORE_WEIGHT_EARNINGS", value: 0.40, description: "Performance Score weight: earnings component (0-1, should sum to 1 with the other 3 weights)" },
       { key: "SCORE_WEIGHT_TEAM", value: 0.30, description: "Performance Score weight: team/referral component" },
       { key: "SCORE_WEIGHT_ACTIVE", value: 0.15, description: "Performance Score weight: activity component" },
@@ -816,7 +816,12 @@ export const SYSTEM_CONFIG_DEFAULTS = [
       { key: "SCORE_COHORT_DISCOUNT_DAYS", value: 14, description: "Accounts younger than this many days get a 30% Health Score discount to prevent day-1 gaming" },
       { key: "RISK_VELOCITY_THRESHOLD", value: 5000, description: "Risk Engine: PKR earned within 24h above this triggers an earnings-velocity risk signal" },
       { key: "RISK_BOT_EARNINGS_PER_REF", value: 100, description: "Risk Engine: PKR earned per referral above this triggers a bot-network risk signal" },
-      { key: "RISK_TASK_SPEED_SECONDS", value: 3, description: "Risk Engine: completing a task faster than this many seconds triggers an implausible-speed risk signal" },
+      // Audit finding (Risk Watchlist, 2026-07-30): RISK_TASK_SPEED_SECONDS
+      // removed — it configured a "Task Completion Speed" risk signal that was
+      // permanently retired (always 0) once the daily_tasks system was removed.
+      // The admin control and risk-engine.ts read site are both gone; any
+      // pre-existing row was deleted directly from system_config (one-time,
+      // no schema change — this is a plain key/value data row, not a table).
       {
         key: "AD_INVENTORY_JSON",
         value: JSON.stringify([

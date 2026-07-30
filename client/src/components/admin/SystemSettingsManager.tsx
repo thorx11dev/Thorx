@@ -33,7 +33,6 @@ export function SystemSettingsManager() {
     SCORE_COHORT_DISCOUNT_DAYS: 14,
     RISK_VELOCITY_THRESHOLD: 5000,
     RISK_BOT_EARNINGS_PER_REF: 100,
-    RISK_TASK_SPEED_SECONDS: 3,
     RISK_CASHOUT_WINDOW_HOURS: 1,
   };
 
@@ -533,7 +532,6 @@ function RiskWeightsSection({ localConfigs, defaults, updateValue, handleSave, s
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <EconomicControl label="Earnings Velocity Threshold (PKR/24h)" value={val("RISK_VELOCITY_THRESHOLD")} onChange={(v: number) => updateValue("RISK_VELOCITY_THRESHOLD", v)} onSave={() => handleSave("RISK_VELOCITY_THRESHOLD")} isLoading={saveMutation.isPending && saveMutation.variables?.key === "RISK_VELOCITY_THRESHOLD"} />
             <EconomicControl label="Bot Network Earnings/Ref (PKR)" value={val("RISK_BOT_EARNINGS_PER_REF")} onChange={(v: number) => updateValue("RISK_BOT_EARNINGS_PER_REF", v)} onSave={() => handleSave("RISK_BOT_EARNINGS_PER_REF")} isLoading={saveMutation.isPending && saveMutation.variables?.key === "RISK_BOT_EARNINGS_PER_REF"} />
-            <EconomicControl label="Implausible Task Speed (seconds)" value={val("RISK_TASK_SPEED_SECONDS")} onChange={(v: number) => updateValue("RISK_TASK_SPEED_SECONDS", v)} onSave={() => handleSave("RISK_TASK_SPEED_SECONDS")} isLoading={saveMutation.isPending && saveMutation.variables?.key === "RISK_TASK_SPEED_SECONDS"} />
             <EconomicControl label="Cash-out Velocity Window (hours)" value={val("RISK_CASHOUT_WINDOW_HOURS")} onChange={(v: number) => updateValue("RISK_CASHOUT_WINDOW_HOURS", v)} onSave={() => handleSave("RISK_CASHOUT_WINDOW_HOURS")} isLoading={saveMutation.isPending && saveMutation.variables?.key === "RISK_CASHOUT_WINDOW_HOURS"} />
           </div>
           <p className="text-[9px] font-bold text-zinc-400 mt-3 uppercase tracking-widest">Withdrawals placed within this many hours of earning trigger a cash-out velocity risk signal. This control was previously missing even though the Risk Engine already reads it.</p>

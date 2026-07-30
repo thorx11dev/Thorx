@@ -5304,9 +5304,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const adminId = getThorxPrincipalId(req);
       const { runFullRiskScan } = await import("./modules/risk-engine");
-      const result = await runFullRiskScan({ broadcastAlerts: true });
-      // Refresh leaderboard cache so anomaly counts reflect the new risk scores immediately
+      // Audit finding (Risk Watchlist, 2026-07-30): refreshLeaderboardCache() must run
+      // BEFORE runFullRiskScan(), matching the recurring cron's order (below, ~line 742).
+      // runFullRiskScan()'s backfillLatestRiskScore() stamps the real score onto each
+      // user's MOST RECENT score_history snapshot. Calling the scan first meant the
+      // cache refresh that followed created a brand-new snapshot with a "0" placeholder
+      // that never got backfilled until the next cron tick — admins saw every user's
+      // risk score visibly flash to zero immediately after a manual scan.
       await storage.refreshLeaderboardCache();
+      const result = await runFullRiskScan({ broadcastAlerts: true });
 
       // ── Audit log — full risk scans affect every user's risk score ───────
       // Previously unlogged; admins had no record of who triggered scans or

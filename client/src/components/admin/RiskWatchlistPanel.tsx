@@ -118,6 +118,9 @@ const STATUS_CONFIG = {
   Actioned:      { bg: "bg-zinc-100",  border: "border-zinc-200",   text: "text-zinc-600",   label: "Actioned"      },
 };
 
+// Audit finding (Risk Watchlist, 2026-07-30): "Task Completion Speed" removed —
+// it was a permanently-retired signal (always scored 0 since daily_tasks was
+// removed) that cluttered every case drawer with a dead bar. See risk-engine.ts.
 const SIGNAL_ICONS: Record<string, React.ReactNode> = {
   "Earnings Velocity":     <TrendingUp size={14} />,
   "Bot Network":           <Users2     size={14} />,
@@ -125,7 +128,6 @@ const SIGNAL_ICONS: Record<string, React.ReactNode> = {
   "Chain Linearity":       <Link2      size={14} />,
   "Cash-out Velocity":     <Banknote   size={14} />,
   "Circular Referral":     <GitBranch  size={14} />,
-  "Task Completion Speed": <Gauge      size={14} />,
 };
 
 const MAX_BY_SIGNAL: Record<string, number> = {
@@ -135,7 +137,6 @@ const MAX_BY_SIGNAL: Record<string, number> = {
   "Chain Linearity":       12,
   "Cash-out Velocity":     10,
   "Circular Referral":      8,
-  "Task Completion Speed": 10,
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -295,7 +296,7 @@ function CaseDetailDrawer({
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (d: { trustStatusApplied?: boolean; trustStatusError?: string | null }) => {
       // Invalidate all paginated risk-cases pages + signal-stats (precision changes on resolve)
       queryClient.invalidateQueries({
         predicate: (q) => {
@@ -303,8 +304,28 @@ function CaseDetailDrawer({
           return typeof k === "string" && k.startsWith("/api/admin/risk-cases");
         },
       });
+      // Audit finding (Risk Watchlist, 2026-07-30): the backend returns
+      // trustStatusApplied/trustStatusError whenever a trust status change was
+      // attempted, but this handler used to ignore both fields and always show
+      // a generic "Case updated" toast — so a silently failed trust status
+      // change looked identical to a success, and admins had no way to know
+      // the account's trust status wasn't actually changed.
+      if (d?.trustStatusError) {
+        toast({
+          title: "Case updated — trust status FAILED to apply",
+          description: d.trustStatusError,
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Case updated" });
+      }
+      // User Manager shows trustStatus per user; when a resolution actually
+      // changed it, that list must refresh immediately rather than wait on
+      // its own unrelated query cycle.
+      if (d?.trustStatusApplied) {
+        queryClient.invalidateQueries({ queryKey: ["/api/team/users"] });
+      }
       onUpdated();
-      toast({ title: "Case updated" });
     },
     onError: (err: any) => {
       toast({ title: "Update failed", description: err.message, variant: "destructive" });

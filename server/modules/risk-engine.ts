@@ -351,7 +351,6 @@ async function backfillLatestRiskScore(userId: string, riskScore: number): Promi
 async function prefetchBatchSignalData(userIds: string[], configs: {
   velocityThreshold: number;
   cashoutWindowHours: number;
-  taskSpeedSeconds: number;
   botThreshold: number;
 }) {
   const since24h  = new Date(Date.now() - 86_400_000);
@@ -459,9 +458,6 @@ async function prefetchBatchSignalData(userIds: string[], configs: {
     withdrawalMap.set(r.userId, arr);
   }
 
-  // Signal 7 (task records) retired — daily_tasks system removed. Empty map for batch compatibility.
-  const taskMap = new Map<string, Array<{ clickedAt: Date | null; completedAt: Date | null }>>();
-
   // Global referredBy map (entire active user table) for cycle detection
   const referredByMap = new Map<string, string | null>(
     referralChainRows.map(r => [r.id, r.referredBy ?? null])
@@ -473,10 +469,9 @@ async function prefetchBatchSignalData(userIds: string[], configs: {
 
   return {
     earnings24hMap, userInfoMap, userFpMap, hashSharingMap,
-    l1ChildrenMap, l2CountMap, withdrawalMap, taskMap,
+    l1ChildrenMap, l2CountMap, withdrawalMap,
     referredByMap, fpRows, fpHashSet,
     cashoutWindowMs: configs.cashoutWindowHours * 3_600_000,
-    taskSpeedSeconds: configs.taskSpeedSeconds,
     velocityThreshold: configs.velocityThreshold,
     botThreshold: configs.botThreshold,
   };
@@ -489,9 +484,9 @@ function scoreUserFromBatch(
 ): RiskResult {
   const {
     earnings24hMap, userInfoMap, userFpMap, hashSharingMap,
-    l1ChildrenMap, l2CountMap, withdrawalMap, taskMap,
+    l1ChildrenMap, l2CountMap, withdrawalMap,
     referredByMap, fpRows, fpHashSet,
-    cashoutWindowMs, taskSpeedSeconds, velocityThreshold, botThreshold,
+    cashoutWindowMs, velocityThreshold, botThreshold,
   } = batch;
 
   const info = userInfoMap.get(u.id);
@@ -597,17 +592,15 @@ function scoreUserFromBatch(
     detail: circParts.length ? circParts.join("; ") : "No circular or self-funded referral pattern detected.",
   };
 
-  // ── Signal 7: Task completion speed — retired, zeroed for consistency ────
-  // This signal is retired in the individual scoreUser() path. Zeroing it here
-  // in the batch path keeps both paths consistent and prevents stale scores
-  // from appearing in the drawer's signal breakdown.
-  const sig7: RiskSignal = {
-    name: "Task Completion Speed",
-    score: 0,
-    detail: "Signal retired — task timing is no longer used in risk scoring.",
-  };
-
-  const signals = [sig1, sig2, sig3, sig4, sig5, sig6, sig7];
+  // Audit finding (Risk Watchlist, 2026-07-30): a "Signal 7: Task completion
+  // speed" stub used to live here, always zeroed because the daily_tasks
+  // system it measured was removed. scoreUser() (the on-demand single-user
+  // path, above) had already dropped it; this batch path — used by every
+  // full/scheduled scan — still built and reported it, so admins saw a
+  // permanently-dead "Task Completion Speed" bar in every case drawer and a
+  // matching but functionless "Implausible Task Speed" admin setting. Removed
+  // from both scoring paths and the frontend signal maps/settings UI.
+  const signals = [sig1, sig2, sig3, sig4, sig5, sig6];
   const riskScore = Math.min(100, signals.reduce((sum, s) => sum + s.score, 0));
   return { userId: u.id, riskScore, severity: toSeverity(riskScore), signals };
 }
@@ -627,14 +620,13 @@ async function runBatchedScan(
   const userIds = targetUsers.map(u => u.id);
 
   // Fetch all configurable thresholds up-front (4 config lookups)
-  const [velocityThreshold, cashoutWindowHours, taskSpeedSeconds, botThreshold] = await Promise.all([
+  const [velocityThreshold, cashoutWindowHours, botThreshold] = await Promise.all([
     storage.getSystemConfigValue<number>("RISK_VELOCITY_THRESHOLD", 5000),
     storage.getSystemConfigValue<number>("RISK_CASHOUT_WINDOW_HOURS", 1),
-    storage.getSystemConfigValue<number>("RISK_TASK_SPEED_SECONDS", 3),
     storage.getSystemConfigValue<number>("RISK_BOT_EARNINGS_PER_REF", 100),
   ]);
 
-  const batch = await prefetchBatchSignalData(userIds, { velocityThreshold, cashoutWindowHours, taskSpeedSeconds, botThreshold });
+  const batch = await prefetchBatchSignalData(userIds, { velocityThreshold, cashoutWindowHours, botThreshold });
 
   let flagged = 0;
   let critical = 0;
