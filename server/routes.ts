@@ -617,12 +617,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.markUserEmailVerified(newUser.id);
       await storage.consumeTeamInvitation(invitation.id);
 
+      // Actor is the person accepting the invite (matches the human-readable
+      // formatter, "${actorName} accepted a team invitation…") — the inviter
+      // is preserved separately in `details.invitedBy` for traceability.
       await storage.createAuditLog({
-        adminId: invitation.createdBy,
+        adminId: newUser.id,
+        actorRole: invitation.role,
         action: "TEAM_INVITATION_ACCEPTED",
         targetType: "system",
         targetId: newUser.id,
-        details: { email: invitation.email, role: invitation.role },
+        details: { email: invitation.email, role: invitation.role, invitedBy: invitation.createdBy },
       }, getRequestContext(req));
 
       // Regenerate session ID to prevent fixation before assigning identity
@@ -792,7 +796,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const amount = new Decimal(amountStr);
         const type = amount.isNegative() ? "subtract" : "add";
         const adminId = getThorxPrincipalId(req) as string;
-        await storage.adjustUserBalance(id, amount.abs().toFixed(4), type, adminId, payload.reason ?? "Admin balance adjustment");
+        await storage.adjustUserBalance(id, amount.abs().toFixed(4), type, adminId, payload.reason ?? "Admin balance adjustment", undefined, undefined, getRequestContext(req));
       } else {
         return res.status(400).json({ message: "Invalid action or missing payload" });
       }
@@ -2161,6 +2165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           `Ledger reconciliation: ${reason}`,
           "admin_credit",
           -pointsMismatch,
+          getRequestContext(req),
         );
       } else if (!pkrDiscrepancyD.isZero()) {
         user = await storage.adjustUserBalance(
@@ -2169,6 +2174,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           pkrDiscrepancyD.isPositive() ? "subtract" : "add",
           adminId,
           `Ledger reconciliation: ${reason}`,
+          undefined,
+          undefined,
+          getRequestContext(req),
         );
       } else if (pointsMismatch !== 0) {
         user = await storage.adjustUserBalance(
@@ -2179,6 +2187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           `Ledger reconciliation: ${reason}`,
           "admin_credit",
           -pointsMismatch,
+          getRequestContext(req),
         );
       } else {
         // isBalanced was false (e.g. a negative-balance integrity error) but
@@ -3000,7 +3009,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         adjustType = legacyParsed.data.type;
       }
 
-      const user = await storage.adjustUserBalance(userId, pkrAmount, adjustType, adminId, reason, creditIntent ?? 'admin_credit', pointsDelta);
+      const user = await storage.adjustUserBalance(userId, pkrAmount, adjustType, adminId, reason, creditIntent ?? 'admin_credit', pointsDelta, getRequestContext(req));
       broadcastUserUpdated(userId, "balance_adjusted");
       res.json(sanitizeUser(user));
 
@@ -3901,6 +3910,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.createTeamKey(teamKeyData);
 
+      try {
+        await storage.createAuditLog({
+          adminId: founder.id,
+          actorRole: "founder",
+          action: "FOUNDER_BOOTSTRAPPED",
+          targetType: "system",
+          targetId: founder.id,
+          details: { email: founder.email },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (FOUNDER_BOOTSTRAPPED):");
+      }
+
       // Set session
       req.session.userId = founder.id;
       req.session.user = {
@@ -4662,6 +4684,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         settings: settings || {}
       });
 
+      try {
+        await storage.createAuditLog({
+          adminId: req.userProfile?.id as string,
+          actorRole: req.userProfile?.role,
+          action: "HILLTOPADS_CONFIG_CREATED",
+          targetType: "system",
+          targetId: config.id,
+          // apiKey is a secret — never persisted into the audit trail.
+          details: { publisherId: publisherId ?? null, apiKeyConfigured: true },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (HILLTOPADS_CONFIG_CREATED):");
+      }
+
       res.json(config);
     } catch (error) {
       logger.error({ err: error }, "Create HilltopAds config error:");
@@ -4897,6 +4933,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Config not found" });
       }
 
+      try {
+        // apiKey is a secret — record that it changed, never its value.
+        const redactedUpdates = 'apiKey' in updates ? { ...updates, apiKey: '[REDACTED]' } : updates;
+        await storage.createAuditLog({
+          adminId: req.userProfile?.id as string,
+          actorRole: req.userProfile?.role,
+          action: "HILLTOPADS_CONFIG_UPDATED",
+          targetType: "system",
+          targetId: id,
+          details: { updatedFields: Object.keys(updates), values: redactedUpdates },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (HILLTOPADS_CONFIG_UPDATED):");
+      }
+
       res.json(config);
     } catch (error) {
       if (error instanceof Error && error.name === "ZodError") {
@@ -4924,6 +4975,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "active",
         settings: settings || {}
       });
+
+      try {
+        await storage.createAuditLog({
+          adminId: req.userProfile?.id as string,
+          actorRole: req.userProfile?.role,
+          action: "HILLTOPADS_ZONE_CREATED",
+          targetType: "system",
+          targetId: zone.id,
+          details: { zoneId, siteName, zoneName, adFormat },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (HILLTOPADS_ZONE_CREATED):");
+      }
 
       res.json(zone);
     } catch (error) {
@@ -4968,6 +5032,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!zone) {
         return res.status(404).json({ message: "Zone not found" });
+      }
+
+      try {
+        await storage.createAuditLog({
+          adminId: req.userProfile?.id as string,
+          actorRole: req.userProfile?.role,
+          action: "HILLTOPADS_ZONE_UPDATED",
+          targetType: "system",
+          targetId: id,
+          details: { updatedFields: Object.keys(updates), values: updates },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "Audit log error (HILLTOPADS_ZONE_UPDATED):");
       }
 
       res.json(zone);

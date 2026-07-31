@@ -511,7 +511,7 @@ export interface IStorage {
   }>;
   refreshLeaderboardCache(): Promise<void>;
   updateWithdrawalStatus(id: string, status: string, adminId: string, transactionId?: string, rejectionReason?: string): Promise<Withdrawal>;
-  createAuditLog(log: InsertAuditLog, context?: RequestContext): Promise<AuditLog>;
+  createAuditLog(log: InsertAuditLog, context?: RequestContext, tx?: any): Promise<AuditLog>;
   getAuditLogs(limit?: number): Promise<AuditLog[]>;
   getAuditLogsPaginated(params: {
     page: number;
@@ -531,7 +531,7 @@ export interface IStorage {
   getDistinctAuditActions(category?: string): Promise<string[]>;
   createInternalNote(note: InsertInternalNote): Promise<InternalNote>;
   getInternalNotes(targetType: string, targetId: string): Promise<Array<InternalNote & { admin: { firstName: string, lastName: string } }>>;
-  adjustUserBalance(userId: string, amount: string, type: 'add' | 'subtract', adminId: string, reason: string, creditIntent?: 'verified_deposit' | 'admin_credit', txPointsDelta?: number): Promise<User>;
+  adjustUserBalance(userId: string, amount: string, type: 'add' | 'subtract', adminId: string, reason: string, creditIntent?: 'verified_deposit' | 'admin_credit', txPointsDelta?: number, context?: RequestContext): Promise<User>;
   getWithdrawalTimeframeBreakdowns(userId: string): Promise<{ today: any; thisWeek: any; thisMonth: any; last3Months: any; allTime: any }>;
   getProfitLedger(): Promise<any>;
   deleteUser(userId: string): Promise<void>;
@@ -3887,14 +3887,15 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async createAuditLog(log: InsertAuditLog, context?: RequestContext): Promise<AuditLog> {
+  async createAuditLog(log: InsertAuditLog, context?: RequestContext, tx?: any): Promise<AuditLog> {
     const category = log.category ?? inferAuditCategory({
       targetType: log.targetType,
       actorId: log.adminId,
       targetId: log.targetId,
       actorRole: log.actorRole,
     });
-    const [newLog] = await db
+    const client = tx || db;
+    const [newLog] = await client
       .insert(auditLogs)
       .values({
         ...log,
@@ -4147,7 +4148,7 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async adjustUserBalance(userId: string, amount: string, type: 'add' | 'subtract', adminId: string, reason: string, creditIntent: 'verified_deposit' | 'admin_credit' = 'admin_credit', txPointsDelta?: number): Promise<User> {
+  async adjustUserBalance(userId: string, amount: string, type: 'add' | 'subtract', adminId: string, reason: string, creditIntent: 'verified_deposit' | 'admin_credit' = 'admin_credit', txPointsDelta?: number, context?: RequestContext): Promise<User> {
     return await db.transaction(async (tx) => {
       // Lock the target user row before reading balance — prevents two concurrent
       // admin adjustments from reading the same stale value and applying double
@@ -4231,8 +4232,12 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      await tx.insert(auditLogs).values({
+      // Route through createAuditLog (not a raw insert) so this entry gets the
+      // same IP/device/location enrichment as every other audit event — the
+      // `tx` handle keeps it atomic with the balance change above.
+      await this.createAuditLog({
         adminId,
+        actorRole: admin.role,
         action: `BALANCE_ADJUST_${type.toUpperCase()}`,
         targetType: "user",
         targetId: userId,
@@ -4242,7 +4247,7 @@ export class DatabaseStorage implements IStorage {
           variance: type === 'add' ? `+${amount}` : `-${amount}`,
           reason: reason
         }
-      });
+      }, context, tx);
 
       // Role formatting logic
       let roleTag = admin.role?.toUpperCase() || "REGULAR";

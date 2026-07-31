@@ -425,25 +425,32 @@ export function AuditLogViewer() {
                       >
                         Retrace
                       </Button>
-                      {/* Dot pagination — cap at 9 dots */}
+                      {/* Dot pagination — cap at 9 dots. Beyond 9 pages, each dot maps to a
+                          sampled page rather than every page, so the current page rarely
+                          lands exactly on a sampled value. Highlight the closest dot instead
+                          of requiring an exact match, so a dot is always shown as active. */}
                       <div className="flex items-center gap-1.5 px-1">
-                        {Array.from({
-                          length: Math.min(totalPages, 9),
-                        }).map((_, i) => {
-                          const page = totalPages <= 9 ? i + 1 : Math.round((i / 8) * (totalPages - 1)) + 1;
-                          const isActive = currentPage === page;
-                          return (
+                        {(() => {
+                          const dotCount = Math.min(totalPages, 9);
+                          const dotPages = Array.from({ length: dotCount }, (_, i) =>
+                            totalPages <= 9 ? i + 1 : Math.round((i / 8) * (totalPages - 1)) + 1
+                          );
+                          const closestIdx = dotPages.reduce(
+                            (best, p, i) => (Math.abs(p - currentPage) < Math.abs(dotPages[best] - currentPage) ? i : best),
+                            0
+                          );
+                          return dotPages.map((page, i) => (
                             <button
                               key={i}
                               onClick={() => handlePageChange(page)}
                               className={cn(
                                 "h-1.5 rounded-full transition-all",
-                                isActive ? "w-6 bg-[#111]" : "w-1.5 bg-[#111]/20 hover:bg-[#111]/40"
+                                i === closestIdx ? "w-6 bg-[#111]" : "w-1.5 bg-[#111]/20 hover:bg-[#111]/40"
                               )}
                               title={`Page ${page}`}
                             />
-                          );
-                        })}
+                          ));
+                        })()}
                       </div>
                       <Button
                         variant="ghost"

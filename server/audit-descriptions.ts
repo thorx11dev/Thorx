@@ -94,6 +94,7 @@ const FORMATTERS: Record<string, Formatter> = {
   RISK_SCAN_TRIGGERED: (log) => `${log.actorName} triggered a manual risk scan.`,
   TEAM_INVITATION_CREATED: (log) => `${log.actorName} invited ${d(log.details).email ?? "a new team member"} to join the Team Portal.`,
   TEAM_INVITATION_ACCEPTED: (log) => `${log.actorName} accepted a team invitation and joined the Team Portal.`,
+  FOUNDER_BOOTSTRAPPED: (log) => `${log.actorName} completed the one-time founder setup and created the first Team Portal account.`,
   TEAM_MEMBER_ADDED: (log) => `${log.actorName} added ${d(log.details).email ?? "a new team member"} with role "${d(log.details).role ?? "unknown"}".`,
   TEAM_MEMBER_UPDATED: (log) => {
     const { email, oldRole, newRole, oldIsActive, newIsActive } = d(log.details);
@@ -227,6 +228,28 @@ const PREFIX_FORMATTERS: Array<{ prefix: string; format: (suffix: string, log: A
       const { previous_balance, new_balance, variance, reason } = d(log.details);
       const verb = suffix === "ADD" ? "credited" : "debited";
       return `${log.actorName} ${verb} a user's balance (${pkr(previous_balance)} → ${pkr(new_balance)}${variance ? `, ${variance}` : ""})${reason ? ` — ${reason}` : ""}.`;
+    },
+  },
+  {
+    prefix: "HILLTOPADS_CONFIG_",
+    format: (suffix, log) => {
+      const { publisherId, updatedFields } = d(log.details);
+      if (suffix === "CREATED") {
+        return `${log.actorName} configured the HilltopAds integration${publisherId ? ` (publisher ${publisherId})` : ""}.`;
+      }
+      const fields = Array.isArray(updatedFields) && updatedFields.length ? ` (${updatedFields.map(titleCase).join(", ")})` : "";
+      return `${log.actorName} updated the HilltopAds configuration${fields}.`;
+    },
+  },
+  {
+    prefix: "HILLTOPADS_ZONE_",
+    format: (suffix, log) => {
+      const { zoneName, siteName, updatedFields } = d(log.details);
+      if (suffix === "CREATED") {
+        return `${log.actorName} created a new HilltopAds ad zone "${zoneName ?? "unnamed"}"${siteName ? ` on ${siteName}` : ""}.`;
+      }
+      const fields = Array.isArray(updatedFields) && updatedFields.length ? ` (${updatedFields.map(titleCase).join(", ")})` : "";
+      return `${log.actorName} updated a HilltopAds ad zone${fields}.`;
     },
   },
 ];
