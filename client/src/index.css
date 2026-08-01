@@ -193,7 +193,7 @@
     height: 100vh;
     height: 100dvh;
     height: 100svh;
-    padding-top: 160px;
+    padding-top: 110px;
     padding-bottom: 80px;
     padding-left: 20px;
     padding-right: 20px;
@@ -224,7 +224,7 @@
   .cinematic-section[data-section="1"] {
     align-items: center;
     justify-content: center;
-    padding-top: 120px;
+    padding-top: 100px;
     display: flex;
   }
 
@@ -241,7 +241,7 @@
     [data-section="2"] .cinematic-section,
     [data-section="3"] .cinematic-section,
     [data-section="4"] .cinematic-section {
-      padding-top: 11rem;
+      padding-top: 7rem;
     }
   }
 

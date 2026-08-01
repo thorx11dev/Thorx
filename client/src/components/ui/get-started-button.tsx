@@ -8,7 +8,7 @@ export function GetStartedButton() {
     return (
         <div
             className={cn(
-                "bg-primary text-white px-2 py-1 md:px-4 md:py-2 border-2 border-black",
+                "bg-primary text-white px-2 py-1 md:px-4 md:py-2 border-2 border-black rounded-lg",
                 "hover:bg-black transition-all duration-300 transform hover:scale-105 inline-block"
             )}
             data-testid="button-get-started"

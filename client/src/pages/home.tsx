@@ -108,11 +108,11 @@ export default function Home() {
       <div className="industrial-grid" />
 
       {/* Navigation Header */}
-      <nav className="fixed top-0 w-full z-50 bg-background border-b-3 border-black" data-testid="navigation-header">
-        <div className="max-w-7xl mx-auto px-4 md:px-8">
-          <div className="flex items-center justify-between h-16 md:h-20">
+      <nav className="fixed top-0 w-full z-50 px-3 pt-3 md:px-4 md:pt-4" data-testid="navigation-header">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-3 items-center rounded-2xl border-2 md:border-[3px] border-black bg-white px-3 md:px-8 h-16 md:h-20">
             {/* Left Section - Transform to Enter button when not on first section */}
-            <div className="flex items-center">
+            <div className="flex items-center justify-self-start">
               {currentSection === 1 && !isMobile ? (
                 <button
                   type="button"
@@ -125,7 +125,7 @@ export default function Home() {
               ) : (
                 <button
                   onClick={() => setLocation("/auth")}
-                  className="bg-primary text-white px-2 py-1 md:px-4 md:py-2 border-2 border-black hover:bg-black transition-all duration-300 transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="bg-primary text-white px-2 py-1 md:px-4 md:py-2 border-2 border-black rounded-lg hover:bg-black transition-all duration-300 transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   data-testid="button-navbar-enter"
                 >
                   <TechnicalLabel text="ENTER" className="text-white text-xs md:text-sm font-black" />
@@ -133,36 +133,34 @@ export default function Home() {
               )}
             </div>
 
+            {/* Center Section - Wordmark */}
+            <div className="justify-self-center">
+              <TextBlockAnimation blockColor="#000" animateOnScroll={false} delay={0.1}>
+                <h1 className="text-xl md:text-3xl lg:text-4xl font-black tracking-tighter whitespace-nowrap" data-testid="main-logo">
+                  THORX.
+                </h1>
+              </TextBlockAnimation>
+            </div>
+
             {/* Right Section */}
-            <div className="flex items-center">
+            <div className="flex items-center justify-self-end">
               {hasTransformedToClock ? (
                 <div className="transform transition-all duration-500 ease-in-out">
                   <DigitalClock />
                 </div>
               ) : (
                 <div
-                  className={`bg-white border-2 border-black px-2 py-1 md:px-4 md:py-2 transition-all duration-300 ${currentSection >= 3 ? 'blur-sm opacity-70' : ''
+                  className={`bg-white border-2 border-black rounded-lg px-2 py-1 md:px-4 md:py-2 transition-all duration-300 ${currentSection >= 3 ? 'blur-sm opacity-70' : ''
                     }`}
                 >
-                  <div className="flex items-center gap-3 text-xs md:text-sm">
+                  <div className="flex items-center gap-1.5 md:gap-3 text-xs md:text-sm">
                     <TechnicalLabel text="v1.0" className="font-mono tracking-[0.2em] opacity-40" />
                     <div className="h-3 w-[1px] bg-black/10" />
-                    <TechnicalLabel text="ONLINE" className="font-bold tracking-wider" />
+                    <TechnicalLabel text="ONLINE" className="hidden sm:inline font-bold tracking-wider" />
                   </div>
                 </div>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Main Title Section */}
-        <div className="bg-white border-b-3 border-black py-3 md:py-4">
-          <div className="max-w-7xl mx-auto px-4 md:px-8 text-center">
-            <TextBlockAnimation blockColor="#000" animateOnScroll={false} delay={0.1}>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter" data-testid="main-logo">
-                THORX.
-              </h1>
-            </TextBlockAnimation>
           </div>
         </div>
       </nav>
