@@ -156,10 +156,10 @@ export default function Home() {
         </div>
 
         {/* Main Title Section */}
-        <div className="bg-white border-b-3 border-black py-4 md:py-4">
+        <div className="bg-white border-b-3 border-black py-3 md:py-4">
           <div className="max-w-7xl mx-auto px-4 md:px-8 text-center">
             <TextBlockAnimation blockColor="#000" animateOnScroll={false} delay={0.1}>
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter" data-testid="main-logo">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter" data-testid="main-logo">
                 THORX.
               </h1>
             </TextBlockAnimation>
