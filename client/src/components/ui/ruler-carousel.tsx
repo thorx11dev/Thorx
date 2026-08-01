@@ -183,7 +183,7 @@ export function RulerCarousel({
                                 <motion.button
                                     key={item.id}
                                     onClick={() => handleItemClick(index)}
-                                    className={`text-6xl md:text-8xl font-black whitespace-nowrap cursor-pointer flex items-center justify-center uppercase tracking-tighter ${isActive
+                                    className={`text-6xl md:text-8xl font-black whitespace-nowrap cursor-pointer flex items-center justify-center uppercase tracking-tighter focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 ${isActive
                                         ? "text-black dark:text-white"
                                         : "text-black/20 dark:text-white/10 hover:text-black/50 dark:hover:text-white/30"
                                         }`}
@@ -213,11 +213,11 @@ export function RulerCarousel({
                 </div>
             </div>
 
-            <div className="flex items-center justify-center gap-6 mt-10 bg-black/5 dark:bg-white/5 px-5 py-2.5 rounded-full backdrop-blur-sm border border-black/10 dark:border-white/10">
+            <div className="flex items-center justify-center gap-6 mt-10 bg-white dark:bg-white/5 px-5 py-2.5 rounded-full border border-black/15 dark:border-white/10">
                 <button
                     onClick={handlePrevious}
                     disabled={isAnimating}
-                    className="flex items-center justify-center cursor-pointer hover:scale-125 transition-transform"
+                    className="flex items-center justify-center cursor-pointer hover:scale-125 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     aria-label="Previous item"
                 >
                     <Rewind className="w-5 h-5 text-black dark:text-white" />
@@ -238,7 +238,7 @@ export function RulerCarousel({
                 <button
                     onClick={handleNext}
                     disabled={isAnimating}
-                    className="flex items-center justify-center cursor-pointer hover:scale-125 transition-transform"
+                    className="flex items-center justify-center cursor-pointer hover:scale-125 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     aria-label="Next item"
                 >
                     <FastForward className="w-5 h-5 text-black dark:text-white" />

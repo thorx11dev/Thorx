@@ -60,16 +60,16 @@ const PlusCard: React.FC<{
     return (
         <div
             className={cn(
-                "relative border border-dashed border-zinc-500/50 dark:border-zinc-700/50 rounded-lg p-6 md:p-8 bg-[#EAE5DD] dark:bg-zinc-950 min-h-[200px] md:min-h-[240px]",
+                "relative border border-black/15 dark:border-zinc-700/50 p-6 md:p-8 bg-white dark:bg-zinc-950 min-h-[200px] md:min-h-[240px]",
                 "flex flex-col justify-between group transition-all duration-500 ease-out",
-                "hover:-translate-y-2 hover:border-solid hover:border-black dark:hover:border-white",
-                "hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[12px_12px_0px_0px_rgba(255,255,255,0.1)]",
+                "hover:-translate-y-2 hover:border-black dark:hover:border-white",
+                "hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.1)]",
                 className
             )}
         >
             <CornerPlusIcons />
             <div className="relative z-10 space-y-4">
-                <div className="bg-black/5 dark:bg-white/10 w-fit p-3 rounded-md">
+                <div className="bg-black/5 dark:bg-white/10 w-fit p-3">
                     {icon}
                 </div>
                 <div>

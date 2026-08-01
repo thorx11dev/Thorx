@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { VariableFontHoverByRandomLetter } from "@/components/ui/variable-font-hover";
 import { CinematicBlockReveal } from "@/components/ui/cinematic-block-reveal";
@@ -221,7 +220,7 @@ export default function FAQSection({ isActive }: FAQSectionProps) {
           </CinematicBlockReveal>
         </div>
 
-        <div className="border-[3px] border-black/10 dark:border-white/10 rounded-xl overflow-hidden bg-white/5 backdrop-blur-sm shadow-2xl">
+        <div className="border-[3px] border-black/15 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5">
           {/* Main Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2">
             {allFaqData.slice(0, INITIAL_COUNT).map((faq, index) => (
@@ -290,13 +289,13 @@ export default function FAQSection({ isActive }: FAQSectionProps) {
           <div className="mt-16 flex flex-col items-center">
             <button
               onClick={() => setShowAll(true)}
-              className="flex items-center gap-3 group p-6 transition-all duration-300 hover:scale-110"
+              className="flex items-center gap-3 group p-6 transition-all duration-300 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               aria-label="Show more questions"
             >
               {[0, 1, 2].map((i) => (
                 <div
                   key={i}
-                  className="size-4 md:size-6 bg-black dark:bg-white rounded-full transition-all duration-300 group-hover:bg-primary group-hover:shadow-[0_0_20px_rgba(255,107,0,0.6)]"
+                  className="size-4 md:size-6 bg-black dark:bg-white rounded-full transition-all duration-300 group-hover:bg-primary"
                 />
               ))}
             </button>

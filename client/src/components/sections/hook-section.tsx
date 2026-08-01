@@ -14,7 +14,7 @@ export default function HookSection({ isActive, onAdvance }: HookSectionProps) {
       data-section="1"
       data-testid="hook-section"
     >
-      <div className="text-center w-full max-w-4xl mx-auto px-6 md:px-8 pt-24 md:pt-32">
+      <div className="text-center w-full max-w-5xl mx-auto px-6 md:px-8 pt-24 md:pt-32">
         {/* Technical Header */}
         <div className="mb-8 md:mb-8">
           <Barcode className="w-28 md:w-32 h-8 md:h-10 mx-auto mb-4" />
@@ -23,7 +23,7 @@ export default function HookSection({ isActive, onAdvance }: HookSectionProps) {
         {/* Tagline */}
         <div className="px-4 md:px-2">
           <TextBlockAnimation blockColor="#ff6b00" animateOnScroll={false} trigger={isActive}>
-            <p className="md:text-3xl lg:text-4xl font-bold mb-10 md:mb-12 text-secondary text-center text-[36px]">Turn Attention into Currency</p>
+            <p className="text-4xl md:text-6xl lg:text-7xl font-black mb-10 md:mb-12 text-secondary text-center leading-[1.05] tracking-tight">Turn Attention into Currency</p>
           </TextBlockAnimation>
         </div>
 

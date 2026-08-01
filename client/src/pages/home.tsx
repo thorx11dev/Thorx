@@ -114,13 +114,18 @@ export default function Home() {
             {/* Left Section - Transform to Enter button when not on first section */}
             <div className="flex items-center">
               {currentSection === 1 && !isMobile ? (
-                <div onClick={() => setLocation("/auth")} className="cursor-pointer">
+                <button
+                  type="button"
+                  onClick={() => setLocation("/auth")}
+                  className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  data-testid="button-navbar-get-started"
+                >
                   <GetStartedButton />
-                </div>
+                </button>
               ) : (
                 <button
                   onClick={() => setLocation("/auth")}
-                  className="bg-primary text-white px-2 py-1 md:px-4 md:py-2 border-2 border-black hover:bg-black transition-all duration-300 transform hover:scale-105"
+                  className="bg-primary text-white px-2 py-1 md:px-4 md:py-2 border-2 border-black hover:bg-black transition-all duration-300 transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   data-testid="button-navbar-enter"
                 >
                   <TechnicalLabel text="ENTER" className="text-white text-xs md:text-sm font-black" />
