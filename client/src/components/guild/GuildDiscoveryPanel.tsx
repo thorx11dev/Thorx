@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Users, Trophy, Clock, Lock, ChevronRight, Star, Shield, Plus, Loader2, ArrowLeft, Swords, Crown, Calendar, PlusCircle, CheckCircle2, XCircle, Hourglass } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { DEV_UNLOCK_ALL_VIEWS } from "@/lib/devPreview";
 
 interface GuildDiscovery {
   id: string;
@@ -429,7 +430,10 @@ export function GuildDiscoveryPanel() {
           {filtered.map((guild, idx) => {
             const slots = guild.memberCapacity - guild.memberCount;
             const minIdx = RANK_ORDER.indexOf(guild.minRankRequired || "E-Rank");
-            const rankBlocked = userTierIdx < minIdx;
+            // Phase 3 redesign: dev preview mode never shows this as blocked so
+            // the Apply flow stays clickable for visual/functional review — the
+            // backend still independently enforces real rank eligibility.
+            const rankBlocked = !DEV_UNLOCK_ALL_VIEWS && userTierIdx < minIdx;
             const applied = appliedIds.has(guild.id);
             const accentColor = RANK_COLORS[gpsTier(guild.guildPerformanceScore)] ?? "#71717a";
 

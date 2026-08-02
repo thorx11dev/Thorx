@@ -36,6 +36,7 @@ import { GuildDiscoveryPanel } from "@/components/guild/GuildDiscoveryPanel";
 import { GuildMemberPanel } from "@/components/guild/GuildMemberPanel";
 import { CaptainPortal } from "@/components/guild/CaptainPortal";
 import { ScratchCardModal, type ScratchCardBreakdown } from "@/components/guild/ScratchCardModal";
+import { DEV_UNLOCK_ALL_VIEWS, GUILD_VIEW_ROLES, type GuildViewRole } from "@/lib/devPreview";
 import { useLocation } from "wouter";
 import {
   LogOut,
@@ -558,6 +559,11 @@ export default function UserPortal() {
   const [activeWorkEngine, setActiveWorkEngine] = useState<1 | 2>(1);
   const [completedVideos, setCompletedVideos] = useState<Set<string>>(new Set());
   const [isMobile, setIsMobile] = useState(false);
+
+  // Phase 3 redesign — dev-only preview override for Engine C's 3 guild-role
+  // views (Discovery/Member/Captain). Only ever read when DEV_UNLOCK_ALL_VIEWS
+  // is true (see client/src/lib/devPreview.ts); has no effect in production.
+  const [guildViewOverride, setGuildViewOverride] = useState<GuildViewRole | null>(null);
 
   // Engine B state
   const [engineBActiveTask, setEngineBActiveTask] = useState<any | null>(null);
@@ -2185,7 +2191,7 @@ export default function UserPortal() {
                   </Tabs>
                 </motion.div>
               </motion.div>
-            ) : (engineBUserRankTier === "E-Rank" || engineBUserRankTier === "D-Rank") ? (
+            ) : !DEV_UNLOCK_ALL_VIEWS && (engineBUserRankTier === "E-Rank" || engineBUserRankTier === "D-Rank") ? (
               // THORX v3 (spec F.10): Engine B locked-state UI for below C-Rank.
               <motion.div
                 key="engine-2-locked"
@@ -3557,9 +3563,38 @@ export default function UserPortal() {
           </p>
         </div>
 
-        {/* THORX v3 (spec F.6–F.8): 3-context routing by guildRole */}
+        {/* Phase 3 redesign — dev-only preview switcher: lets a reviewer force
+            any of the 3 guild-role views regardless of the account's real
+            guildRole. Rendering-only; backend actions still enforce the
+            account's real role (see client/src/lib/devPreview.ts). */}
+        {DEV_UNLOCK_ALL_VIEWS && (
+          <div className="mb-6 flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-amber-400/60 bg-amber-400/10 px-4 py-3" data-testid="panel-guild-preview-switcher">
+            <TechnicalLabel text="PREVIEW MODE — VIEWING AS" className="text-amber-600 text-xs mr-1" />
+            {GUILD_VIEW_ROLES.map((r) => (
+              <button
+                key={r.value}
+                onClick={() => setGuildViewOverride(r.value)}
+                data-testid={`button-preview-guild-role-${r.value}`}
+                className={cn(
+                  "text-xs font-black uppercase tracking-wider px-3 py-1.5 rounded-md border transition-colors",
+                  (guildViewOverride ?? ((user as any)?.guildRole ?? "simple")) === r.value
+                    ? "bg-amber-500 text-black border-amber-500"
+                    : "bg-transparent text-amber-600 border-amber-400/60 hover:bg-amber-400/10"
+                )}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* THORX v3 (spec F.6–F.8): 3-context routing by guildRole. In dev
+            preview mode, guildViewOverride takes priority so every view can
+            be inspected without needing separate test accounts per role. */}
         {user && (() => {
-          const role = (user as any).guildRole ?? 'simple';
+          const role = DEV_UNLOCK_ALL_VIEWS && guildViewOverride
+            ? guildViewOverride
+            : ((user as any).guildRole ?? 'simple');
           if (role === 'captain') return <CaptainPortal />;
           if (role === 'member')  return <GuildMemberPanel />;
           return <GuildDiscoveryPanel />;
