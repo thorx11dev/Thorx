@@ -359,12 +359,24 @@
   }
 
   .progress-dot {
+    position: relative;
     width: 12px;
     height: 12px;
     border: 2px solid #000;
     border-radius: 3px;
     background: transparent;
     transition: all 0.3s ease;
+  }
+
+  /* Invisible hit-area expansion so the small dot stays easy to tap without growing visually */
+  .progress-dot::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
   }
 
   .progress-dot.active {
@@ -406,13 +418,21 @@
     .navigation-progress {
       bottom: 20px;
       right: 15px;
-      transform: scale(0.8);
     }
 
     .arrow-keys-guide {
       bottom: 20px;
       left: 15px;
-      transform: scale(0.8);
+    }
+
+    .arrow-key {
+      width: 44px;
+      height: 44px;
+    }
+
+    .arrow-key svg {
+      width: 20px;
+      height: 20px;
     }
 
     .progress-dot {

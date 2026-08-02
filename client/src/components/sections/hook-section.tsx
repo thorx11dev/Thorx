@@ -23,16 +23,22 @@ export default function HookSection({ isActive, onAdvance }: HookSectionProps) {
         {/* Tagline */}
         <div className="px-4 md:px-2">
           <TextBlockAnimation blockColor="#ff6b00" animateOnScroll={false} trigger={isActive}>
-            <p className="text-3xl md:text-4xl lg:text-5xl font-black mb-10 md:mb-12 text-secondary text-center leading-[1.05] tracking-tight whitespace-nowrap">Turn Attention into Currency</p>
+            <p className="text-[clamp(1rem,5vw,1.875rem)] md:text-4xl lg:text-5xl font-black mb-10 md:mb-12 text-secondary text-center leading-[1.05] tracking-tight whitespace-nowrap">Turn Attention into Currency</p>
           </TextBlockAnimation>
         </div>
 
         {/* Action Prompt */}
-        <div className="space-y-6 md:space-y-4">
+        <button
+          type="button"
+          onClick={onAdvance}
+          className="w-full flex flex-col items-center space-y-6 md:space-y-4 py-3 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          data-testid="button-hook-advance"
+          aria-label="Continue to sign up"
+        >
           <TechnicalLabel text="TAP TO START" className="md:hidden" />
           <TechnicalLabel text="PRESS ENTER TO BEGIN" className="hidden md:block" />
           <div className="w-16 md:w-12 h-1 bg-primary mx-auto pulse-glow"></div>
-        </div>
+        </button>
       </div>
     </section>
   );

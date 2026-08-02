@@ -173,14 +173,13 @@ interface FAQCellProps {
 
 const FAQCell = ({ faq, index }: FAQCellProps) => (
   <div className="p-8 md:p-12 h-full flex flex-col space-y-6 relative group transition-colors duration-300 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
-    <div className="flex justify-between items-center">
+    <div className="flex items-center">
       <div className="bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-sm">
         <TechnicalLabel
           text={faq.protocol}
           className="text-black/40 dark:text-white/40 text-[8px] md:text-[9px] font-black tracking-widest"
         />
       </div>
-      <span className="text-[10px] md:text-xs font-mono opacity-20 font-black">ID://{faq.id}</span>
     </div>
 
     <div className="space-y-4">

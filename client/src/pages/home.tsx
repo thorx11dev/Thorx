@@ -104,9 +104,6 @@ export default function Home() {
 
   return (
     <>
-      {/* Industrial Grid Overlay */}
-      <div className="industrial-grid" />
-
       {/* Navigation Header */}
       <nav className="fixed top-0 w-full z-50 px-3 pt-3 md:px-4 md:pt-4" data-testid="navigation-header">
         <div className="max-w-7xl mx-auto">
@@ -125,7 +122,7 @@ export default function Home() {
               ) : (
                 <button
                   onClick={() => setLocation("/auth")}
-                  className="bg-primary text-white px-2 py-1 md:px-4 md:py-2 border-2 border-black rounded-lg hover:bg-black transition-all duration-300 transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="bg-primary text-white px-3 py-3 md:px-4 md:py-2 border-2 border-black rounded-lg hover:bg-black transition-all duration-300 transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   data-testid="button-navbar-enter"
                 >
                   <TechnicalLabel text="ENTER" className="text-white text-xs md:text-sm font-black" />
