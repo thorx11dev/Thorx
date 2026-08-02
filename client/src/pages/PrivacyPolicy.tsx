@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, Shield, Eye, Lock, Database, UserCheck, Flame } from "lucide-react";
-import { Link } from "wouter";
+import { Shield, Eye, Lock, Database, UserCheck, Flame } from "lucide-react";
 import TextBlockAnimation from "@/components/ui/text-block-animation";
+import LegalNav from "@/components/legal/LegalNav";
 import { useState } from "react";
 
 const Section = ({ title, icon: Icon, children, id, trigger }: { title: string, icon?: any, children: React.ReactNode, id?: string, trigger?: number }) => (
@@ -9,7 +9,7 @@ const Section = ({ title, icon: Icon, children, id, trigger }: { title: string, 
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="mb-16 border-l-2 border-black dark:border-white pl-6 md:pl-10"
+        className="mb-16 border-l-2 border-black pl-6 md:pl-10"
         id={id}
     >
         <div className="flex items-center gap-3 mb-6">
@@ -18,7 +18,7 @@ const Section = ({ title, icon: Icon, children, id, trigger }: { title: string, 
                 <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight">{title}</h2>
             </TextBlockAnimation>
         </div>
-        <div className="prose prose-zinc dark:prose-invert max-w-none text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
+        <div className="prose prose-zinc max-w-none text-muted-foreground font-medium leading-relaxed">
             {children}
         </div>
     </motion.section>
@@ -61,20 +61,8 @@ export default function PrivacyPolicy() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F5F5F3] dark:bg-black text-black dark:text-white font-sans selection:bg-primary selection:text-white">
-            {/* Minimalist Header */}
-            <header className="fixed top-0 left-0 right-0 z-50 bg-[#F5F5F3]/80 dark:bg-black/80 backdrop-blur-md border-b border-black/10 dark:border-white/10 px-6 py-4">
-                <div className="max-w-5xl mx-auto flex justify-between items-center">
-                    <Link href="/">
-                        <a className="flex items-center h-full group">
-                            <span className="text-2xl font-black tracking-tighter text-black dark:text-white leading-none group-hover:opacity-80 transition-opacity">THORX</span>
-                        </a>
-                    </Link>
-                    <div className="hidden md:block text-[10px] font-bold tracking-[0.2em] uppercase opacity-50">
-                        Legal Documentation / Privacy Framework
-                    </div>
-                </div>
-            </header>
+        <div className="min-h-screen bg-[#F5F5F3] text-black font-sans selection:bg-primary selection:text-white">
+            <LegalNav docLabel="PRIVACY" />
 
             <main className="max-w-5xl mx-auto px-6 pt-32 pb-24">
                 <div className="mb-20">
@@ -85,7 +73,7 @@ export default function PrivacyPolicy() {
                     </TextBlockAnimation>
                     <div className="flex flex-wrap items-center gap-4 text-xs font-bold tracking-widest uppercase opacity-60">
                         <span>Version 2.0</span>
-                        <span className="w-1 h-1 bg-black dark:bg-white rounded-full"></span>
+                        <span className="w-1 h-1 bg-black rounded-full"></span>
                         <span>Last Updated: {lastUpdated}</span>
                     </div>
                 </div>
@@ -93,7 +81,7 @@ export default function PrivacyPolicy() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                     {/* Sidebar navigation for desktop */}
                     <aside className="hidden lg:block lg:col-span-3 sticky top-32 h-fit space-y-4">
-                        <nav className="flex flex-col space-y-2 border-l border-zinc-200 dark:border-zinc-800">
+                        <nav className="flex flex-col space-y-2 border-l border-black/10">
                             {sections.map((item) => (
                                 <a
                                     key={item.id}
@@ -101,8 +89,9 @@ export default function PrivacyPolicy() {
                                     onClick={(e) => scrollToSection(e, item.id)}
                                     className={`pl-4 py-2 text-xs font-bold uppercase tracking-widest transition-all duration-300 border-l-2 -ml-[1px] ${activeId === item.id
                                         ? "text-primary border-primary opacity-100"
-                                        : "text-zinc-500 border-transparent opacity-50 hover:opacity-100"
+                                        : "text-foreground/50 border-transparent opacity-50 hover:opacity-100"
                                         }`}
+                                    data-testid={`link-privacy-toc-${item.id}`}
                                 >
                                     {item.label}
                                 </a>
@@ -116,7 +105,7 @@ export default function PrivacyPolicy() {
                                 At THORX, we collect only the data necessary to facilitate a secure and fair earning ecosystem.
                                 Our architecture is built to ensure that "Attention" is accurately tracked and rewarded.
                             </p>
-                            <h4 className="text-black dark:text-white font-black mt-8 mb-4 uppercase text-xs tracking-widest">User-Provided Information</h4>
+                            <h4 className="text-black font-black mt-8 mb-4 uppercase text-xs tracking-widest">User-Provided Information</h4>
                             <p className="text-sm">
                                 During registration, we collect your Full Name, Email Address, and Password.
                                 Upon verification, a <strong>unique THORX Identity</strong> is generated for your profile.
@@ -173,7 +162,7 @@ export default function PrivacyPolicy() {
                             </p>
                         </Section>
 
-                        <footer className="mt-24 pt-12 border-t border-zinc-200 dark:border-zinc-800 text-[10px] font-bold tracking-[0.3em] uppercase opacity-40">
+                        <footer className="mt-24 pt-12 border-t border-black/10 text-[10px] font-bold tracking-[0.3em] uppercase opacity-40">
                             Thorx Data Privacy / Secure System Terminal
                         </footer>
                     </div>

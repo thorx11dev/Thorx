@@ -1,16 +1,15 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, ShieldCheck, Scale, AlertTriangle, Users, Wallet, CheckCircle2 } from "lucide-react";
-import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
+import { ShieldCheck, Scale, AlertTriangle, Users, Wallet, CheckCircle2 } from "lucide-react";
 import TextBlockAnimation from "@/components/ui/text-block-animation";
-import { useState, useEffect } from "react";
+import LegalNav from "@/components/legal/LegalNav";
+import { useState } from "react";
 
 const Section = ({ title, icon: Icon, children, id, trigger }: { title: string, icon?: any, children: React.ReactNode, id?: string, trigger?: number }) => (
     <motion.section
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="mb-16 border-l-2 border-black dark:border-white pl-6 md:pl-10"
+        className="mb-16 border-l-2 border-black pl-6 md:pl-10"
         id={id}
     >
         <div className="flex items-center gap-3 mb-6">
@@ -19,7 +18,7 @@ const Section = ({ title, icon: Icon, children, id, trigger }: { title: string, 
                 <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight">{title}</h2>
             </TextBlockAnimation>
         </div>
-        <div className="prose prose-zinc dark:prose-invert max-w-none text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
+        <div className="prose prose-zinc max-w-none text-muted-foreground font-medium leading-relaxed">
             {children}
         </div>
     </motion.section>
@@ -63,20 +62,8 @@ export default function TermsAndConditions() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F5F5F3] dark:bg-black text-black dark:text-white font-sans selection:bg-primary selection:text-white">
-            {/* Minimalist Header */}
-            <header className="fixed top-0 left-0 right-0 z-50 bg-[#F5F5F3]/80 dark:bg-black/80 backdrop-blur-md border-b border-black/10 dark:border-white/10 px-6 py-4">
-                <div className="max-w-5xl mx-auto flex justify-between items-center">
-                    <Link href="/">
-                        <a className="flex items-center h-full group">
-                            <span className="text-2xl font-black tracking-tighter text-black dark:text-white leading-none group-hover:opacity-80 transition-opacity">THORX</span>
-                        </a>
-                    </Link>
-                    <div className="hidden md:block text-[10px] font-bold tracking-[0.2em] uppercase opacity-50">
-                        Legal Documentation / Terms of Service
-                    </div>
-                </div>
-            </header>
+        <div className="min-h-screen bg-[#F5F5F3] text-black font-sans selection:bg-primary selection:text-white">
+            <LegalNav docLabel="TERMS" />
 
             <main className="max-w-5xl mx-auto px-6 pt-32 pb-24">
                 <div className="mb-20">
@@ -87,7 +74,7 @@ export default function TermsAndConditions() {
                     </TextBlockAnimation>
                     <div className="flex flex-wrap items-center gap-4 text-xs font-bold tracking-widest uppercase opacity-60">
                         <span>Version 2.0</span>
-                        <span className="w-1 h-1 bg-black dark:bg-white rounded-full"></span>
+                        <span className="w-1 h-1 bg-black rounded-full"></span>
                         <span>Last Updated: {lastUpdated}</span>
                     </div>
                 </div>
@@ -95,7 +82,7 @@ export default function TermsAndConditions() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                     {/* Sidebar navigation for desktop */}
                     <aside className="hidden lg:block lg:col-span-3 sticky top-32 h-fit space-y-4">
-                        <nav className="flex flex-col space-y-2 border-l border-zinc-200 dark:border-zinc-800">
+                        <nav className="flex flex-col space-y-2 border-l border-black/10">
                             {sections.map((item) => (
                                 <a
                                     key={item.id}
@@ -103,8 +90,9 @@ export default function TermsAndConditions() {
                                     onClick={(e) => scrollToSection(e, item.id)}
                                     className={`pl-4 py-2 text-xs font-bold uppercase tracking-widest transition-all duration-300 border-l-2 -ml-[1px] ${activeId === item.id
                                         ? "text-primary border-primary opacity-100"
-                                        : "text-zinc-500 border-transparent opacity-50 hover:opacity-100"
+                                        : "text-foreground/50 border-transparent opacity-50 hover:opacity-100"
                                         }`}
+                                    data-testid={`link-terms-toc-${item.id}`}
                                 >
                                     {item.label}
                                 </a>
@@ -147,8 +135,8 @@ export default function TermsAndConditions() {
                         </Section>
 
                         <Section title="3. The 30-Second Engagement Rule" id="30s-rule" icon={Scale} trigger={triggers["30s-rule"]}>
-                            <div className="bg-zinc-100 dark:bg-zinc-900 p-8 border-l-4 border-primary">
-                                <p className="font-bold text-lg mb-4 text-black dark:text-white">Attention is the required stake.</p>
+                            <div className="bg-muted rounded-xl p-8 border-l-4 border-primary">
+                                <p className="font-bold text-lg mb-4 text-black">Attention is the required stake.</p>
                                 <p>
                                     To successfully complete an ad task, users must remain on the advertiser's product page for
                                     <strong> approximately 30 seconds</strong>. This period must involve active reading and scrolling.
@@ -164,16 +152,16 @@ export default function TermsAndConditions() {
                                 No referral counts or earnings thresholds are required to advance.
                             </p>
 
-                            <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-none mb-8">
+                            <div className="overflow-x-auto border border-black/10 rounded-xl mb-8">
                                 <table className="w-full text-left text-xs uppercase tracking-tighter">
-                                    <thead className="bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+                                    <thead className="bg-muted border-b border-black/10">
                                         <tr>
                                             <th className="p-4 font-black">Rank</th>
                                             <th className="p-4 font-black">PS Required</th>
                                             <th className="p-4 font-black">Key Unlocks</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                                    <tbody className="divide-y divide-black/10">
                                         {[
                                             { r: "E-Rank", ps: "0",      unlock: "Engine A access"                    },
                                             { r: "D-Rank", ps: "1,000",  unlock: "Referral tracking begins"           },
@@ -182,7 +170,7 @@ export default function TermsAndConditions() {
                                             { r: "A-Rank", ps: "10,000", unlock: "Wider Thorx Card variance bonus"    },
                                             { r: "S-Rank", ps: "20,000", unlock: "Instant withdrawal approval"        },
                                         ].map((row) => (
-                                            <tr key={row.r} className="hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors">
+                                            <tr key={row.r} className="hover:bg-muted/60 transition-colors">
                                                 <td className="p-4 font-bold">{row.r}</td>
                                                 <td className="p-4">{row.ps}</td>
                                                 <td className="p-4">{row.unlock}</td>
@@ -211,7 +199,7 @@ export default function TermsAndConditions() {
 
                         <Section title="6. Prohibited Actions" id="prohibited" icon={AlertTriangle} trigger={triggers["prohibited"]}>
                             <div className="space-y-6">
-                                <div className="p-6 border border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400">
+                                <div className="p-6 rounded-xl border border-red-500/20 bg-red-500/5 text-red-600">
                                     <h4 className="font-black mb-2 uppercase tracking-widest text-sm">Strict Zero-Tolerance</h4>
                                     <p className="text-sm">
                                         The use of bots, headless browsers, or any method to bypass attentive interaction is
@@ -226,7 +214,7 @@ export default function TermsAndConditions() {
                             </div>
                         </Section>
 
-                        <footer className="mt-24 pt-12 border-t border-zinc-200 dark:border-zinc-800 text-[10px] font-bold tracking-[0.3em] uppercase opacity-40">
+                        <footer className="mt-24 pt-12 border-t border-black/10 text-[10px] font-bold tracking-[0.3em] uppercase opacity-40">
                             Thorx Official Legal / Powered by Thorx.pro
                         </footer>
                     </div>
