@@ -50,7 +50,7 @@ export default function DigitalClock({ className = "" }: DigitalClockProps) {
   };
 
   return (
-    <div className={`bg-white border-2 border-black px-2 py-1 text-center ${className}`} data-testid="digital-clock">
+    <div className={`bg-white border-2 border-black rounded-lg px-2 py-1 text-center ${className}`} data-testid="digital-clock">
       <div className="font-mono text-sm md:text-base font-black tracking-wider">
         {formatTime(timeSpent)}
       </div>

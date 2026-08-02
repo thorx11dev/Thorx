@@ -78,7 +78,7 @@ interface ContentBlockProps {
 const ContentBlock = ({ label, description, isActive }: ContentBlockProps) => (
     <div className="flex flex-col space-y-6 p-6 md:p-10 h-full">
         <div className="w-fit">
-            <div className="bg-black dark:bg-white px-4 py-1.5">
+            <div className="bg-black dark:bg-white px-4 py-1.5 rounded-sm">
                 <TechnicalLabel
                     text={label}
                     className="text-white dark:text-black font-black tracking-[0.2em] text-[10px] md:text-xs"
@@ -134,7 +134,7 @@ export default function ValueProposition({ isActive }: { isActive: boolean }) {
                 </div>
 
                 {/* Grid Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 border-[3px] border-black/15 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5 mb-12">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 rounded-2xl border-[3px] border-black/15 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5 mb-12">
                     {stakeholders.map((stakeholder, index) => (
                             <div key={stakeholder.label} className="relative flex flex-col h-full">
                                 <ContentBlock {...stakeholder} isActive={isActive} />

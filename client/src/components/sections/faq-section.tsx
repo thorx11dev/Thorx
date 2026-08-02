@@ -220,7 +220,7 @@ export default function FAQSection({ isActive }: FAQSectionProps) {
           </CinematicBlockReveal>
         </div>
 
-        <div className="border-[3px] border-black/15 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5">
+        <div className="rounded-2xl border-[3px] border-black/15 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5">
           {/* Main Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2">
             {allFaqData.slice(0, INITIAL_COUNT).map((faq, index) => (

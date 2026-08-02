@@ -51,7 +51,7 @@
   --font-sans: 'Inter', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'Courier New', monospace;
-  --radius: 0rem;
+  --radius: 0.5rem;
 }
 
 .dark {
@@ -341,6 +341,7 @@
     width: 32px;
     height: 32px;
     border: 2px solid #000;
+    border-radius: var(--radius);
     background: #000;
     color: #fff;
     display: flex;
@@ -361,6 +362,7 @@
     width: 12px;
     height: 12px;
     border: 2px solid #000;
+    border-radius: 3px;
     background: transparent;
     transition: all 0.3s ease;
   }
