@@ -539,42 +539,38 @@ export default function Auth() {
       <div className="industrial-grid" />
 
       {/* Navigation Header */}
-      <nav className="fixed top-0 w-full z-50 bg-background border-b-3 border-black" data-testid="auth-navigation">
-        <div className="max-w-7xl mx-auto px-4 md:px-8">
-          <div className="flex items-center justify-between h-16 md:h-20">
+      <nav className="fixed top-0 w-full z-50 px-3 pt-3 md:px-4 md:pt-4" data-testid="auth-navigation">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-3 items-center rounded-2xl border-2 md:border-[3px] border-black bg-white px-3 md:px-8 h-16 md:h-20">
             {/* Left Section */}
-            <div className="flex items-center">
+            <div className="flex items-center justify-self-start">
               <button
                 onClick={() => setLocation("/")}
-                className="bg-black text-white px-2 py-1 md:px-4 md:py-2 border-2 border-black hover:bg-primary transition-colors flex items-center gap-2"
+                className="bg-black text-white px-3 py-3 md:px-4 md:py-2 border-2 border-black rounded-lg hover:bg-primary transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
                 data-testid="button-back-home"
               >
                 <Delete className="w-4 h-4" />
-                <TechnicalLabel text="BACKSPACE" className="text-white text-xs md:text-sm" />
+                <TechnicalLabel text="BACKSPACE" className="hidden sm:inline text-white text-xs md:text-sm" />
               </button>
             </div>
 
+            {/* Center Section - Wordmark */}
+            <div className="justify-self-center">
+              <h1 className="text-xl md:text-3xl lg:text-4xl font-black tracking-tighter whitespace-nowrap" data-testid="auth-logo">
+                THORX.
+              </h1>
+            </div>
+
             {/* Right Section */}
-            <div className="flex items-center">
-              <div
-                className="bg-white border-2 border-black px-2 py-1 md:px-4 md:py-2 transition-all duration-300"
-              >
-                <div className="flex items-center gap-3 text-xs md:text-sm">
+            <div className="flex items-center justify-self-end">
+              <div className="bg-white border-2 border-black rounded-lg px-2 py-1 md:px-4 md:py-2 transition-all duration-300">
+                <div className="flex items-center gap-1.5 md:gap-3 text-xs md:text-sm">
                   <TechnicalLabel text="v1.0" className="font-mono tracking-[0.2em] opacity-40" />
                   <div className="h-3 w-[1px] bg-black/10" />
-                  <TechnicalLabel text="ONLINE" className="font-bold tracking-wider" />
+                  <TechnicalLabel text="ONLINE" className="hidden sm:inline font-bold tracking-wider" />
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Main Title Section */}
-        <div className="bg-white border-b-3 border-black py-3 md:py-4">
-          <div className="max-w-7xl mx-auto px-4 md:px-8 text-center">
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tighter" data-testid="auth-logo">
-              THORX.
-            </h1>
           </div>
         </div>
       </nav>
@@ -600,13 +596,13 @@ export default function Auth() {
               delay: 0.2
             }}
           >
-            <div className="split-card bg-white border-3 border-black p-3 md:p-6 lg:p-10 overflow-visible w-full">
+            <div className="split-card bg-white border-2 md:border-[3px] border-black/15 rounded-2xl p-4 md:p-8 lg:p-12 overflow-visible w-full">
 
               {/* OTP Verification View */}
               {authView === 'verify-otp' && (
                 <div className="max-w-[480px] mx-auto w-full space-y-6 md:space-y-8">
                   <div className="text-center space-y-3">
-                    <div className="w-16 h-16 mx-auto bg-black rounded-none flex items-center justify-center border-2 border-black">
+                    <div className="w-16 h-16 mx-auto bg-black rounded-2xl flex items-center justify-center border-2 border-black">
                       <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8L12 2 3 8v8l9 6 9-6z"/><path d="m3 8 9 6 9-6"/><path d="M12 2v12"/></svg>
                     </div>
                     <h2 className="text-2xl md:text-3xl font-black tracking-tight">VERIFY EMAIL</h2>
@@ -685,7 +681,7 @@ export default function Auth() {
               {authView === 'forgot-password' && (
                 <div className="max-w-[480px] mx-auto w-full space-y-6 md:space-y-8">
                   <div className="text-center space-y-3">
-                    <div className="w-16 h-16 mx-auto bg-black rounded-none flex items-center justify-center border-2 border-black">
+                    <div className="w-16 h-16 mx-auto bg-black rounded-2xl flex items-center justify-center border-2 border-black">
                       <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                     </div>
                     <h2 className="text-2xl md:text-3xl font-black tracking-tight">
