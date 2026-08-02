@@ -6,7 +6,7 @@ import { Eye, EyeOff, Loader2, ShieldCheck, XCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import Barcode from "@/components/ui/barcode";
-import TechnicalLabel from "@/components/ui/technical-label";
+import AuthNav from "@/components/auth/AuthNav";
 
 interface InviteAcceptCardProps {
   token: string;
@@ -93,19 +93,9 @@ export function InviteAcceptCard({ token }: InviteAcceptCardProps) {
     >
       <div className="industrial-grid" />
 
-      <nav className="fixed top-0 w-full z-50 bg-background border-b-3 border-black" data-testid="invite-navigation">
-        <div className="max-w-7xl mx-auto px-4 md:px-8">
-          <div className="bg-white border-b-3 border-black py-3 md:py-4">
-            <div className="max-w-7xl mx-auto px-4 md:px-8 text-center">
-              <h1 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tighter" data-testid="auth-logo">
-                THORX.
-              </h1>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <AuthNav />
 
-      <section className="cinematic-section active min-h-screen pb-8 overflow-y-auto overscroll-behavior-contain pt-24 md:pt-28">
+      <section className="cinematic-section active min-h-screen pb-8 overflow-y-auto overscroll-behavior-contain">
         <div className="max-w-7xl mx-auto px-4 md:px-8 pb-20">
           <div className="text-center mb-4 md:mb-6">
             <Barcode variant="bold" className="w-32 md:w-48 h-8 md:h-10 mx-auto" />
@@ -117,7 +107,7 @@ export function InviteAcceptCard({ token }: InviteAcceptCardProps) {
             animate={{ y: 0, opacity: 1 }}
             transition={{ type: "spring", damping: 14, stiffness: 120, mass: 1, delay: 0.1 }}
           >
-            <div className="split-card bg-white border-3 border-black p-3 md:p-6 lg:p-10 overflow-visible w-full">
+            <div className="split-card bg-white border-2 md:border-[3px] border-black/15 rounded-2xl p-3 md:p-6 lg:p-10 overflow-visible w-full">
               <div className="max-w-[480px] mx-auto w-full space-y-6 md:space-y-8">
                 {isLoading && (
                   <div className="text-center space-y-4 py-12">
@@ -128,7 +118,7 @@ export function InviteAcceptCard({ token }: InviteAcceptCardProps) {
 
                 {!isLoading && isError && (
                   <div className="text-center space-y-4 py-8">
-                    <div className="w-16 h-16 mx-auto bg-black rounded-none flex items-center justify-center border-2 border-black">
+                    <div className="w-16 h-16 mx-auto bg-black rounded-2xl flex items-center justify-center border-2 border-black">
                       <XCircle className="w-7 h-7 text-white" />
                     </div>
                     <h2 className="text-2xl md:text-3xl font-black tracking-tight">INVITATION INVALID</h2>
@@ -149,7 +139,7 @@ export function InviteAcceptCard({ token }: InviteAcceptCardProps) {
                 {!isLoading && !isError && invite && (
                   <>
                     <div className="text-center space-y-3">
-                      <div className="w-16 h-16 mx-auto bg-black rounded-none flex items-center justify-center border-2 border-black">
+                      <div className="w-16 h-16 mx-auto bg-black rounded-2xl flex items-center justify-center border-2 border-black">
                         <ShieldCheck className="w-7 h-7 text-white" />
                       </div>
                       <h2 className="text-2xl md:text-3xl font-black tracking-tight">ACTIVATE ACCESS</h2>
@@ -167,7 +157,7 @@ export function InviteAcceptCard({ token }: InviteAcceptCardProps) {
                             type="text"
                             value={firstName}
                             onChange={(e) => setFirstName(e.target.value)}
-                            className="w-full border-2 border-black text-base py-3 px-4 outline-none focus:border-primary transition-colors"
+                            className="w-full border-2 border-black/15 rounded-lg text-base py-3 px-4 outline-none focus:border-primary transition-colors"
                             placeholder="John"
                             autoFocus
                             data-testid="input-invite-first-name"
@@ -179,7 +169,7 @@ export function InviteAcceptCard({ token }: InviteAcceptCardProps) {
                             type="text"
                             value={lastName}
                             onChange={(e) => setLastName(e.target.value)}
-                            className="w-full border-2 border-black text-base py-3 px-4 outline-none focus:border-primary transition-colors"
+                            className="w-full border-2 border-black/15 rounded-lg text-base py-3 px-4 outline-none focus:border-primary transition-colors"
                             placeholder="Doe"
                             data-testid="input-invite-last-name"
                           />
@@ -193,7 +183,7 @@ export function InviteAcceptCard({ token }: InviteAcceptCardProps) {
                             type={showPassword ? "text" : "password"}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full border-2 border-black text-base py-3 px-4 pr-12 outline-none focus:border-primary transition-colors"
+                            className="w-full border-2 border-black/15 rounded-lg text-base py-3 px-4 pr-12 outline-none focus:border-primary transition-colors"
                             placeholder="At least 6 characters"
                             data-testid="input-invite-password"
                           />
@@ -214,7 +204,7 @@ export function InviteAcceptCard({ token }: InviteAcceptCardProps) {
                           type={showPassword ? "text" : "password"}
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="w-full border-2 border-black text-base py-3 px-4 outline-none focus:border-primary transition-colors"
+                          className="w-full border-2 border-black/15 rounded-lg text-base py-3 px-4 outline-none focus:border-primary transition-colors"
                           placeholder="Re-enter password"
                           data-testid="input-invite-confirm-password"
                         />
@@ -223,7 +213,7 @@ export function InviteAcceptCard({ token }: InviteAcceptCardProps) {
                       <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full bg-black text-white font-black text-sm uppercase tracking-widest py-4 border-2 border-black hover:bg-primary hover:border-primary transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full bg-black text-white font-black text-sm uppercase tracking-widest py-4 border-2 border-black rounded-lg hover:bg-primary hover:border-primary transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                         data-testid="button-invite-accept"
                       >
                         {isSubmitting ? (

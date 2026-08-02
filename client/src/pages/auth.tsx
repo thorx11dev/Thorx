@@ -12,12 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import TechnicalLabel from "@/components/ui/technical-label";
 import Barcode from "@/components/ui/barcode";
 import { useToast } from "@/hooks/use-toast";
-import { Delete, Eye, EyeOff, Info, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { getDeviceFingerprint } from "@/lib/fingerprint";
 import { InviteAcceptCard } from "@/components/auth/InviteAcceptCard";
+import AuthNav from "@/components/auth/AuthNav";
 
 // Animated Placeholder Component
 function AnimatedPlaceholder({ examples, className = "text-muted-foreground" }: { examples: string[]; className?: string }) {
@@ -539,41 +540,7 @@ export default function Auth() {
       <div className="industrial-grid" />
 
       {/* Navigation Header */}
-      <nav className="fixed top-0 w-full z-50 px-3 pt-3 md:px-4 md:pt-4" data-testid="auth-navigation">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-3 items-center rounded-2xl border-2 md:border-[3px] border-black bg-white px-3 md:px-8 h-16 md:h-20">
-            {/* Left Section */}
-            <div className="flex items-center justify-self-start">
-              <button
-                onClick={() => setLocation("/")}
-                className="bg-black text-white px-3 py-3 md:px-4 md:py-2 border-2 border-black rounded-lg hover:bg-primary transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
-                data-testid="button-back-home"
-              >
-                <Delete className="w-4 h-4" />
-                <TechnicalLabel text="BACKSPACE" className="hidden sm:inline text-white text-xs md:text-sm" />
-              </button>
-            </div>
-
-            {/* Center Section - Wordmark */}
-            <div className="justify-self-center">
-              <h1 className="text-xl md:text-3xl lg:text-4xl font-black tracking-tighter whitespace-nowrap" data-testid="auth-logo">
-                THORX.
-              </h1>
-            </div>
-
-            {/* Right Section */}
-            <div className="flex items-center justify-self-end">
-              <div className="bg-white border-2 border-black rounded-lg px-2 py-1 md:px-4 md:py-2 transition-all duration-300">
-                <div className="flex items-center gap-1.5 md:gap-3 text-xs md:text-sm">
-                  <TechnicalLabel text="v1.0" className="font-mono tracking-[0.2em] opacity-40" />
-                  <div className="h-3 w-[1px] bg-black/10" />
-                  <TechnicalLabel text="ONLINE" className="hidden sm:inline font-bold tracking-wider" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <AuthNav />
 
       {/* Auth Section */}
       <section className="cinematic-section active min-h-screen pb-8 overflow-y-auto overscroll-behavior-contain">
@@ -632,7 +599,7 @@ export default function Auth() {
                             handleOtpSubmit(pasted);
                           }
                         }}
-                        className="w-11 h-14 md:w-14 md:h-16 text-center text-2xl md:text-3xl font-black border-2 border-black focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all bg-[#F5F5F3]"
+                        className="w-11 h-14 md:w-14 md:h-16 text-center text-2xl md:text-3xl font-black border-2 border-black/15 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all bg-[#F5F5F3]"
                         data-testid={`otp-input-${i}`}
                         autoFocus={i === 0}
                       />
@@ -702,7 +669,7 @@ export default function Auth() {
                           type="email"
                           value={forgotEmail}
                           onChange={(e) => setForgotEmail(e.target.value)}
-                          className="w-full border-2 border-black text-base md:text-lg py-3 md:py-4 px-4 outline-none focus:border-primary transition-colors"
+                          className="w-full border-2 border-black/15 rounded-lg text-base md:text-lg py-3 md:py-4 px-4 outline-none focus:border-primary transition-colors"
                           placeholder="your@email.com"
                           data-testid="input-forgot-email"
                           autoFocus
@@ -711,7 +678,7 @@ export default function Auth() {
                       <Button
                         onClick={handleForgotSubmitEmail}
                         disabled={isSubmitting || !forgotEmail}
-                        className="w-full bg-black text-white text-lg font-black py-4 md:py-5 hover:bg-primary transition-colors border-2 border-black disabled:opacity-50"
+                        className="w-full bg-black text-white text-lg font-black py-4 md:py-5 hover:bg-primary transition-colors border-2 border-black rounded-lg disabled:opacity-50"
                         data-testid="button-send-reset-code"
                       >
                         {isSubmitting ? 'SENDING...' : 'SEND RESET CODE'}
@@ -728,7 +695,7 @@ export default function Auth() {
                           type="password"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          className="w-full border-2 border-black text-base md:text-lg py-3 md:py-4 px-4 outline-none focus:border-primary transition-colors"
+                          className="w-full border-2 border-black/15 rounded-lg text-base md:text-lg py-3 md:py-4 px-4 outline-none focus:border-primary transition-colors"
                           placeholder="Enter new password"
                           data-testid="input-new-password"
                           autoFocus
@@ -740,7 +707,7 @@ export default function Auth() {
                           type="password"
                           value={confirmNewPassword}
                           onChange={(e) => setConfirmNewPassword(e.target.value)}
-                          className="w-full border-2 border-black text-base md:text-lg py-3 md:py-4 px-4 outline-none focus:border-primary transition-colors"
+                          className="w-full border-2 border-black/15 rounded-lg text-base md:text-lg py-3 md:py-4 px-4 outline-none focus:border-primary transition-colors"
                           placeholder="Confirm new password"
                           data-testid="input-confirm-new-password"
                         />
@@ -748,7 +715,7 @@ export default function Auth() {
                       <Button
                         onClick={handleResetPassword}
                         disabled={isSubmitting || !newPassword || !confirmNewPassword}
-                        className="w-full bg-primary text-white text-lg font-black py-4 md:py-5 hover:bg-black transition-colors border-2 border-black disabled:opacity-50"
+                        className="w-full bg-primary text-white text-lg font-black py-4 md:py-5 hover:bg-black transition-colors border-2 border-black rounded-lg disabled:opacity-50"
                         data-testid="button-reset-password"
                       >
                         {isSubmitting ? 'RESETTING...' : 'SET NEW PASSWORD'}
@@ -772,17 +739,17 @@ export default function Auth() {
               {/* Register / Login Tabs */}
               {(authView === 'register' || authView === 'login') && (
               <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setAuthView(v as AuthView); }} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6 md:mb-8 bg-muted border-2 border-black">
+                <TabsList className="grid w-full grid-cols-2 mb-6 md:mb-8 bg-muted border-2 border-black rounded-lg">
                   <TabsTrigger
                     value="register"
-                    className="data-[state=active]:bg-black data-[state=active]:text-white font-black text-sm md:text-base"
+                    className="rounded-md data-[state=active]:bg-black data-[state=active]:text-white font-black text-sm md:text-base"
                     data-testid="tab-register"
                   >
                     REGISTER
                   </TabsTrigger>
                   <TabsTrigger
                     value="login"
-                    className="data-[state=active]:bg-black data-[state=active]:text-white font-black text-sm md:text-base"
+                    className="rounded-md data-[state=active]:bg-black data-[state=active]:text-white font-black text-sm md:text-base"
                     data-testid="tab-login"
                   >
                     LOGIN
@@ -812,7 +779,7 @@ export default function Auth() {
                                       // @ts-ignore
                                       firstInputRef.current = e;
                                     }}
-                                    className="border-2 border-black text-base md:text-lg py-3 md:py-4 px-4"
+                                    className="border-2 border-black/15 rounded-lg text-base md:text-lg py-3 md:py-4 px-4"
                                     data-testid="input-register-name"
                                   />
                                   {!field.value && (
@@ -845,7 +812,7 @@ export default function Auth() {
                                       const validation = validateEmail(e.target.value);
                                       setEmailValidation(validation);
                                     }}
-                                    className="border-2 border-black text-base md:text-lg py-3 md:py-4 px-4 transition-colors duration-200"
+                                    className="border-2 border-black/15 rounded-lg text-base md:text-lg py-3 md:py-4 px-4 transition-colors duration-200"
                                     data-testid="input-register-email"
                                   />
                                   {!field.value && (
@@ -924,7 +891,7 @@ export default function Auth() {
                                         const strength = calculatePasswordStrength(e.target.value);
                                         setPasswordStrength(strength);
                                       }}
-                                      className="border-2 border-black text-base md:text-lg py-3 md:py-4 px-4 pr-12"
+                                      className="border-2 border-black/15 rounded-lg text-base md:text-lg py-3 md:py-4 px-4 pr-12"
                                       data-testid="input-register-password"
                                     />
                                     {!field.value && (
@@ -1006,7 +973,7 @@ export default function Auth() {
                                   <Input
                                     type={showConfirmPassword ? "text" : "password"}
                                     {...field}
-                                    className="border-2 border-black text-base md:text-lg py-3 md:py-4 px-4 pr-12"
+                                    className="border-2 border-black/15 rounded-lg text-base md:text-lg py-3 md:py-4 px-4 pr-12"
                                     data-testid="input-register-confirm-password"
                                   />
                                   {!field.value && (
@@ -1063,7 +1030,7 @@ export default function Auth() {
                                       const validation = validatePhone(e.target.value);
                                       setPhoneValidation(validation);
                                     }}
-                                    className="border-2 border-black text-base md:text-lg py-3 md:py-4 px-4 transition-colors duration-200"
+                                    className="border-2 border-black/15 rounded-lg text-base md:text-lg py-3 md:py-4 px-4 transition-colors duration-200"
                                     data-testid="input-register-phone"
                                   />
                                   {!field.value && (
@@ -1123,7 +1090,7 @@ export default function Auth() {
                                         });
                                       }
                                     }}
-                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 z-10 p-2 rounded-md bg-white/10 backdrop-blur-sm group"
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 z-10 p-2 rounded-md bg-white/15 hover:bg-white/25 transition-colors group"
                                     data-testid="button-paste-referral"
                                     aria-label="Paste referral code"
                                   >
@@ -1155,7 +1122,7 @@ export default function Auth() {
                         <Button
                           type="submit"
                           disabled={isSubmitting}
-                          className="w-full bg-black text-white text-lg md:text-xl font-black py-4 md:py-5 hover:bg-primary transition-colors border-2 border-black disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full bg-black text-white text-lg md:text-xl font-black py-4 md:py-5 hover:bg-primary transition-colors border-2 border-black rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                           data-testid="button-register-submit"
                         >
                           {isSubmitting ? (
@@ -1167,7 +1134,7 @@ export default function Auth() {
                   </Form>
 
                   {/* Already registered? */}
-                  <div className="mt-8 pt-8 border-t-2 border-black">
+                  <div className="mt-8 pt-8 border-t-2 border-black/10">
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground font-bold tracking-wide">
                         Already have an account?{" "}
@@ -1201,7 +1168,7 @@ export default function Auth() {
                                   <Input
                                     {...field}
                                     type="email"
-                                    className="border-2 border-black text-base md:text-lg py-3 md:py-4 px-4"
+                                    className="border-2 border-black/15 rounded-lg text-base md:text-lg py-3 md:py-4 px-4"
                                     data-testid="input-login-email"
                                   />
                                   {!field.value && (
@@ -1229,7 +1196,7 @@ export default function Auth() {
                                   <Input
                                     type={showPassword ? "text" : "password"}
                                     {...field}
-                                    className="border-2 border-black text-base md:text-lg py-3 md:py-4 px-4 pr-12"
+                                    className="border-2 border-black/15 rounded-lg text-base md:text-lg py-3 md:py-4 px-4 pr-12"
                                     data-testid="input-login-password"
                                   />
                                   {!field.value && (
@@ -1276,7 +1243,7 @@ export default function Auth() {
                           <Button
                             type="submit"
                             disabled={isSubmitting}
-                            className="w-full bg-primary text-white text-lg md:text-xl font-black py-4 md:py-5 hover:bg-black transition-colors border-2 border-black disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-primary text-white text-lg md:text-xl font-black py-4 md:py-5 hover:bg-black transition-colors border-2 border-black rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                             data-testid="button-login-submit"
                           >
                             {isSubmitting ? (
@@ -1288,14 +1255,14 @@ export default function Auth() {
                     </Form>
 
                     {/* Direct Portal Access */}
-                    <div className="mt-8 pt-8 border-t-2 border-black">
+                    <div className="mt-8 pt-8 border-t-2 border-black/10">
                       <div className="text-center space-y-5">
                         <TechnicalLabel text="OR NAVIGATE TO PORTAL" className="text-muted-foreground" />
                         <div className="grid grid-cols-2 gap-4 md:gap-5">
                           <Button
                             onClick={() => setLocation("/portal")}
                             variant="outline"
-                            className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-white text-base md:text-lg font-black py-3 md:py-4"
+                            className="w-full border-2 border-primary rounded-lg text-primary hover:bg-primary hover:text-white text-base md:text-lg font-black py-3 md:py-4"
                             data-testid="button-user-portal"
                           >
                             USER PORTAL →
@@ -1303,7 +1270,7 @@ export default function Auth() {
                           <Button
                             onClick={() => setLocation("/team")}
                             variant="outline"
-                            className="w-full border-2 border-black text-black hover:bg-black hover:text-white text-base md:text-lg font-black py-3 md:py-4"
+                            className="w-full border-2 border-black rounded-lg text-black hover:bg-black hover:text-white text-base md:text-lg font-black py-3 md:py-4"
                             data-testid="button-team-portal"
                           >
                             TEAM PORTAL →
@@ -1317,14 +1284,14 @@ export default function Auth() {
               )}
 
               {/* Security Badge */}
-              <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t-2 border-black">
+              <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t-2 border-black/10">
                 <div className="flex items-center justify-center space-x-2 md:space-x-4">
                   <Barcode variant="bold" className="w-12 md:w-16 h-3 md:h-4" />
                 </div>
               </div>
 
               {/* Legal Links */}
-              <div className="mt-6 pt-4 border-t border-gray-200">
+              <div className="mt-6 pt-4 border-t border-black/10">
                 <div className="text-center text-xs text-muted-foreground">
                   <p className="mb-2">By continuing, you agree to our</p>
                   <div className="flex items-center justify-center gap-3">
@@ -1334,7 +1301,7 @@ export default function Auth() {
                     >
                       Terms & Conditions
                     </a>
-                    <span className="text-gray-300">|</span>
+                    <span className="text-black/20">|</span>
                     <a
                       href="/privacy"
                       className="text-black hover:text-primary font-semibold underline underline-offset-2 transition-colors"
