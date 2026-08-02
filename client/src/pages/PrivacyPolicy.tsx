@@ -66,7 +66,7 @@ export default function PrivacyPolicy() {
 
             <main className="max-w-5xl mx-auto px-6 pt-32 pb-24">
                 <div className="mb-20">
-                    <TextBlockAnimation blockColor="#ff6b00" duration={0.8}>
+                    <TextBlockAnimation blockColor="#ff6b00" duration={0.8} animateOnScroll={false}>
                         <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter leading-none mb-6">
                             Privacy <br /> Policy<span className="text-primary">.</span>
                         </h1>
