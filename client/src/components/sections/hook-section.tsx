@@ -23,7 +23,7 @@ export default function HookSection({ isActive, onAdvance }: HookSectionProps) {
         {/* Tagline */}
         <div className="px-4 md:px-2">
           <TextBlockAnimation blockColor="#ff6b00" animateOnScroll={false} trigger={isActive}>
-            <p className="text-[clamp(1rem,5vw,1.875rem)] md:text-4xl lg:text-5xl font-black mb-10 md:mb-12 text-secondary text-center leading-[1.05] tracking-tight whitespace-nowrap">Turn Attention into Currency</p>
+            <p className="text-[clamp(1rem,5vw,1.875rem)] md:text-4xl lg:text-5xl font-black mb-10 md:mb-12 text-secondary text-center leading-[1.05] tracking-tight whitespace-normal sm:whitespace-nowrap">Turn Attention into Currency</p>
           </TextBlockAnimation>
         </div>
 
