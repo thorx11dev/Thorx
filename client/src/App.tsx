@@ -20,6 +20,7 @@ const HilltopAdsAdmin = lazy(() => import("@/pages/HilltopAdsAdmin"));
 const TermsAndConditions = lazy(() => import("@/features/legal/TermsPage"));
 const PrivacyPolicy = lazy(() => import("@/features/legal/PrivacyPage"));
 const AdLanding = lazy(() => import("@/pages/AdLanding"));
+const ResetPassword = lazy(() => import("@/pages/reset-password"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 function PageLoader() {
@@ -81,6 +82,10 @@ function Router() {
           <PublicOnlyRoute redirectTo="/">
             <Auth />
           </PublicOnlyRoute>
+        </Route>
+
+        <Route path="/reset-password">
+          <ResetPassword />
         </Route>
 
         <Route path="/user-portal">

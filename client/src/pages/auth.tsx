@@ -12,10 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import TechnicalLabel from "@/components/ui/technical-label";
 import Barcode from "@/components/ui/barcode";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail, CheckCircle2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { calculatePasswordStrength } from "@/lib/password-strength";
 import { getDeviceFingerprint } from "@/lib/fingerprint";
 import { InviteAcceptCard } from "@/components/auth/InviteAcceptCard";
 import AuthNav from "@/components/auth/AuthNav";
@@ -205,40 +206,6 @@ const validatePhone = (phone: string) => {
   };
 };
 
-// Password strength calculation
-const calculatePasswordStrength = (password: string): { level: number; label: string; color: string } => {
-  if (!password) {
-    return { level: 0, label: '', color: '' };
-  }
-
-  let strength = 0;
-  const checks = {
-    length: password.length >= 6,
-    lowercase: /[a-z]/.test(password),
-    uppercase: /[A-Z]/.test(password),
-    number: /\d/.test(password),
-    special: /[^a-zA-Z0-9]/.test(password)
-  };
-
-  // Calculate strength
-  if (checks.length) strength++;
-  if (checks.lowercase) strength++;
-  if (checks.uppercase) strength++;
-  if (checks.number) strength++;
-  if (checks.special) strength++;
-
-  // Determine level and color
-  if (strength <= 2) {
-    return { level: 1, label: 'Weak', color: 'bg-red-500' };
-  } else if (strength === 3) {
-    return { level: 2, label: 'Fair', color: 'bg-orange-500' };
-  } else if (strength === 4) {
-    return { level: 3, label: 'Good', color: 'bg-yellow-500' };
-  } else {
-    return { level: 4, label: 'Strong', color: 'bg-green-500' };
-  }
-};
-
 // Sleek minimal tag-style label
 const FieldTag = ({ children, className }: { children: ReactNode, className?: string }) => (
   <div className={cn(
@@ -306,18 +273,19 @@ export default function Auth() {
   // OTP Verification state
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [otpEmail, setOtpEmail] = useState('');
-  const [otpSource, setOtpSource] = useState<'register' | 'login' | 'reset'>('register');
+  const [otpSource, setOtpSource] = useState<'register' | 'login'>('register');
   const [resendCooldown, setResendCooldown] = useState(0);
   const [pendingRegData, setPendingRegData] = useState<any>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Forgot Password state
+  // Forgot Password state — the real backend flow (server/routes.ts
+  // /api/forgot-password + /api/reset-password) emails a one-time link
+  // rather than an in-app OTP/step flow, so this modal only ever needs to
+  // know whether the request was submitted. The actual password-setting
+  // step happens on the dedicated /reset-password page the emailed link
+  // points to (client/src/pages/reset-password.tsx).
   const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotStep, setForgotStep] = useState<1 | 2 | 3>(1);
-  const [resetToken, setResetToken] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [newPasswordStrength, setNewPasswordStrength] = useState<{ level: number; label: string; color: string }>({ level: 0, label: '', color: '' });
+  const [forgotEmailSent, setForgotEmailSent] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -371,25 +339,13 @@ export default function Auth() {
     setIsSubmitting(true);
     try {
       await apiRequest("POST", "/api/forgot-password", { email: forgotEmail });
-      toast({
-        title: "Request Received",
-        description: "Please contact support to complete your password reset.",
-      });
-      setAuthView('login');
-      setActiveTab('login');
+      setForgotEmailSent(true);
     } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Failed to submit request.", variant: "destructive" });
+      const message = (error?.message as string | undefined)?.replace(/^\d+:\s*/, "");
+      toast({ title: "Error", description: message || "Failed to send reset link. Please try again.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleResetPassword = async () => {
-    toast({
-      title: "Not Available",
-      description: "Self-service password reset is not available. Please contact support.",
-      variant: "destructive"
-    });
   };
 
   // Identity generation function
@@ -629,7 +585,7 @@ export default function Auth() {
                     <div className="pt-4 border-t border-black/10">
                       <button
                         type="button"
-                        onClick={() => { setAuthView(otpSource === 'reset' ? 'forgot-password' : activeTab as AuthView); setOtpDigits(['', '', '', '', '', '']); }}
+                        onClick={() => { setAuthView(activeTab as AuthView); setOtpDigits(['', '', '', '', '', '']); }}
                         className="text-sm font-bold text-muted-foreground hover:text-black transition-colors"
                         data-testid="button-back-from-otp"
                       >
@@ -647,86 +603,73 @@ export default function Auth() {
               {/* Forgot Password View */}
               {authView === 'forgot-password' && (
                 <div className="max-w-[480px] mx-auto w-full space-y-6 md:space-y-8">
-                  <div className="text-center space-y-3">
-                    <div className="w-16 h-16 mx-auto bg-black rounded-2xl flex items-center justify-center border-2 border-black">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    </div>
-                    <h2 className="text-2xl md:text-3xl font-black tracking-tight">
-                      {forgotStep === 1 ? 'RESET PASSWORD' : forgotStep === 3 ? 'NEW PASSWORD' : 'RESET PASSWORD'}
-                    </h2>
-                    <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                      {forgotStep === 1 && 'Enter your email address to receive a reset code.'}
-                      {forgotStep === 3 && 'Choose a strong new password for your account.'}
-                    </p>
-                  </div>
+                  {!forgotEmailSent ? (
+                    <>
+                      <div className="text-center space-y-3">
+                        <div className="w-16 h-16 mx-auto bg-black rounded-2xl flex items-center justify-center border-2 border-black">
+                          <Mail className="w-7 h-7 text-white" />
+                        </div>
+                        <h2 className="text-2xl md:text-3xl font-black tracking-tight">RESET PASSWORD</h2>
+                        <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                          Enter your email address and we'll send you a secure link to reset your password.
+                        </p>
+                      </div>
 
-                  {/* Step 1: Email input */}
-                  {forgotStep === 1 && (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black tracking-[0.2em] text-black/50 uppercase">Email Address</label>
-                        <input
-                          type="email"
-                          value={forgotEmail}
-                          onChange={(e) => setForgotEmail(e.target.value)}
-                          className="w-full border-2 border-black/15 rounded-lg text-base md:text-lg py-3 md:py-4 px-4 outline-none focus:border-primary transition-colors"
-                          placeholder="your@email.com"
-                          data-testid="input-forgot-email"
-                          autoFocus
-                        />
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black tracking-[0.2em] text-black/50 uppercase">Email Address</label>
+                          <input
+                            type="email"
+                            value={forgotEmail}
+                            onChange={(e) => setForgotEmail(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleForgotSubmitEmail(); }}
+                            className="w-full border-2 border-black/15 rounded-lg text-base md:text-lg py-3 md:py-4 px-4 outline-none focus:border-primary transition-colors"
+                            placeholder="your@email.com"
+                            data-testid="input-forgot-email"
+                            autoFocus
+                          />
+                        </div>
+                        <Button
+                          onClick={handleForgotSubmitEmail}
+                          disabled={isSubmitting || !forgotEmail}
+                          className="w-full bg-black text-white text-lg font-black py-4 md:py-5 hover:bg-primary transition-colors border-2 border-black rounded-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                          data-testid="button-send-reset-link"
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              SENDING...
+                            </>
+                          ) : (
+                            'SEND RESET LINK'
+                          )}
+                        </Button>
                       </div>
-                      <Button
-                        onClick={handleForgotSubmitEmail}
-                        disabled={isSubmitting || !forgotEmail}
-                        className="w-full bg-black text-white text-lg font-black py-4 md:py-5 hover:bg-primary transition-colors border-2 border-black rounded-lg disabled:opacity-50"
-                        data-testid="button-send-reset-code"
+                    </>
+                  ) : (
+                    <div className="text-center space-y-4 py-2">
+                      <div className="w-16 h-16 mx-auto bg-black rounded-2xl flex items-center justify-center border-2 border-black">
+                        <CheckCircle2 className="w-7 h-7 text-white" />
+                      </div>
+                      <h2 className="text-2xl md:text-3xl font-black tracking-tight">CHECK YOUR EMAIL</h2>
+                      <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                        If an account exists for <span className="font-bold text-black">{forgotEmail}</span>, we've sent a link to reset your password. It expires in 60 minutes — check your spam folder if it doesn't show up soon.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setForgotEmailSent(false)}
+                        className="text-sm font-bold text-primary hover:text-black transition-colors"
+                        data-testid="button-try-different-email"
                       >
-                        {isSubmitting ? 'SENDING...' : 'SEND RESET CODE'}
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Step 3: New password */}
-                  {forgotStep === 3 && (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black tracking-[0.2em] text-black/50 uppercase">New Password</label>
-                        <input
-                          type="password"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          className="w-full border-2 border-black/15 rounded-lg text-base md:text-lg py-3 md:py-4 px-4 outline-none focus:border-primary transition-colors"
-                          placeholder="Enter new password"
-                          data-testid="input-new-password"
-                          autoFocus
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black tracking-[0.2em] text-black/50 uppercase">Confirm Password</label>
-                        <input
-                          type="password"
-                          value={confirmNewPassword}
-                          onChange={(e) => setConfirmNewPassword(e.target.value)}
-                          className="w-full border-2 border-black/15 rounded-lg text-base md:text-lg py-3 md:py-4 px-4 outline-none focus:border-primary transition-colors"
-                          placeholder="Confirm new password"
-                          data-testid="input-confirm-new-password"
-                        />
-                      </div>
-                      <Button
-                        onClick={handleResetPassword}
-                        disabled={isSubmitting || !newPassword || !confirmNewPassword}
-                        className="w-full bg-primary text-white text-lg font-black py-4 md:py-5 hover:bg-black transition-colors border-2 border-black rounded-lg disabled:opacity-50"
-                        data-testid="button-reset-password"
-                      >
-                        {isSubmitting ? 'RESETTING...' : 'SET NEW PASSWORD'}
-                      </Button>
+                        Try a different email
+                      </button>
                     </div>
                   )}
 
                   <div className="text-center pt-4 border-t border-black/10">
                     <button
                       type="button"
-                      onClick={() => { setAuthView('login'); setActiveTab('login'); setForgotStep(1); }}
+                      onClick={() => { setAuthView('login'); setActiveTab('login'); setForgotEmailSent(false); }}
                       className="text-sm font-bold text-muted-foreground hover:text-black transition-colors"
                       data-testid="button-back-to-login"
                     >
@@ -1230,7 +1173,7 @@ export default function Auth() {
                             className="text-primary hover:text-black transition-colors font-semibold text-sm border-b border-primary hover:border-black"
                             onClick={() => {
                               setForgotEmail('');
-                              setForgotStep(1);
+                              setForgotEmailSent(false);
                               setAuthView('forgot-password');
                             }}
                             data-testid="button-forgot-password"
@@ -1253,31 +1196,6 @@ export default function Auth() {
                         </div>
                       </form>
                     </Form>
-
-                    {/* Direct Portal Access */}
-                    <div className="mt-8 pt-8 border-t-2 border-black/10">
-                      <div className="text-center space-y-5">
-                        <TechnicalLabel text="OR NAVIGATE TO PORTAL" className="text-muted-foreground" />
-                        <div className="grid grid-cols-2 gap-4 md:gap-5">
-                          <Button
-                            onClick={() => setLocation("/portal")}
-                            variant="outline"
-                            className="w-full border-2 border-primary rounded-lg text-primary hover:bg-primary hover:text-white text-base md:text-lg font-black py-3 md:py-4"
-                            data-testid="button-user-portal"
-                          >
-                            USER PORTAL →
-                          </Button>
-                          <Button
-                            onClick={() => setLocation("/team")}
-                            variant="outline"
-                            className="w-full border-2 border-black rounded-lg text-black hover:bg-black hover:text-white text-base md:text-lg font-black py-3 md:py-4"
-                            data-testid="button-team-portal"
-                          >
-                            TEAM PORTAL →
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </TabsContent>
               </Tabs>
