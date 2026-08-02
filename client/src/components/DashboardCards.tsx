@@ -1,9 +1,13 @@
 /**
- * DashboardCards — THORX v3 (spec F.2)
- * Three dashboard summary card layouts driven by user.guildRole:
- *   'simple'  -> 5 cards: TX-Points, Withdrawal Value, Performance Rank, Referral Balance, Join-a-Guild CTA
- *   'member'  -> 5 cards: TX-Points, My Weekly Contribution, Guild Progress, Performance Rank, Sunday Bonus Status
- *   'captain' -> 5 cards: Guild GPS Rank, Team Roster, Pending Requests, Weekly Progress, My Captain Earnings
+ * DashboardCards — THORX v3 (spec F.2, updated Phase 3 redesign)
+ * Every role (simple user, guild member, captain) sees the same 3 standardized
+ * primary cards first — TX-Points, Referral Balance, Performance Rank — rendered
+ * by the shared <StandardThreeCards> below so the content and markup are
+ * identical regardless of rank/tier. Each role then keeps its own additional
+ * cards after those three:
+ *   'simple'  -> + Withdrawal Value, Join-a-Guild CTA
+ *   'member'  -> + My Weekly Contribution, Guild Progress, Sunday Bonus Status
+ *   'captain' -> + Guild GPS Rank, Team Roster, Pending Requests, Weekly Progress, My Captain Earnings
  *
  * Invariant 3: "Vault" / "Locked Points" must NEVER appear in this component's
  * rendered text. Approved user-facing terms: "Guild Weekly Bonus Pool" / "Sunday Bonus".
@@ -41,6 +45,68 @@ function CardHead({ icon: Icon, label }: { icon: any; label: string }) {
       <Icon className="w-7 h-7 text-primary" />
       <TechnicalLabel text={label} className="text-muted-foreground text-xs" />
     </div>
+  );
+}
+
+/**
+ * The 3 primary metrics cards every role sees, identically:
+ * TX-Points, Referral Balance, Performance Rank. Extracted so the markup,
+ * labels, and data-testids can never drift between roles (Phase 3 redesign
+ * requirement: "regardless of user role, ALL users must see the exact same
+ * 3 primary metrics cards").
+ */
+function StandardThreeCards({
+  txPoints,
+  performanceScore,
+  userRankTier,
+  streakDays,
+  referralStats,
+  isReferralStatsLoading,
+  isReferralStatsError,
+  refetchReferralStats,
+  navigate,
+}: {
+  txPoints: number;
+  performanceScore: number;
+  userRankTier: string;
+  streakDays: number;
+  referralStats?: { count: number; totalEarned: string };
+  isReferralStatsLoading: boolean;
+  isReferralStatsError: boolean;
+  refetchReferralStats: () => void;
+  navigate: (to: string) => void;
+}) {
+  return (
+    <>
+      <CardShell testId="card-tx-points">
+        <CardHead icon={Zap} label="TX-POINTS BALANCE" />
+        <p className="text-2xl md:text-3xl font-black text-primary mb-1">{txPoints.toLocaleString()} pts</p>
+        <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Available Points</p>
+      </CardShell>
+
+      <CardShell testId="card-referral-balance">
+        <CardHead icon={Gift} label="REFERRAL BALANCE" />
+        <p className="text-2xl md:text-3xl font-black text-foreground mb-1">TX-Points Balance</p>
+        <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-3">
+          {isReferralStatsLoading
+            ? <Skeleton className="h-3 w-24 rounded" />
+            : isReferralStatsError
+            ? <button onClick={() => refetchReferralStats()} className="text-red-400 text-xs font-bold uppercase tracking-wider hover:underline">Failed to load — Retry</button>
+            : `${referralStats?.count ?? 0} referral${(referralStats?.count ?? 0) === 1 ? "" : "s"}`}
+        </p>
+        <button
+          onClick={() => navigate("/referrals")}
+          className="text-xs font-black uppercase tracking-wider text-primary hover:underline"
+          data-testid="button-withdraw-referral-cash"
+        >
+          Withdraw Cash →
+        </button>
+      </CardShell>
+
+      <div data-testid="card-performance-rank">
+        <PSProgressCard performanceScore={performanceScore} userRankTier={userRankTier} streakDays={streakDays} />
+      </div>
+    </>
   );
 }
 
@@ -102,15 +168,23 @@ export function DashboardCards() {
 
   const grid = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-12";
 
+  const standardCardsProps = {
+    txPoints,
+    performanceScore,
+    userRankTier,
+    streakDays,
+    referralStats,
+    isReferralStatsLoading,
+    isReferralStatsError,
+    refetchReferralStats,
+    navigate,
+  };
+
   // ─────────────────────────── SIMPLE USER ───────────────────────────
   if (guildRole !== "member" && guildRole !== "captain") {
     return (
       <div className={grid}>
-        <CardShell testId="card-tx-points">
-          <CardHead icon={Zap} label="TX-POINTS BALANCE" />
-          <p className="text-2xl md:text-3xl font-black text-primary mb-1">{txPoints.toLocaleString()} pts</p>
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Available Points</p>
-        </CardShell>
+        <StandardThreeCards {...standardCardsProps} />
 
         <CardShell testId="card-withdrawal-value">
           <CardHead icon={Wallet} label="WITHDRAWAL VALUE" />
@@ -120,29 +194,6 @@ export function DashboardCards() {
           <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">
             Enter Payout to see value
           </p>
-        </CardShell>
-
-        <div data-testid="card-performance-rank">
-          <PSProgressCard performanceScore={performanceScore} userRankTier={userRankTier} streakDays={streakDays} />
-        </div>
-
-        <CardShell testId="card-referral-balance">
-          <CardHead icon={Gift} label="REFERRAL BALANCE" />
-          <p className="text-2xl md:text-3xl font-black text-foreground mb-1">TX-Points Balance</p>
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-3">
-            {isReferralStatsLoading
-              ? <Skeleton className="h-3 w-24 rounded" />
-              : isReferralStatsError
-              ? <button onClick={() => refetchReferralStats()} className="text-red-400 text-xs font-bold uppercase tracking-wider hover:underline">Failed to load — Retry</button>
-              : `${referralStats?.count ?? 0} referral${(referralStats?.count ?? 0) === 1 ? "" : "s"}`}
-          </p>
-          <button
-            onClick={() => navigate("/referrals")}
-            className="text-xs font-black uppercase tracking-wider text-primary hover:underline"
-            data-testid="button-withdraw-referral-cash"
-          >
-            Withdraw Cash →
-          </button>
         </CardShell>
 
         <CardShell testId="card-join-guild-cta" className="sm:col-span-2 lg:col-span-1">
@@ -176,11 +227,7 @@ export function DashboardCards() {
 
     return (
       <div className={grid}>
-        <CardShell testId="card-tx-points">
-          <CardHead icon={Zap} label="TX-POINTS BALANCE" />
-          <p className="text-2xl md:text-3xl font-black text-primary mb-1">{txPoints.toLocaleString()} pts</p>
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Available Points</p>
-        </CardShell>
+        <StandardThreeCards {...standardCardsProps} />
 
         <CardShell testId="card-weekly-contribution">
           <CardHead icon={Zap} label="MY WEEKLY CONTRIB" />
@@ -214,10 +261,6 @@ export function DashboardCards() {
               </>}
         </CardShell>
 
-        <div data-testid="card-performance-rank">
-          <PSProgressCard performanceScore={performanceScore} userRankTier={userRankTier} streakDays={streakDays} />
-        </div>
-
         <CardShell testId="card-sunday-bonus-status" className="sm:col-span-2 lg:col-span-1">
           <CardHead icon={Clock} label="SUNDAY BONUS STATUS" />
           <p className="text-sm font-black text-foreground mb-1">
@@ -243,6 +286,8 @@ export function DashboardCards() {
 
   return (
     <div className={grid}>
+      <StandardThreeCards {...standardCardsProps} />
+
       <CardShell testId="card-guild-gps-rank">
         <CardHead icon={Crown} label="GUILD GPS" />
         <p className="text-2xl md:text-3xl font-black text-foreground mb-1">
@@ -298,7 +343,6 @@ export function DashboardCards() {
 
       <CardShell testId="card-captain-earnings" className="sm:col-span-2 lg:col-span-1">
         <CardHead icon={UserCog} label="MY CAPTAIN EARNINGS" />
-        <p className="text-sm font-black text-foreground mb-1">TX-Points: {txPoints.toLocaleString()} pts</p>
         <p className="text-sm font-black text-foreground mb-3">Referral Cash Earned</p>
         <button
           onClick={() => navigate("/referrals")}
