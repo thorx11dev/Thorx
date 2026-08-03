@@ -46,16 +46,16 @@ export function PSProgressCard({ performanceScore, userRankTier, streakDays = 0,
                       streakDays === 1 ? `+5 PS/day bonus active` : "Start a streak for PS bonus";
 
   return (
-    <div className={cn("rounded-xl border border-zinc-200 bg-white p-4 space-y-3", className)}>
+    <div className={cn("group bg-white border-2 border-black rounded-2xl p-6 space-y-3 transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", className)}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <RankBadge rank={userRankTier} size="md" />
-          <span className="text-sm font-semibold text-zinc-700">
+          <span className="text-sm font-bold text-foreground">
             {performanceScore.toLocaleString()} PS
           </span>
         </div>
         {streakDays > 0 && (
-          <span className="text-xs flex items-center gap-1 text-orange-500 font-medium">
+          <span className="text-xs flex items-center gap-1 text-primary font-bold">
             <Flame size={12} />
             {streakDays}-day streak
           </span>
@@ -64,26 +64,26 @@ export function PSProgressCard({ performanceScore, userRankTier, streakDays = 0,
 
       <div className="space-y-1">
         <Progress value={pct} className="h-2" />
-        <div className="flex justify-between text-[11px] text-zinc-400">
+        <div className="flex justify-between text-[11px] text-muted-foreground">
           <span>{tier.min.toLocaleString()} PS</span>
           <span>{tier.max !== null ? (tier.max + 1).toLocaleString() + " PS" : "MAX"}</span>
         </div>
       </div>
 
       {psToNext !== null && tier.next && (
-        <p className="text-xs text-zinc-500">
-          <span className="font-semibold text-zinc-700">{psToNext.toLocaleString()} more PS</span> to reach {tier.next}
+        <p className="text-xs text-muted-foreground">
+          <span className="font-bold text-foreground">{psToNext.toLocaleString()} more PS</span> to reach {tier.next}
         </p>
       )}
 
       {streakDays > 0 && (
-        <p className="text-xs text-orange-400">🔥 {streakLabel}</p>
+        <p className="text-xs text-primary">🔥 {streakLabel}</p>
       )}
 
       {tier.next && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           What does {tier.next} unlock?
@@ -91,7 +91,7 @@ export function PSProgressCard({ performanceScore, userRankTier, streakDays = 0,
       )}
 
       {expanded && tier.next && (
-        <div className="text-xs text-zinc-600 bg-zinc-50 rounded-lg p-3 border border-zinc-100">
+        <div className="text-xs text-foreground/80 bg-black/[0.03] rounded-lg p-3 border border-black/10">
           {tier.unlocks}
         </div>
       )}

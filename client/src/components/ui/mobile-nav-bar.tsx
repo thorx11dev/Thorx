@@ -218,10 +218,10 @@ export function MobileNavBar({
                                         setIsOpen(false);
                                     }}
                                     className={cn(
-                                        "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full flex items-center justify-center shadow-md transition-all duration-300",
-                                        "bg-white hover:bg-gray-100 border-[1px] border-gray-200",
+                                        "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300",
+                                        "bg-white hover:bg-primary hover:text-white border-2 border-black",
                                         isOpen ? "opacity-100" : "opacity-0 pointer-events-none",
-                                        isActive ? "bg-black text-white hover:bg-black/90 border-black" : "text-gray-600"
+                                        isActive ? "bg-black text-white hover:bg-black/90 border-black" : "text-black"
                                     )}
                                     style={{
                                         transform: isOpen
@@ -246,8 +246,8 @@ export function MobileNavBar({
                         onClick={toggleMenu}
                         whileTap={{ scale: 0.95 }}
                         className={cn(
-                            "relative w-16 h-16 rounded-full flex items-center justify-center shadow-2xl z-50 outline-none cursor-grab active:cursor-grabbing",
-                            "bg-black text-white border-[1px] border-white/20"
+                            "relative w-16 h-16 rounded-full flex items-center justify-center shadow-lg z-50 outline-none cursor-grab active:cursor-grabbing",
+                            "bg-black text-white border-2 border-black"
                         )}
                     >
                         <motion.div

@@ -1485,8 +1485,7 @@ export default function UserPortal() {
               onClick={() => setShowNotificationModal(true)}
               variant="outline"
               size="sm"
-              className="relative border-3 border-black text-black bg-white hover:bg-orange-500 hover:text-white shadow-[3px_3px_0px_#000] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] transition-all"
-              style={{ borderRadius: '0' }}
+              className="relative border-2 border-black rounded-lg text-black bg-white hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 transform hover:scale-105"
             >
               <Bell className="w-5 h-5 stroke-[2px]" />
               {commissions?.length > 0 && (
@@ -1500,8 +1499,7 @@ export default function UserPortal() {
               onClick={() => setShowProfileModal(true)}
               variant="outline"
               size="sm"
-              className="border-3 border-black text-black bg-white hover:bg-primary shadow-[3px_3px_0px_#000] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] transition-all"
-              style={{ borderRadius: '0' }}
+              className="border-2 border-black rounded-lg text-black bg-white hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 transform hover:scale-105"
               data-testid="button-profile"
             >
               <Settings className="w-5 h-5 stroke-[2px]" />
@@ -1510,8 +1508,7 @@ export default function UserPortal() {
               onClick={() => logout()}
               variant="outline"
               size="sm"
-              className="border-3 border-black text-black bg-white hover:bg-rose-500 hover:text-white shadow-[3px_3px_0px_#000] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] transition-all"
-              style={{ borderRadius: '0' }}
+              className="border-2 border-black rounded-lg text-black bg-white hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all duration-300 transform hover:scale-105"
               data-testid="button-logout"
             >
               <LogOut className="w-5 h-5 stroke-[2px]" />
@@ -1719,17 +1716,13 @@ export default function UserPortal() {
             animate: { opacity: 1, y: 0 }
           }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-card border-2 border-muted-foreground/20 hover:border-primary/30 rounded-2xl p-6 md:p-12 mb-12 relative overflow-hidden group shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.1)] transition-all duration-500"
+          className="bg-white border-2 md:border-[3px] border-black rounded-2xl p-6 md:p-12 mb-12 relative overflow-hidden group transition-all duration-500 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
         >
-          {/* Animated Background Element */}
-          <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-700" />
-
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8 relative z-10">
             {/* Avatar */}
             <div className="relative">
               <div className={cn(
-                "w-32 h-32 md:w-40 md:h-40 rounded-2xl border-2 bg-black overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.1)]",
-                rank.border
+                "w-32 h-32 md:w-40 md:h-40 rounded-2xl border-2 border-black bg-black overflow-hidden",
               )}>
                 <img
                   src={userAvatar}
@@ -1738,8 +1731,7 @@ export default function UserPortal() {
                 />
               </div>
               <div className={cn(
-                "absolute -bottom-2 -right-2 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-black rounded-md border border-black/10 shadow-[0_4px_8px_rgba(0,0,0,0.15)]",
-                rank.bg.replace('bg-', 'bg-')
+                "absolute -bottom-2 -right-2 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-black bg-white rounded-md border-2 border-black",
               )}>
                 {rank.title}
               </div>
@@ -1773,11 +1765,11 @@ export default function UserPortal() {
               animate: { opacity: 1, y: 0 }
             }}
             whileHover={{ scale: 1.01 }}
-            className="group bg-card border-2 border-muted-foreground/20 hover:border-primary/30 rounded-xl transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] hover:shadow-primary/10 overflow-hidden"
+            className="group bg-white border-2 border-black rounded-2xl transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden"
           >
-            <CardHeader className="border-b border-muted-foreground/20 group-hover:border-primary/30 transition-colors p-3 md:p-6 bg-white">
+            <CardHeader className="border-b-2 border-black p-3 md:p-6 bg-white">
               <CardTitle className="flex items-center justify-between">
-                <TechnicalLabel text="WEEKLY EARNINGS" className="text-foreground group-hover:text-primary/90 transition-colors text-xs md:text-sm" />
+                <TechnicalLabel text="WEEKLY EARNINGS" className="text-foreground group-hover:text-primary transition-colors text-xs md:text-sm" />
                 <div className="p-1 md:p-2 bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-all duration-300">
                   <BarChart3 className="w-3 h-3 md:w-4 md:h-4 text-primary" />
                 </div>
@@ -1847,11 +1839,11 @@ export default function UserPortal() {
               animate: { opacity: 1, y: 0 }
             }}
             whileHover={{ scale: 1.01 }}
-            className="group bg-card border-2 border-muted-foreground/20 hover:border-primary/30 rounded-xl transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] hover:shadow-primary/10 overflow-hidden"
+            className="group bg-white border-2 border-black rounded-2xl transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden"
           >
-            <CardHeader className="border-b border-muted-foreground/20 group-hover:border-primary/30 transition-colors p-3 md:p-6 bg-white">
+            <CardHeader className="border-b-2 border-black p-3 md:p-6 bg-white">
               <CardTitle className="flex items-center justify-between">
-                <TechnicalLabel text="EARNINGS BREAKDOWN" className="text-foreground group-hover:text-primary/90 transition-colors text-xs md:text-sm" />
+                <TechnicalLabel text="EARNINGS BREAKDOWN" className="text-foreground group-hover:text-primary transition-colors text-xs md:text-sm" />
                 <div className="p-1 md:p-2 bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-all duration-300">
                   <PieChart className="w-3 h-3 md:w-4 md:h-4 text-primary" />
                 </div>
@@ -1914,11 +1906,11 @@ export default function UserPortal() {
                 </div>
 
                 {/* Legend */}
-                <div className="w-full md:w-auto grid grid-cols-2 md:flex md:flex-col gap-1.5 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 bg-background/60 border border-muted-foreground/20 rounded-lg hover:bg-primary/5 transition-colors">
+                <div className="w-full md:w-auto grid grid-cols-2 md:flex md:flex-col gap-1.5 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 bg-background/60 border border-black/15 rounded-lg hover:bg-primary/5 transition-colors">
                   {earningTypesData.map((entry, index) => (
                     <div key={`legend-${index}`} className="flex items-center gap-1.5 md:gap-2">
                       <div
-                        className="w-3 h-3 md:w-4 md:h-4 rounded-sm border border-muted-foreground/30 flex-shrink-0"
+                        className="w-3 h-3 md:w-4 md:h-4 rounded-sm border border-black/20 flex-shrink-0"
                         style={{ backgroundColor: entry.color }}
                       />
                       <div className="text-xs font-black text-foreground whitespace-nowrap">
