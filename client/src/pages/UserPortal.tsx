@@ -1719,16 +1719,16 @@ export default function UserPortal() {
             animate: { opacity: 1, y: 0 }
           }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="wireframe-border p-6 md:p-12 mb-12 relative overflow-hidden group shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] transition-shadow duration-500"
+          className="bg-card border-2 border-muted-foreground/20 hover:border-primary/30 rounded-2xl p-6 md:p-12 mb-12 relative overflow-hidden group shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.1)] transition-all duration-500"
         >
           {/* Animated Background Element */}
           <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-700" />
 
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8 relative z-10">
-            {/* Avatar with Premium Comic Border */}
+            {/* Avatar */}
             <div className="relative">
               <div className={cn(
-                "w-32 h-32 md:w-40 md:h-40 border-4 bg-black overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.1)]",
+                "w-32 h-32 md:w-40 md:h-40 rounded-2xl border-2 bg-black overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.1)]",
                 rank.border
               )}>
                 <img
@@ -1738,7 +1738,7 @@ export default function UserPortal() {
                 />
               </div>
               <div className={cn(
-                "absolute -bottom-2 -right-2 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-black border-2 border-black shadow-[0_4px_8px_rgba(0,0,0,0.15)]",
+                "absolute -bottom-2 -right-2 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-black rounded-md border border-black/10 shadow-[0_4px_8px_rgba(0,0,0,0.15)]",
                 rank.bg.replace('bg-', 'bg-')
               )}>
                 {rank.title}
@@ -1749,14 +1749,11 @@ export default function UserPortal() {
             <div className="flex-1 text-center md:text-left pt-2">
 
 
-              <h1 className="text-4xl md:text-6xl font-black text-black mb-2 tracking-tighter uppercase leading-none">
+              <h1 className="text-4xl md:text-6xl font-black text-foreground mb-2 tracking-tighter uppercase leading-none">
                 {displayUser?.name || `${displayUser?.firstName} ${displayUser?.lastName}`}
               </h1>
 
             </div>
-
-            {/* Utility Barcode - Hidden on mobile */}
-
           </div>
         </motion.div>
 
@@ -1776,7 +1773,7 @@ export default function UserPortal() {
               animate: { opacity: 1, y: 0 }
             }}
             whileHover={{ scale: 1.01 }}
-            className="group bg-card border-2 border-muted-foreground/20 hover:border-primary/30 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] hover:shadow-primary/10 overflow-hidden"
+            className="group bg-card border-2 border-muted-foreground/20 hover:border-primary/30 rounded-xl transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] hover:shadow-primary/10 overflow-hidden"
           >
             <CardHeader className="border-b border-muted-foreground/20 group-hover:border-primary/30 transition-colors p-3 md:p-6 bg-white">
               <CardTitle className="flex items-center justify-between">
@@ -1850,12 +1847,12 @@ export default function UserPortal() {
               animate: { opacity: 1, y: 0 }
             }}
             whileHover={{ scale: 1.01 }}
-            className="group bg-card border-2 border-black hover:border-primary transition-all duration-300 shadow-[8px_8px_0px_#000] hover:shadow-[12px_12px_0px_#000] hover:shadow-primary/10 overflow-hidden"
+            className="group bg-card border-2 border-muted-foreground/20 hover:border-primary/30 rounded-xl transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] hover:shadow-primary/10 overflow-hidden"
           >
-            <CardHeader className="border-b-2 border-black group-hover:border-primary transition-colors p-3 md:p-6 bg-white">
+            <CardHeader className="border-b border-muted-foreground/20 group-hover:border-primary/30 transition-colors p-3 md:p-6 bg-white">
               <CardTitle className="flex items-center justify-between">
                 <TechnicalLabel text="EARNINGS BREAKDOWN" className="text-foreground group-hover:text-primary/90 transition-colors text-xs md:text-sm" />
-                <div className="p-1 md:p-2 bg-primary/10 border-2 border-black group-hover:bg-primary/20 transition-all duration-300">
+                <div className="p-1 md:p-2 bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-all duration-300">
                   <PieChart className="w-3 h-3 md:w-4 md:h-4 text-primary" />
                 </div>
               </CardTitle>
@@ -1873,33 +1870,33 @@ export default function UserPortal() {
                         outerRadius={isMobile ? 60 : 90}
                         innerRadius={0}
                         dataKey="value"
-                        stroke="#000000"
-                        strokeWidth={3}
+                        stroke="hsl(var(--card))"
+                        strokeWidth={2}
                         label={false}
                       >
                         {earningTypesData.map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
                             fill={entry.color}
-                            stroke="#000000"
-                            strokeWidth={3}
+                            stroke="hsl(var(--card))"
+                            strokeWidth={2}
                           />
                         ))}
                       </Pie>
                       <Tooltip
                         formatter={(value: number, name: string) => [`${value}%`, name]}
                         contentStyle={{
-                          backgroundColor: '#FFFFFF',
-                          border: '3px solid #000000',
-                          borderRadius: '0px',
+                          backgroundColor: 'hsl(var(--background))',
+                          border: '2px solid hsl(var(--primary))',
+                          borderRadius: '8px',
                           padding: isMobile ? '8px' : '12px',
                           fontFamily: 'var(--font-sans)',
                           fontSize: isMobile ? '10px' : '13px',
                           fontWeight: '900',
-                          boxShadow: '4px 4px 0px #000000'
+                          boxShadow: '0 4px 12px hsl(var(--primary)/0.25)'
                         }}
                         labelStyle={{
-                          color: '#000000',
+                          color: 'hsl(var(--foreground))',
                           fontWeight: '900',
                           marginBottom: '4px',
                           textTransform: 'uppercase',
@@ -1917,11 +1914,11 @@ export default function UserPortal() {
                 </div>
 
                 {/* Legend */}
-                <div className="w-full md:w-auto grid grid-cols-2 md:flex md:flex-col gap-1.5 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 bg-background border border-black md:border-2 hover:bg-primary/5 transition-colors">
+                <div className="w-full md:w-auto grid grid-cols-2 md:flex md:flex-col gap-1.5 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 bg-background/60 border border-muted-foreground/20 rounded-lg hover:bg-primary/5 transition-colors">
                   {earningTypesData.map((entry, index) => (
                     <div key={`legend-${index}`} className="flex items-center gap-1.5 md:gap-2">
                       <div
-                        className="w-3 h-3 md:w-4 md:h-4 border border-black md:border-2 flex-shrink-0"
+                        className="w-3 h-3 md:w-4 md:h-4 rounded-sm border border-muted-foreground/30 flex-shrink-0"
                         style={{ backgroundColor: entry.color }}
                       />
                       <div className="text-xs font-black text-foreground whitespace-nowrap">
