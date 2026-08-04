@@ -356,6 +356,7 @@ export interface IStorage {
   createEarning(earning: InsertEarning): Promise<Earning>;
   getUserEarnings(userId: string, limit?: number): Promise<Earning[]>;
   getUserTotalEarnings(userId: string): Promise<string>;
+  getEarningsBreakdown(userId: string): Promise<{ engineA: string; engineB: string; guildPool: string }>;
 
   // Ad views methods
   createAdView(adView: InsertAdView): Promise<AdView & { pointsBreakdown?: EarnEventBreakdown }>;
@@ -1159,6 +1160,30 @@ export class DatabaseStorage implements IStorage {
       .where(eq(earnings.userId, userId));
 
     return result?.total || "0.00";
+  }
+
+  // Real (non-synthetic) earnings breakdown by engine, sourced directly from
+  // the immutable user_transactions ledger — used by the User Portal's
+  // "Earnings Breakdown" pie chart so it never shows fabricated splits.
+  // Engine A / Engine B: sum the user's actual PKR share (realPkrValue).
+  // Engine C (Guild Pool): realPkrValue is always 0 for these rows (no
+  // immediate payout — see recordEarnEvent), so the real contribution lives
+  // in guildPoolPkr instead.
+  async getEarningsBreakdown(userId: string): Promise<{ engineA: string; engineB: string; guildPool: string }> {
+    const [rows] = await db
+      .select({
+        engineA: sql<string>`COALESCE(SUM(${userTransactions.realPkrValue}) FILTER (WHERE ${userTransactions.engineType} = 'Engine_A'), 0)`,
+        engineB: sql<string>`COALESCE(SUM(${userTransactions.realPkrValue}) FILTER (WHERE ${userTransactions.engineType} = 'Engine_B'), 0)`,
+        guildPool: sql<string>`COALESCE(SUM(${userTransactions.guildPoolPkr}) FILTER (WHERE ${userTransactions.engineType} = 'Engine_C'), 0)`,
+      })
+      .from(userTransactions)
+      .where(eq(userTransactions.userId, userId));
+
+    return {
+      engineA: new Decimal(rows?.engineA ?? 0).toFixed(4),
+      engineB: new Decimal(rows?.engineB ?? 0).toFixed(4),
+      guildPool: new Decimal(rows?.guildPool ?? 0).toFixed(4),
+    };
   }
 
   // ── Guild Vault & Points Ledger: shared earn-event pipeline ────────────────

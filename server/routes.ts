@@ -2539,6 +2539,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Real (non-synthetic) earnings breakdown by engine — powers the User
+  // Portal's "Earnings Breakdown" pie chart. Sourced from the immutable
+  // user_transactions ledger, never fabricated/estimated splits.
+  app.get("/api/earnings/breakdown", requireSessionAuth, async (req, res) => {
+    try {
+      const thorxPid = getThorxPrincipalId(req) as string;
+      const breakdown = await storage.getEarningsBreakdown(thorxPid);
+      res.json(breakdown);
+    } catch (error) {
+      logger.error({ err: error }, "Get earnings breakdown error:");
+      res.status(500).json({
+        message: "Failed to fetch earnings breakdown",
+        error: "INTERNAL_ERROR"
+      });
+    }
+  });
+
   // Get referral leaderboard
   app.get("/api/referrals/leaderboard", requireSessionAuth, async (req, res) => {
     try {

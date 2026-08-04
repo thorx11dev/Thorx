@@ -24,6 +24,7 @@ export const QUERY_KEYS = {
   // NOTE: UserPortal uses short-form keys with explicit queryFn.
   earnings:              ["earnings"]                          as const,
   earningsHistory:       ["earnings", "history", "week"]       as const,
+  earningsBreakdown:     ["earnings", "breakdown"]             as const,
   withdrawals:           ["/api/withdrawals"]                  as const,
   withdrawalPreview:     (points: number) => ["/api/withdrawals/preview", points] as const,
   withdrawalTimeframe:   ["/api/withdrawals/timeframe-breakdown"] as const,

@@ -631,6 +631,17 @@ export default function UserPortal() {
     enabled: !!user,
   });
 
+  // Real (non-synthetic) engine breakdown for the Earnings Breakdown pie
+  // chart — sourced from the immutable user_transactions ledger server-side.
+  const { data: earningsBreakdownData } = useQuery({
+    queryKey: QUERY_KEYS.earningsBreakdown,
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/earnings/breakdown");
+      return await response.json() as { engineA: string; engineB: string; guildPool: string };
+    },
+    enabled: !!user,
+  });
+
   const { data: commissionsData, isLoading: isLoadingCommissions } = useQuery({
     queryKey: QUERY_KEYS.commissions,
     queryFn: async () => {
@@ -1371,20 +1382,22 @@ export default function UserPortal() {
       { date: 'Sun', earnings: 0, ads: 0, tasks: 0 }
     ];
 
-  // Calculate real-time earnings breakdown from actual data
+  // Real earnings breakdown — every slice is a real, ledger-backed PKR amount,
+  // never an estimated or synthetically-split figure (Engine A / Engine B /
+  // Guild Pool come straight from the immutable user_transactions ledger via
+  // /api/earnings/breakdown; Referrals is the same real source used by the
+  // Referral Earnings card elsewhere in this portal).
   const calculateEarningsBreakdown = () => {
-    // Check if we are inside a hook or functional component context
-    // These values are used for the chart, we should ensure they are stable
-    const adViewsEarnings = (todayAdViews?.count || 0) * 2.5;
+    const engineAEarnings = parseFloat(earningsBreakdownData?.engineA || '0');
+    const engineBEarnings = parseFloat(earningsBreakdownData?.engineB || '0');
+    const guildPoolEarnings = parseFloat(earningsBreakdownData?.guildPool || '0');
     const referralEarnings = parseFloat(referralsData?.stats?.totalEarned || '0');
-    const totalEarnings = parseFloat(displayUser?.totalEarnings || '0');
 
-    // Calculate remaining from other sources — use Decimal to avoid float drift
-    const otherEarnings = new Decimal(totalEarnings).minus(adViewsEarnings).minus(referralEarnings).toNumber();
-    const guildBonusEarnings = Math.max(0, otherEarnings * 0.7);
-    const bonusesEarnings = Math.max(0, otherEarnings * 0.3);
-
-    const total = adViewsEarnings + referralEarnings + guildBonusEarnings + bonusesEarnings;
+    const total = new Decimal(engineAEarnings)
+      .plus(engineBEarnings)
+      .plus(guildPoolEarnings)
+      .plus(referralEarnings)
+      .toNumber();
 
     // Theme-consistent color palette: Primary orange, black, beige accents, white
     const chartColors = {
@@ -1394,41 +1407,28 @@ export default function UserPortal() {
       quaternary: '#FFFFFF'    // White (with black border for visibility)
     };
 
-    // Calculate percentages
-    if (total === 0) {
-      return [
-        { name: 'Ad Views', value: 65, color: chartColors.primary },
-        { name: 'Referrals', value: 25, color: chartColors.secondary },
-        { name: 'Guild Bonus', value: 7, color: chartColors.tertiary },
-        { name: 'Bonuses', value: 3, color: chartColors.quaternary }
-      ];
+    const categories = [
+      { name: 'Engine A Tasks', amount: engineAEarnings, color: chartColors.primary },
+      { name: 'Referrals', amount: referralEarnings, color: chartColors.secondary },
+      { name: 'Guild Pool', amount: guildPoolEarnings, color: chartColors.tertiary },
+      { name: 'Engine B Tasks', amount: engineBEarnings, color: chartColors.quaternary },
+    ];
+
+    // No real earnings yet — show an honest empty state instead of a
+    // fabricated distribution.
+    if (total <= 0) {
+      return categories.map(c => ({ name: c.name, value: 0, color: c.color }));
     }
 
-    return [
-      {
-        name: 'Ad Views',
-        value: Math.round((adViewsEarnings / total) * 100),
-        color: chartColors.primary
-      },
-      {
-        name: 'Referrals',
-        value: Math.round((referralEarnings / total) * 100),
-        color: chartColors.secondary
-      },
-      {
-        name: 'Guild Bonus',
-        value: Math.round((guildBonusEarnings / total) * 100),
-        color: chartColors.tertiary
-      },
-      {
-        name: 'Bonuses',
-        value: Math.round((bonusesEarnings / total) * 100),
-        color: chartColors.quaternary
-      }
-    ];
+    return categories.map(c => ({
+      name: c.name,
+      value: Math.round((c.amount / total) * 100),
+      color: c.color,
+    }));
   };
 
   const earningTypesData = calculateEarningsBreakdown();
+  const hasEarningsBreakdownData = earningTypesData.some(entry => entry.value > 0);
 
   // PKR earnings target — fetched from system_config (DAILY_EARNINGS_GOAL_PKR),
   // admin-configurable. Falls back to 50 while the config loads.
@@ -1851,51 +1851,53 @@ export default function UserPortal() {
                   <ResponsiveContainer width="100%" height={isMobile ? 180 : 280} minHeight={isMobile ? 160 : 250}>
                     <RechartsPieChart margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                       <Pie
-                        data={earningTypesData}
+                        data={hasEarningsBreakdownData ? earningTypesData : [{ name: 'No earnings yet', value: 1, color: '#E8DCC4' }]}
                         cx="50%"
                         cy="50%"
                         outerRadius={isMobile ? 60 : 90}
                         innerRadius={0}
                         dataKey="value"
-                        stroke="hsl(var(--card))"
+                        stroke="var(--card)"
                         strokeWidth={2}
                         label={false}
                       >
-                        {earningTypesData.map((entry, index) => (
+                        {(hasEarningsBreakdownData ? earningTypesData : [{ name: 'No earnings yet', value: 1, color: '#E8DCC4' }]).map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
                             fill={entry.color}
-                            stroke="hsl(var(--card))"
+                            stroke="var(--card)"
                             strokeWidth={2}
                           />
                         ))}
                       </Pie>
-                      <Tooltip
-                        formatter={(value: number, _: string, props: any) => [`${value}%`, props?.payload?.name || _]}
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--background))',
-                          border: '2px solid hsl(var(--primary))',
-                          borderRadius: '8px',
-                          padding: isMobile ? '8px' : '12px',
-                          fontFamily: 'var(--font-sans)',
-                          fontSize: isMobile ? '10px' : '13px',
-                          fontWeight: '900',
-                          boxShadow: '0 4px 12px hsl(var(--primary)/0.25)'
-                        }}
-                        labelStyle={{
-                          color: 'hsl(var(--foreground))',
-                          fontWeight: '900',
-                          marginBottom: '4px',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px',
-                          fontSize: isMobile ? '9px' : '11px'
-                        }}
-                        itemStyle={{
-                          color: 'hsl(var(--primary))',
-                          fontWeight: '900',
-                          fontSize: isMobile ? '9px' : '12px'
-                        }}
-                      />
+                      {hasEarningsBreakdownData && (
+                        <Tooltip
+                          formatter={(value: number, _: string, props: any) => [`${value}%`, props?.payload?.name || _]}
+                          contentStyle={{
+                            backgroundColor: 'var(--card)',
+                            border: '2px solid var(--primary)',
+                            borderRadius: '8px',
+                            padding: isMobile ? '8px' : '12px',
+                            fontFamily: 'var(--font-sans)',
+                            fontSize: isMobile ? '10px' : '13px',
+                            fontWeight: '900',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
+                          }}
+                          labelStyle={{
+                            color: 'var(--foreground)',
+                            fontWeight: '900',
+                            marginBottom: '4px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                            fontSize: isMobile ? '9px' : '11px'
+                          }}
+                          itemStyle={{
+                            color: 'var(--primary)',
+                            fontWeight: '900',
+                            fontSize: isMobile ? '9px' : '12px'
+                          }}
+                        />
+                      )}
                     </RechartsPieChart>
                   </ResponsiveContainer>
                 </div>
