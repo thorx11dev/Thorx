@@ -547,13 +547,7 @@ export default function UserPortal() {
   const resetZoom = () => setReferralZoom(1);
 
   // Current section state
-  const [currentSection, setCurrentSection] = useState(() => {
-    // TEMP-VISUAL-QA: jump straight to Help section for screenshot verification, reverted before task completion.
-    if (import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('__vqa') === '1') {
-      return 5;
-    }
-    return 0;
-  });
+  const [currentSection, setCurrentSection] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Work section states
@@ -899,13 +893,7 @@ export default function UserPortal() {
   });
 
   // Chat and Help Section state
-  const [activeHelpTab, setActiveHelpTab] = useState(() => {
-    // TEMP-VISUAL-QA: allow deep-linking to a specific Help tab for screenshot verification, reverted before task completion.
-    if (import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('__vqa') === '1') {
-      return new URLSearchParams(window.location.search).get('tab') || 'guide';
-    }
-    return 'guide';
-  });
+  const [activeHelpTab, setActiveHelpTab] = useState('guide');
   const [chatMessages, setChatMessages] = useState([
     {
       id: 1,

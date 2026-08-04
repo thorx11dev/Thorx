@@ -41,17 +41,6 @@ export function useAuth() {
   const { data: user, isLoading } = useQuery<User | null>({
     queryKey: QUERY_KEYS.sessionAuth,
     queryFn: async () => {
-      // TEMP-VISUAL-QA: dev-only mock session for screenshot verification, reverted before task completion.
-      if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('__vqa') === '1') {
-        return {
-          id: 'vqa-preview-user', firstName: 'Preview', lastName: 'User', name: 'Preview User',
-          avatar: 'PU', email: 'preview@example.com', identity: 'THORX0001', phone: '',
-          referralCode: 'PREVIEW01', totalEarnings: '0', availableBalance: '0', isActive: true,
-          createdAt: new Date().toISOString(), role: 'user', rank: 'E-Rank', permissions: [],
-          referredBy: null, userRankTier: 'E', guildId: null, performanceScore: 0,
-          streakDays: 0, txPointsBalance: 0, lastActiveAt: null,
-        } as User;
-      }
       try {
         const response = await apiRequest("GET", "/api/profile");
         if (!response.ok) return null;
