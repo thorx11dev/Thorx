@@ -35,6 +35,23 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
+  // Serve public assets (avatars, logos, payment icons) with long-lived cache
+  // headers before Vite's dev middleware. Vite's own middleware sends
+  // no-cache for everything (needed for HMR), which meant every avatar/logo
+  // was re-fetched from the network on every single render. These files are
+  // static images that rarely change, so let the browser cache them locally
+  // and skip the network entirely on repeat loads.
+  const publicDir = path.resolve(import.meta.dirname, "..", "client", "public");
+  app.use(
+    express.static(publicDir, {
+      maxAge: "7d",
+      etag: true,
+      setHeaders: (res) => {
+        res.setHeader("Cache-Control", "public, max-age=604800, stale-while-revalidate=86400");
+      },
+    }),
+  );
+
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
@@ -71,7 +88,22 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  app.use(
+    express.static(distPath, {
+      maxAge: "7d",
+      etag: true,
+      setHeaders: (res, filePath) => {
+        // Vite build output filenames are content-hashed (e.g. index-abc123.js),
+        // so they can safely be cached forever — a content change always means
+        // a new filename, never a stale hit.
+        if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        } else {
+          res.setHeader("Cache-Control", "public, max-age=604800, stale-while-revalidate=86400");
+        }
+      },
+    }),
+  );
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
