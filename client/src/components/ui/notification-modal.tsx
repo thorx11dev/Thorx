@@ -149,9 +149,6 @@ export function NotificationModal({
                         <div className="flex items-center justify-between px-6 py-5 border-b-2 border-black bg-white flex-shrink-0">
                             <div className="flex items-center gap-3">
                                 <div className="w-2 h-2 rounded-full bg-primary" />
-                                <span className="text-[10px] font-black tracking-[0.25em] uppercase text-black/50">
-                                    THORX ACTIVITY LOG
-                                </span>
                             </div>
                             <button
                                 onClick={onClose}
@@ -175,9 +172,6 @@ export function NotificationModal({
                                 )}
                             </div>
                             <div className="h-[3px] w-12 bg-primary mt-3" />
-                            <p className="text-[10px] font-mono text-black/30 mt-3 tracking-[0.25em] uppercase">
-                                Revenue stream &amp; account events
-                            </p>
                         </div>
 
                         {/* ── Content ── */}
@@ -393,9 +387,6 @@ function EmptyState() {
             <h3 className="text-lg font-black text-black uppercase tracking-tight">
                 No Activity Yet
             </h3>
-            <p className="text-[11px] font-mono text-black/35 mt-2 tracking-[0.2em] uppercase">
-                Revenue events will appear here
-            </p>
         </div>
     );
 }
