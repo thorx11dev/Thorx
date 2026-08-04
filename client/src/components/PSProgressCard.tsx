@@ -26,7 +26,6 @@ interface PSProgressCardProps {
 }
 
 export function PSProgressCard({ performanceScore, userRankTier, streakDays = 0, className }: PSProgressCardProps) {
-  const [expanded, setExpanded] = useState(false);
   const tier = PS_THRESHOLDS[userRankTier] ?? PS_THRESHOLDS["E-Rank"];
 
   let pct = 0;
