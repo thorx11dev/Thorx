@@ -153,9 +153,9 @@ export function NotificationModal({
                             <button
                                 onClick={onClose}
                                 aria-label="Close notifications"
-                                className="w-9 h-9 flex items-center justify-center border-2 border-black bg-transparent hover:bg-black hover:text-white text-black transition-all duration-200 rounded-none"
+                                className="w-9 h-9 flex items-center justify-center bg-black/5 hover:bg-black hover:text-white text-black/50 transition-all duration-200 rounded-full"
                             >
-                                <X className="w-4 h-4" strokeWidth={2.5} />
+                                <X className="w-4 h-4" strokeWidth={2} />
                             </button>
                         </div>
 

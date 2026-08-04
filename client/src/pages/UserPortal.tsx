@@ -1479,7 +1479,7 @@ export default function UserPortal() {
               onClick={() => setShowNotificationModal(true)}
               variant="outline"
               size="sm"
-              className="relative border-2 border-black rounded-none text-black bg-white hover:bg-primary hover:text-white hover:border-primary transition-all duration-200"
+              className="relative border border-black/20 rounded-full text-black/50 bg-white hover:bg-black hover:text-white hover:border-black transition-all duration-200 w-9 h-9 p-0 flex items-center justify-center"
               aria-label="Open notifications"
             >
               <Bell className="w-4 h-4" strokeWidth={2} />

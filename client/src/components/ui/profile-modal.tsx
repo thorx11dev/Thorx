@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, User, Edit2, Camera, Lock, Star, Wallet } from "lucide-react";
+import { X, User, Edit2, Camera, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import { useLocation } from "wouter";
 import { ElasticStack } from "@/components/ui/elastic-stack";
-import { PSProgressCard } from "@/components/PSProgressCard";
 import {
   getRankDef,
   resolveAvatarUrl,
@@ -183,10 +182,6 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
       ? uploadedPhotoUrl
       : resolveAvatarUrl(avatar, user?.rank);
 
-  // THORX v3: rank is driven entirely by Performance Score (PS) — see
-  // server/modules/ps-engine.ts. Progress bar rendering is delegated to
-  // PSProgressCard (spec F.5), which owns the canonical PS_THRESHOLDS.
-  const performanceScore = Number(user?.performanceScore || 0);
   const isAdmin = user?.role === "admin" || user?.role === "founder" || user?.role === "team";
 
   const getRankDetails = (rankTier?: string) => {
@@ -206,7 +201,7 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
   return (
     <div
       className={cn(
-        "fixed inset-0 z-profile bg-[#F2EDE4] text-black transition-opacity duration-300 ease-out overflow-y-auto",
+        "fixed inset-0 z-profile bg-black text-white transition-opacity duration-300 ease-out overflow-y-auto",
         isVisible ? "opacity-100" : "opacity-0"
       )}
       role="dialog"
@@ -226,9 +221,9 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
       <button
         onClick={onClose}
         aria-label="Close profile settings"
-        className="fixed top-4 right-4 md:top-6 md:right-6 z-50 w-10 h-10 md:w-11 md:h-11 flex items-center justify-center border-2 border-black bg-white text-black hover:bg-black hover:text-white transition-all duration-200"
+        className="fixed top-4 right-4 md:top-6 md:right-6 z-50 w-10 h-10 md:w-11 md:h-11 flex items-center justify-center bg-white/10 hover:bg-white hover:text-black text-white/70 transition-all duration-200 rounded-full"
       >
-        <X className="w-5 h-5" strokeWidth={2.5} />
+        <X className="w-5 h-5" strokeWidth={2} />
       </button>
 
       {/* Page layout */}
@@ -239,7 +234,7 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
           "mb-8 md:mb-10 transition-all duration-500 delay-100",
           isVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
         )}>
-          <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-black uppercase leading-none">Profile</h1>
+          <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white uppercase leading-none">Profile</h1>
           <div className="h-[3px] w-14 bg-primary mt-4" />
         </div>
 
@@ -315,39 +310,6 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
                 </div>
               </div>
 
-              {/* Rank progress */}
-              <div className="space-y-4 pt-6 border-t border-black/10">
-                {!isAdmin && (
-                  <div className="flex items-center justify-between text-sm uppercase">
-                    <span className="text-black/40 text-xs font-bold">Total Earnings</span>
-                    <span className="font-mono font-bold text-sm text-black">TX-Points: {Number(user?.totalEarnings || 0).toFixed(2)}</span>
-                  </div>
-                )}
-                {!isAdmin && (
-                  <PSProgressCard
-                    performanceScore={performanceScore}
-                    userRankTier={user?.userRankTier || "E-Rank"}
-                    streakDays={Number(user?.streakDays || 0)}
-                    className="!bg-transparent !border-none !shadow-none !p-0"
-                  />
-                )}
-                {!isAdmin && (
-                  <div className="flex items-center justify-between pt-4 border-t border-black/10">
-                    <span className="flex items-center gap-1.5 text-black/40 text-xs font-bold uppercase">
-                      <Wallet className="w-3.5 h-3.5" /> Referral Wallet
-                    </span>
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono font-bold text-sm text-black">Cash Balance</span>
-                      <button
-                        onClick={() => { onClose(); navigate("/referrals"); }}
-                        className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
-                      >
-                        Withdraw →
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
 
@@ -356,7 +318,7 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
 
             {/* Username */}
             <div className="space-y-3">
-              <span className="text-[10px] font-black tracking-widest text-black/40 uppercase">Username</span>
+              <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">Username</span>
               <div className="group relative">
                 <Input
                   value={name}
@@ -370,20 +332,12 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
               </div>
             </div>
 
-            {/* Rank-locked avatar selector */}
+            {/* Avatar selector */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black tracking-widest text-black/40 uppercase">
-                  {rankDef.label} Getups
+                <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">
+                  Avatar Style
                 </span>
-                <span className={cn("text-[9px] font-black text-white px-2 py-0.5 uppercase tracking-widest", rankDef.bgColor)}>
-                  {rankAvatars.length} styles
-                </span>
-                {!isAdmin && (
-                  <span className="flex items-center gap-1 text-[9px] text-black/35 uppercase tracking-widest ml-auto">
-                    <Lock className="w-3 h-3" /> Rank locked
-                  </span>
-                )}
               </div>
               <div className="bg-white border-2 border-black/10">
                 <ElasticStack
@@ -409,7 +363,7 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
               <Button
                 variant="ghost"
                 onClick={onClose}
-                className="h-12 md:h-14 px-8 text-black/50 hover:text-black hover:bg-black/5 font-black uppercase tracking-tighter rounded-none border-2 border-black/15 transition-all sm:flex-none text-sm md:text-base"
+                className="h-12 md:h-14 px-8 text-white/40 hover:text-white hover:bg-white/10 font-black uppercase tracking-tighter rounded-none border-2 border-white/10 transition-all sm:flex-none text-sm md:text-base"
               >
                 CANCEL
               </Button>
