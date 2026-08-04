@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import { useLocation } from "wouter";
 import { ElasticStack } from "@/components/ui/elastic-stack";
+import TechnicalLabel from "@/components/ui/technical-label";
 import {
   getRankDef,
   resolveAvatarUrl,
@@ -234,8 +235,9 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
           "mb-8 md:mb-10 transition-all duration-500 delay-100",
           isVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
         )}>
+          <TechnicalLabel text="Account Settings" className="text-white/35 mb-3" />
           <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white uppercase leading-none">Profile</h1>
-          <div className="h-[3px] w-14 bg-primary mt-4" />
+          <div className="h-[3px] w-14 bg-primary mt-4 rounded-full" />
         </div>
 
         {/* Two-column content */}
@@ -246,10 +248,10 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
 
           {/* ── Left: Preview + Rank Card ── */}
           <div className="lg:col-span-5">
-            <div className="bg-white border-2 border-black p-6 md:p-8 relative overflow-hidden transition-shadow duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] h-full">
+            <div className="rounded-3xl bg-white/[0.04] border border-white/10 p-6 md:p-8 relative overflow-hidden transition-colors duration-300 hover:bg-white/[0.06] h-full shadow-[0_25px_60px_-25px_rgba(0,0,0,0.8)]">
 
               {/* Avatar + name row */}
-              <div className="flex items-center gap-5 mb-8">
+              <div className="flex items-center gap-5">
                 {/* Clickable avatar preview */}
                 <div
                   className="relative group/avatar flex-shrink-0"
@@ -257,11 +259,11 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
                   onTouchEnd={() => setAvatarOverlayVisible(false)}
                   onTouchCancel={() => setAvatarOverlayVisible(false)}
                 >
-                  <div className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center border-2 border-black bg-[#F2EDE4] overflow-hidden">
+                  <div className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center rounded-full border border-white/15 bg-white/[0.03] overflow-hidden">
                     {previewSrc ? (
                       <img src={previewSrc} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
-                      <User className="w-10 h-10 text-black/20" />
+                      <User className="w-10 h-10 text-white/20" />
                     )}
                   </div>
                   <button
@@ -269,7 +271,7 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
                     className={cn(
-                      "absolute inset-0 bg-black/60 transition-opacity duration-200 flex items-center justify-center cursor-pointer touch-manipulation",
+                      "absolute inset-0 rounded-full bg-black/70 transition-opacity duration-200 flex items-center justify-center cursor-pointer touch-manipulation",
                       "group-hover/avatar:opacity-100 group-active/avatar:opacity-100 focus-visible:opacity-100 active:opacity-100",
                       avatarOverlayVisible ? "opacity-100" : "opacity-0"
                     )}
@@ -285,24 +287,24 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
 
                 {/* Name + rank badge */}
                 <div className="min-w-0">
-                  <p className="text-black/40 text-[10px] font-black uppercase tracking-widest mb-1.5">Current Profile</p>
-                  <p className="text-black font-black text-lg md:text-xl uppercase tracking-tighter leading-tight truncate">
+                  <p className="text-white/35 text-[10px] font-black uppercase tracking-widest mb-1.5">Current Profile</p>
+                  <p className="text-white font-black text-lg md:text-xl uppercase tracking-tighter leading-tight truncate">
                     {name || "—"}
                   </p>
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
                     <div className={cn(
-                      "inline-block text-xs font-black text-white px-3 py-0.5 uppercase tracking-widest",
+                      "inline-block text-[11px] font-black text-white px-3 py-1 uppercase tracking-widest rounded-full ring-1 ring-white/10",
                       rankDef.bgColor
                     )}>
                       {rank.title}
                     </div>
                     {guildName && (
-                      <span className="text-[10px] font-black text-black/60 uppercase tracking-widest">
+                      <span className="text-[10px] font-bold text-white/45 uppercase tracking-widest px-2.5 py-1 rounded-full border border-white/10">
                         {user?.guildRole === "captain" ? "Captain of" : "Member of"} {guildName}
                       </span>
                     )}
                     {isGuildMvp && (
-                      <span className="inline-flex items-center gap-1 text-[9px] font-black text-black bg-amber-400 px-2 py-0.5 uppercase tracking-widest">
+                      <span className="inline-flex items-center gap-1 text-[9px] font-black text-black bg-amber-400 px-2.5 py-1 uppercase tracking-widest rounded-full">
                         <Star className="w-2.5 h-2.5" /> MVP
                       </span>
                     )}
@@ -323,11 +325,12 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="bg-white border-2 border-black/20 hover:border-black/40 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none px-4 py-5 text-lg md:text-2xl font-black h-auto text-black transition-all placeholder:text-black/20"
+                  className="bg-white/[0.04] border border-white/10 hover:border-white/20 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0 rounded-xl px-5 py-6 text-lg md:text-2xl font-black h-auto text-white transition-all placeholder:text-white/20"
                   placeholder="CHOOSE A USERNAME..."
+                  maxLength={50}
                 />
-                <div className="absolute top-0 right-4 h-full flex items-center pointer-events-none">
-                  <Edit2 className="w-4 h-4 text-black/20 group-hover:text-primary transition-colors" />
+                <div className="absolute top-0 right-5 h-full flex items-center pointer-events-none">
+                  <Edit2 className="w-4 h-4 text-white/20 group-hover:text-primary transition-colors" />
                 </div>
               </div>
             </div>
@@ -339,7 +342,7 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
                   Avatar Style
                 </span>
               </div>
-              <div className="bg-white border-2 border-black/10">
+              <div className="rounded-3xl bg-white/[0.03] border border-white/10 px-3">
                 <ElasticStack
                   items={rankAvatars.map((av) => ({ id: av.id, image: av.url, name: av.label }))}
                   selectedId={avatar !== "custom" ? avatar : null}
@@ -356,14 +359,14 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
               <Button
                 onClick={handleSave}
                 disabled={updateProfileMutation.isPending || isUploading}
-                className="h-12 md:h-14 px-8 bg-primary text-white hover:bg-primary/90 font-black uppercase tracking-tighter rounded-none border-2 border-black shadow-[4px_4px_0px_#000] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex-1 text-sm md:text-base"
+                className="h-12 md:h-14 px-8 bg-primary text-white hover:bg-primary/90 font-black uppercase tracking-tighter rounded-xl shadow-[0_10px_30px_-8px_rgba(255,107,51,0.55)] active:scale-[0.98] transition-all flex-1 text-sm md:text-base"
               >
                 {updateProfileMutation.isPending ? "SAVING..." : "SAVE CHANGES"}
               </Button>
               <Button
                 variant="ghost"
                 onClick={onClose}
-                className="h-12 md:h-14 px-8 text-white/40 hover:text-white hover:bg-white/10 font-black uppercase tracking-tighter rounded-none border-2 border-white/10 transition-all sm:flex-none text-sm md:text-base"
+                className="h-12 md:h-14 px-8 text-white/40 hover:text-white hover:bg-white/10 font-black uppercase tracking-tighter rounded-xl border border-white/10 transition-all sm:flex-none text-sm md:text-base"
               >
                 CANCEL
               </Button>
