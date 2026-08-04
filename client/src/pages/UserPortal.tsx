@@ -3654,13 +3654,6 @@ export default function UserPortal() {
         >
           <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-700" />
           <div className="relative z-10 w-full text-center md:text-left">
-            <TechnicalLabel
-              text="SUPPORT CENTER"
-              className={cn(
-                "block mb-2 md:mb-3 text-[10px] md:text-xs tracking-[0.3em] transition-colors duration-300",
-                isHelpHeroToggled ? "text-black/40" : "text-white/40"
-              )}
-            />
             <AnimatePresence mode="popLayout" initial={false}>
               {isHelpHeroToggled ? (
                 <motion.h1
@@ -3742,8 +3735,6 @@ export default function UserPortal() {
                       </h3>
 
                       <div className="h-1 w-16 bg-primary mx-auto mb-4" />
-
-                      <TechnicalLabel text="INSTANT ANSWERS TO YOUR THORX QUERIES" className="text-muted-foreground text-xs md:text-sm" />
                     </div>
 
                     {/* FAQ List - one controlled shell, hairline dividers instead of stacked cards */}
@@ -3792,14 +3783,7 @@ export default function UserPortal() {
                   >
                     <div className="rounded-2xl border border-black/15 bg-white overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
                       {/* Chat Header */}
-                      <div className="bg-black text-white px-4 md:px-6 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-2 md:gap-3">
-                          <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-                          </span>
-                          <TechnicalLabel text="THORX SUPPORT — LIVE" className="text-white text-[10px] md:text-xs tracking-widest" />
-                        </div>
+                      <div className="bg-black text-white px-4 md:px-6 py-4 flex items-center justify-end">
                         <Barcode className="h-4 w-12 md:w-16 opacity-40 grayscale invert" />
                       </div>
 
@@ -3883,7 +3867,6 @@ export default function UserPortal() {
                     className="mt-0"
                   >
                     <div className="text-center mb-6">
-                      <TechnicalLabel text="DIRECT TEAM CONTACT" className="mb-2" />
                       <h3 className="text-2xl md:text-3xl font-black tracking-tight text-foreground">SEND US A MESSAGE</h3>
                     </div>
 
