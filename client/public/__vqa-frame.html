@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>VQA Frame</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #999; }
+  #wrap { transform-origin: top center; }
+  iframe { border: 0; display: block; background: #fff; margin: 0 auto; }
+</style>
+</head>
+<body>
+<div id="wrap">
+<iframe id="f" src="about:blank"></iframe>
+</div>
+<script>
+  var params = new URLSearchParams(location.search);
+  var w = params.get('w') || '390';
+  var h = params.get('h') || '2200';
+  var s = params.get('s') || '0.4';
+  var tab = params.get('tab');
+  var f = document.getElementById('f');
+  f.src = '/?__vqa=1' + (tab ? ('&tab=' + tab) : '');
+  f.style.width = w + 'px';
+  f.style.height = h + 'px';
+  document.getElementById('wrap').style.transform = 'scale(' + s + ')';
+</script>
+</body>
+</html>

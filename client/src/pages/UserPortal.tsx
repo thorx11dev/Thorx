@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import EnhancedVideoPlayer from "@/components/ui/enhanced-video-player";
 import IndustrialTabs, { WORK_TABS } from "@/components/ui/industrial-tabs";
 import MetricsCards from "@/components/ui/metrics-cards";
@@ -546,7 +547,13 @@ export default function UserPortal() {
   const resetZoom = () => setReferralZoom(1);
 
   // Current section state
-  const [currentSection, setCurrentSection] = useState(0);
+  const [currentSection, setCurrentSection] = useState(() => {
+    // TEMP-VISUAL-QA: jump straight to Help section for screenshot verification, reverted before task completion.
+    if (import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('__vqa') === '1') {
+      return 5;
+    }
+    return 0;
+  });
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Work section states
@@ -892,7 +899,13 @@ export default function UserPortal() {
   });
 
   // Chat and Help Section state
-  const [activeHelpTab, setActiveHelpTab] = useState("guide");
+  const [activeHelpTab, setActiveHelpTab] = useState(() => {
+    // TEMP-VISUAL-QA: allow deep-linking to a specific Help tab for screenshot verification, reverted before task completion.
+    if (import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('__vqa') === '1') {
+      return new URLSearchParams(window.location.search).get('tab') || 'guide';
+    }
+    return 'guide';
+  });
   const [chatMessages, setChatMessages] = useState([
     {
       id: 1,
@@ -3647,7 +3660,7 @@ export default function UserPortal() {
           }}
           onClick={() => handleHeroToggle(setIsHelpHeroToggled)}
           className={cn(
-            "wireframe-border rounded-2xl p-6 md:p-12 mb-0 relative overflow-hidden group border-[3px] cursor-pointer",
+            "rounded-2xl p-6 md:p-12 mb-0 relative overflow-hidden group border-2 cursor-pointer",
             "h-[160px] md:h-[260px] flex items-center justify-center md:justify-start"
           )}
         >
@@ -3709,7 +3722,7 @@ export default function UserPortal() {
                     <TabsTrigger
                       key={option.id}
                       value={option.id}
-                      className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-black text-[10px] md:text-sm tracking-wide h-full flex items-center justify-center gap-1.5 md:gap-2 transition-all duration-300"
+                      className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white data-[state=inactive]:hover:bg-black/5 font-black text-[10px] md:text-sm tracking-wide h-full flex items-center justify-center gap-1.5 md:gap-2 transition-all duration-300"
                     >
                       <Icon className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" />
                       <span className="md:hidden">{option.shortLabel}</span>
@@ -3847,7 +3860,7 @@ export default function UserPortal() {
                               value={newMessage}
                               onChange={(e) => setNewMessage(e.target.value)}
                               placeholder="Type your message here..."
-                              className="w-full bg-muted/30 border border-black/15 text-black px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold text-sm md:text-base focus:outline-none focus:border-primary placeholder:text-muted-foreground/60 transition-colors"
+                              className="w-full bg-muted/30 border border-black/15 text-black px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold text-sm md:text-base focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/60 transition-colors"
                               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                             />
                           </div>
@@ -3939,12 +3952,12 @@ export default function UserPortal() {
                         >
                           <TechnicalLabel text="PROBLEM / DESCRIPTION" className="mb-3 font-black" />
                           <div className="relative">
-                            <textarea
+                            <Textarea
                               required
                               rows={isMobile ? 5 : 6}
                               value={contactForm.description}
                               onChange={(e) => setContactForm(prev => ({ ...prev, description: e.target.value }))}
-                              className="flex w-full border border-black/15 bg-background px-3 py-3 text-base md:text-lg ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus:border-primary focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical rounded-xl min-h-[140px] line-height-relaxed transition-colors"
+                              className="border border-black/15 text-base md:text-lg py-3 rounded-xl min-h-[140px] resize-vertical focus:border-primary transition-colors"
                               placeholder=""
                             />
                             {!contactForm.description && (
