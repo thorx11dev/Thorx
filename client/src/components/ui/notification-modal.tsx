@@ -125,7 +125,7 @@ export function NotificationModal({
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
                         onClick={onClose}
-                        className="fixed inset-0 z-[998] bg-black/30"
+                        className="fixed inset-0 z-notif bg-black/30"
                     />
 
                     {/* Panel — slides in from right on desktop, bottom on mobile */}
@@ -135,7 +135,7 @@ export function NotificationModal({
                         exit={{ x: "100%" }}
                         transition={{ type: "spring", damping: 30, stiffness: 300 }}
                         className={cn(
-                            "fixed z-[999] bg-[#F2EDE4] flex flex-col",
+                            "fixed z-[810] bg-[#F2EDE4] flex flex-col",
                             // Desktop: right panel
                             "md:inset-y-0 md:right-0 md:w-[480px] md:border-l-2 md:border-black",
                             // Mobile: full screen

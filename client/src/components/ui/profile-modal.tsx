@@ -81,6 +81,15 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
     }
   }, [isOpen, user, rankDef]);
 
+  // Keyboard close
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isOpen, onClose]);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -197,9 +206,12 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
   return (
     <div
       className={cn(
-        "fixed inset-0 z-profile bg-black text-white transition-opacity duration-300 ease-out overflow-y-auto",
+        "fixed inset-0 z-profile bg-[#F2EDE4] text-black transition-opacity duration-300 ease-out overflow-y-auto",
         isVisible ? "opacity-100" : "opacity-0"
       )}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Profile settings"
     >
       {/* Hidden file input */}
       <input
@@ -213,9 +225,10 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
       {/* Close Button */}
       <button
         onClick={onClose}
-        className="fixed top-4 right-4 md:top-6 md:right-6 z-50 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 rounded-full transition-all duration-300 hover:rotate-90"
+        aria-label="Close profile settings"
+        className="fixed top-4 right-4 md:top-6 md:right-6 z-50 w-10 h-10 md:w-11 md:h-11 flex items-center justify-center border-2 border-black bg-white text-black hover:bg-black hover:text-white transition-all duration-200"
       >
-        <X className="w-5 h-5 md:w-6 md:h-6" />
+        <X className="w-5 h-5" strokeWidth={2.5} />
       </button>
 
       {/* Page layout */}
@@ -223,10 +236,11 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
 
         {/* Header */}
         <div className={cn(
-          "mb-8 transition-all duration-500 delay-100",
+          "mb-8 md:mb-10 transition-all duration-500 delay-100",
           isVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
         )}>
-          <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white uppercase">Profile</h1>
+          <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-black uppercase leading-none">Profile</h1>
+          <div className="h-[3px] w-14 bg-primary mt-4" />
         </div>
 
         {/* Two-column content */}
@@ -237,7 +251,7 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
 
           {/* ── Left: Preview + Rank Card ── */}
           <div className="lg:col-span-5">
-            <div className="bg-[#0a0a0a] border border-white/10 p-6 md:p-8 relative overflow-hidden hover:border-white/20 transition-colors duration-300 h-full">
+            <div className="bg-white border-2 border-black p-6 md:p-8 relative overflow-hidden transition-shadow duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] h-full">
 
               {/* Avatar + name row */}
               <div className="flex items-center gap-5 mb-8">
@@ -248,11 +262,11 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
                   onTouchEnd={() => setAvatarOverlayVisible(false)}
                   onTouchCancel={() => setAvatarOverlayVisible(false)}
                 >
-                  <div className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center border-2 border-zinc-500 bg-black overflow-hidden">
+                  <div className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center border-2 border-black bg-[#F2EDE4] overflow-hidden">
                     {previewSrc ? (
                       <img src={previewSrc} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
-                      <User className="w-10 h-10 text-white/20" />
+                      <User className="w-10 h-10 text-black/20" />
                     )}
                   </div>
                   <button
@@ -276,8 +290,8 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
 
                 {/* Name + rank badge */}
                 <div className="min-w-0">
-                  <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mb-1.5">Current Profile</p>
-                  <p className="text-white font-black text-lg md:text-xl uppercase tracking-tighter leading-tight truncate">
+                  <p className="text-black/40 text-[10px] font-black uppercase tracking-widest mb-1.5">Current Profile</p>
+                  <p className="text-black font-black text-lg md:text-xl uppercase tracking-tighter leading-tight truncate">
                     {name || "—"}
                   </p>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -288,7 +302,7 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
                       {rank.title}
                     </div>
                     {guildName && (
-                      <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">
+                      <span className="text-[10px] font-black text-black/60 uppercase tracking-widest">
                         {user?.guildRole === "captain" ? "Captain of" : "Member of"} {guildName}
                       </span>
                     )}
@@ -302,11 +316,11 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
               </div>
 
               {/* Rank progress */}
-              <div className="space-y-4 pt-6 border-t border-white/10">
+              <div className="space-y-4 pt-6 border-t border-black/10">
                 {!isAdmin && (
                   <div className="flex items-center justify-between text-sm uppercase">
-                    <span className="text-white/40 text-xs font-bold">Total Earnings</span>
-                    <span className="font-mono font-bold text-sm">TX-Points: {Number(user?.totalEarnings || 0).toFixed(2)}</span>
+                    <span className="text-black/40 text-xs font-bold">Total Earnings</span>
+                    <span className="font-mono font-bold text-sm text-black">TX-Points: {Number(user?.totalEarnings || 0).toFixed(2)}</span>
                   </div>
                 )}
                 {!isAdmin && (
@@ -314,16 +328,16 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
                     performanceScore={performanceScore}
                     userRankTier={user?.userRankTier || "E-Rank"}
                     streakDays={Number(user?.streakDays || 0)}
-                    className="!bg-transparent !border-white/10 !p-0"
+                    className="!bg-transparent !border-none !shadow-none !p-0"
                   />
                 )}
                 {!isAdmin && (
-                  <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                    <span className="flex items-center gap-1.5 text-white/40 text-xs font-bold uppercase">
+                  <div className="flex items-center justify-between pt-4 border-t border-black/10">
+                    <span className="flex items-center gap-1.5 text-black/40 text-xs font-bold uppercase">
                       <Wallet className="w-3.5 h-3.5" /> Referral Wallet
                     </span>
                     <div className="flex items-center gap-3">
-                      <span className="font-mono font-bold text-sm">Cash Balance</span>
+                      <span className="font-mono font-bold text-sm text-black">Cash Balance</span>
                       <button
                         onClick={() => { onClose(); navigate("/referrals"); }}
                         className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
@@ -342,16 +356,16 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
 
             {/* Username */}
             <div className="space-y-3">
-              <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">Username</span>
+              <span className="text-[10px] font-black tracking-widest text-black/40 uppercase">Username</span>
               <div className="group relative">
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="bg-transparent border-2 border-white/20 hover:border-white/40 focus:border-primary rounded-none px-4 py-5 text-lg md:text-2xl font-black h-auto transition-all placeholder:text-white/10"
+                  className="bg-white border-2 border-black/20 hover:border-black/40 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none px-4 py-5 text-lg md:text-2xl font-black h-auto text-black transition-all placeholder:text-black/20"
                   placeholder="CHOOSE A USERNAME..."
                 />
                 <div className="absolute top-0 right-4 h-full flex items-center pointer-events-none">
-                  <Edit2 className="w-4 h-4 text-white/20 group-hover:text-primary transition-colors" />
+                  <Edit2 className="w-4 h-4 text-black/20 group-hover:text-primary transition-colors" />
                 </div>
               </div>
             </div>
@@ -359,26 +373,28 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
             {/* Rank-locked avatar selector */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">
+                <span className="text-[10px] font-black tracking-widest text-black/40 uppercase">
                   {rankDef.label} Getups
                 </span>
-                <span className={cn("text-[9px] font-black px-2 py-0.5 uppercase tracking-widest", rankDef.bgColor)}>
+                <span className={cn("text-[9px] font-black text-white px-2 py-0.5 uppercase tracking-widest", rankDef.bgColor)}>
                   {rankAvatars.length} styles
                 </span>
                 {!isAdmin && (
-                  <span className="flex items-center gap-1 text-[9px] text-white/30 uppercase tracking-widest ml-auto">
+                  <span className="flex items-center gap-1 text-[9px] text-black/35 uppercase tracking-widest ml-auto">
                     <Lock className="w-3 h-3" /> Rank locked
                   </span>
                 )}
               </div>
-              <ElasticStack
-                items={rankAvatars.map((av) => ({ id: av.id, image: av.url, name: av.label }))}
-                selectedId={avatar !== "custom" ? avatar : null}
-                onItemSelect={(id) => { setAvatar(id as string); setUploadedPhotoUrl(null); }}
-                itemSize={54}
-                overlap={26}
-                pushForce={20}
-              />
+              <div className="bg-white border-2 border-black/10">
+                <ElasticStack
+                  items={rankAvatars.map((av) => ({ id: av.id, image: av.url, name: av.label }))}
+                  selectedId={avatar !== "custom" ? avatar : null}
+                  onItemSelect={(id) => { setAvatar(id as string); setUploadedPhotoUrl(null); }}
+                  itemSize={54}
+                  overlap={26}
+                  pushForce={20}
+                />
+              </div>
             </div>
 
             {/* Action buttons */}
@@ -386,14 +402,14 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
               <Button
                 onClick={handleSave}
                 disabled={updateProfileMutation.isPending || isUploading}
-                className="h-12 md:h-14 px-8 bg-primary text-black hover:bg-primary/90 font-black uppercase tracking-tighter rounded-none border-2 border-black shadow-[4px_4px_0px_#000] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex-1 text-sm md:text-base"
+                className="h-12 md:h-14 px-8 bg-primary text-white hover:bg-primary/90 font-black uppercase tracking-tighter rounded-none border-2 border-black shadow-[4px_4px_0px_#000] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex-1 text-sm md:text-base"
               >
                 {updateProfileMutation.isPending ? "SAVING..." : "SAVE CHANGES"}
               </Button>
               <Button
                 variant="ghost"
                 onClick={onClose}
-                className="h-12 md:h-14 px-8 text-white/40 hover:text-white hover:bg-white/5 font-black uppercase tracking-tighter rounded-none border-2 border-white/10 transition-all sm:flex-none text-sm md:text-base"
+                className="h-12 md:h-14 px-8 text-black/50 hover:text-black hover:bg-black/5 font-black uppercase tracking-tighter rounded-none border-2 border-black/15 transition-all sm:flex-none text-sm md:text-base"
               >
                 CANCEL
               </Button>
