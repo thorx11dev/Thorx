@@ -1,8 +1,9 @@
 import * as React from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { TrendingUp, User, Bell, Wallet, Zap, X, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
+import { TrendingUp, User, Bell, Wallet, Zap, X, ArrowUpRight, ArrowDownRight, GripHorizontal } from "lucide-react";
 import { format, isToday, subDays, isAfter } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Commission {
     id: string;
@@ -51,6 +52,15 @@ export function NotificationModal({
     notifications = [],
     isLoading
 }: NotificationModalProps) {
+    const isMobile = useIsMobile();
+    const isDesktop = !isMobile;
+    const dragControls = useDragControls();
+    const constraintsRef = React.useRef<HTMLDivElement>(null);
+
+    const startDrag = (e: React.PointerEvent) => {
+        if (!isDesktop) return;
+        dragControls.start(e);
+    };
 
     // Prevent scroll when modal is open
     React.useEffect(() => {
@@ -128,29 +138,46 @@ export function NotificationModal({
                         className="fixed inset-0 z-notif bg-black/30"
                     />
 
-                    {/* Panel — slides in from right on desktop, bottom on mobile */}
+                    {/* Full-viewport invisible bounds so the desktop panel can be dragged anywhere on screen without going off it */}
+                    <div ref={constraintsRef} className="fixed inset-0 z-notif pointer-events-none" aria-hidden="true" />
+
+                    {/* Panel — slides in from right on desktop (freely draggable once open), bottom on mobile */}
                     <motion.div
-                        initial={{ x: "100%" }}
-                        animate={{ x: 0 }}
-                        exit={{ x: "100%" }}
+                        drag={isDesktop}
+                        dragListener={false}
+                        dragControls={dragControls}
+                        dragConstraints={constraintsRef}
+                        dragMomentum={false}
+                        dragElastic={0}
+                        initial={{ x: "100%", y: 0 }}
+                        animate={{ x: 0, y: 0 }}
+                        exit={{ x: "100%", y: 0 }}
                         transition={{ type: "spring", damping: 30, stiffness: 300 }}
                         className={cn(
                             "fixed z-[810] bg-[#F2EDE4] flex flex-col",
-                            // Desktop: right panel
-                            "md:inset-y-0 md:right-0 md:w-[480px] md:border-l-2 md:border-black",
-                            // Mobile: full screen
-                            "inset-0 md:inset-auto"
+                            // Desktop: floating, draggable window (no longer pinned to the right edge)
+                            "md:top-6 md:right-6 md:bottom-auto md:left-auto md:w-[420px] md:h-[min(720px,calc(100vh-3rem))] md:rounded-2xl md:border-2 md:border-black md:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] md:overflow-hidden",
+                            // Mobile: full screen (longhand so it doesn't fight the desktop overrides above on specificity)
+                            "top-0 right-0 bottom-0 left-0"
                         )}
                         aria-label="Notifications panel"
                         role="dialog"
                         aria-modal="true"
                     >
-                        {/* ── Top Bar ── */}
-                        <div className="flex items-center justify-between px-6 py-5 border-b-2 border-black bg-white flex-shrink-0">
+                        {/* ── Top Bar (drag handle on desktop) ── */}
+                        <div
+                            onPointerDown={startDrag}
+                            className={cn(
+                                "flex items-center justify-between px-6 py-5 border-b-2 border-black bg-white flex-shrink-0 md:rounded-t-2xl",
+                                isDesktop && "cursor-grab active:cursor-grabbing touch-none select-none"
+                            )}
+                        >
                             <div className="flex items-center gap-3">
                                 <div className="w-2 h-2 rounded-full bg-primary" />
+                                {isDesktop && <GripHorizontal className="w-4 h-4 text-black/25" strokeWidth={2} />}
                             </div>
                             <button
+                                onPointerDown={(e) => e.stopPropagation()}
                                 onClick={onClose}
                                 aria-label="Close notifications"
                                 className="w-9 h-9 flex items-center justify-center bg-black/5 hover:bg-black hover:text-white text-black/50 transition-all duration-200 rounded-full"
@@ -160,7 +187,13 @@ export function NotificationModal({
                         </div>
 
                         {/* ── Header ── */}
-                        <div className="px-6 pt-8 pb-6 flex-shrink-0 border-b border-black/10">
+                        <div
+                            onPointerDown={startDrag}
+                            className={cn(
+                                "px-6 pt-8 pb-6 flex-shrink-0 border-b border-black/10",
+                                isDesktop && "cursor-grab active:cursor-grabbing touch-none select-none"
+                            )}
+                        >
                             <div className="flex items-end gap-4">
                                 <h1 className="text-[40px] md:text-[48px] font-black tracking-tighter text-black uppercase leading-none">
                                     Activity
