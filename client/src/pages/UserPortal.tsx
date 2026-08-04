@@ -1221,10 +1221,12 @@ export default function UserPortal() {
 
       switch (e.key) {
         case "ArrowLeft":
+          if (showProfileModal) return;
           e.preventDefault();
           prevSection();
           break;
         case "ArrowRight":
+          if (showProfileModal) return;
           e.preventDefault();
           nextSection();
           break;
@@ -1237,7 +1239,7 @@ export default function UserPortal() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [nextSection, prevSection, setLocation]);
+  }, [nextSection, prevSection, setLocation, showProfileModal]);
 
   // Ad watching timer
   useEffect(() => {
@@ -1511,27 +1513,29 @@ export default function UserPortal() {
         </div>
       </nav >
 
-      {/* Desktop Navigation Controls - Landing Page Style (Hidden on Mobile for User Portal) */}
-      < div className="arrow-keys-guide hidden md:flex" >
-        <div className="flex items-center gap-3">
-          <button
-            onClick={prevSection}
-            className="arrow-key"
-            disabled={currentSection === 0}
-            data-testid="button-prev-section"
-          >
-            ←
-          </button>
-          <button
-            onClick={nextSection}
-            className="arrow-key"
-            disabled={currentSection === sections.length - 1}
-            data-testid="button-next-section"
-          >
-            →
-          </button>
-        </div>
-      </div >
+      {/* Desktop Navigation Controls - Landing Page Style (Hidden on Mobile for User Portal, and while the profile modal is open) */}
+      {!showProfileModal && (
+        < div className="arrow-keys-guide hidden md:flex" >
+          <div className="flex items-center gap-3">
+            <button
+              onClick={prevSection}
+              className="arrow-key"
+              disabled={currentSection === 0}
+              data-testid="button-prev-section"
+            >
+              ←
+            </button>
+            <button
+              onClick={nextSection}
+              className="arrow-key"
+              disabled={currentSection === sections.length - 1}
+              data-testid="button-next-section"
+            >
+              →
+            </button>
+          </div>
+        </div >
+      )}
 
       {/* Mobile Bottom Tab Bar */}
       {/* Mobile Bottom Tab Bar - REBUILT */}

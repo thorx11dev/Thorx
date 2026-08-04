@@ -7,9 +7,9 @@ import { RankBadge } from "@/components/RankBadge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
-interface PSThreshold { min: number; max: number | null; next: string | null; unlocks: string }
+export interface PSThreshold { min: number; max: number | null; next: string | null; unlocks: string }
 
-const PS_THRESHOLDS: Record<string, PSThreshold> = {
+export const PS_THRESHOLDS: Record<string, PSThreshold> = {
   "E-Rank": { min: 0,     max: 999,   next: "D-Rank", unlocks: "Guild applications (D-Rank)" },
   "D-Rank": { min: 1000,  max: 2999,  next: "C-Rank", unlocks: "Engine B — CPA Offers (C-Rank)" },
   "C-Rank": { min: 3000,  max: 5999,  next: "B-Rank", unlocks: "Guild Creation — become a Captain (B-Rank)" },

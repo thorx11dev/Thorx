@@ -10,6 +10,8 @@ import { QUERY_KEYS } from "@/lib/queryKeys";
 import { useLocation } from "wouter";
 import { ElasticStack } from "@/components/ui/elastic-stack";
 import TechnicalLabel from "@/components/ui/technical-label";
+import { Progress } from "@/components/ui/progress";
+import { PS_THRESHOLDS } from "@/components/PSProgressCard";
 import {
   getRankDef,
   resolveAvatarUrl,
@@ -197,6 +199,18 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
 
   const rank = getRankDetails(user?.userRankTier);
 
+  // Performance Score progress toward the next rank (mirrors PSProgressCard's thresholds).
+  const performanceScore = Number(user?.performanceScore || 0);
+  const psTier = PS_THRESHOLDS[user?.userRankTier as string] ?? PS_THRESHOLDS["E-Rank"];
+  let psPct = 100;
+  let psRemaining: number | null = null;
+  if (psTier.max !== null) {
+    const range = psTier.max - psTier.min + 1;
+    const progress = Math.max(0, performanceScore - psTier.min);
+    psPct = Math.min(100, (progress / range) * 100);
+    psRemaining = psTier.max + 1 - performanceScore;
+  }
+
   if (!isOpen) return null;
 
   return (
@@ -311,6 +325,32 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
                   </div>
                 </div>
               </div>
+
+              {/* Performance Score progress toward next rank */}
+              {!isAdmin && (
+                <div className="mt-6 pt-6 border-t border-white/10 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">
+                      Performance Score
+                    </span>
+                    <span className="text-sm font-black text-white" data-testid="text-performance-score">
+                      {performanceScore.toLocaleString()} PS
+                    </span>
+                  </div>
+                  <Progress value={psPct} className="h-2.5 bg-white/10" />
+                  <div className="flex items-center justify-between text-[11px] text-white/40">
+                    <span>{psTier.min.toLocaleString()} PS</span>
+                    <span>{psTier.max !== null ? `${(psTier.max + 1).toLocaleString()} PS` : "MAX"}</span>
+                  </div>
+                  {psRemaining !== null && psTier.next ? (
+                    <p className="text-xs text-white/60">
+                      <span className="font-bold text-white">{psRemaining.toLocaleString()} more PS</span> to reach {psTier.next}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-white/60">Top rank reached — all features unlocked.</p>
+                  )}
+                </div>
+              )}
 
             </div>
           </div>
