@@ -1479,13 +1479,13 @@ export default function UserPortal() {
               onClick={() => setShowNotificationModal(true)}
               variant="outline"
               size="sm"
-              className="relative border-2 border-black rounded-lg text-black bg-white hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 transform hover:scale-105"
+              className="relative border-2 border-black rounded-none text-black bg-white hover:bg-primary hover:text-white hover:border-primary transition-all duration-200"
+              aria-label="Open notifications"
             >
-              <Bell className="w-5 h-5 stroke-[2px]" />
-              {commissions?.length > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              <Bell className="w-4 h-4" strokeWidth={2} />
+              {(commissions?.length > 0 || notifications?.length > 0) && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-primary text-white text-[9px] font-black border border-white px-1 leading-none">
+                  {(commissions?.length ?? 0) + (notifications?.length ?? 0)}
                 </span>
               )}
             </Button>
