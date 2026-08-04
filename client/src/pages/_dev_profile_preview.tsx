@@ -7,7 +7,7 @@ const mockUser = {
   name: "Ayesha Khan",
   firstName: "Ayesha",
   lastName: "Khan",
-  avatar: "chota-don-2",
+  avatar: "avatar-2",
   profilePicture: null,
   rank: "Chota Don",
   userRankTier: "D-Rank",

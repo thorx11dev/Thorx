@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, User, Edit2, Camera, Star } from "lucide-react";
+import { X, User, Camera, Star, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,15 +8,14 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import { useLocation } from "wouter";
-import { ElasticStack } from "@/components/ui/elastic-stack";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { Progress } from "@/components/ui/progress";
 import { PS_THRESHOLDS } from "@/components/PSProgressCard";
 import {
   getRankDef,
   resolveAvatarUrl,
-  getDefaultAvatarUrl,
-  type RankAvatar,
+  UNIVERSAL_AVATARS,
+  DEFAULT_AVATAR_ID,
 } from "@/lib/rankAvatars";
 
 interface ProfileModalProps {
@@ -28,9 +27,10 @@ interface ProfileModalProps {
 
 export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: ProfileModalProps) {
   const [isVisible, setIsVisible] = useState(false);
-  const initialName = user?.name || (user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : "");
-  const [name, setName] = useState(initialName);
-  const [avatar, setAvatar] = useState(user?.avatar || "default");
+  const [firstName, setFirstName] = useState(user?.firstName || "");
+  const [lastName, setLastName] = useState(user?.lastName || "");
+  const [showValidation, setShowValidation] = useState(false);
+  const [avatar, setAvatar] = useState(user?.avatar || DEFAULT_AVATAR_ID);
   const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(user?.profilePicture || null);
   const [isUploading, setIsUploading] = useState(false);
   const [avatarOverlayVisible, setAvatarOverlayVisible] = useState(false);
@@ -53,27 +53,26 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
   const guildName = guildInfo?.guild?.name ?? null;
   const isGuildMvp = !!guildInfo?.members?.find((m: any) => m.userId === user?.id)?.isMvp;
 
-  // Current rank config
+  // Current rank config (badge color/label only — avatars are rank-independent)
   const rankDef = getRankDef(user?.rank);
 
-  // Only show current rank's avatars in the selector
-  const rankAvatars: RankAvatar[] = rankDef.avatars;
+  // Field-level validation — both names are required to save
+  const trimmedFirstName = firstName.trim();
+  const trimmedLastName = lastName.trim();
+  const isFirstNameValid = trimmedFirstName.length >= 2;
+  const isLastNameValid = trimmedLastName.length >= 2;
 
-  // Ensure avatar is always valid for the current rank
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
-      const currentName = user?.name || (user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : "");
-      setName(currentName);
+      setFirstName(user?.firstName || "");
+      setLastName(user?.lastName || "");
+      setShowValidation(false);
 
-      // If saved avatar belongs to this rank, keep it; otherwise assign rank default
+      // Keep a valid saved avatar (universal set or custom upload); otherwise use the default
       const savedAvatar = user?.avatar;
-      const isInCurrentRank = savedAvatar && rankDef.avatars.some((a) => a.id === savedAvatar);
-      if (!savedAvatar || savedAvatar === "default" || (!isInCurrentRank && savedAvatar !== "custom")) {
-        setAvatar(rankDef.defaultAvatarId);
-      } else {
-        setAvatar(savedAvatar);
-      }
+      const isUniversal = savedAvatar && UNIVERSAL_AVATARS.some((a) => a.id === savedAvatar);
+      setAvatar(savedAvatar === "custom" || isUniversal ? savedAvatar : DEFAULT_AVATAR_ID);
 
       setUploadedPhotoUrl(user?.profilePicture || null);
       document.body.style.overflow = "hidden";
@@ -81,7 +80,7 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
       setIsVisible(false);
       document.body.style.overflow = "auto";
     }
-  }, [isOpen, user, rankDef]);
+  }, [isOpen, user]);
 
   // Keyboard close
   useEffect(() => {
@@ -119,7 +118,7 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
   };
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: { name: string; avatar: string; profilePicture?: string | null }) => {
+    mutationFn: async (data: { firstName: string; lastName: string; avatar: string; profilePicture?: string | null }) => {
       const res = await apiRequest("PATCH", "/api/profile", data);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -132,16 +131,11 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
       await queryClient.cancelQueries({ queryKey: QUERY_KEYS.sessionAuth });
       const previousUser = queryClient.getQueryData(QUERY_KEYS.sessionAuth);
 
-      // Split name the same way the server does so firstName/lastName stay correct
-      const parts = newData.name.trim().split(/\s+/);
-      const firstName = parts[0];
-      const lastName = parts.length > 1 ? parts.slice(1).join(" ") : parts[0];
-
       queryClient.setQueryData(QUERY_KEYS.sessionAuth, (old: any) => ({
         ...old,
-        name: newData.name,
-        firstName,
-        lastName,
+        name: `${newData.firstName} ${newData.lastName}`.trim(),
+        firstName: newData.firstName,
+        lastName: newData.lastName,
         avatar: newData.avatar,
         // Use Object.prototype.hasOwnProperty to distinguish explicit null (clear)
         // from undefined (not provided) — ?? would treat null as "not set"
@@ -170,7 +164,11 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
   });
 
   const handleSave = () => {
-    const payload: any = { name, avatar };
+    if (!isFirstNameValid || !isLastNameValid) {
+      setShowValidation(true);
+      return;
+    }
+    const payload: any = { firstName: trimmedFirstName, lastName: trimmedLastName, avatar };
     if (avatar === "custom" && uploadedPhotoUrl) {
       payload.profilePicture = uploadedPhotoUrl;
     } else if (avatar !== "custom") {
@@ -183,7 +181,7 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
   const previewSrc =
     avatar === "custom" && uploadedPhotoUrl
       ? uploadedPhotoUrl
-      : resolveAvatarUrl(avatar, user?.rank);
+      : resolveAvatarUrl(avatar);
 
   const isAdmin = user?.role === "admin" || user?.role === "founder" || user?.role === "team";
 
@@ -210,6 +208,8 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
     psPct = Math.min(100, (progress / range) * 100);
     psRemaining = psTier.max + 1 - performanceScore;
   }
+
+  const displayName = `${firstName} ${lastName}`.trim();
 
   if (!isOpen) return null;
 
@@ -303,7 +303,7 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
                 <div className="min-w-0">
                   <p className="text-white/35 text-[10px] font-black uppercase tracking-widest mb-1.5">Current Profile</p>
                   <p className="text-white font-black text-lg md:text-xl uppercase tracking-tighter leading-tight truncate">
-                    {name || "—"}
+                    {displayName || "—"}
                   </p>
                   <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
                     <div className={cn(
@@ -358,39 +358,101 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
           {/* ── Right: Edit form ── */}
           <div className="lg:col-span-7 flex flex-col gap-6 md:gap-8">
 
-            {/* Username */}
+            {/* First / Last name */}
             <div className="space-y-3">
-              <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">Username</span>
-              <div className="group relative">
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="bg-white/[0.04] border border-white/10 hover:border-white/20 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0 rounded-xl px-5 py-6 text-lg md:text-2xl font-black h-auto text-white transition-all placeholder:text-white/20"
-                  placeholder="CHOOSE A USERNAME..."
-                  maxLength={50}
-                />
-                <div className="absolute top-0 right-5 h-full flex items-center pointer-events-none">
-                  <Edit2 className="w-4 h-4 text-white/20 group-hover:text-primary transition-colors" />
+              <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">Name</span>
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div>
+                  <Input
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    aria-label="First name"
+                    aria-invalid={showValidation && !isFirstNameValid}
+                    className={cn(
+                      "bg-white/[0.04] border hover:border-white/20 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-xl px-4 py-5 md:py-6 text-base md:text-xl font-black h-auto text-white transition-all placeholder:text-white/20",
+                      showValidation && !isFirstNameValid
+                        ? "border-red-500/60 focus-visible:border-red-500"
+                        : "border-white/10 focus-visible:border-primary"
+                    )}
+                    placeholder="FIRST NAME"
+                    maxLength={50}
+                  />
+                  {showValidation && !isFirstNameValid && (
+                    <p className="mt-1.5 px-1 text-[11px] font-semibold text-red-400">First name is required</p>
+                  )}
+                </div>
+                <div>
+                  <Input
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    aria-label="Last name"
+                    aria-invalid={showValidation && !isLastNameValid}
+                    className={cn(
+                      "bg-white/[0.04] border hover:border-white/20 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-xl px-4 py-5 md:py-6 text-base md:text-xl font-black h-auto text-white transition-all placeholder:text-white/20",
+                      showValidation && !isLastNameValid
+                        ? "border-red-500/60 focus-visible:border-red-500"
+                        : "border-white/10 focus-visible:border-primary"
+                    )}
+                    placeholder="LAST NAME"
+                    maxLength={50}
+                  />
+                  {showValidation && !isLastNameValid && (
+                    <p className="mt-1.5 px-1 text-[11px] font-semibold text-red-400">Last name is required</p>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Avatar selector */}
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">
-                  Avatar Style
-                </span>
-              </div>
-              <div className="rounded-3xl bg-white/[0.03] border border-white/10 px-3">
-                <ElasticStack
-                  items={rankAvatars.map((av) => ({ id: av.id, image: av.url, name: av.label }))}
-                  selectedId={avatar !== "custom" ? avatar : null}
-                  onItemSelect={(id) => { setAvatar(id as string); setUploadedPhotoUrl(null); }}
-                  itemSize={54}
-                  overlap={26}
-                  pushForce={20}
-                />
+              <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">
+                Choose an Avatar
+              </span>
+              <div className="rounded-3xl bg-white/[0.03] border border-white/10 p-4 md:p-5">
+                <div className="grid grid-cols-3 gap-4 sm:gap-5">
+                  {UNIVERSAL_AVATARS.map((av) => {
+                    const isSelected = avatar === av.id;
+                    return (
+                      <button
+                        key={av.id}
+                        type="button"
+                        onClick={() => { setAvatar(av.id); setUploadedPhotoUrl(null); }}
+                        aria-pressed={isSelected}
+                        aria-label={`Select avatar ${av.label}`}
+                        className="group flex flex-col items-center gap-2 focus:outline-none"
+                      >
+                        <span
+                          className={cn(
+                            "relative block w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden transition-all duration-200 ring-2 ring-offset-2 ring-offset-black",
+                            isSelected
+                              ? "ring-primary shadow-[0_0_18px_rgba(255,107,51,0.45)] scale-[1.06]"
+                              : "ring-white/10 group-hover:ring-white/30 group-hover:scale-[1.04]"
+                          )}
+                        >
+                          <img
+                            src={av.url}
+                            alt={av.label}
+                            className="w-full h-full object-cover pointer-events-none"
+                            draggable={false}
+                          />
+                          {isSelected && (
+                            <span className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-primary flex items-center justify-center ring-2 ring-black">
+                              <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                            </span>
+                          )}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-[10px] font-bold uppercase tracking-wider transition-colors",
+                            isSelected ? "text-white" : "text-white/40 group-hover:text-white/70"
+                          )}
+                        >
+                          {av.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 

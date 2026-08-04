@@ -267,7 +267,7 @@ function NodeCard({ node, isRoot }: { node: TreeNode; isRoot: boolean }) {
                             alt={`${user.firstName} ${user.lastName}`}
                             className="w-full h-full object-cover will-change-transform"
                             onError={(e) => {
-                                (e.target as HTMLImageElement).src = "/avatars/nawa-aya.png";
+                                (e.target as HTMLImageElement).src = "/avatars/avatar-1.png";
                             }}
                         />
                     </div>

@@ -63,6 +63,13 @@ The script is idempotent: safe to re-run; it upserts the role, password hash, an
 - `server/routes.ts` — all API routes
 - `server/storage.ts` — database access layer
 
+## Setup notes (2026-08-04) — Phase 3 User Portal: profile modal redesign
+
+- Replaced the single "Username" field in the account profile modal (`client/src/components/ui/profile-modal.tsx`) with required, independently-validated **First Name** / **Last Name** inputs (min 2 chars each, trimmed). The server already accepted `firstName`/`lastName` on `PATCH /api/profile`, so no API changes were needed. Confirmed via live save that values persist and redisplay correctly. (The separate guild-scoped "Guild Username" field in `GuildProfileWizard.tsx` is a distinct concept — teammate-facing handle, not the account's real name — and was intentionally left untouched.)
+- Replaced the old 15 rank-specific avatars (5 ranks × 3 each, stored per-`RankDefinition`) with 6 universal avatars shared across all ranks (`client/src/lib/rankAvatars.ts` → `UNIVERSAL_AVATARS`), reusing pre-existing portrait art already sitting unused in `client/public/avatars/`. Avatars are now decoupled from rank — rank definitions carry only badge metadata (label/color).
+- Redesigned the avatar picker from an overlapping/stacked `ElasticStack` layout to a clear 3-column grid with unambiguous selection state (ring + glow + check badge). `elastic-stack.tsx` is now unused by this feature but left in place as a generic primitive.
+- `client/src/components/Router.tsx` and `client/src/pages/_dev_profile_preview.tsx` are **dead code** (zero imports from the live `client/src/App.tsx` router, which defines its own inline `Router` and lazy-loads pages from `@/features/*`) — leftover from an earlier `pages/` → `features/` migration. Don't trust `components/Router.tsx` as the live route map.
+
 ## Setup notes (this import — 2026-07-30)
 
 - 2026-07-30 (this import): `DATABASE_URL` and `SESSION_SECRET` already present as Replit environment secrets. Bootstrap script ran `npm install` + `npx drizzle-kit push --force` automatically on first `npm run dev` (no conflicts, "Changes applied"). App confirmed running on port 5000 (landing page renders, `/api/health` returns `{"status":"healthy","db":"connected"}`). Founder account (Aon Imran / thorx11dev@gmail.com, role: founder) provisioned via `scripts/provision-founder.mjs`. Login verified: POST /api/login → 200, role: founder, firstName: Aon, lastName: Imran. Only the founder account exists in the `users` table.

@@ -1,8 +1,9 @@
 /**
- * THORX Rank Avatar System
+ * THORX Avatar & Rank System
  * ─────────────────────────────────────────────────────────────────────────
- * Each rank has 3 selectable avatar outfits.
- * The default (first) avatar is auto-assigned on rank-up.
+ * Avatars are universal — every user picks from the same 6 portraits,
+ * regardless of rank. Rank definitions below are used only for the rank
+ * badge (label/color) shown across the app.
  *
  * Rank progression: Nawa Aya → Chota Don → Bawa Ji → Haji Sab → Chacha Supreme
  * ─────────────────────────────────────────────────────────────────────────
@@ -19,8 +20,6 @@ export interface RankDefinition {
   label: string;        // display name
   color: string;        // Tailwind color class for badge
   bgColor: string;      // Tailwind bg class for badge
-  defaultAvatarId: string; // id of the avatar auto-assigned on rank-up
-  avatars: RankAvatar[];   // selectable avatar outfits for this rank
 }
 
 // All ranks share a single silver/zinc frame + badge style (per design decision:
@@ -28,83 +27,12 @@ export interface RankDefinition {
 const SILVER_COLOR = "text-zinc-400";
 const SILVER_BG = "bg-zinc-600";
 
-// ── NAWA AYA ──────────────────────────────────────────────────────────────
-const NAWA_AYA: RankDefinition = {
-  key: "Nawa Aya",
-  label: "NAWA AYA",
-  color: SILVER_COLOR,
-  bgColor: SILVER_BG,
-  defaultAvatarId: "nawa-aya",
-  avatars: [
-    { id: "nawa-aya",   url: "/avatars/nawa-aya.png",   label: "Classic"      },
-    { id: "nawa-aya-2", url: "/avatars/nawa-aya-2.png", label: "Green Waistcoat" },
-    { id: "nawa-aya-3", url: "/avatars/nawa-aya-3.png", label: "Street Hoodie"   },
-  ],
-};
-
-// ── CHOTA DON ─────────────────────────────────────────────────────────────
-const CHOTA_DON: RankDefinition = {
-  key: "Chota Don",
-  label: "CHOTA DON",
-  color: SILVER_COLOR,
-  bgColor: SILVER_BG,
-  defaultAvatarId: "chota-don",
-  avatars: [
-    { id: "chota-don",   url: "/avatars/chota-don.png",   label: "Classic"       },
-    { id: "chota-don-2", url: "/avatars/chota-don-2.png", label: "Gamer Mode"    },
-    { id: "chota-don-3", url: "/avatars/chota-don-3.png", label: "Black Suit"    },
-  ],
-};
-
-// ── BAWA JI ───────────────────────────────────────────────────────────────
-const BAJA_JI: RankDefinition = {
-  key: "Bawa Ji",
-  label: "BAWA JI",
-  color: SILVER_COLOR,
-  bgColor: SILVER_BG,
-  defaultAvatarId: "baja-ji",
-  avatars: [
-    { id: "baja-ji",   url: "/avatars/baja-ji.png",   label: "Classic"        },
-    { id: "baja-ji-2", url: "/avatars/baja-ji-2.png", label: "Cap & Tasbih"   },
-    { id: "baja-ji-3", url: "/avatars/baja-ji-3.png", label: "Leather Jacket" },
-  ],
-};
-
-// ── HAJI SAB ──────────────────────────────────────────────────────────────
-const HAJI_SAB: RankDefinition = {
-  key: "Haji Sab",
-  label: "HAJI SAB",
-  color: SILVER_COLOR,
-  bgColor: SILVER_BG,
-  defaultAvatarId: "haji-sab",
-  avatars: [
-    { id: "haji-sab",   url: "/avatars/haji-sab.png",   label: "Classic"      },
-    { id: "haji-sab-2", url: "/avatars/haji-sab-2.png", label: "Royal Bisht"  },
-    { id: "haji-sab-3", url: "/avatars/haji-sab-3.png", label: "Dark Thobe"   },
-  ],
-};
-
-// ── CHACHA SUPREME ────────────────────────────────────────────────────────
-const SUPREME_CHACHA: RankDefinition = {
-  key: "Chacha Supreme",
-  label: "CHACHA SUPREME",
-  color: SILVER_COLOR,
-  bgColor: SILVER_BG,
-  defaultAvatarId: "supreme-chacha",
-  avatars: [
-    { id: "supreme-chacha",   url: "/avatars/supreme-chacha.png",   label: "Classic"     },
-    { id: "supreme-chacha-2", url: "/avatars/supreme-chacha-2.png", label: "The Elder"   },
-    { id: "supreme-chacha-3", url: "/avatars/supreme-chacha-3.png", label: "Golden Cane" },
-  ],
-};
-
-// ── Master registry ───────────────────────────────────────────────────────
 export const RANK_DEFINITIONS: RankDefinition[] = [
-  NAWA_AYA,
-  CHOTA_DON,
-  BAJA_JI,
-  HAJI_SAB,
-  SUPREME_CHACHA,
+  { key: "Nawa Aya", label: "NAWA AYA", color: SILVER_COLOR, bgColor: SILVER_BG },
+  { key: "Chota Don", label: "CHOTA DON", color: SILVER_COLOR, bgColor: SILVER_BG },
+  { key: "Bawa Ji", label: "BAWA JI", color: SILVER_COLOR, bgColor: SILVER_BG },
+  { key: "Haji Sab", label: "HAJI SAB", color: SILVER_COLOR, bgColor: SILVER_BG },
+  { key: "Chacha Supreme", label: "CHACHA SUPREME", color: SILVER_COLOR, bgColor: SILVER_BG },
 ];
 
 /**
@@ -112,64 +40,66 @@ export const RANK_DEFINITIONS: RankDefinition[] = [
  * Falls back to Nawa Aya if rank is unknown.
  */
 export function getRankDef(rankKey?: string | null): RankDefinition {
-  if (!rankKey) return NAWA_AYA;
-  const match = RANK_DEFINITIONS.find(
-    (r) => r.key.toLowerCase() === rankKey.toLowerCase()
-  );
-  return match ?? NAWA_AYA;
+  const match = rankKey
+    ? RANK_DEFINITIONS.find((r) => r.key.toLowerCase() === rankKey.toLowerCase())
+    : undefined;
+  return match ?? RANK_DEFINITIONS[0];
 }
 
+// ── Universal avatar set ─────────────────────────────────────────────────
+// 6 portraits spanning a mix of gender and age. Selectable by every user,
+// independent of rank.
+export const UNIVERSAL_AVATARS: RankAvatar[] = [
+  { id: "avatar-1", url: "/avatars/avatar-1.png", label: "Maya" },
+  { id: "avatar-2", url: "/avatars/avatar-2.png", label: "Zayan" },
+  { id: "avatar-3", url: "/avatars/avatar-3.png", label: "Elena" },
+  { id: "avatar-4", url: "/avatars/avatar-4.png", label: "Omar" },
+  { id: "avatar-5", url: "/avatars/avatar-5.png", label: "Grace" },
+  { id: "avatar-6", url: "/avatars/avatar-6.png", label: "Arthur" },
+];
+
+export const DEFAULT_AVATAR_ID = UNIVERSAL_AVATARS[0].id;
+
 /**
- * Returns the default avatar URL for a given rank.
- * Used when a user's rank changes and we auto-assign their avatar.
+ * Returns the default avatar URL. The `rankKey` parameter is accepted for
+ * backward compatibility with existing call sites but no longer affects the
+ * result — avatars are rank-independent.
  */
-export function getDefaultAvatarUrl(rankKey?: string | null): string {
-  const def = getRankDef(rankKey);
-  return def.avatars.find((a) => a.id === def.defaultAvatarId)?.url ?? def.avatars[0].url;
+export function getDefaultAvatarUrl(_rankKey?: string | null): string {
+  return UNIVERSAL_AVATARS[0].url;
 }
 
 /**
- * Resolves a saved avatar id or legacy id to a URL.
- * Checks current rank avatars first, then all ranks (for legacy compatibility).
+ * Resolves a saved avatar id to a URL. Checks the universal avatar set
+ * first; falls back to raw http/data URLs (custom uploads), then to the
+ * default avatar for anything unrecognized (e.g. a retired legacy id).
  */
 export function resolveAvatarUrl(
   savedAvatar: string | null | undefined,
-  rankKey?: string | null
+  _rankKey?: string | null
 ): string {
   if (!savedAvatar || savedAvatar === "default") {
-    return getDefaultAvatarUrl(rankKey);
+    return getDefaultAvatarUrl();
   }
 
-  // Check current rank's avatars first
-  const rankDef = getRankDef(rankKey);
-  const inRank = rankDef.avatars.find((a) => a.id === savedAvatar);
-  if (inRank) return inRank.url;
-
-  // Fallback: search ALL rank avatars (handles rank-up gracefully)
-  for (const rank of RANK_DEFINITIONS) {
-    const found = rank.avatars.find((a) => a.id === savedAvatar);
-    if (found) return found.url;
-  }
+  const found = UNIVERSAL_AVATARS.find((a) => a.id === savedAvatar);
+  if (found) return found.url;
 
   // If it looks like a custom URL or base64, return as-is
   if (savedAvatar.startsWith("http") || savedAvatar.startsWith("data:")) {
     return savedAvatar;
   }
 
-  return getDefaultAvatarUrl(rankKey);
+  return getDefaultAvatarUrl();
 }
 
 // ── Legacy compatibility ──────────────────────────────────────────────────
 // Flat AVATARS array for components that haven't been migrated yet.
-// Returns ALL avatars across all ranks (admin use, referral tree fallback).
-export const ALL_AVATARS = RANK_DEFINITIONS.flatMap((r) => r.avatars).map((a) => ({
-  id: a.id,
-  url: a.url,
-}));
+export const ALL_AVATARS = UNIVERSAL_AVATARS.map((a) => ({ id: a.id, url: a.url }));
 
 // ── THORX v3: E-S rank tier ↔ Urdu rank key bridge ───────────────────────
-// New userRankTier column uses E-S labels; avatar system uses legacy Urdu keys.
-// Use this to bridge calls from v3 components into the existing avatar system.
+// New userRankTier column uses E-S labels; rank badge lookups use legacy Urdu keys.
+// Use this to bridge calls from v3 components into the existing rank badge system.
 const TIER_TO_RANK_KEY: Record<string, string> = {
   "E-Rank": "Nawa Aya",
   "D-Rank": "Chota Don",
@@ -180,15 +110,14 @@ const TIER_TO_RANK_KEY: Record<string, string> = {
 };
 
 /**
- * Resolves avatar URL using the new E-S userRankTier field.
- * Falls back to Nawa Aya if tier is unknown.
+ * Resolves avatar URL for a saved avatar id. The `userRankTier` parameter is
+ * accepted for backward compatibility but avatars are rank-independent.
  */
 export function resolveAvatarUrlByTier(
   savedAvatar: string | null | undefined,
-  userRankTier?: string | null
+  _userRankTier?: string | null
 ): string {
-  const rankKey = (userRankTier && TIER_TO_RANK_KEY[userRankTier]) || "Nawa Aya";
-  return resolveAvatarUrl(savedAvatar, rankKey);
+  return resolveAvatarUrl(savedAvatar);
 }
 
 /**
