@@ -3559,11 +3559,63 @@ export default function UserPortal() {
       });
     };
 
-    // Help section options for dropdown
+    // Help section tabs — same control renders on every breakpoint,
+    // desktop shows the full label, mobile shows the short one.
     const helpSectionOptions = [
-      { id: "guide", label: "AREA GUIDE", icon: Book },
-      { id: "help", label: "AREA HELP", icon: MessageCircle },
-      { id: "contact", label: "AREA CONTACT", icon: Phone }
+      { id: "guide", label: "AREA GUIDE", shortLabel: "GUIDE", icon: Book },
+      { id: "help", label: "AREA HELP", shortLabel: "CHAT", icon: MessageCircle },
+      { id: "contact", label: "AREA CONTACT", shortLabel: "CONTACT", icon: Phone }
+    ];
+
+    const faqItems = [
+      {
+        id: "001",
+        protocol: "PLATFORM-OVERVIEW",
+        question: "What is THORX?",
+        answer: "THORX is an AI-powered digital engagement platform that connects businesses with verified human attention while enabling users to earn real money through meaningful online activities. We operate Engine A (Attention Marketplace), Engine B (AI-Driven CPA Offers), and Engine C (Guild System & Referral Commissions) — all backed by multi-layer AI fraud prevention."
+      },
+      {
+        id: "002",
+        protocol: "EARNING-MODEL",
+        question: "How do I earn on THORX?",
+        answer: "Three earning streams: 1) Engine A — Watch 15–25 second video ads, then actively explore the advertiser's page for 15 seconds inside our secure AI sandbox. 2) Engine B — Complete curated CPA tasks (app downloads, reviews, registrations) and submit proof for AI-verified payout. 3) Engine C — Join a Guild to earn weekly bonus TX-Points plus a share of your Guild's Weekly Bonus Pool, plus earn a passive referral commission whenever your direct referral withdraws their earnings."
+      },
+      {
+        id: "003",
+        protocol: "WALLET-DEDUCTIONS",
+        question: "What fees are deducted at withdrawal?",
+        answer: "THORX uses a Net-First UI — your wallet always shows exactly what you can withdraw, with all fees already calculated in the background. A flat 15% withdrawal fee is deducted from every payout request — this is the same whether you were referred or not. If you joined via a referral link, a portion of that 15% is shared with your referrer at no extra cost to you. What you see in your wallet balance is exactly what you receive."
+      },
+      {
+        id: "004",
+        protocol: "REFERRAL-SYSTEM",
+        question: "How does the referral commission system work?",
+        answer: "When your direct referral requests a payout, a 15% withdrawal fee is deducted from their earnings. A share of that fee is credited to you as a lifetime referral commission — automatically, at no extra cost to the withdrawing user. You earn this passive income for every payout your referral makes, forever."
+      },
+      {
+        id: "005",
+        protocol: "RANKING-SYSTEM",
+        question: "What are the user ranks?",
+        answer: "Your rank is driven entirely by your Performance Score (PS), earned from completing tasks and maintaining a daily streak. Ranks: E-Rank → D-Rank → C-Rank (unlocks Engine B) → B-Rank (unlocks guild creation) → A-Rank (wider Thorx Card variance) → S-Rank (instant-approved withdrawals). Totals earned or referred don't affect your rank directly — only PS does."
+      },
+      {
+        id: "006",
+        protocol: "PAYOUT-METHODS",
+        question: "How do I withdraw my earnings?",
+        answer: "Withdrawals are sent directly to JazzCash or EasyPaisa. Access is always open — no daily task completion required. S-Rank users have their withdrawals auto-approved instantly. A flat 15% withdrawal fee is deducted from every payout; the preview screen shows the exact breakdown before you confirm."
+      },
+      {
+        id: "007",
+        protocol: "AI-ATTENTION-DETECTOR",
+        question: "How does the AI Attention Detector work?",
+        answer: "When you complete an ad task, a hidden AI system tracks three behavioral signals simultaneously: Tab Visibility API (pauses your timer if you switch tabs or minimize the window), Micro-Movement Delta (detects cursor coordinates or touch input to confirm the device is being actively used), and Scroll Vector (verifies you scrolled at least 10–20% of the page). All three must pass for a payout to be issued."
+      },
+      {
+        id: "008",
+        protocol: "ENGINE-B-PROOF",
+        question: "How does Engine B offer verification work?",
+        answer: "After completing a CPA task, upload your screenshot or video proof. Our AI Agent runs a 3-tier check: Tier 1 — Metadata & hash extraction to catch duplicate or recycled proofs. Tier 2 — Advanced OCR + LLM analysis to verify target handles, comment text, and UI structures from your screenshot. Tier 3 — Approved tasks enter 'Pending' escrow before the admin panel releases to your wallet."
+      }
     ];
 
     return (
@@ -3595,12 +3647,19 @@ export default function UserPortal() {
           }}
           onClick={() => handleHeroToggle(setIsHelpHeroToggled)}
           className={cn(
-            "wireframe-border rounded-lg p-6 md:p-12 mb-0 relative overflow-hidden group border-4 cursor-pointer",
+            "wireframe-border rounded-2xl p-6 md:p-12 mb-0 relative overflow-hidden group border-[3px] cursor-pointer",
             "h-[160px] md:h-[260px] flex items-center justify-center md:justify-start"
           )}
         >
           <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-700" />
           <div className="relative z-10 w-full text-center md:text-left">
+            <TechnicalLabel
+              text="SUPPORT CENTER"
+              className={cn(
+                "block mb-2 md:mb-3 text-[10px] md:text-xs tracking-[0.3em] transition-colors duration-300",
+                isHelpHeroToggled ? "text-black/40" : "text-white/40"
+              )}
+            />
             <AnimatePresence mode="popLayout" initial={false}>
               {isHelpHeroToggled ? (
                 <motion.h1
@@ -3640,364 +3699,289 @@ export default function UserPortal() {
           }}
           className="max-w-[1600px] mx-auto mb-12"
         >
-          <div className="split-card bg-white border-3 border-black p-6 md:p-12 help-section-content shadow-[0_12px_40px_rgba(0,0,0,0.1)]">
-            {/* Desktop: Tabs, Mobile: Dropdown */}
-            <div className="w-full">
-              {/* Desktop Navigation */}
-              <div className="hidden md:block">
-                <Tabs value={activeHelpTab} onValueChange={setActiveHelpTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 mb-4 md:mb-6 bg-muted border-2 border-black h-10 md:h-12">
-                    {helpSectionOptions.map((option) => (
-                      <TabsTrigger
-                        key={option.id}
-                        value={option.id}
-                        className="help-tab-button data-[state=active]:bg-black data-[state=active]:text-white font-black text-xs md:text-base h-full flex items-center justify-center px-1 md:px-2 transition-all duration-300"
-                      >
-                        {option.label}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                </Tabs>
-              </div>
+          <div className="rounded-2xl border border-black/15 bg-white p-6 md:p-12 shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
+            {/* Tab Navigation — identical control on desktop and mobile */}
+            <Tabs value={activeHelpTab} onValueChange={setActiveHelpTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-8 md:mb-10 bg-muted/60 border border-black/15 rounded-xl h-12 md:h-14 p-1 gap-1">
+                {helpSectionOptions.map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <TabsTrigger
+                      key={option.id}
+                      value={option.id}
+                      className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-black text-[10px] md:text-sm tracking-wide h-full flex items-center justify-center gap-1.5 md:gap-2 transition-all duration-300"
+                    >
+                      <Icon className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" />
+                      <span className="md:hidden">{option.shortLabel}</span>
+                      <span className="hidden md:inline">{option.label}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </Tabs>
 
-              {/* Mobile Navigation Dropdown - Industrial Theme */}
-              <div className="md:hidden mb-4 help-dropdown-container">
-                <div className="help-dropdown-wrapper">
-                  <select
-                    value={activeHelpTab}
-                    onChange={(e) => setActiveHelpTab(e.target.value)}
-                    className="help-dropdown-industrial"
+            {/* Tab Content */}
+            <div className="help-main-content">
+              <AnimatePresence mode="wait">
+                {/* Area Guide - FAQ */}
+                {activeHelpTab === "guide" && (
+                  <motion.div
+                    key="guide"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="mt-0"
                   >
-                    {helpSectionOptions.map((option) => (
-                      <option key={option.id} value={option.id} className="font-black bg-white text-black">
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+                    {/* Section Heading - Minimal and Clean */}
+                    <div className="text-center mb-10 md:mb-14">
+                      <h3 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter leading-tight mb-3 text-foreground">
+                        Frequently Asked
+                        <br />
+                        <span className="text-primary">Questions</span>
+                      </h3>
 
-              {/* Tab Content */}
-              <div className="mt-4 md:mt-6 help-main-content">
-                <AnimatePresence mode="wait">
-                  {/* Area Guide - FAQ Section Style */}
-                  {activeHelpTab === "guide" && (
-                    <motion.div
-                      key="guide"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="mt-0"
-                    >
-                      {/* Section Heading - Minimal and Clean */}
-                      <div className="text-center mb-8 md:mb-12">
-                        <div className="inline-block px-4 md:px-6 lg:px-8 py-6 md:py-8 mx-4">
-                          <h3 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-3 text-foreground">
-                            Frequently Asked
-                            <br />
-                            <span className="text-primary">Questions</span>
-                          </h3>
+                      <div className="h-1 w-16 bg-primary mx-auto mb-4" />
 
-                          <div className="h-1 w-16 bg-primary mx-auto mb-4"></div>
+                      <TechnicalLabel text="INSTANT ANSWERS TO YOUR THORX QUERIES" className="text-muted-foreground text-xs md:text-sm" />
+                    </div>
 
-                          <TechnicalLabel text="INSTANT ANSWERS TO YOUR THORX QUERIES" className="text-muted-foreground text-xs md:text-sm" />
+                    {/* FAQ List - one controlled shell, hairline dividers instead of stacked cards */}
+                    <div className="rounded-2xl border border-black/15 bg-white overflow-hidden">
+                      {faqItems.map((faq, idx) => (
+                        <motion.div
+                          key={faq.id}
+                          initial={{ opacity: 0, y: 16 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.04 }}
+                          className="group"
+                        >
+                          <div className="p-6 md:p-8 transition-colors duration-300 hover:bg-black/[0.02]">
+                            <div className="inline-block bg-black/5 px-2 py-0.5 rounded-sm mb-4">
+                              <TechnicalLabel text={faq.protocol} className="text-black/40 text-[9px] md:text-[10px] tracking-widest" />
+                            </div>
+                            <h4 className="text-lg md:text-2xl font-black uppercase tracking-tight leading-snug mb-3 text-foreground group-hover:text-primary transition-colors duration-300">
+                              {faq.question}
+                            </h4>
+                            <div className="w-12 h-0.5 bg-primary/30 mb-4" />
+                            <p className="text-sm md:text-base text-foreground/70 leading-relaxed">
+                              {faq.answer}
+                            </p>
+                          </div>
+                          {idx < faqItems.length - 1 && (
+                            <InteractiveDivider className="opacity-40" />
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    <div className="mt-8 pt-6 border-t border-black/15 text-center">
+                      <TechnicalLabel text="NEED MORE HELP? USE AREA HELP FOR LIVE CHAT OR AREA CONTACT FOR DIRECT SUPPORT" className="text-muted-foreground text-xs md:text-sm" />
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Area Help - Chat */}
+                {activeHelpTab === "help" && (
+                  <motion.div
+                    key="help"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="mt-0"
+                  >
+                    <div className="rounded-2xl border border-black/15 bg-white overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
+                      {/* Chat Header */}
+                      <div className="bg-black text-white px-4 md:px-6 py-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2 md:gap-3">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+                          </span>
+                          <TechnicalLabel text="THORX SUPPORT — LIVE" className="text-white text-[10px] md:text-xs tracking-widest" />
                         </div>
+                        <Barcode className="h-4 w-12 md:w-16 opacity-40 grayscale invert" />
                       </div>
 
-                      {/* FAQ Items - Landing Page Style */}
-                      <div className="space-y-4 md:space-y-6">
-                        {[
-                          {
-                            id: "001",
-                            protocol: "PLATFORM-OVERVIEW",
-                            question: "What is THORX?",
-                            answer: "THORX is an AI-powered digital engagement platform that connects businesses with verified human attention while enabling users to earn real money through meaningful online activities. We operate Engine A (Attention Marketplace), Engine B (AI-Driven CPA Offers), and Engine C (Guild System & Referral Commissions) — all backed by multi-layer AI fraud prevention."
-                          },
-                          {
-                            id: "002",
-                            protocol: "EARNING-MODEL",
-                            question: "How do I earn on THORX?",
-                            answer: "Three earning streams: 1) Engine A — Watch 15–25 second video ads, then actively explore the advertiser's page for 15 seconds inside our secure AI sandbox. 2) Engine B — Complete curated CPA tasks (app downloads, reviews, registrations) and submit proof for AI-verified payout. 3) Engine C — Join a Guild to earn weekly bonus TX-Points plus a share of your Guild's Weekly Bonus Pool, plus earn a passive referral commission whenever your direct referral withdraws their earnings."
-                          },
-                          {
-                            id: "003",
-                            protocol: "WALLET-DEDUCTIONS",
-                            question: "What fees are deducted at withdrawal?",
-                            answer: "THORX uses a Net-First UI — your wallet always shows exactly what you can withdraw, with all fees already calculated in the background. A flat 15% withdrawal fee is deducted from every payout request — this is the same whether you were referred or not. If you joined via a referral link, a portion of that 15% is shared with your referrer at no extra cost to you. What you see in your wallet balance is exactly what you receive."
-                          },
-                          {
-                            id: "004",
-                            protocol: "REFERRAL-SYSTEM",
-                            question: "How does the referral commission system work?",
-                            answer: "When your direct referral requests a payout, a 15% withdrawal fee is deducted from their earnings. A share of that fee is credited to you as a lifetime referral commission — automatically, at no extra cost to the withdrawing user. You earn this passive income for every payout your referral makes, forever."
-                          },
-                          {
-                            id: "005",
-                            protocol: "RANKING-SYSTEM",
-                            question: "What are the user ranks?",
-                            answer: "Your rank is driven entirely by your Performance Score (PS), earned from completing tasks and maintaining a daily streak. Ranks: E-Rank → D-Rank → C-Rank (unlocks Engine B) → B-Rank (unlocks guild creation) → A-Rank (wider Thorx Card variance) → S-Rank (instant-approved withdrawals). Totals earned or referred don't affect your rank directly — only PS does."
-                          },
-                          {
-                            id: "006",
-                            protocol: "PAYOUT-METHODS",
-                            question: "How do I withdraw my earnings?",
-                            answer: "Withdrawals are sent directly to JazzCash or EasyPaisa. Access is always open — no daily task completion required. S-Rank users have their withdrawals auto-approved instantly. A flat 15% withdrawal fee is deducted from every payout; the preview screen shows the exact breakdown before you confirm."
-                          },
-                          {
-                            id: "007",
-                            protocol: "AI-ATTENTION-DETECTOR",
-                            question: "How does the AI Attention Detector work?",
-                            answer: "When you complete an ad task, a hidden AI system tracks three behavioral signals simultaneously: Tab Visibility API (pauses your timer if you switch tabs or minimize the window), Micro-Movement Delta (detects cursor coordinates or touch input to confirm the device is being actively used), and Scroll Vector (verifies you scrolled at least 10–20% of the page). All three must pass for a payout to be issued."
-                          },
-                          {
-                            id: "008",
-                            protocol: "ENGINE-B-PROOF",
-                            question: "How does Engine B offer verification work?",
-                            answer: "After completing a CPA task, upload your screenshot or video proof. Our AI Agent runs a 3-tier check: Tier 1 — Metadata & hash extraction to catch duplicate or recycled proofs. Tier 2 — Advanced OCR + LLM analysis to verify target handles, comment text, and UI structures from your screenshot. Tier 3 — Approved tasks enter 'Pending' escrow before the admin panel releases to your wallet."
-                          }
-                        ].map((faq, idx) => (
+                      {/* Chat Messages Area */}
+                      <div className="chat-container bg-muted/30 h-[420px] md:h-[560px] p-4 md:p-6 space-y-4 md:space-y-5 overflow-y-auto custom-scrollbar relative">
+                        <div className="absolute inset-0 industrial-grid opacity-[0.03] pointer-events-none" />
+
+                        {isChatHistoryLoading ? (
+                          <div className="space-y-4">
+                            {[...Array(3)].map((_, i) => (
+                              <div key={i} className={`flex items-start gap-3 ${i % 2 === 0 ? "justify-start" : "justify-end"}`}>
+                                <Skeleton className={`h-16 rounded-2xl border border-black/10 ${i % 2 === 0 ? "w-64" : "w-48"}`} />
+                              </div>
+                            ))}
+                          </div>
+                        ) : chatMessages.map((message, idx) => (
                           <motion.div
-                            key={faq.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
+                            key={message.id}
+                            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
                             transition={{ delay: idx * 0.05 }}
-                            whileHover={{ scale: 1.01, translateY: -2 }}
-                            className="split-card bg-background relative group transition-all duration-300 hover:shadow-[8px_8px_0px_#000]"
+                            className={`flex items-start gap-2 md:gap-3 ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                           >
-                            {/* Protocol Header */}
-                            <div className="px-4 md:px-8 py-3 md:py-4 bg-primary text-primary-foreground border-b-[3px] border-black">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 md:gap-4">
-                                  <TechnicalLabel text={`FAQ-${faq.id}`} className="text-white text-xs md:text-sm" />
-                                  <TechnicalLabel text={faq.protocol} className="text-white opacity-80 text-xs" />
-                                </div>
-                                <div className="w-12 md:w-16 h-3 md:h-4 opacity-60">
-                                  <Barcode />
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Protocol Content */}
-                            <div className="bg-background p-4 md:p-6">
-                              <div className="mb-3 md:mb-4">
-                                <h4 className="text-base md:text-xl lg:text-2xl font-bold text-foreground leading-tight">
-                                  {faq.question}
-                                </h4>
-                              </div>
-                              <div className="text-foreground text-sm md:text-base leading-relaxed bg-muted p-3 md:p-6 border-l-4 border-primary">
-                                {faq.answer}
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-
-                      <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t-2 border-black text-center">
-                        <TechnicalLabel text="NEED MORE HELP? USE AREA HELP FOR LIVE CHAT OR AREA CONTACT FOR DIRECT SUPPORT" className="text-muted-foreground text-xs md:text-sm" />
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Area Help - Telegram/WhatsApp Style Chat */}
-                  {activeHelpTab === "help" && (
-                    <motion.div
-                      key="help"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="mt-0 chat-section-wrapper"
-                    >
-                      <div className="bg-white border-2 border-black overflow-hidden shadow-[12px_12px_0px_#000] rounded-lg">
-                        {/* Chat Header - Professional Branding */}
-                        <div className="bg-black text-white p-3 md:p-4 flex items-center justify-between border-b-2 border-black">
-                          <div className="flex items-center gap-3">
-                          </div>
-                          <div className="hidden md:block">
-                            <Barcode className="h-4 opacity-50 grayscale invert" />
-                          </div>
-                        </div>
-
-                        {/* Chat Messages Area */}
-                        <div className="chat-container bg-muted/30 h-[450px] md:h-[600px] p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto custom-scrollbar relative">
-                          <div className="absolute inset-0 industrial-grid opacity-[0.03] pointer-events-none"></div>
-
-                          {isChatHistoryLoading ? (
-                            <div className="space-y-4">
-                              {[...Array(3)].map((_, i) => (
-                                <div key={i} className={`flex items-start gap-3 ${i % 2 === 0 ? "justify-start" : "justify-end"}`}>
-                                  <Skeleton className={`h-16 rounded-2xl border-2 border-black/10 ${i % 2 === 0 ? "w-64" : "w-48"}`} />
-                                </div>
-                              ))}
-                            </div>
-                          ) : chatMessages.map((message, idx) => (
-                            <motion.div
-                              key={message.id}
-                              initial={{ opacity: 0, y: 15, scale: 0.98 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              transition={{ delay: idx * 0.05 }}
-                              className={`flex items-start gap-2 md:gap-3 ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                            <div
+                              className={`max-w-[85%] md:max-w-[70%] px-4 md:px-5 py-3 md:py-3.5 relative ${message.sender === 'user'
+                                ? 'bg-primary text-black rounded-2xl rounded-tr-md'
+                                : 'bg-white text-black rounded-2xl rounded-tl-md border border-black/10 shadow-sm'
+                                }`}
                             >
-                              <div
-                                className={`chat-message max-w-[85%] md:max-w-[75%] px-4 md:px-5 py-3 md:py-4 border-2 border-black relative ${message.sender === 'user'
-                                  ? 'bg-primary text-black rounded-l-2xl rounded-tr-2xl shadow-[4px_4px_0px_#000]'
-                                  : 'bg-white text-black rounded-r-2xl rounded-tl-2xl shadow-[4px_4px_0px_#000]'
-                                  }`}
-                              >
-                                <p className="text-sm md:text-base font-bold leading-relaxed break-words">{message.text}</p>
-                                <div className={`flex items-center justify-end gap-1 mt-2 text-[10px] md:text-xs font-black ${message.sender === 'user' ? 'text-black/60' : 'text-muted-foreground'}`}>
-                                  {formatTime(message.timestamp)}
-                                </div>
+                              <p className="text-sm md:text-base font-bold leading-relaxed break-words">{message.text}</p>
+                              <div className={`flex items-center justify-end gap-1 mt-1.5 text-[10px] md:text-xs font-black ${message.sender === 'user' ? 'text-black/50' : 'text-muted-foreground'}`}>
+                                {formatTime(message.timestamp)}
                               </div>
-                            </motion.div>
-                          ))
-                          }
-                        </div>
+                            </div>
+                          </motion.div>
+                        ))
+                        }
+                      </div>
 
-                        {/* Chat Input Area */}
-                        <div className="chat-input-wrapper bg-white border-t-2 border-black p-4 md:p-6">
-                          <div className="flex flex-row items-stretch gap-2 md:gap-3">
-                            <div className="relative flex-1 group">
-                              <input
-                                type="text"
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                placeholder="Type your message here..."
-                                className="chat-input w-full bg-muted/20 border-2 border-black text-black px-4 md:px-6 py-3 md:py-4 rounded font-bold text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground/50 transition-all"
-                                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                              />
-                            </div>
-                            <div className="flex">
-                              <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={handleSendMessage}
-                                disabled={!newMessage.trim() || chatMutation.isPending}
-                                className="flex items-center justify-center bg-primary text-black px-4 md:px-8 py-3 md:py-4 border-4 border-black font-black text-sm md:text-base shadow-[4px_4px_0px_#000] active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed transition-all aspect-square md:aspect-auto"
-                              >
-                                {chatMutation.isPending ? (
-                                  <RefreshCw className="w-5 h-5 animate-spin" />
-                                ) : (
-                                  <Send className="w-5 h-5 md:w-6 md:h-6" />
-                                )}
-                              </motion.button>
-                            </div>
+                      {/* Chat Input Area */}
+                      <div className="bg-white border-t border-black/15 p-4 md:p-6">
+                        <div className="flex flex-row items-stretch gap-2 md:gap-3">
+                          <div className="relative flex-1 group">
+                            <input
+                              type="text"
+                              value={newMessage}
+                              onChange={(e) => setNewMessage(e.target.value)}
+                              placeholder="Type your message here..."
+                              className="w-full bg-muted/30 border border-black/15 text-black px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold text-sm md:text-base focus:outline-none focus:border-primary placeholder:text-muted-foreground/60 transition-colors"
+                              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                            />
                           </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Area Contact - Registration Form Style */}
-                  {activeHelpTab === "contact" && (
-                    <motion.div
-                      key="contact"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="mt-0"
-                    >
-                      <div className="text-center mb-6">
-                        <TechnicalLabel text="DIRECT TEAM CONTACT" className="mb-2" />
-                        <h3 className="text-2xl md:text-3xl font-black text-black">SEND US A MESSAGE</h3>
-                      </div>
-
-                      <div className="contact-form-container max-w-2xl mx-auto">
-                        <form onSubmit={handleContactSubmit} className="space-y-6">
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.1 }}
-                          >
-                            <TechnicalLabel text="FULL NAME" className="mb-3 font-black" />
-                            <div className="relative">
-                              <Input
-                                type="text"
-                                required
-                                value={contactForm.name}
-                                onChange={(e) => setContactForm(prev => ({ ...prev, name: e.target.value }))}
-                                className="contact-form-input border-2 border-black text-base md:text-lg py-3 md:py-3 min-h-[44px] rounded focus:border-primary transition-colors"
-                              />
-                              {!contactForm.name && (
-                                <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
-                                  <AnimatedPlaceholder examples={['John Doe', 'Ahmed Khan', 'Sarah Wilson']} />
-                                </div>
-                              )}
-                            </div>
-                          </motion.div>
-
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
-                          >
-                            <TechnicalLabel text="EMAIL ADDRESS" className="mb-3 font-black" />
-                            <div className="relative">
-                              <Input
-                                type="email"
-                                required
-                                value={contactForm.email}
-                                onChange={(e) => setContactForm(prev => ({ ...prev, email: e.target.value }))}
-                                className="contact-form-input border-2 border-black text-base md:text-lg py-3 md:py-3 min-h-[44px] rounded focus:border-primary transition-colors"
-                              />
-                              {!contactForm.email && (
-                                <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
-                                  <AnimatedPlaceholder examples={['your.email@gmail.com', 'contact@thorx.com', 'support@example.com']} />
-                                </div>
-                              )}
-                            </div>
-                          </motion.div>
-
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3 }}
-                          >
-                            <TechnicalLabel text="PROBLEM / DESCRIPTION" className="mb-3 font-black" />
-                            <div className="relative">
-                              <textarea
-                                required
-                                rows={isMobile ? 5 : 6}
-                                value={contactForm.description}
-                                onChange={(e) => setContactForm(prev => ({ ...prev, description: e.target.value }))}
-                                className="contact-form-textarea flex w-full border-2 border-black bg-background px-3 py-3 text-base md:text-lg ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus:border-primary focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical rounded min-h-[140px] line-height-relaxed transition-colors"
-                                placeholder=""
-                              />
-                              {!contactForm.description && (
-                                <div className="absolute top-3 left-3 pointer-events-none text-muted-foreground">
-                                  <AnimatedPlaceholder examples={['Describe your issue in detail...', 'Tell us what happened...', 'How can we help you today?']} />
-                                </div>
-                              )}
-                            </div>
-                          </motion.div>
-
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.4 }}
-                            whileHover={{ scale: 1.01 }}
-                            whileTap={{ scale: 0.99 }}
-                          >
-                            <Button
-                              type="submit"
-                              disabled={isContactSubmitting}
-                              className="contact-form-submit w-full bg-black text-white text-base md:text-xl font-black py-4 hover:bg-primary hover:text-black transition-all border-2 border-black disabled:opacity-50 min-h-[50px] flex items-center justify-center rounded shadow-[8px_8px_0px_#000] active:shadow-none"
+                          <div className="flex">
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={handleSendMessage}
+                              disabled={!newMessage.trim() || chatMutation.isPending}
+                              className="flex items-center justify-center bg-primary text-black px-4 md:px-8 py-3 md:py-4 rounded-xl border border-black/10 font-black text-sm md:text-base hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all aspect-square md:aspect-auto"
                             >
-                              {isContactSubmitting ? (
-                                <span className="flex items-center justify-center">
-                                  <RefreshCw className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3 animate-spin" />
-                                  <span className="text-sm md:text-base">SENDING MESSAGE...</span>
-                                </span>
+                              {chatMutation.isPending ? (
+                                <RefreshCw className="w-5 h-5 animate-spin" />
                               ) : (
-                                <span className="text-sm md:text-base">SEND MESSAGE TO TEAM →</span>
+                                <Send className="w-5 h-5 md:w-6 md:h-6" />
                               )}
-                            </Button>
-                          </motion.div>
-                        </form>
+                            </motion.button>
+                          </div>
+                        </div>
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Area Contact - Registration Form Style */}
+                {activeHelpTab === "contact" && (
+                  <motion.div
+                    key="contact"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="mt-0"
+                  >
+                    <div className="text-center mb-6">
+                      <TechnicalLabel text="DIRECT TEAM CONTACT" className="mb-2" />
+                      <h3 className="text-2xl md:text-3xl font-black tracking-tight text-foreground">SEND US A MESSAGE</h3>
+                    </div>
+
+                    <div className="max-w-2xl mx-auto">
+                      <form onSubmit={handleContactSubmit} className="space-y-6">
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1 }}
+                        >
+                          <TechnicalLabel text="FULL NAME" className="mb-3 font-black" />
+                          <div className="relative">
+                            <Input
+                              type="text"
+                              required
+                              value={contactForm.name}
+                              onChange={(e) => setContactForm(prev => ({ ...prev, name: e.target.value }))}
+                              className="border border-black/15 text-base md:text-lg py-3 md:py-3 min-h-[44px] rounded-xl focus:border-primary transition-colors"
+                            />
+                            {!contactForm.name && (
+                              <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
+                                <AnimatedPlaceholder examples={['John Doe', 'Ahmed Khan', 'Sarah Wilson']} />
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.2 }}
+                        >
+                          <TechnicalLabel text="EMAIL ADDRESS" className="mb-3 font-black" />
+                          <div className="relative">
+                            <Input
+                              type="email"
+                              required
+                              value={contactForm.email}
+                              onChange={(e) => setContactForm(prev => ({ ...prev, email: e.target.value }))}
+                              className="border border-black/15 text-base md:text-lg py-3 md:py-3 min-h-[44px] rounded-xl focus:border-primary transition-colors"
+                            />
+                            {!contactForm.email && (
+                              <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
+                                <AnimatedPlaceholder examples={['your.email@gmail.com', 'contact@thorx.com', 'support@example.com']} />
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.3 }}
+                        >
+                          <TechnicalLabel text="PROBLEM / DESCRIPTION" className="mb-3 font-black" />
+                          <div className="relative">
+                            <textarea
+                              required
+                              rows={isMobile ? 5 : 6}
+                              value={contactForm.description}
+                              onChange={(e) => setContactForm(prev => ({ ...prev, description: e.target.value }))}
+                              className="flex w-full border border-black/15 bg-background px-3 py-3 text-base md:text-lg ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus:border-primary focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical rounded-xl min-h-[140px] line-height-relaxed transition-colors"
+                              placeholder=""
+                            />
+                            {!contactForm.description && (
+                              <div className="absolute top-3 left-3 pointer-events-none text-muted-foreground">
+                                <AnimatedPlaceholder examples={['Describe your issue in detail...', 'Tell us what happened...', 'How can we help you today?']} />
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.4 }}
+                          whileHover={{ y: -2 }}
+                          whileTap={{ scale: 0.99 }}
+                        >
+                          <Button
+                            type="submit"
+                            disabled={isContactSubmitting}
+                            className="w-full bg-black text-white text-base md:text-xl font-black py-4 hover:bg-primary hover:text-black transition-all duration-300 rounded-xl border border-black/10 disabled:opacity-50 min-h-[50px] flex items-center justify-center"
+                          >
+                            {isContactSubmitting ? (
+                              <span className="flex items-center justify-center">
+                                <RefreshCw className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3 animate-spin" />
+                                <span className="text-sm md:text-base">SENDING MESSAGE...</span>
+                              </span>
+                            ) : (
+                              <span className="text-sm md:text-base">SEND MESSAGE TO TEAM →</span>
+                            )}
+                          </Button>
+                        </motion.div>
+                      </form>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </motion.div>
