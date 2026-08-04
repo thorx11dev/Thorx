@@ -37,6 +37,7 @@ import { GuildDiscoveryPanel } from "@/components/guild/GuildDiscoveryPanel";
 import { GuildMemberPanel } from "@/components/guild/GuildMemberPanel";
 import { CaptainPortal } from "@/components/guild/CaptainPortal";
 import { ScratchCardModal, type ScratchCardBreakdown } from "@/components/guild/ScratchCardModal";
+import { PortalFaqSection } from "@/components/portal/PortalFaqSection";
 import { DEV_UNLOCK_RANK_GATES } from "@/lib/previewAccess";
 import { formatPoints } from "@/lib/formatPoints";
 import { useLocation } from "wouter";
@@ -3568,57 +3569,6 @@ export default function UserPortal() {
       { id: "contact", label: "AREA CONTACT", shortLabel: "CONTACT", icon: Phone }
     ];
 
-    const faqItems = [
-      {
-        id: "001",
-        protocol: "PLATFORM-OVERVIEW",
-        question: "What is THORX?",
-        answer: "THORX is an AI-powered digital engagement platform that connects businesses with verified human attention while enabling users to earn real money through meaningful online activities. We operate Engine A (Attention Marketplace), Engine B (AI-Driven CPA Offers), and Engine C (Guild System & Referral Commissions) — all backed by multi-layer AI fraud prevention."
-      },
-      {
-        id: "002",
-        protocol: "EARNING-MODEL",
-        question: "How do I earn on THORX?",
-        answer: "Three earning streams: 1) Engine A — Watch 15–25 second video ads, then actively explore the advertiser's page for 15 seconds inside our secure AI sandbox. 2) Engine B — Complete curated CPA tasks (app downloads, reviews, registrations) and submit proof for AI-verified payout. 3) Engine C — Join a Guild to earn weekly bonus TX-Points plus a share of your Guild's Weekly Bonus Pool, plus earn a passive referral commission whenever your direct referral withdraws their earnings."
-      },
-      {
-        id: "003",
-        protocol: "WALLET-DEDUCTIONS",
-        question: "What fees are deducted at withdrawal?",
-        answer: "THORX uses a Net-First UI — your wallet always shows exactly what you can withdraw, with all fees already calculated in the background. A flat 15% withdrawal fee is deducted from every payout request — this is the same whether you were referred or not. If you joined via a referral link, a portion of that 15% is shared with your referrer at no extra cost to you. What you see in your wallet balance is exactly what you receive."
-      },
-      {
-        id: "004",
-        protocol: "REFERRAL-SYSTEM",
-        question: "How does the referral commission system work?",
-        answer: "When your direct referral requests a payout, a 15% withdrawal fee is deducted from their earnings. A share of that fee is credited to you as a lifetime referral commission — automatically, at no extra cost to the withdrawing user. You earn this passive income for every payout your referral makes, forever."
-      },
-      {
-        id: "005",
-        protocol: "RANKING-SYSTEM",
-        question: "What are the user ranks?",
-        answer: "Your rank is driven entirely by your Performance Score (PS), earned from completing tasks and maintaining a daily streak. Ranks: E-Rank → D-Rank → C-Rank (unlocks Engine B) → B-Rank (unlocks guild creation) → A-Rank (wider Thorx Card variance) → S-Rank (instant-approved withdrawals). Totals earned or referred don't affect your rank directly — only PS does."
-      },
-      {
-        id: "006",
-        protocol: "PAYOUT-METHODS",
-        question: "How do I withdraw my earnings?",
-        answer: "Withdrawals are sent directly to JazzCash or EasyPaisa. Access is always open — no daily task completion required. S-Rank users have their withdrawals auto-approved instantly. A flat 15% withdrawal fee is deducted from every payout; the preview screen shows the exact breakdown before you confirm."
-      },
-      {
-        id: "007",
-        protocol: "AI-ATTENTION-DETECTOR",
-        question: "How does the AI Attention Detector work?",
-        answer: "When you complete an ad task, a hidden AI system tracks three behavioral signals simultaneously: Tab Visibility API (pauses your timer if you switch tabs or minimize the window), Micro-Movement Delta (detects cursor coordinates or touch input to confirm the device is being actively used), and Scroll Vector (verifies you scrolled at least 10–20% of the page). All three must pass for a payout to be issued."
-      },
-      {
-        id: "008",
-        protocol: "ENGINE-B-PROOF",
-        question: "How does Engine B offer verification work?",
-        answer: "After completing a CPA task, upload your screenshot or video proof. Our AI Agent runs a 3-tier check: Tier 1 — Metadata & hash extraction to catch duplicate or recycled proofs. Tier 2 — Advanced OCR + LLM analysis to verify target handles, comment text, and UI structures from your screenshot. Tier 3 — Approved tasks enter 'Pending' escrow before the admin panel releases to your wallet."
-      }
-    ];
-
     return (
       <motion.div
         initial="initial"
@@ -3726,49 +3676,10 @@ export default function UserPortal() {
                     exit={{ opacity: 0, x: -20 }}
                     className="mt-0"
                   >
-                    {/* Section Heading - Minimal and Clean */}
-                    <div className="text-center mb-10 md:mb-14">
-                      <h3 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter leading-tight mb-3 text-foreground">
-                        Frequently Asked
-                        <br />
-                        <span className="text-primary">Questions</span>
-                      </h3>
-
-                      <div className="h-1 w-16 bg-primary mx-auto mb-4" />
-                    </div>
-
-                    {/* FAQ List - one controlled shell, hairline dividers instead of stacked cards */}
-                    <div className="rounded-2xl border border-black/15 bg-white overflow-hidden">
-                      {faqItems.map((faq, idx) => (
-                        <motion.div
-                          key={faq.id}
-                          initial={{ opacity: 0, y: 16 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: idx * 0.04 }}
-                          className="group"
-                        >
-                          <div className="p-6 md:p-8 transition-colors duration-300 hover:bg-black/[0.02]">
-                            <div className="inline-block bg-black/5 px-2 py-0.5 rounded-sm mb-4">
-                              <TechnicalLabel text={faq.protocol} className="text-black/40 text-[9px] md:text-[10px] tracking-widest" />
-                            </div>
-                            <h4 className="text-lg md:text-2xl font-black uppercase tracking-tight leading-snug mb-3 text-foreground group-hover:text-primary transition-colors duration-300">
-                              {faq.question}
-                            </h4>
-                            <div className="w-12 h-0.5 bg-primary/30 mb-4" />
-                            <p className="text-sm md:text-base text-foreground/70 leading-relaxed">
-                              {faq.answer}
-                            </p>
-                          </div>
-                          {idx < faqItems.length - 1 && (
-                            <InteractiveDivider className="opacity-40" />
-                          )}
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    <div className="mt-8 pt-6 border-t border-black/15 text-center">
-                      <TechnicalLabel text="NEED MORE HELP? USE AREA HELP FOR LIVE CHAT OR AREA CONTACT FOR DIRECT SUPPORT" className="text-muted-foreground text-xs md:text-sm" />
-                    </div>
+                    <PortalFaqSection
+                      onChatClick={() => setActiveHelpTab("help")}
+                      onContactClick={() => setActiveHelpTab("contact")}
+                    />
                   </motion.div>
                 )}
 
