@@ -78,7 +78,6 @@ export function DashboardCards() {
       <CardShell testId="card-tx-points">
         <CardHead icon={Zap} label="TX-POINTS BALANCE" />
         <p className="text-3xl md:text-4xl font-black text-primary mb-1 tracking-tighter">{txPoints.toLocaleString()} pts</p>
-        <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Available Points</p>
       </CardShell>
 
       <CardShell testId="card-referral-balance">
@@ -90,20 +89,6 @@ export function DashboardCards() {
             ? <button onClick={() => refetchReferralStats()} className="text-red-400 text-base font-bold uppercase tracking-wider hover:underline">Retry</button>
             : Number(referralStats?.count ?? 0).toLocaleString()}
         </div>
-        <div className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-3">
-          {isReferralStatsLoading
-            ? <Skeleton className="h-3 w-24 rounded" />
-            : isReferralStatsError
-            ? <span className="text-red-400">Failed to load</span>
-            : `Total Referral${Number(referralStats?.count ?? 0) === 1 ? "" : "s"}`}
-        </div>
-        <button
-          onClick={() => navigate("/referrals")}
-          className="text-xs font-black uppercase tracking-wider text-primary hover:underline"
-          data-testid="button-view-referrals"
-        >
-          View Referrals →
-        </button>
       </CardShell>
 
       <div data-testid="card-performance-rank">

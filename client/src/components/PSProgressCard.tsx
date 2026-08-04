@@ -2,8 +2,7 @@
  * PSProgressCard — THORX v3 (spec F.5)
  * Shows PS progress bar, rank, streak, and what the next rank unlocks.
  */
-import { useState } from "react";
-import { Flame, ChevronDown, ChevronUp } from "lucide-react";
+import { Flame } from "lucide-react";
 import { RankBadge } from "@/components/RankBadge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -80,21 +79,6 @@ export function PSProgressCard({ performanceScore, userRankTier, streakDays = 0,
         <p className="text-xs text-primary">🔥 {streakLabel}</p>
       )}
 
-      {tier.next && (
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          What does {tier.next} unlock?
-        </button>
-      )}
-
-      {expanded && tier.next && (
-        <div className="text-xs text-foreground/80 bg-black/[0.03] rounded-lg p-3 border border-black/10">
-          {tier.unlocks}
-        </div>
-      )}
     </div>
   );
 }

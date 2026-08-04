@@ -1451,13 +1451,6 @@ export default function UserPortal() {
               <span className="text-2xl md:text-4xl font-black tracking-tighter text-black leading-none">THORX.</span>
             </div>
 
-            {/* System Status Badge - matches landing page's v1.0 | ONLINE chip */}
-            <div className="hidden sm:flex items-center gap-1.5 md:gap-3 bg-white border-2 border-black rounded-lg px-2 py-1 md:px-4 md:py-2 ml-4 md:ml-8 text-xs md:text-sm">
-              <div className="barcode w-8 h-4 md:w-10 md:h-5 opacity-70" />
-              <div className="h-3 w-[1px] bg-black/10" />
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              <TechnicalLabel text="ACCOUNT ACTIVE" className="hidden md:inline font-bold tracking-wider text-green-600" />
-            </div>
           </div>
 
           <div className="hidden lg:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center justify-center">
@@ -1872,7 +1865,7 @@ export default function UserPortal() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number, name: string) => [`${value}%`, name]}
+                        formatter={(value: number, _: string, props: any) => [`${value}%`, props?.payload?.name || _]}
                         contentStyle={{
                           backgroundColor: 'hsl(var(--background))',
                           border: '2px solid hsl(var(--primary))',
