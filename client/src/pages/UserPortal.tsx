@@ -1443,19 +1443,20 @@ export default function UserPortal() {
       <div className="industrial-grid fixed inset-0 z-0" />
 
       {/* Navigation Header */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white" role="navigation" aria-label="Main navigation">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b-2 md:border-b-[3px] border-black" role="navigation" aria-label="Main navigation">
         <div className="max-w-[1600px] mx-auto px-4 md:px-12 h-20 md:h-24 flex items-center justify-between">
           {/* Brand/Logo Area */}
           <div className="flex items-center h-full">
             <div className="flex flex-col cursor-pointer" onClick={() => navigateToSection(0)}>
-              <span className="text-2xl md:text-4xl font-black tracking-tighter text-black leading-none">THORX</span>
+              <span className="text-2xl md:text-4xl font-black tracking-tighter text-black leading-none">THORX.</span>
             </div>
 
-            <InteractiveDivider orientation="vertical" className="mx-4 md:mx-8" />
-
-            {/* Desktop Navigation Link Indicators - Reference Design Match */}
-            <div className="hidden lg:flex items-center ml-6">
-              {/* Tabs moved to center */}
+            {/* System Status Badge - matches landing page's v1.0 | ONLINE chip */}
+            <div className="hidden sm:flex items-center gap-1.5 md:gap-3 bg-white border-2 border-black rounded-lg px-2 py-1 md:px-4 md:py-2 ml-4 md:ml-8 text-xs md:text-sm">
+              <div className="barcode w-8 h-4 md:w-10 md:h-5 opacity-70" />
+              <div className="h-3 w-[1px] bg-black/10" />
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              <TechnicalLabel text="ACCOUNT ACTIVE" className="hidden md:inline font-bold tracking-wider text-green-600" />
             </div>
           </div>
 
@@ -1515,7 +1516,6 @@ export default function UserPortal() {
             </Button>
           </div>
         </div>
-        <InteractiveDivider />
       </nav >
 
       {/* Desktop Navigation Controls - Landing Page Style (Hidden on Mobile for User Portal) */}
@@ -1749,12 +1749,8 @@ export default function UserPortal() {
           </div>
         </motion.div>
 
-        <InteractiveDivider className="mb-12" />
-
         {/* THORX v3 (spec F.2): role-based dashboard card variants */}
         <DashboardCards />
-
-        <InteractiveDivider className="my-12" />
 
         {/* Charts Section */}
         <div className="grid lg:grid-cols-2 gap-4 md:gap-6 lg:gap-8">

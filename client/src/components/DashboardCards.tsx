@@ -34,7 +34,7 @@ function CardShell({ children, className, testId }: { children: React.ReactNode;
     <div
       data-testid={testId}
       className={cn(
-        "group bg-white border-2 border-black rounded-2xl p-6 text-left transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+        "group bg-white border-2 border-black rounded-2xl p-6 md:p-8 text-left transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
         className
       )}
     >
@@ -45,9 +45,11 @@ function CardShell({ children, className, testId }: { children: React.ReactNode;
 
 function CardHead({ icon: Icon, label }: { icon: any; label: string }) {
   return (
-    <div className="flex items-start justify-between mb-3">
-      <Icon className="w-7 h-7 text-primary" />
-      <TechnicalLabel text={label} className="text-muted-foreground text-xs" />
+    <div className="flex items-start justify-between mb-5">
+      <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg group-hover:bg-primary/20 transition-all duration-300">
+        <Icon className="w-5 h-5 text-primary" />
+      </div>
+      <TechnicalLabel text={label} className="text-muted-foreground text-xs pt-1" />
     </div>
   );
 }
@@ -75,13 +77,13 @@ export function DashboardCards() {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-12">
       <CardShell testId="card-tx-points">
         <CardHead icon={Zap} label="TX-POINTS BALANCE" />
-        <p className="text-2xl md:text-3xl font-black text-primary mb-1">{txPoints.toLocaleString()} pts</p>
+        <p className="text-3xl md:text-4xl font-black text-primary mb-1 tracking-tighter">{txPoints.toLocaleString()} pts</p>
         <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Available Points</p>
       </CardShell>
 
       <CardShell testId="card-referral-balance">
         <CardHead icon={Gift} label="REFERRALS" />
-        <div className="text-2xl md:text-3xl font-black text-foreground mb-1">
+        <div className="text-3xl md:text-4xl font-black text-foreground mb-1 tracking-tighter">
           {isReferralStatsLoading
             ? <Skeleton className="h-8 w-20 rounded" />
             : isReferralStatsError
