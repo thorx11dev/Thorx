@@ -181,7 +181,7 @@ export function ReferralTree({ currentUser, referrals }: ReferralTreeProps) {
                     .tf-tree li::before, 
                     .tf-tree li::after, 
                     .tf-tree ul ul::before {
-                        display: flow-root; /* Or none, but let's try to keep simple lines or just hide */
+                        display: none;
                         border: none; 
                     }
                     /* Simple vertical line for mobile if needed, or just stacking */
@@ -248,11 +248,11 @@ function NodeCard({ node, isRoot }: { node: TreeNode; isRoot: boolean }) {
 
     return (
         <div className={cn(
-            "flex flex-col items-center bg-white transition-all duration-300 relative group",
+            "flex flex-col items-center bg-white rounded-2xl transition-all duration-300 relative group",
             "w-[140px] md:w-[180px]", // Slightly wider for the new avatar style
-            "border border-black/10", // Very subtle border default
-            "hover:border-primary/50 hover:shadow-lg",
-            isCurrentUser && "border-primary/40 shadow-sm"
+            "border border-black/15", // Subtle hairline border default
+            "hover:border-primary/50 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]",
+            isCurrentUser && "border-primary/40 shadow-[0_4px_16px_rgba(0,0,0,0.05)]"
         )}>
             {/* Top Section: Avatar with Comic Border & Rank Badge */}
             <div className="pt-6 pb-2 flex justify-center w-full relative">

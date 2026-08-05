@@ -2427,7 +2427,7 @@ export default function UserPortal() {
           }}
           onClick={() => handleHeroToggle(setIsReferralsHeroToggled)}
           className={cn(
-            "wireframe-border rounded-lg p-6 md:p-12 mb-0 relative overflow-hidden group border-4 cursor-pointer",
+            "rounded-2xl p-6 md:p-12 mb-0 relative overflow-hidden group border-2 cursor-pointer",
             "h-[160px] md:h-[260px] flex items-center justify-center md:justify-start"
           )}
         >
@@ -2465,7 +2465,7 @@ export default function UserPortal() {
         <InteractiveDivider className="my-12" />
 
         {/* Key Metrics Cards - Dashboard Layout */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8 mb-12">
           {/* Total Referrals */}
           <motion.div
             variants={{
@@ -2475,7 +2475,7 @@ export default function UserPortal() {
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             whileHover={{ scale: 1.02, translateY: -4 }}
             whileTap={{ scale: 0.98 }}
-            className="group split-card bg-gradient-to-br from-card to-card/80 hover:from-primary/5 hover:to-primary/10 border-2 border-muted-foreground/20 hover:border-primary/30 p-6 text-left transition-all duration-300 cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] hover:shadow-primary/10"
+            className="group split-card bg-white border border-black/15 hover:border-primary/40 rounded-2xl p-6 text-left transition-all duration-300 cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)]"
             data-testid="card-total-referrals"
           >
             <div className="flex items-start justify-between mb-3">
@@ -2494,7 +2494,7 @@ export default function UserPortal() {
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             whileHover={{ scale: 1.02, translateY: -4 }}
             whileTap={{ scale: 0.98 }}
-            className="group split-card bg-gradient-to-br from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10 border-2 border-primary/20 hover:border-primary/40 p-6 text-left transition-all duration-300 cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:shadow-primary/20"
+            className="group split-card bg-white border border-primary/25 hover:border-primary/50 rounded-2xl p-6 text-left transition-all duration-300 cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)]"
             data-testid="card-referral-earnings"
           >
             <div className="flex items-start justify-between mb-3">
@@ -2502,46 +2502,6 @@ export default function UserPortal() {
               <TechnicalLabel text="REFERRAL EARNINGS" className="text-muted-foreground text-xs" />
             </div>
             <p className="text-2xl md:text-3xl font-black text-primary mb-2 group-hover:text-primary/90 transition-colors" data-testid="text-referral-earnings">{formatCurrency(referralsData?.stats.totalEarned || '0.00')}</p>
-          </motion.div>
-
-          {/* Direct Referrals */}
-          <motion.div
-            variants={{
-              initial: { opacity: 0, y: 15 },
-              animate: { opacity: 1, y: 0 }
-            }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            whileHover={{ scale: 1.02, translateY: -4 }}
-            whileTap={{ scale: 0.98 }}
-            className="group split-card bg-gradient-to-br from-muted to-muted/60 hover:from-muted/80 hover:to-muted/40 border-2 border-muted-foreground/20 hover:border-muted-foreground/40 p-6 text-left transition-all duration-300 cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] hover:shadow-muted-foreground/10"
-            data-testid="card-commission-rate"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <UserCheck className="w-8 h-8 text-foreground/80 group-hover:text-foreground transition-colors" />
-              <TechnicalLabel text="Direct Referrals" className="text-muted-foreground text-xs" />
-            </div>
-            <p className="text-2xl md:text-3xl font-black text-foreground mb-2 group-hover:text-foreground/90 transition-colors" data-testid="text-commission-rate">{referralLevel1Count}</p>
-          </motion.div>
-
-          {/* Commission Rate */}
-          <motion.div
-            variants={{
-              initial: { opacity: 0, y: 15 },
-              animate: { opacity: 1, y: 0 }
-            }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            whileHover={{ scale: 1.02, translateY: -4 }}
-            whileTap={{ scale: 0.98 }}
-            className="group split-card bg-gradient-to-br from-card to-card/80 hover:from-card/90 hover:to-card/70 border-2 border-muted-foreground/20 hover:border-muted-foreground/40 p-6 text-left transition-all duration-300 cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] hover:shadow-muted-foreground/10"
-            data-testid="card-network-potential"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <Network className="w-8 h-8 text-primary group-hover:text-primary/80 transition-colors" />
-              <TechnicalLabel text="Your Commission Rate" className="text-muted-foreground text-xs" />
-            </div>
-            <p className="text-2xl md:text-3xl font-black text-primary mb-2 group-hover:text-primary/90 transition-colors" data-testid="text-network-potential">
-              {((WITHDRAWAL_FEE_PERCENT * REFERRAL_FEE_SHARE_PERCENT) / 100).toFixed(1)}%
-            </p>
           </motion.div>
         </div>
 
@@ -2556,11 +2516,11 @@ export default function UserPortal() {
           className="grid grid-cols-1 gap-4 md:gap-8 mb-6 md:mb-8"
         >
           {/* Invitation Area */}
-          <div className="wireframe-section p-0 bg-transparent border-none shadow-none">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-stretch pt-2">
-              {/* Left Column: Referral Code */}
-              <div className="flex flex-col">
-                <div className="bg-white border-4 border-black p-5 md:p-10 relative overflow-hidden group h-full flex flex-col justify-center transition-all duration-300">
+          <div className="p-0">
+            <div className="flex justify-center pt-2">
+              {/* Referral Code */}
+              <div className="flex flex-col w-full max-w-xl">
+                <div className="bg-white border border-black/15 rounded-2xl p-5 md:p-10 relative overflow-hidden group h-full flex flex-col justify-center shadow-[0_4px_16px_rgba(0,0,0,0.05)] transition-all duration-300">
                   <div className="relative z-10 w-full">
                     <div className="flex flex-col gap-6 md:gap-8">
                       <div className="text-center md:text-left">
@@ -2588,7 +2548,7 @@ export default function UserPortal() {
                               toast({ title: "Copy Failed", description: "Could not copy. Please try again.", variant: "destructive" });
                             }
                           }}
-                          className="w-full bg-primary hover:bg-black hover:text-white text-black h-12 md:h-14 text-sm font-black border-4 border-black transition-all shadow-[4px_4px_0px_#000] active:shadow-none active:translate-x-1 active:translate-y-1"
+                          className="w-full bg-primary hover:bg-black hover:text-white text-black h-12 md:h-14 text-sm font-black border-2 border-black rounded-lg transition-all duration-300"
                           data-testid="button-copy-referral"
                         >
                           <Copy className="w-4 h-4 mr-2" />
@@ -2598,7 +2558,7 @@ export default function UserPortal() {
                           <Button
                             variant="outline"
                             onClick={() => setShowReferralLink(!showReferralLink)}
-                            className="w-full border-4 border-black text-black bg-white hover:bg-black hover:text-white h-12 md:h-14 font-black text-[10px] transition-all shadow-[4px_4px_0px_#000] active:shadow-none active:translate-x-0.5 active:translate-y-0.5"
+                            className="w-full border-2 border-black text-black bg-white hover:bg-black hover:text-white h-12 md:h-14 font-black text-[10px] rounded-lg transition-all duration-300"
                           >
                             <Link2 className="w-4 h-4 mr-1" />
                             {showReferralLink ? "CODE" : "LINK"}
@@ -2610,7 +2570,7 @@ export default function UserPortal() {
                               const message = `I’m earning real money by watching video ads and building a team on THORX.\n\nUse my referral link below to join and start earning:\n${shareUrl}`;
                               window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
                             }}
-                            className="w-full border-4 border-black text-black bg-white hover:bg-black hover:text-white h-12 md:h-14 font-black text-[10px] transition-all shadow-[4px_4px_0px_#000] active:shadow-none active:translate-x-0.5 active:translate-y-0.5"
+                            className="w-full border-2 border-black text-black bg-white hover:bg-black hover:text-white h-12 md:h-14 font-black text-[10px] rounded-lg transition-all duration-300"
                           >
                             <ExternalLink className="w-4 h-4 mr-1" />
                             SHARE
@@ -2618,37 +2578,6 @@ export default function UserPortal() {
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Referral Commission */}
-              <div className="flex flex-col">
-                <div className="bg-white border-4 border-black p-5 md:p-10 relative overflow-hidden group h-full flex flex-col justify-center transition-all duration-300">
-                  <div className="space-y-6 md:space-y-8 relative z-10 w-full px-1">
-                    {/* Withdrawal fee breakdown */}
-                    <div className="flex justify-between items-end border-b-4 border-black pb-4">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] md:text-[11px] font-black uppercase text-black tracking-[0.2em] mb-1">Withdrawal Fee</span>
-                        <span className="text-base md:text-lg font-black text-black uppercase leading-tight">Paid by<br />Your Referral</span>
-                      </div>
-                      <span className="text-4xl md:text-5xl font-black text-black italic tracking-tighter leading-none">15%</span>
-                    </div>
-
-                    {/* Your commission share */}
-                    <div className="flex justify-between items-end pb-2">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] md:text-[11px] font-black uppercase text-black tracking-[0.2em] mb-1">Your Share</span>
-                        <span className="text-base md:text-lg font-black text-black uppercase leading-tight">Referral<br />Commission</span>
-                      </div>
-                      <span className="text-4xl md:text-5xl font-black text-black italic tracking-tighter leading-none">~50%</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-8 md:mt-10 pt-4 border-t-2 border-black/10 relative z-10">
-                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.3em] text-center">
-                      CREDITED UPON YOUR REFERRAL'S PAYOUT
-                    </p>
                   </div>
                 </div>
               </div>
@@ -2663,12 +2592,12 @@ export default function UserPortal() {
           {/* HIERARCHICAL TREE LAYOUT */}
           <div className="w-full">
             {isReferralError ? (
-              <div className="bg-red-50 border-2 border-red-500 p-8 rounded-lg text-center">
-                <p className="font-bold text-red-600 mb-2">Failed to load network data</p>
-                <p className="text-sm text-red-500">{(referralError as Error)?.message || "Unknown error"}</p>
+              <div className="bg-white border border-destructive/30 rounded-2xl p-8 text-center shadow-[0_4px_16px_rgba(0,0,0,0.05)]">
+                <p className="font-black text-destructive mb-2">Failed to load network data</p>
+                <p className="text-sm text-destructive/80">{(referralError as Error)?.message || "Unknown error"}</p>
               </div>
             ) : isReferralLoading ? (
-              <div className="flex justify-center items-center py-12 p-8 rounded-lg">
+              <div className="flex justify-center items-center py-12 p-8 rounded-2xl border border-black/15 bg-white shadow-[0_4px_16px_rgba(0,0,0,0.05)]">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
@@ -2676,22 +2605,22 @@ export default function UserPortal() {
                 />
               </div>
             ) : (displayUser ? (
-              <div className="bg-white border-2 border-black rounded-xl overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.05)] relative min-h-[600px]">
+              <div className="bg-white border border-black/15 rounded-2xl overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.06)] relative min-h-[600px]">
                 {/* Zoom Controls Overlay */}
                 <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-2">
-                  <Button 
-                    size="icon" 
-                    variant="outline" 
-                    className="w-10 h-10 bg-white border-2 border-black shadow-[2px_2px_0px_#000] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all text-black font-black"
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="w-10 h-10 bg-white border-2 border-black rounded-lg hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 text-black font-black"
                     onClick={() => setReferralZoom(prev => Math.min(prev + 0.1, 2))}
                     title="Zoom In"
                   >
                     <Plus size={18} />
                   </Button>
-                  <Button 
-                    size="icon" 
-                    variant="outline" 
-                    className="w-10 h-10 bg-white border-2 border-black shadow-[2px_2px_0px_#000] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all text-black font-black"
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="w-10 h-10 bg-white border-2 border-black rounded-lg hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 text-black font-black"
                     onClick={() => setReferralZoom(prev => Math.max(prev - 0.1, 0.3))}
                     title="Zoom Out"
                   >
@@ -2729,15 +2658,15 @@ export default function UserPortal() {
 
         {/* Commission History Section */}
         {
-          commissionsData?.commissions && commissionsData.commissions.length > 0 && (
+          commissionsData?.commissions && commissionsData.commissions.length > 0 ? (
             <motion.div
               variants={{
                 initial: { opacity: 0, scale: 0.98 },
                 animate: { opacity: 1, scale: 1 }
               }}
-              className="mt-6 md:mt-8 wireframe-section p-4 md:p-6"
+              className="mt-6 md:mt-8 bg-white border border-black/15 rounded-2xl p-4 md:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.06)]"
             >
-              <div className="border-b-2 border-black pb-3 md:pb-4 mb-4 md:mb-6">
+              <div className="border-b border-black/15 pb-3 md:pb-4 mb-4 md:mb-6">
                 <TechnicalLabel text="COMMISSION HISTORY" className="text-foreground text-sm md:text-lg font-black" />
               </div>
 
@@ -2748,7 +2677,7 @@ export default function UserPortal() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="wireframe-section p-3 md:p-4 bg-white/50"
+                    className="rounded-xl border border-black/10 bg-muted/30 p-3 md:p-4"
                   >
                     <div className="flex items-center justify-between">
                       <div>
@@ -2760,7 +2689,7 @@ export default function UserPortal() {
                           +{Math.round(parseFloat(commission.amount) * CONVERSION_RATE).toLocaleString()} TX-Points
                         </div>
                         <div className="text-[10px] text-muted-foreground">≈ Rs.{parseFloat(commission.amount).toFixed(4)} PKR</div>
-                        <div className={`text-[10px] font-black uppercase px-2 py-0.5 border inline-block mt-1 ${commission.status === 'paid' ? 'bg-green-100 border-green-500 text-green-700' :
+                        <div className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border inline-block mt-1 ${commission.status === 'paid' ? 'bg-green-100 border-green-500 text-green-700' :
                           commission.status === 'pending' ? 'bg-yellow-100 border-yellow-500 text-yellow-700' :
                             'bg-red-100 border-red-500 text-red-700'
                           }`}>
@@ -2772,7 +2701,7 @@ export default function UserPortal() {
                 ))}
               </div>
             </motion.div>
-          )
+          ) : null
         }
       </motion.div >
     );
