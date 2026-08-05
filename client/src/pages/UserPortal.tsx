@@ -1290,6 +1290,18 @@ export default function UserPortal() {
 
   const displayUser: AuthUser = user ?? GUEST_USER;
 
+  // Single source of truth for the referral code/link — every copy/share/display
+  // path below reads from these two so none of them can independently regress
+  // into showing a literal "undefined" (e.g. THORX-2311/audit finding).
+  const referralCode = displayUser?.referralCode || "";
+  const referralLink = referralCode ? `${window.location.origin}/?ref=${referralCode}` : "";
+  const referralReady = !isLoading && !!referralCode;
+  // Replit's dev preview domain is a long UUID-based host. The host is rendered
+  // in its own flex-truncated span so it's the part that shrinks with an
+  // ellipsis on narrow screens, while "/?ref=CODE" (the part the user actually
+  // needs to trust/copy) is marked shrink-0 and always stays fully visible.
+  const referralLinkHost = window.location.origin.replace(/^https?:\/\//, "");
+
   // THORX v3 (spec F.10): Engine B locked-state inputs — mirrors PSProgressCard's
   // PS_THRESHOLDS (C-Rank requires 3000 PS).
   const engineBUserRankTier = (displayUser as any)?.userRankTier || "E-Rank";
@@ -2524,23 +2536,36 @@ export default function UserPortal() {
                   <div className="relative z-10 w-full">
                     <div className="flex flex-col gap-6 md:gap-8">
                       <div className="text-center md:text-left">
-                        <p className="text-[10px] md:text-[11px] font-black uppercase text-black/40 mb-2 tracking-[0.2em]">
+                        <p className="text-[10px] md:text-[11px] font-black uppercase text-black/40 mb-3 tracking-[0.2em]">
                           {showReferralLink ? "YOUR NETWORK LINK" : "YOUR REFERRAL CODE"}
                         </p>
-                        <div className="text-xl md:text-3xl font-black text-black tracking-tight break-all font-mono leading-none">
-                          {showReferralLink
-                            ? `${window.location.origin}/?ref=${displayUser?.referralCode}`
-                            : displayUser?.referralCode
-                          }
-                        </div>
+                        {!referralReady ? (
+                          <Skeleton className="h-10 md:h-12 w-full max-w-md mx-auto md:mx-0 rounded-lg" />
+                        ) : showReferralLink ? (
+                          <div
+                            className="w-full rounded-lg border border-black/10 bg-secondary/40 px-4 py-3 text-sm md:text-base font-bold text-black/80 font-mono flex items-center min-w-0"
+                            title={referralLink}
+                            data-testid="text-referral-link"
+                          >
+                            <span className="text-black/40 truncate min-w-0">{referralLinkHost}</span>
+                            <span className="text-black shrink-0">/?ref=</span>
+                            <span className="text-primary shrink-0">{referralCode}</span>
+                          </div>
+                        ) : (
+                          <div
+                            className="inline-block rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 px-5 py-3 text-2xl md:text-3xl font-black text-black tracking-[0.15em] font-mono leading-none"
+                            data-testid="text-referral-code"
+                          >
+                            {referralCode}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex flex-col gap-3">
                         <Button
+                          disabled={!referralReady}
                           onClick={async () => {
-                            const textToCopy = showReferralLink
-                              ? `${window.location.origin}/?ref=${displayUser?.referralCode}`
-                              : displayUser?.referralCode;
+                            const textToCopy = showReferralLink ? referralLink : referralCode;
                             try {
                               await navigator.clipboard.writeText(textToCopy);
                               toast({ title: "Copied!", description: showReferralLink ? "Referral link copied to clipboard." : "Referral code copied to clipboard." });
@@ -2548,7 +2573,7 @@ export default function UserPortal() {
                               toast({ title: "Copy Failed", description: "Could not copy. Please try again.", variant: "destructive" });
                             }
                           }}
-                          className="w-full bg-primary hover:bg-black hover:text-white text-black h-12 md:h-14 text-sm font-black border-2 border-black rounded-lg transition-all duration-300"
+                          className="w-full bg-primary hover:bg-black hover:text-white text-black h-12 md:h-14 text-sm font-black border-2 border-black rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                           data-testid="button-copy-referral"
                         >
                           <Copy className="w-4 h-4 mr-2" />
@@ -2557,20 +2582,21 @@ export default function UserPortal() {
                         <div className="grid grid-cols-2 gap-3">
                           <Button
                             variant="outline"
+                            disabled={!referralReady}
                             onClick={() => setShowReferralLink(!showReferralLink)}
-                            className="w-full border-2 border-black text-black bg-white hover:bg-black hover:text-white h-12 md:h-14 font-black text-[10px] rounded-lg transition-all duration-300"
+                            className="w-full border-2 border-black text-black bg-white hover:bg-black hover:text-white h-12 md:h-14 font-black text-[10px] rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Link2 className="w-4 h-4 mr-1" />
                             {showReferralLink ? "CODE" : "LINK"}
                           </Button>
                           <Button
                             variant="outline"
+                            disabled={!referralReady}
                             onClick={() => {
-                              const shareUrl = `${window.location.origin}/?ref=${displayUser?.referralCode}`;
-                              const message = `I’m earning real money by watching video ads and building a team on THORX.\n\nUse my referral link below to join and start earning:\n${shareUrl}`;
+                              const message = `I’m earning real money by watching video ads and building a team on THORX.\n\nUse my referral link below to join and start earning:\n${referralLink}`;
                               window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
                             }}
-                            className="w-full border-2 border-black text-black bg-white hover:bg-black hover:text-white h-12 md:h-14 font-black text-[10px] rounded-lg transition-all duration-300"
+                            className="w-full border-2 border-black text-black bg-white hover:bg-black hover:text-white h-12 md:h-14 font-black text-[10px] rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <ExternalLink className="w-4 h-4 mr-1" />
                             SHARE

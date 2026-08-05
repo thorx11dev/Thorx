@@ -17,7 +17,7 @@ import { runtimeConfig } from "./config/runtime";
 import { handleProxyRequest } from "./modules/proxy/proxy-handler";
 import { processProfilePicture } from "./utils/local-profile-picture";
 import { authRateLimiter, withdrawalRateLimiter, profileRateLimiter, earnRateLimiter, guildInteractionRateLimiter, contactRateLimiter, contactEmailRateLimiter, chatbotRateLimiter, adminActionRateLimiter, adminBulkActionRateLimiter, bootstrapRateLimiter, publicApiRateLimiter } from "./middleware/auth-rate-limit";
-import { sanitizeUser } from "./utils/sanitize-user";
+import { sanitizeUser, buildAuthUserPayload } from "./utils/sanitize-user";
 import { debugLog } from "./utils/debug-log";
 import { simulateThorxCards } from "./modules/thorx-card";
 import { runWeeklyGuildReset } from "./modules/guild-reset";
@@ -4095,13 +4095,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json({
         success: true,
         message: "Registration successful",
-        user: {
-          id: newUser.id,
-          email: newUser.email,
-          firstName: newUser.firstName,
-          lastName: newUser.lastName,
-          role: newUser.role
-        }
+        user: buildAuthUserPayload(newUser),
       });
     } catch (error) {
       logger.error({ err: error, body: { email: req.body?.email, role: req.body?.role } }, "Registration error");
@@ -4363,13 +4357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         message: "Login successful",
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role
-        }
+        user: buildAuthUserPayload(user),
       });
     } catch (error) {
       logger.error({ err: error }, "Login error:");
@@ -4389,31 +4377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      res.json({
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        name: `${user.firstName} ${user.lastName}`.trim(),
-        email: user.email,
-        identity: user.identity,
-        phone: user.phone,
-        referralCode: user.referralCode,
-        totalEarnings: user.totalEarnings,
-        availableBalance: user.availableBalance,
-        isActive: user.isActive,
-        createdAt: user.createdAt,
-        role: user.role || 'user',
-        avatar: (user as any).avatar,
-        profilePicture: (user as any).profilePicture,
-        // THORX v3 fields (spec Part F — frontend relies on these via useAuth)
-        userRankTier: user.userRankTier || 'E-Rank',
-        guildRole: user.guildRole || 'simple',
-        guildId: user.guildId || null,
-        performanceScore: user.performanceScore ?? 0,
-        streakDays: user.streakDays ?? 0,
-        txPointsBalance: user.txPointsBalance ?? 0,
-        lastActiveAt: user.lastActiveAt ?? null,
-      });
+      res.json(buildAuthUserPayload(user));
     } catch (error) {
       logger.error({ err: error }, "Get profile error:");
       res.status(500).json({

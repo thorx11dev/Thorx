@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2, Mail, CheckCircle2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useQueryClient } from "@tanstack/react-query";
+import { QUERY_KEYS } from "@/lib/queryKeys";
 import { cn } from "@/lib/utils";
 import { calculatePasswordStrength } from "@/lib/password-strength";
 import { getDeviceFingerprint } from "@/lib/fingerprint";
@@ -438,8 +439,11 @@ export default function Auth() {
       });
       const result = await resp.json();
 
-      await queryClient.invalidateQueries({ queryKey: ["auth"] });
-      queryClient.setQueryData(["session-auth"], result.user);
+      // Seed the cache with the full profile returned by /api/register, then
+      // invalidate the CORRECT key (previously "auth", which nothing reads —
+      // the real key is QUERY_KEYS.sessionAuth — so it silently never refetched).
+      queryClient.setQueryData(QUERY_KEYS.sessionAuth, result.user);
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.sessionAuth });
       toast({ title: "Registration Successful!", description: `Welcome to THORX, ${firstName}!` });
       setLocation(data.role === 'team' || data.role === 'founder' || data.role === 'admin' ? "/team-portal" : "/user-portal");
     } catch (error: any) {
@@ -465,8 +469,11 @@ export default function Auth() {
 
       const result = await response.json();
 
-      queryClient.setQueryData(["session-auth"], result.user);
-      await queryClient.invalidateQueries({ queryKey: ["auth"] });
+      queryClient.setQueryData(QUERY_KEYS.sessionAuth, result.user);
+      // Previously invalidated a nonexistent "auth" key — the real query key is
+      // QUERY_KEYS.sessionAuth, so the stale/partial cached user never got
+      // refreshed until an unrelated refocus refetch happened to fix it.
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.sessionAuth });
       toast({ title: "Login Successful!", description: "Welcome back!" });
       const role = result.user?.role;
       setLocation(role === 'team' || role === 'founder' || role === 'admin' ? "/team-portal" : "/user-portal");
