@@ -122,7 +122,9 @@ export function ReferralTree({ currentUser, referrals }: ReferralTreeProps) {
                 <>
                     <div className="mb-8 flex items-center gap-3 md:mb-10">
                         <span className="h-px w-8 bg-black/15" />
-                        <TechnicalLabel text={`DIRECT REFERRALS · ${directReferrals.length}`} className="text-black/40" />
+                        <div className="technical-label text-black/40">
+                            REFERRALS · <span className="font-bold text-black/70">{directReferrals.length}</span>
+                        </div>
                         <span className="h-px w-8 bg-black/15" />
                     </div>
 
