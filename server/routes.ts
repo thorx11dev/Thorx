@@ -6,7 +6,7 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { storage, KNOWN_SYSTEM_CONFIG_KEYS } from "./storage";
 import { pool, db } from "./db";
-import { initRealtime, broadcastUserUpdated, broadcastTeamRefresh, broadcastGuildMessage, broadcastGuildEvent, broadcastToUser, closeUserSockets } from "./realtime";
+import { initRealtime, broadcastUserUpdated, broadcastTeamRefresh, broadcastGuildMessage, broadcastGuildEvent, broadcastToUser, closeUserSockets, getOnlineUserIds } from "./realtime";
 import { insertRegistrationSchema, insertUserSchema, insertWithdrawalSchema, users, teamKeys, adViews, systemConfig, weeklyTasks, auditLogs, insertHilltopAdsConfigSchema, insertHilltopAdsZoneSchema, passwordResetTokens, insertEngineBTaskSchema, engineBRecords, guildCreationRequests, guildMembers, guildProfiles, guildWars, guilds, captainMessages } from "@shared/schema";
 import { TRUST_STATUSES } from "@shared/constants";
 import { eq, sql, and, desc, or, inArray } from "drizzle-orm";
@@ -2561,7 +2561,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const thorxPid = getThorxPrincipalId(req) as string;
       const leaderboard = await storage.getReferralLeaderboard(thorxPid);
-      res.json(leaderboard);
+      const onlineIds = getOnlineUserIds();
+      const withOnline = (leaderboard as any[]).map((entry: any) => ({
+        ...entry,
+        isOnline: onlineIds.has(entry.id),
+      }));
+      res.json(withOnline);
     } catch (error) {
       logger.error({ err: error }, "Get referral leaderboard error:");
       res.status(500).json({

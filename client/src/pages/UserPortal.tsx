@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Decimal from "decimal.js";
 import { z } from "zod";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -544,6 +544,29 @@ export default function UserPortal() {
     typeof window !== "undefined" && window.innerWidth < 768 ? 0.8 : 1;
   const [referralZoom, setReferralZoom] = useState(getDefaultReferralZoom);
   const resetZoom = () => setReferralZoom(getDefaultReferralZoom());
+
+  // Drag-to-pan for the referral tree container
+  const referralScrollRef = useRef<HTMLDivElement>(null);
+  const dragState = useRef<{ active: boolean; startX: number; startY: number; scrollLeft: number; scrollTop: number }>({
+    active: false, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0,
+  });
+  const onReferralMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const el = referralScrollRef.current;
+    if (!el) return;
+    dragState.current = { active: true, startX: e.clientX, startY: e.clientY, scrollLeft: el.scrollLeft, scrollTop: el.scrollTop };
+    el.style.userSelect = "none";
+  }, []);
+  const onReferralMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!dragState.current.active) return;
+    const el = referralScrollRef.current;
+    if (!el) return;
+    el.scrollLeft = dragState.current.scrollLeft - (e.clientX - dragState.current.startX);
+    el.scrollTop  = dragState.current.scrollTop  - (e.clientY - dragState.current.startY);
+  }, []);
+  const onReferralDragEnd = useCallback(() => {
+    dragState.current.active = false;
+    if (referralScrollRef.current) referralScrollRef.current.style.userSelect = "";
+  }, []);
 
   // Current section state
   const [currentSection, setCurrentSection] = useState(0);
@@ -2654,10 +2677,15 @@ export default function UserPortal() {
                 </div>
 
                 <div
+                  ref={referralScrollRef}
                   className={cn(
                     "w-full overflow-auto scrollbar-hide p-4 cursor-grab active:cursor-grabbing md:p-8",
                     directReferralsCount === 0 ? "min-h-[360px] md:min-h-[400px]" : "min-h-[460px] md:min-h-[520px]"
                   )}
+                  onMouseDown={onReferralMouseDown}
+                  onMouseMove={onReferralMouseMove}
+                  onMouseUp={onReferralDragEnd}
+                  onMouseLeave={onReferralDragEnd}
                 >
                   <div
                     style={{

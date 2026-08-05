@@ -250,6 +250,19 @@ export function broadcastGuildTargetUpdated(guildId: string, weeklyTarget: numbe
 }
 
 /**
+ * Returns the set of userIds that currently have at least one open WebSocket
+ * connection — i.e. users who have the app open right now.
+ * Used by the referrals leaderboard route to attach real-time online status.
+ */
+export function getOnlineUserIds(): Set<string> {
+  const ids = new Set<string>();
+  sockets.forEach((meta, ws) => {
+    if (ws.readyState === WebSocket.OPEN) ids.add(meta.userId);
+  });
+  return ids;
+}
+
+/**
  * Close all open WebSocket connections belonging to a specific user.
  * Per Q3 business decision: sends an explicit SUSPENDED message payload
  * BEFORE closing so the client receives clear UX feedback, not just a close code.
