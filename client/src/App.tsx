@@ -22,6 +22,7 @@ const PrivacyPolicy = lazy(() => import("@/features/legal/PrivacyPage"));
 const AdLanding = lazy(() => import("@/pages/AdLanding"));
 const ResetPassword = lazy(() => import("@/pages/reset-password"));
 const NotFound = lazy(() => import("@/pages/not-found"));
+const DevReferralPreview = lazy(() => import("@/pages/_dev-referral-preview"));
 
 function PageLoader() {
   return <ThorxLoadingScreen message="LOADING MODULE" duration={800} />;
@@ -86,6 +87,10 @@ function Router() {
 
         <Route path="/reset-password">
           <ResetPassword />
+        </Route>
+
+        <Route path="/_dev-referral-preview">
+          <DevReferralPreview />
         </Route>
 
         <Route path="/user-portal">

@@ -111,7 +111,6 @@ import {
   Bell,
   Plus,
   Minus,
-  Maximize,
   Lock
 } from "lucide-react";
 import {
@@ -2631,20 +2630,8 @@ export default function UserPortal() {
               </div>
             ) : (displayUser ? (
               <div className="bg-white border border-black/15 rounded-2xl overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.06)] relative">
-                {/* Toolbar header — gives the panel context instead of a bare white shell */}
-                <div className="flex items-center justify-between gap-3 border-b border-black/10 px-5 py-4 md:px-8 md:py-5">
-                  <div className="flex items-center gap-2.5">
-                    <span className="relative flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-                    </span>
-                    <TechnicalLabel text="NETWORK MAP" className="text-black/60" />
-                  </div>
-                  <TechnicalLabel text={`${directReferralsCount} ACTIVE`} className="text-black/35" />
-                </div>
-
-                {/* Zoom / instrument toolbar */}
-                <div className="absolute bottom-5 right-5 z-10 flex items-center gap-0.5 rounded-xl border-2 border-black bg-white p-1 shadow-[0_6px_20px_rgba(0,0,0,0.14)] md:bottom-6 md:right-6">
+                {/* Zoom / instrument toolbar — centered on mobile, tucked to the corner on desktop */}
+                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 rounded-xl border-2 border-black bg-white p-1 shadow-[0_6px_20px_rgba(0,0,0,0.14)] md:bottom-6 md:left-auto md:right-6 md:translate-x-0">
                   <Button
                     size="icon"
                     variant="ghost"
@@ -2665,16 +2652,6 @@ export default function UserPortal() {
                     title="Zoom In"
                   >
                     <Plus size={15} />
-                  </Button>
-                  <span className="mx-1 h-5 w-px bg-black/10" />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 rounded-lg text-black hover:bg-primary hover:text-white"
-                    onClick={() => setReferralZoom(1)}
-                    title="Reset View"
-                  >
-                    <Maximize size={13} />
                   </Button>
                 </div>
 

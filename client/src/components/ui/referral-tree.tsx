@@ -47,21 +47,19 @@ function handleAvatarError(e: React.SyntheticEvent<HTMLImageElement>) {
 }
 
 /**
- * Standardized rank badge — an inverted chip anchored to the bottom edge of
- * the avatar, mirroring the "instrument tag" language used across the
- * dashboard (technical labels, high-contrast pills) instead of a plain
- * bordered sticker glued to the corner.
+ * Standardized rank badge — matches the badge used under the profile photo
+ * in the dashboard hero exactly: white chip, black border, bottom-right
+ * corner tag.
  */
 function RankBadge({ rankTier, size = "md" }: { rankTier?: string; size?: "sm" | "md" }) {
     const title = (rankTier || "E-Rank").toUpperCase();
     return (
         <div
             className={cn(
-                "absolute left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full border border-black bg-black font-black uppercase tracking-[0.15em] text-white shadow-[0_2px_8px_rgba(0,0,0,0.25)]",
-                size === "md" ? "-bottom-2.5 px-2.5 py-1 text-[9px] md:-bottom-3 md:px-3 md:py-1 md:text-[10px]" : "-bottom-2 px-2 py-[3px] text-[7px] md:text-[8px]"
+                "absolute z-10 whitespace-nowrap rounded-md border-2 border-black bg-white font-black uppercase tracking-widest text-black",
+                size === "md" ? "-bottom-2 -right-2 px-3 py-1 text-[10px]" : "-bottom-1.5 -right-1.5 px-2 py-0.5 text-[8px]"
             )}
         >
-            <span className={cn("rounded-full bg-primary", size === "md" ? "h-1.5 w-1.5" : "h-1 w-1")} />
             {title}
         </div>
     );
@@ -193,15 +191,6 @@ function EmptyState() {
                 <div className="mt-4 whitespace-nowrap text-[10px] font-black uppercase tracking-tight text-black/30 md:text-[11px]">
                     Open Slot
                 </div>
-            </div>
-
-            <div className="mt-7 text-center">
-                <div className="mb-2 text-sm font-black uppercase tracking-tight text-black">
-                    No Direct Referrals Yet
-                </div>
-                <p className="text-xs leading-relaxed text-black/50">
-                    Share your referral code above — everyone who joins with it will appear here.
-                </p>
             </div>
         </div>
     );
