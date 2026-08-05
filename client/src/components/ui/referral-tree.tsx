@@ -17,7 +17,6 @@ interface NetworkUser {
     level: number;
     referredBy: string;
     earningsFromUser: string;
-    isOnline?: boolean;
 }
 
 interface ReferralTreeProps {
@@ -33,114 +32,8 @@ interface ReferralTreeProps {
     referrals: NetworkUser[];
 }
 
-// ── Initials avatar helpers ───────────────────────────────────────────────
-
-/** Extract up to 2 initials from a display name */
-function getInitials(firstName?: string, lastName?: string, name?: string): string {
-    if (firstName || lastName) {
-        const f = (firstName || "").trim()[0] || "";
-        const l = (lastName || "").trim()[0] || "";
-        return (f + l).toUpperCase() || "?";
-    }
-    if (name) {
-        const parts = name.trim().split(/\s+/);
-        if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-        return (parts[0]?.[0] || "?").toUpperCase();
-    }
-    return "?";
-}
-
-/** Deterministic colour palette — picks one of 8 premium tones based on name hash */
-const INITIALS_PALETTES = [
-    { bg: "#18181b", text: "#ffffff" }, // zinc-900
-    { bg: "#1e3a5f", text: "#ffffff" }, // deep navy
-    { bg: "#14532d", text: "#ffffff" }, // deep green
-    { bg: "#3b0764", text: "#ffffff" }, // deep violet
-    { bg: "#7c2d12", text: "#ffffff" }, // deep amber
-    { bg: "#164e63", text: "#ffffff" }, // deep cyan
-    { bg: "#1c1917", text: "#f5f5f4" }, // stone-900
-    { bg: "#312e81", text: "#ffffff" }, // indigo-900
-];
-
-function getInitialsPalette(name: string) {
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    return INITIALS_PALETTES[Math.abs(hash) % INITIALS_PALETTES.length];
-}
-
-/** Whether the saved avatar value means "no real avatar set" */
-function isDefaultAvatar(avatar?: string): boolean {
-    return !avatar || avatar === "default";
-}
-
-/**
- * Renders a profile picture, a rank-resolved avatar image, or — when neither
- * is set — a clean initials block with a deterministic premium colour.
- */
-function AvatarDisplay({
-    firstName,
-    lastName,
-    name,
-    avatar,
-    profilePicture,
-    userRankTier,
-    className,
-    initialsClassName,
-}: {
-    firstName?: string;
-    lastName?: string;
-    name?: string;
-    avatar?: string;
-    profilePicture?: string;
-    userRankTier?: string;
-    className?: string;          // applied to the wrapper div
-    initialsClassName?: string;  // font-size override for initials text
-}) {
-    const displayName = name || `${firstName || ""} ${lastName || ""}`.trim();
-
-    if (profilePicture) {
-        return (
-            <img
-                src={profilePicture}
-                alt={displayName}
-                className={cn("h-full w-full object-cover", className)}
-                onError={(e) => { (e.target as HTMLImageElement).src = "/avatars/avatar-1.png"; }}
-            />
-        );
-    }
-
-    if (!isDefaultAvatar(avatar)) {
-        const url = resolveAvatarUrl(avatar, userRankTier);
-        return (
-            <img
-                src={url}
-                alt={displayName}
-                className={cn("h-full w-full object-cover", className)}
-                onError={(e) => { (e.target as HTMLImageElement).src = "/avatars/avatar-1.png"; }}
-            />
-        );
-    }
-
-    // No avatar — render initials
-    const initials = getInitials(firstName, lastName, name);
-    const palette = getInitialsPalette(displayName || "?");
-    return (
-        <div
-            className={cn("h-full w-full flex items-center justify-center select-none", className)}
-            style={{ background: palette.bg }}
-            aria-label={displayName}
-        >
-            <span
-                className={cn("font-black tracking-tight leading-none", initialsClassName || "text-2xl")}
-                style={{ color: palette.text }}
-            >
-                {initials}
-            </span>
-        </div>
-    );
-}
-
-// Avatar resolution for legacy callers
+// Avatar resolution delegated to the central rankAvatars registry.
+// This handles all rank IDs including -2 / -3 variants, legacy IDs, and custom URLs.
 function getAvatarUrl(avatar?: string, rank?: string): string {
     return resolveAvatarUrl(avatar, rank);
 }
@@ -149,8 +42,14 @@ function getDisplayName(user: { name?: string; firstName?: string; lastName?: st
     return user.name || `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Member";
 }
 
+function handleAvatarError(e: React.SyntheticEvent<HTMLImageElement>) {
+    (e.target as HTMLImageElement).src = "/avatars/avatar-1.png";
+}
+
 /**
- * Standardised rank badge — white chip, black border, bottom-right corner tag.
+ * Standardized rank badge — matches the badge used under the profile photo
+ * in the dashboard hero exactly: white chip, black border, bottom-right
+ * corner tag.
  */
 function RankBadge({ rankTier, size = "md" }: { rankTier?: string; size?: "sm" | "md" }) {
     const title = (rankTier || "E-Rank").toUpperCase();
@@ -168,7 +67,10 @@ function RankBadge({ rankTier, size = "md" }: { rankTier?: string; size?: "sm" |
 
 /**
  * Single-tier network view: one root "You" card connected to a responsive
- * grid of direct referrals.
+ * grid of direct referrals. The old build supported infinite-depth recursion
+ * for a multilevel program; that program was retired in favor of a flat,
+ * direct-only referral system, so the tree is intentionally fixed at one
+ * level — there is no Level 2 to render.
  */
 export function ReferralTree({ currentUser, referrals }: ReferralTreeProps) {
     const directReferrals = useMemo(() => {
@@ -176,6 +78,8 @@ export function ReferralTree({ currentUser, referrals }: ReferralTreeProps) {
             .filter((r) => r.level === 1)
             .sort((a, b) => parseFloat(b.earningsFromUser || "0") - parseFloat(a.earningsFromUser || "0"));
     }, [referrals]);
+
+    const rootAvatar = currentUser.profilePicture || getAvatarUrl(currentUser.avatar, currentUser.userRankTier);
 
     return (
         <div
@@ -191,15 +95,12 @@ export function ReferralTree({ currentUser, referrals }: ReferralTreeProps) {
                 <div className="pointer-events-none absolute -top-10 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl md:h-48 md:w-48" aria-hidden="true" />
                 <TechnicalLabel text="YOU" className="relative mb-4 text-black/40" />
                 <div className="relative">
-                    <div className="h-24 w-24 overflow-hidden rounded-2xl border-2 border-black shadow-[0_16px_36px_rgba(0,0,0,0.18)] md:h-28 md:w-28">
-                        <AvatarDisplay
-                            firstName={currentUser.firstName}
-                            lastName={currentUser.lastName}
-                            name={currentUser.name}
-                            avatar={currentUser.avatar}
-                            profilePicture={currentUser.profilePicture}
-                            userRankTier={currentUser.userRankTier}
-                            initialsClassName="text-3xl"
+                    <div className="h-24 w-24 overflow-hidden rounded-2xl border-2 border-black bg-black shadow-[0_16px_36px_rgba(0,0,0,0.18)] md:h-28 md:w-28">
+                        <img
+                            src={rootAvatar}
+                            alt={getDisplayName(currentUser)}
+                            className="h-full w-full object-cover"
+                            onError={handleAvatarError}
                         />
                     </div>
                     <RankBadge rankTier={currentUser.userRankTier} size="md" />
@@ -209,7 +110,7 @@ export function ReferralTree({ currentUser, referrals }: ReferralTreeProps) {
                 </div>
             </div>
 
-            {/* Connector */}
+            {/* Connector: root trunk down to the referral row */}
             <div className="relative flex flex-col items-center" aria-hidden="true">
                 <span className="h-1.5 w-1.5 rounded-full bg-black/20" />
                 <div className="h-8 w-px bg-black/15 md:h-10" />
@@ -239,8 +140,8 @@ export function ReferralTree({ currentUser, referrals }: ReferralTreeProps) {
 }
 
 function ReferralCard({ user }: { user: NetworkUser }) {
+    const avatarUrl = user.profilePicture || getAvatarUrl(user.avatar, user.userRankTier);
     const earnings = parseFloat(user.earningsFromUser || "0");
-    const displayName = getDisplayName(user);
 
     return (
         <div
@@ -250,31 +151,20 @@ function ReferralCard({ user }: { user: NetworkUser }) {
             )}
             data-testid={`referral-card-${user.id}`}
         >
-            {/* Online indicator dot — top-right corner */}
-            <span
-                className={cn(
-                    "absolute right-3 top-3 h-2 w-2 rounded-full ring-2 ring-white",
-                    user.isOnline ? "bg-emerald-500" : "bg-black/15"
-                )}
-                title={user.isOnline ? "Active now" : "Offline"}
-            />
-
             <div className="relative">
-                <div className="h-14 w-14 overflow-hidden rounded-xl border-2 border-black shadow-sm md:h-16 md:w-16">
-                    <AvatarDisplay
-                        firstName={user.firstName}
-                        lastName={user.lastName}
-                        avatar={user.avatar}
-                        profilePicture={user.profilePicture}
-                        userRankTier={user.userRankTier}
-                        initialsClassName="text-lg"
+                <div className="h-14 w-14 overflow-hidden rounded-xl border-2 border-black bg-black shadow-sm md:h-16 md:w-16">
+                    <img
+                        src={avatarUrl}
+                        alt={getDisplayName(user)}
+                        className="h-full w-full object-cover"
+                        onError={handleAvatarError}
                     />
                 </div>
                 <RankBadge rankTier={user.userRankTier} size="sm" />
             </div>
 
             <div className="mt-4 w-full truncate text-center text-[11px] font-black uppercase tracking-tight text-black md:text-xs">
-                {displayName}
+                {getDisplayName(user)}
             </div>
 
             {earnings > 0 ? (
@@ -282,15 +172,8 @@ function ReferralCard({ user }: { user: NetworkUser }) {
                     +{formatPoints(user.earningsFromUser)}
                 </div>
             ) : (
-                <div
-                    className={cn(
-                        "mt-2 rounded-full px-2.5 py-1 text-center text-[9px] font-bold uppercase tracking-wide leading-none md:text-[10px]",
-                        user.isOnline
-                            ? "bg-emerald-50 text-emerald-600"
-                            : "bg-black/[0.04] text-black/30"
-                    )}
-                >
-                    {user.isOnline ? "Active" : "Not Active"}
+                <div className="mt-2 rounded-full bg-black/[0.04] px-2.5 py-1 text-center text-[9px] font-bold uppercase tracking-wide leading-none text-black/30 md:text-[10px]">
+                    Active
                 </div>
             )}
         </div>
@@ -300,6 +183,9 @@ function ReferralCard({ user }: { user: NetworkUser }) {
 function EmptyState() {
     return (
         <div className="flex w-full max-w-xs flex-col items-center" data-testid="referral-tree-empty">
+            {/* Ghost slot — same shape language as a populated ReferralCard so the
+                empty state reads as "your first referral will appear here", not
+                as an unrelated error/empty block. */}
             <div className="flex flex-col items-center rounded-2xl border-2 border-dashed border-black/15 bg-black/[0.015] px-8 pb-6 pt-7">
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl border-2 border-dashed border-black/20 md:h-16 md:w-16">
                     <Plus className="h-5 w-5 text-black/25" strokeWidth={2.25} />
