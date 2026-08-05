@@ -208,7 +208,6 @@ function AreaPlayer({
     >
       {/* Industrial Grid Pattern */}
       <div className={`absolute inset-0 ${isMobileDevice ? 'hidden' : 'opacity-10'}`}>
-        <div className="industrial-grid" />
       </div>
 
       {/* Video Content Background */}

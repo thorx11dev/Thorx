@@ -147,24 +147,6 @@
 }
 
 @layer components {
-  /* Premium dot-grid backdrop: a soft, evenly-spaced dot pattern that fades
-     out toward the edges via a radial mask. Reads as refined/high-end rather
-     than a harsh technical blueprint grid, while still adding subtle depth
-     behind content. */
-  .industrial-grid {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0.5;
-    background-image: radial-gradient(circle at 1px 1px, var(--muted-foreground) 1px, transparent 0);
-    background-size: 28px 28px;
-    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 0%, transparent 75%);
-    mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 0%, transparent 75%);
-    pointer-events: none;
-  }
-
   .barcode {
     background: repeating-linear-gradient(90deg,
         #000 0px,

@@ -1453,7 +1453,6 @@ export default function UserPortal() {
   return (
     <div className="min-h-screen bg-background relative">
       {/* Industrial Grid Overlay */}
-      <div className="industrial-grid fixed inset-0 z-0" />
 
       {/* Navigation Header */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b-2 md:border-b-[3px] border-black" role="navigation" aria-label="Main navigation">
@@ -3660,7 +3659,6 @@ export default function UserPortal() {
 
                       {/* Chat Messages Area */}
                       <div className="chat-container bg-muted/30 h-[420px] md:h-[560px] p-4 md:p-6 space-y-4 md:space-y-5 overflow-y-auto custom-scrollbar relative">
-                        <div className="absolute inset-0 industrial-grid opacity-[0.03] pointer-events-none" />
 
                         {isChatHistoryLoading ? (
                           <div className="space-y-4">

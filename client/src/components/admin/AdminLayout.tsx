@@ -71,7 +71,6 @@ export function AdminLayout({ children, activeSection, onSectionChange, title }:
     <div className="admin-portal flex flex-col min-h-screen bg-background font-sans text-foreground selection:bg-primary selection:text-white relative">
       
       {/* Industrial Grid Overlay */}
-      <div className="industrial-grid fixed inset-0 z-0 opacity-10 pointer-events-none"></div>
 
       {/* Main App Canvas */}
       <div className="flex-1 flex flex-col w-full relative z-10 overflow-x-hidden">

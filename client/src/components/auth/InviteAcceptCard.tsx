@@ -91,7 +91,6 @@ export function InviteAcceptCard({ token }: InviteAcceptCardProps) {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <div className="industrial-grid" />
 
       <AuthNav />
 

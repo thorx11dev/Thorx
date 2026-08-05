@@ -500,7 +500,6 @@ export default function Auth() {
       onAnimationComplete={handleAnimationComplete}
     >
       {/* Industrial Grid Overlay */}
-      <div className="industrial-grid" />
 
       {/* Navigation Header */}
       <AuthNav />
