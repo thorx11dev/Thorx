@@ -23,3 +23,16 @@
  * gates should always be enforced in the dev environment too.
  */
 export const DEV_UNLOCK_RANK_GATES: boolean = import.meta.env.DEV;
+
+/**
+ * Dev-only payout-flow bypass. When true (dev server only), the payout
+ * section ignores zero-balance locks, uses a mock withdrawal preview, and
+ * skips the step-3 minimum-display timer so every step of the withdrawal
+ * UX can be inspected and designed without a funded account.
+ *
+ * Always `false` in production builds — cannot affect the published app.
+ * The server still enforces all real balance/eligibility checks independently.
+ *
+ * Remove this flag once the withdrawal UX redesign is complete.
+ */
+export const DEV_UNLOCK_PAYOUT: boolean = import.meta.env.DEV;

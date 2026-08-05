@@ -38,7 +38,19 @@ import { GuildMemberPanel } from "@/components/guild/GuildMemberPanel";
 import { CaptainPortal } from "@/components/guild/CaptainPortal";
 import { ScratchCardModal, type ScratchCardBreakdown } from "@/components/guild/ScratchCardModal";
 import { PortalFaqSection } from "@/components/portal/PortalFaqSection";
-import { DEV_UNLOCK_RANK_GATES } from "@/lib/previewAccess";
+import { DEV_UNLOCK_RANK_GATES, DEV_UNLOCK_PAYOUT } from "@/lib/previewAccess";
+
+// Dev-mode mock preview used when DEV_UNLOCK_PAYOUT is true and the real
+// server preview is unavailable (e.g. account has zero TX-Points balance).
+const DEV_MOCK_PREVIEW = {
+  exactPkr: 500.00,
+  platformFee: 75.00,
+  feePercent: 15,
+  referralCommission: 0,
+  referrerName: null,
+  userNetPkr: 425.00,
+  sRankFastTrack: false,
+};
 import { formatPoints } from "@/lib/formatPoints";
 import { useLocation } from "wouter";
 import {
@@ -2877,9 +2889,13 @@ export default function UserPortal() {
     const canProceed = () => {
       if (isConfigLoading) return false;
       if (currentStep === 1) return withdrawAmount && parseInt(withdrawAmount, 10) > 0;
-      if (currentStep === 2) return selectedMethod && !!withdrawalPreview && !withdrawalPreviewError;
+      // DEV_UNLOCK_PAYOUT: skip preview requirement so step 2 → 3 works with zero balance
+      const effectivePreview = withdrawalPreview ?? (DEV_UNLOCK_PAYOUT ? DEV_MOCK_PREVIEW : null);
+      if (currentStep === 2) return selectedMethod && !!effectivePreview && (DEV_UNLOCK_PAYOUT || !withdrawalPreviewError);
       if (currentStep === 3) {
-        return paymentDetails.name.trim() && paymentDetails.number.trim() && paymentDetails.email.trim() && !!withdrawalPreview && step3MinDisplayElapsed;
+        // DEV_UNLOCK_PAYOUT: skip the 2-second step-3 display timer
+        const timerOk = DEV_UNLOCK_PAYOUT || step3MinDisplayElapsed;
+        return paymentDetails.name.trim() && paymentDetails.number.trim() && paymentDetails.email.trim() && !!effectivePreview && timerOk;
       }
       return false;
     };
@@ -2989,7 +3005,10 @@ export default function UserPortal() {
                       <div className="space-y-2 mb-4">
                         {TIMEFRAME_OPTIONS.map(({ key, label }) => {
                           const data = timeframeBreakdown?.[key as keyof typeof timeframeBreakdown];
-                          const pts = data?.points ?? 0;
+                          const realPts = data?.points ?? 0;
+                          // DEV_UNLOCK_PAYOUT: treat every timeframe as having 50,000 mock pts
+                          // so each option is selectable regardless of actual balance.
+                          const pts = DEV_UNLOCK_PAYOUT && realPts === 0 ? 50000 : realPts;
                           const isSelected = selectedTimeframe === key;
                           const isEmpty = pts === 0;
                           return (
@@ -3015,7 +3034,7 @@ export default function UserPortal() {
                               <div className="text-left">
                                 <div className={`text-xs font-black uppercase tracking-widest ${isSelected ? "text-background" : "text-foreground"}`}>{label}</div>
                                 <div className={`text-[10px] font-bold mt-0.5 ${isSelected ? "text-background/70" : "text-muted-foreground"}`}>
-                                  {pts > 0 ? `${pts.toLocaleString()} TX-Points` : "No points in this period"}
+                                  {pts > 0 ? `${pts.toLocaleString()} TX-Points${DEV_UNLOCK_PAYOUT && realPts === 0 ? " (dev)" : ""}` : "No points in this period"}
                                 </div>
                               </div>
                               {isSelected && <span className="text-lg">✓</span>}
@@ -3198,26 +3217,26 @@ export default function UserPortal() {
                           <div className="flex justify-between items-center text-sm md:text-base">
                             <span className="font-bold text-muted-foreground">Exact PKR Value</span>
                             <span className="font-black text-foreground">
-                              {isPreviewLoading ? <Skeleton className="h-5 w-24 rounded inline-block" /> : withdrawalPreview ? `Rs. ${withdrawalPreview.exactPkr.toFixed(2)}` : "—"}
+                              {isPreviewLoading ? <Skeleton className="h-5 w-24 rounded inline-block" /> : (withdrawalPreview ?? (DEV_UNLOCK_PAYOUT ? DEV_MOCK_PREVIEW : null)) ? `Rs. ${(withdrawalPreview ?? DEV_MOCK_PREVIEW).exactPkr.toFixed(2)}${DEV_UNLOCK_PAYOUT && !withdrawalPreview ? " (dev)" : ""}` : "—"}
                             </span>
                           </div>
 
                           <div className="flex justify-between items-center text-sm md:text-base">
                             <span className="font-bold text-muted-foreground flex items-center gap-2">
                               Withdrawal Fee
-                              <span className="text-[10px] bg-black text-white px-1.5 py-0.5 rounded-sm">{withdrawalPreview?.feePercent ?? WITHDRAWAL_FEE_PERCENT}%</span>
+                              <span className="text-[10px] bg-black text-white px-1.5 py-0.5 rounded-sm">{(withdrawalPreview ?? (DEV_UNLOCK_PAYOUT ? DEV_MOCK_PREVIEW : null))?.feePercent ?? WITHDRAWAL_FEE_PERCENT}%</span>
                             </span>
                             <span className="font-black text-red-500">
-                              {isPreviewLoading ? <Skeleton className="h-5 w-20 rounded inline-block" /> : withdrawalPreview ? `-Rs. ${withdrawalPreview.platformFee.toFixed(2)}` : "—"}
+                              {isPreviewLoading ? <Skeleton className="h-5 w-20 rounded inline-block" /> : (withdrawalPreview ?? (DEV_UNLOCK_PAYOUT ? DEV_MOCK_PREVIEW : null)) ? `-Rs. ${(withdrawalPreview ?? DEV_MOCK_PREVIEW).platformFee.toFixed(2)}${DEV_UNLOCK_PAYOUT && !withdrawalPreview ? " (dev)" : ""}` : "—"}
                             </span>
                           </div>
 
-                          {withdrawalPreview?.referrerName && (
+                          {(withdrawalPreview ?? (DEV_UNLOCK_PAYOUT ? DEV_MOCK_PREVIEW : null))?.referrerName && (
                             <>
                               <div className="my-2 border-t border-dashed border-black/20" />
                               <div className="flex justify-between items-center text-xs md:text-sm">
                                 <span className="text-white font-bold opacity-60">Referrer Share (of fee above)</span>
-                                <span className="text-white font-black">Rs. {withdrawalPreview.referralCommission.toFixed(2)}</span>
+                                <span className="text-white font-black">Rs. {(withdrawalPreview ?? DEV_MOCK_PREVIEW).referralCommission.toFixed(2)}</span>
                               </div>
                             </>
                           )}
