@@ -2929,7 +2929,7 @@ export default function UserPortal() {
           }}
           onClick={() => handleHeroToggle(setIsPayoutHeroToggled)}
           className={cn(
-            "wireframe-border rounded-lg p-6 md:p-12 mb-0 relative overflow-hidden group border-4 cursor-pointer",
+            "rounded-2xl p-6 md:p-12 mb-0 relative overflow-hidden group border-2 cursor-pointer",
             "h-[160px] md:h-[260px] flex items-center justify-center md:justify-start"
           )}
         >
@@ -2976,11 +2976,7 @@ export default function UserPortal() {
             }}
             className="lg:col-span-2"
           >
-            <div className="wireframe-border bg-gradient-to-br from-background to-muted/20 p-6 md:p-12 relative shadow-[12px_12px_0px_#000]">
-              {/* Current Balance Display */}
-              <div className="text-center mb-4 md:mb-6 lg:mb-8">
-              </div>
-
+            <div className="bg-white border-2 border-black rounded-2xl p-6 md:p-12 relative shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
               {/* Step Content Container - Mobile Optimized */}
               <div className="min-h-[300px] md:min-h-[400px] flex flex-col justify-center overflow-hidden">
                 <AnimatePresence mode="wait">
@@ -3025,10 +3021,10 @@ export default function UserPortal() {
                               }}
                               className={`w-full flex items-center justify-between p-3 md:p-4 border-2 rounded-xl transition-all duration-200 ${
                                 isSelected
-                                  ? "border-foreground bg-foreground text-background"
+                                  ? "border-foreground bg-foreground text-background shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
                                   : isEmpty
                                   ? "border-muted-foreground/20 bg-muted/30 text-muted-foreground cursor-not-allowed opacity-50"
-                                  : "border-black bg-background hover:shadow-[4px_4px_0px_#000]"
+                                  : "border-black/15 bg-white hover:border-primary/40 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
                               }`}
                             >
                               <div className="text-left">
@@ -3095,13 +3091,13 @@ export default function UserPortal() {
                               whileTap={{ scale: 0.99 }}
                               initial={false}
                               animate={{
-                                backgroundColor: isSelected ? 'var(--primary)' : 'var(--background)',
-                                borderColor: isSelected ? 'var(--primary)' : 'rgb(0, 0, 0)',
-                                boxShadow: isSelected ? '4px 4px 0px #000' : '0px 0px 0px #000'
+                                backgroundColor: isSelected ? 'rgba(255,107,0,0.08)' : '#ffffff',
+                                borderColor: isSelected ? '#ff6b00' : 'rgba(0,0,0,0.15)',
+                                boxShadow: isSelected ? '0 8px 24px rgba(0,0,0,0.1)' : '0px 0px 0px rgba(0,0,0,0)'
                               }}
                               transition={{ duration: 0.25, ease: "easeInOut" }}
                               onClick={() => setSelectedMethod(method.id)}
-                              className={`payment-method-selection-card flex items-center p-3 md:p-4 lg:p-6 border-2 w-full transition-shadow duration-300 ${isSelected ? 'selected' : 'hover:shadow-[4px_4px_0px_#000]'}`}
+                              className={`payment-method-selection-card flex items-center p-3 md:p-4 lg:p-6 rounded-2xl border-2 w-full transition-shadow duration-300 ${isSelected ? 'selected' : 'hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]'}`}
                             >
                               <div className="mr-3 md:mr-4 lg:mr-6">
                                 <LogoComponent className="w-14 h-14 md:w-16 md:h-16 lg:w-20 lg:h-20" />
@@ -3109,10 +3105,15 @@ export default function UserPortal() {
                               <div className="flex-1 text-left">
                                 <TechnicalLabel
                                   text={method.name}
-                                  className={`font-black text-xs md:text-sm ${isSelected ? 'text-black' : 'text-foreground'
+                                  className={`font-black text-xs md:text-sm ${isSelected ? 'text-foreground' : 'text-foreground'
                                     }`}
                                 />
                               </div>
+                              {isSelected && (
+                                <div className="ml-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                                  <span className="text-black text-xs font-black">✓</span>
+                                </div>
+                              )}
                             </motion.button>
                           );
                         })}
@@ -3146,7 +3147,7 @@ export default function UserPortal() {
                                 type="text"
                                 value={paymentDetails.name}
                                 onChange={(e) => setPaymentDetails(prev => ({ ...prev, name: e.target.value }))}
-                                className="industrial-input h-12 md:h-14 text-sm md:text-base border-2 border-black focus:border-primary transition-colors"
+                                className="h-12 md:h-14 text-sm md:text-base rounded-xl border border-black/15 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
                               />
                               {!paymentDetails.name && (
                                 <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
@@ -3167,7 +3168,7 @@ export default function UserPortal() {
                                 type="text"
                                 value={paymentDetails.number}
                                 onChange={(e) => setPaymentDetails(prev => ({ ...prev, number: e.target.value }))}
-                                className="industrial-input h-12 md:h-14 text-sm md:text-base border-2 border-black focus:border-primary transition-colors"
+                                className="h-12 md:h-14 text-sm md:text-base rounded-xl border border-black/15 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
                               />
                               {!paymentDetails.number && (
                                 <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
@@ -3188,7 +3189,7 @@ export default function UserPortal() {
                                 type="email"
                                 value={paymentDetails.email}
                                 onChange={(e) => setPaymentDetails(prev => ({ ...prev, email: e.target.value }))}
-                                className="industrial-input h-12 md:h-14 text-sm md:text-base border-2 border-black focus:border-primary transition-colors"
+                                className="h-12 md:h-14 text-sm md:text-base rounded-xl border border-black/15 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
                               />
                               {!paymentDetails.email && (
                                 <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
@@ -3205,10 +3206,10 @@ export default function UserPortal() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4 }}
-                        className="mt-6 md:mt-8 pt-6 border-t-2 border-black/10"
+                        className="mt-6 md:mt-8 pt-6 border-t border-black/10"
                       >
                         <TechnicalLabel text="PAYOUT SUMMARY" className="mb-4 font-black text-xs md:text-sm" />
-                        <div className="bg-muted/10 border-2 border-black p-4 md:p-6 space-y-3">
+                        <div className="bg-muted/5 border border-black/15 rounded-2xl p-4 md:p-6 space-y-3">
                           <div className="flex justify-between items-center text-sm md:text-base">
                             <span className="font-bold text-muted-foreground">Requested</span>
                             <span className="font-black text-foreground">{formatCurrency(withdrawAmount || "0")} PTS</span>
@@ -3235,8 +3236,8 @@ export default function UserPortal() {
                             <>
                               <div className="my-2 border-t border-dashed border-black/20" />
                               <div className="flex justify-between items-center text-xs md:text-sm">
-                                <span className="text-white font-bold opacity-60">Referrer Share (of fee above)</span>
-                                <span className="text-white font-black">Rs. {(withdrawalPreview ?? DEV_MOCK_PREVIEW).referralCommission.toFixed(2)}</span>
+                                <span className="text-muted-foreground font-bold">Referrer Share (of fee above)</span>
+                                <span className="text-foreground font-black">Rs. {(withdrawalPreview ?? DEV_MOCK_PREVIEW).referralCommission.toFixed(2)}</span>
                               </div>
                             </>
                           )}
@@ -3258,11 +3259,11 @@ export default function UserPortal() {
                             </div>
                           )}
 
-                          <div className="my-2 border-t-2 border-black" />
+                          <div className="my-2 border-t border-black/15" />
 
                           <div className="flex justify-between items-center text-base md:text-lg lg:text-xl">
-                            <span className="font-black text-amber-500 uppercase tracking-tighter">Net to Receive</span>
-                            <span className="font-black text-primary bg-black px-3 py-2 text-2xl">
+                            <span className="font-black text-foreground uppercase tracking-tight">Net to Receive</span>
+                            <span className="font-black text-primary bg-black rounded-lg px-3 py-2 text-xl md:text-2xl">
                               {withdrawalPreview ? `Rs. ${withdrawalPreview.userNetPkr.toFixed(2)}` : "—"}
                             </span>
                           </div>
@@ -3274,14 +3275,14 @@ export default function UserPortal() {
               </div>
 
               {/* Navigation Buttons - Mobile Optimized */}
-              <div className="border-t-2 border-black pt-4 md:pt-6 mt-4 md:mt-8">
+              <div className="border-t border-black/15 pt-4 md:pt-6 mt-4 md:mt-8">
                 <div className="flex justify-end items-center gap-3">
                   {currentStep === 1 && (
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={handleClear}
-                      className="flex items-center justify-center px-6 md:px-10 py-3 md:py-4 border-4 border-black bg-background font-black text-sm md:text-base hover:bg-black hover:text-white transition-all shadow-[4px_4px_0px_#000] active:shadow-none"
+                      className="flex items-center justify-center px-6 md:px-10 py-3 md:py-4 rounded-xl border-2 border-black bg-white font-black text-sm md:text-base hover:bg-black hover:text-white transition-all"
                     >
                       CLEAR ALL
                     </motion.button>
@@ -3292,7 +3293,7 @@ export default function UserPortal() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setCurrentStep(prev => prev - 1)}
-                      className="flex items-center justify-center gap-2 px-6 md:px-10 py-3 md:py-4 border-4 border-black font-black text-sm md:text-base hover:bg-black hover:text-white transition-all shadow-[4px_4px_0px_#000] active:shadow-none"
+                      className="flex items-center justify-center gap-2 px-6 md:px-10 py-3 md:py-4 rounded-xl border-2 border-black bg-white font-black text-sm md:text-base hover:bg-black hover:text-white transition-all"
                     >
                       <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
                       BACK
@@ -3304,8 +3305,8 @@ export default function UserPortal() {
                     whileTap={{ scale: 0.98 }}
                     disabled={!canProceed() || (currentStep === 3 && isProcessing)}
                     onClick={handleNext}
-                    className={`flex items-center gap-2 px-6 md:px-10 py-3 md:py-4 border-4 border-black font-black text-sm md:text-base transition-all ${canProceed() && !(currentStep === 3 && isProcessing)
-                      ? "bg-primary text-black shadow-[4px_4px_0px_#000] hover:translate-x-1 hover:-translate-y-1 hover:shadow-[8px_8px_0px_#000]"
+                    className={`flex items-center gap-2 px-6 md:px-10 py-3 md:py-4 rounded-xl border-2 border-black font-black text-sm md:text-base transition-all ${canProceed() && !(currentStep === 3 && isProcessing)
+                      ? "bg-primary text-black shadow-[0_8px_24px_hsl(16,100%,60%,0.35)] hover:bg-black hover:text-white"
                       : "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
                       }`}
                   >
@@ -3335,13 +3336,13 @@ export default function UserPortal() {
                 animate: { opacity: 1, x: 0 }
               }
               }
-              className="wireframe-border p-6 shadow-[0_8px_24px_rgba(0,0,0,0.06)] bg-white"
+              className="bg-white border border-black/15 rounded-2xl p-6 shadow-[0_12px_40px_rgba(0,0,0,0.06)]"
             >
               <TechnicalLabel text="TRANSACTION HISTORY" className="text-foreground font-black text-sm mb-4" />
               <Button
                 onClick={() => setShowHistory(!showHistory)}
                 variant="outline"
-                className="w-full border-2 border-black text-foreground hover:bg-black hover:text-white py-3 font-black shadow-[0_4px_12px_rgba(0,0,0,0.05)] active:shadow-none transition-all"
+                className="w-full border-2 border-black rounded-xl text-foreground hover:bg-black hover:text-white py-3 font-black transition-all"
               >
                 <History className="w-4 h-4 mr-2" />
                 {showHistory ? 'HIDE HISTORY' : 'VIEW HISTORY'}
@@ -3353,7 +3354,7 @@ export default function UserPortal() {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="mt-4 overflow-hidden border-t-2 border-black pt-4"
+                    className="mt-4 overflow-hidden border-t border-black/15 pt-4"
                   >
                     <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                       {withdrawalsHistory && withdrawalsHistory.length > 0 ? (
@@ -3363,7 +3364,7 @@ export default function UserPortal() {
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: idx * 0.1 }}
-                            className="bg-muted/5 border border-black/5 p-3 group hover:border-black/20 transition-all border-l-4 border-l-black"
+                            className="bg-muted/5 border border-black/10 rounded-xl p-3 group hover:border-primary/40 transition-all border-l-4 border-l-primary"
                           >
                             <div className="flex justify-between items-start mb-1">
                               <TechnicalLabel text={item.method} className="text-foreground font-black text-xs" />
@@ -3404,7 +3405,7 @@ export default function UserPortal() {
               }
               }
               whileHover={{ scale: 1.02 }}
-              className="wireframe-border p-6 shadow-[0_8px_24px_rgba(0,0,0,0.06)] bg-white transition-all duration-300"
+              className="bg-white border border-black/15 rounded-2xl p-6 shadow-[0_12px_40px_rgba(0,0,0,0.06)] transition-all duration-300"
             >
               <TechnicalLabel text="NEED HELP?" className="text-foreground font-black text-sm mb-4" />
               <div className="space-y-3">
@@ -3415,7 +3416,7 @@ export default function UserPortal() {
                 </div>
                 <Button
                   variant="outline"
-                  className="w-full border-2 border-black text-foreground hover:bg-black hover:text-white py-2 font-black text-xs shadow-[2px_2px_0px_#000] active:shadow-none transition-all"
+                  className="w-full border-2 border-black rounded-xl text-foreground hover:bg-black hover:text-white py-2 font-black text-xs transition-all"
                   onClick={() => navigateToSection(4)} // Navigate to help section
                 >
                   <HelpCircle className="w-3 h-3 mr-2" />
@@ -3434,12 +3435,12 @@ export default function UserPortal() {
           }}
           className="lg:hidden mt-6"
         >
-          <div className="wireframe-border p-3 md:p-4 bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+          <div className="bg-white border border-black/15 rounded-2xl p-3 md:p-4 shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
             <TechnicalLabel text="TRANSACTION HISTORY" className="text-foreground font-black text-sm mb-4" />
             <Button
               onClick={() => setShowHistory(!showHistory)}
               variant="outline"
-              className="w-full border-2 border-black text-foreground hover:bg-black hover:text-white py-2 md:py-3 font-black text-sm shadow-[0_4px_12px_rgba(0,0,0,0.05)] active:shadow-none transition-all"
+              className="w-full border-2 border-black rounded-xl text-foreground hover:bg-black hover:text-white py-2 md:py-3 font-black text-sm transition-all"
             >
               <History className="w-3 h-3 md:w-4 md:h-4 mr-2" />
               {showHistory ? 'HIDE HISTORY' : 'VIEW HISTORY'}
@@ -3451,7 +3452,7 @@ export default function UserPortal() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="mt-4 overflow-hidden border-t-2 border-black pt-4"
+                  className="mt-4 overflow-hidden border-t border-black/15 pt-4"
                 >
                   <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
                     {withdrawalsHistory && withdrawalsHistory.length > 0 ? (
@@ -3462,7 +3463,7 @@ export default function UserPortal() {
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: idx * 0.05 }}
                           whileHover={{ scale: 1.02 }}
-                          className="p-3 border border-muted-foreground/20 bg-muted/10 hover:bg-white transition-all"
+                          className="p-3 rounded-xl border border-black/10 bg-muted/5 hover:border-primary/40 hover:bg-white transition-all"
                         >
                           <div className="flex justify-between items-start mb-1">
                             <TechnicalLabel text={item.method} className="text-foreground font-black text-xs" />
