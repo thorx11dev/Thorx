@@ -2766,10 +2766,6 @@ export default function UserPortal() {
       }
     };
 
-    const handleClear = () => {
-      setWithdrawAmount("");
-    };
-
     const handleBackspace = () => {
       setWithdrawAmount(prev => prev.slice(0, -1));
     };
@@ -3025,7 +3021,6 @@ export default function UserPortal() {
                               <div className="text-left">
                                 <div className={`text-xs font-black uppercase tracking-widest ${isSelected ? "text-background" : "text-foreground"}`}>{label}</div>
                               </div>
-                              {isSelected && <span className="text-lg">✓</span>}
                             </motion.button>
                           );
                         })}
@@ -3070,9 +3065,9 @@ export default function UserPortal() {
                               key={method.id}
                               initial={false}
                               animate={{
-                                backgroundColor: isSelected ? 'rgba(255,107,0,0.08)' : '#ffffff',
-                                borderColor: isSelected ? '#ff6b00' : 'rgba(0,0,0,0.15)',
-                                boxShadow: isSelected ? '0 8px 24px rgba(0,0,0,0.1)' : '0px 0px 0px rgba(0,0,0,0)'
+                                backgroundColor: isSelected ? '#000000' : '#ffffff',
+                                borderColor: isSelected ? '#000000' : 'rgba(0,0,0,0.15)',
+                                boxShadow: isSelected ? '0 8px 24px rgba(0,0,0,0.14)' : '0px 0px 0px rgba(0,0,0,0)'
                               }}
                               transition={{ duration: 0.25, ease: "easeInOut" }}
                               onClick={() => setSelectedMethod(method.id)}
@@ -3084,7 +3079,7 @@ export default function UserPortal() {
                               <div className="flex-1 text-left">
                                 <TechnicalLabel
                                   text={method.name}
-                                  className={`font-black text-xs md:text-sm ${isSelected ? 'text-foreground' : 'text-foreground'
+                                  className={`font-black text-xs md:text-sm ${isSelected ? 'text-white' : 'text-foreground'
                                     }`}
                                 />
                               </div>
@@ -3190,7 +3185,7 @@ export default function UserPortal() {
                           </div>
 
                           <div className="flex justify-between items-center text-sm md:text-base">
-                            <span className="font-bold text-muted-foreground">Exact PKR Value</span>
+                            <span className="font-bold text-muted-foreground">PKR Value</span>
                             <span className="font-black text-foreground">
                               {isPreviewLoading ? <Skeleton className="h-5 w-24 rounded inline-block" /> : withdrawalPreview ? `Rs. ${withdrawalPreview.exactPkr.toFixed(2)}` : "—"}
                             </span>
@@ -3198,7 +3193,7 @@ export default function UserPortal() {
 
                           <div className="flex justify-between items-center text-sm md:text-base">
                             <span className="font-bold text-muted-foreground flex items-center gap-2">
-                              Withdrawal Fee
+                              Fee
                               <span className="text-[10px] bg-black text-white px-1.5 py-0.5 rounded-sm">{withdrawalPreview?.feePercent ?? WITHDRAWAL_FEE_PERCENT}%</span>
                             </span>
                             <span className="font-black text-red-500">
@@ -3236,7 +3231,7 @@ export default function UserPortal() {
                           <div className="my-2 border-t border-black/15" />
 
                           <div className="flex justify-between items-center text-base md:text-lg lg:text-xl">
-                            <span className="font-black text-foreground uppercase tracking-tight">Net to Receive</span>
+                            <span className="font-black text-foreground uppercase tracking-tight">Total</span>
                             <span className="font-black text-primary bg-black rounded-lg px-3 py-2 text-xl md:text-2xl">
                               {withdrawalPreview ? `Rs. ${withdrawalPreview.userNetPkr.toFixed(2)}` : "—"}
                             </span>
@@ -3250,27 +3245,16 @@ export default function UserPortal() {
 
               {/* Navigation Buttons - Mobile Optimized */}
               <div className="border-t border-black/15 pt-4 md:pt-6 mt-4 md:mt-8">
-                <div className="flex justify-end items-center gap-3">
-                  {currentStep === 1 && (
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleClear}
-                      className="flex items-center justify-center px-6 md:px-10 py-3 md:py-4 rounded-xl border-2 border-black bg-white font-black text-sm md:text-base hover:bg-black hover:text-white transition-all"
-                    >
-                      CLEAR ALL
-                    </motion.button>
-                  )}
-
+                <div className={`flex items-center gap-3 ${currentStep > 1 ? "justify-between" : "justify-end"}`}>
                   {currentStep > 1 && (
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setCurrentStep(prev => prev - 1)}
-                      className="flex items-center justify-center gap-2 px-6 md:px-10 py-3 md:py-4 rounded-xl border-2 border-black bg-white font-black text-sm md:text-base hover:bg-black hover:text-white transition-all"
+                      className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-black/20 bg-white px-4 py-2.5 text-xs font-black tracking-widest text-foreground transition-colors hover:border-black hover:bg-black hover:text-white sm:px-6"
                     >
-                      <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
-                      BACK
+                      <ArrowLeft className="h-4 w-4" />
+                      <span>BACK</span>
                     </motion.button>
                   )}
 
@@ -3279,20 +3263,20 @@ export default function UserPortal() {
                     whileTap={{ scale: 0.98 }}
                     disabled={!canProceed() || (currentStep === 3 && isProcessing)}
                     onClick={handleNext}
-                    className={`flex items-center gap-2 px-6 md:px-10 py-3 md:py-4 rounded-xl border-2 border-black font-black text-sm md:text-base transition-all ${canProceed() && !(currentStep === 3 && isProcessing)
-                      ? "bg-primary text-black shadow-[0_8px_24px_hsl(16,100%,60%,0.35)] hover:bg-black hover:text-white"
-                      : "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+                    className={`flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border px-4 py-2.5 text-xs font-black tracking-widest transition-all sm:px-6 md:px-8 ${canProceed() && !(currentStep === 3 && isProcessing)
+                      ? "bg-black text-white shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:bg-white hover:text-black"
+                      : "border-black/10 bg-muted text-muted-foreground cursor-not-allowed opacity-50"
                       }`}
                   >
                     {isProcessing && currentStep === 3 ? (
                       <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        PROCESSING...
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        SUBMITTING...
                       </>
                     ) : (
                       <>
-                        {currentStep === 3 ? "SUBMIT WITHDRAWAL" : "CONTINUE"}
-                        <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
+                        {currentStep === 3 ? "CONFIRM WITHDRAWAL" : "CONTINUE"}
+                        <ArrowRight className="h-4 w-4" />
                       </>
                     )}
                   </motion.button>
