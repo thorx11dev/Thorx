@@ -765,6 +765,11 @@ export default function UserPortal() {
     refetchInterval: 60000,
   });
 
+  const directReferralsCount = useMemo(
+    () => ((referralLeaderboard as any[]) || []).filter((r) => r.level === 1).length,
+    [referralLeaderboard]
+  );
+
   const { data: tasksWithRecords } = useQuery<any[]>({
     queryKey: QUERY_KEYS.tasks,
     enabled: !!user && user.id !== 'guest',
@@ -2625,37 +2630,67 @@ export default function UserPortal() {
                 />
               </div>
             ) : (displayUser ? (
-              <div className="bg-white border border-black/15 rounded-2xl overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.06)] relative min-h-[600px]">
-                {/* Zoom Controls Overlay */}
-                <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-2">
+              <div className="bg-white border border-black/15 rounded-2xl overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.06)] relative">
+                {/* Toolbar header — gives the panel context instead of a bare white shell */}
+                <div className="flex items-center justify-between gap-3 border-b border-black/10 px-5 py-4 md:px-8 md:py-5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                    </span>
+                    <TechnicalLabel text="NETWORK MAP" className="text-black/60" />
+                  </div>
+                  <TechnicalLabel text={`${directReferralsCount} ACTIVE`} className="text-black/35" />
+                </div>
+
+                {/* Zoom / instrument toolbar */}
+                <div className="absolute bottom-5 right-5 z-10 flex items-center gap-0.5 rounded-xl border-2 border-black bg-white p-1 shadow-[0_6px_20px_rgba(0,0,0,0.14)] md:bottom-6 md:right-6">
                   <Button
                     size="icon"
-                    variant="outline"
-                    className="w-10 h-10 bg-white border-2 border-black rounded-lg hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 text-black font-black"
-                    onClick={() => setReferralZoom(prev => Math.min(prev + 0.1, 2))}
-                    title="Zoom In"
-                  >
-                    <Plus size={18} />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="w-10 h-10 bg-white border-2 border-black rounded-lg hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 text-black font-black"
+                    variant="ghost"
+                    className="h-8 w-8 rounded-lg text-black hover:bg-black hover:text-white"
                     onClick={() => setReferralZoom(prev => Math.max(prev - 0.1, 0.3))}
                     title="Zoom Out"
                   >
-                    <Minus size={18} />
+                    <Minus size={15} />
+                  </Button>
+                  <span className="min-w-[2.75rem] text-center text-[10px] font-black tabular-nums text-black/60">
+                    {Math.round(referralZoom * 100)}%
+                  </span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 rounded-lg text-black hover:bg-black hover:text-white"
+                    onClick={() => setReferralZoom(prev => Math.min(prev + 0.1, 2))}
+                    title="Zoom In"
+                  >
+                    <Plus size={15} />
+                  </Button>
+                  <span className="mx-1 h-5 w-px bg-black/10" />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 rounded-lg text-black hover:bg-primary hover:text-white"
+                    onClick={() => setReferralZoom(1)}
+                    title="Reset View"
+                  >
+                    <Maximize size={13} />
                   </Button>
                 </div>
 
-                <div className="w-full h-full overflow-auto scrollbar-hide p-8 cursor-grab active:cursor-grabbing">
-                  <div 
-                    style={{ 
+                <div
+                  className={cn(
+                    "w-full overflow-auto scrollbar-hide p-4 cursor-grab active:cursor-grabbing md:p-8",
+                    directReferralsCount === 0 ? "min-h-[360px] md:min-h-[400px]" : "min-h-[460px] md:min-h-[520px]"
+                  )}
+                >
+                  <div
+                    style={{
                       transform: `scale(${referralZoom})`,
                       transformOrigin: 'top center',
                       transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
                     }}
-                    className="w-full h-full min-w-max min-h-[500px]"
+                    className="w-full min-w-max"
                   >
                     <ReferralTree
                       currentUser={{

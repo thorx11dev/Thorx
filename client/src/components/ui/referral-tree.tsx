@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useMemo } from "react";
-import { Users } from "lucide-react";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { resolveAvatarUrl } from "@/lib/rankAvatars";
 import { formatPoints } from "@/lib/formatPoints";
@@ -47,19 +47,21 @@ function handleAvatarError(e: React.SyntheticEvent<HTMLImageElement>) {
 }
 
 /**
- * Standardized rank badge — plain white/black, no per-rank color coding.
- * Mirrors the Dashboard hero's rank badge exactly (see UserPortal.tsx getRank)
- * so the network view never looks like a different, older product.
+ * Standardized rank badge — an inverted chip anchored to the bottom edge of
+ * the avatar, mirroring the "instrument tag" language used across the
+ * dashboard (technical labels, high-contrast pills) instead of a plain
+ * bordered sticker glued to the corner.
  */
 function RankBadge({ rankTier, size = "md" }: { rankTier?: string; size?: "sm" | "md" }) {
     const title = (rankTier || "E-Rank").toUpperCase();
     return (
         <div
             className={cn(
-                "absolute -bottom-1.5 -right-1.5 z-10 rounded-md border-2 border-black bg-white font-black uppercase tracking-widest text-black shadow-sm whitespace-nowrap",
-                size === "md" ? "px-2.5 py-1 text-[9px] md:text-[10px]" : "px-1.5 py-0.5 text-[7px] md:text-[8px]"
+                "absolute left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full border border-black bg-black font-black uppercase tracking-[0.15em] text-white shadow-[0_2px_8px_rgba(0,0,0,0.25)]",
+                size === "md" ? "-bottom-2.5 px-2.5 py-1 text-[9px] md:-bottom-3 md:px-3 md:py-1 md:text-[10px]" : "-bottom-2 px-2 py-[3px] text-[7px] md:text-[8px]"
             )}
         >
+            <span className={cn("rounded-full bg-primary", size === "md" ? "h-1.5 w-1.5" : "h-1 w-1")} />
             {title}
         </div>
     );
@@ -82,12 +84,20 @@ export function ReferralTree({ currentUser, referrals }: ReferralTreeProps) {
     const rootAvatar = currentUser.profilePicture || getAvatarUrl(currentUser.avatar, currentUser.userRankTier);
 
     return (
-        <div className="flex w-full flex-col items-center px-4 py-10 md:py-14" data-testid="referral-tree">
+        <div
+            className="relative flex w-full flex-col items-center px-4 py-12 md:py-16"
+            style={{
+                backgroundImage: "radial-gradient(rgba(0,0,0,0.08) 1px, transparent 1px)",
+                backgroundSize: "20px 20px",
+            }}
+            data-testid="referral-tree"
+        >
             {/* Root: You */}
-            <div className="flex flex-col items-center">
-                <TechnicalLabel text="YOU" className="mb-3 text-black/40" />
+            <div className="relative flex flex-col items-center">
+                <div className="pointer-events-none absolute -top-10 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl md:h-48 md:w-48" aria-hidden="true" />
+                <TechnicalLabel text="YOU" className="relative mb-4 text-black/40" />
                 <div className="relative">
-                    <div className="h-24 w-24 overflow-hidden rounded-2xl border-2 border-black bg-black shadow-[0_12px_32px_rgba(0,0,0,0.12)] md:h-28 md:w-28">
+                    <div className="h-24 w-24 overflow-hidden rounded-2xl border-2 border-black bg-black shadow-[0_16px_36px_rgba(0,0,0,0.18)] md:h-28 md:w-28">
                         <img
                             src={rootAvatar}
                             alt={getDisplayName(currentUser)}
@@ -97,18 +107,21 @@ export function ReferralTree({ currentUser, referrals }: ReferralTreeProps) {
                     </div>
                     <RankBadge rankTier={currentUser.userRankTier} size="md" />
                 </div>
-                <div className="mt-4 max-w-[220px] truncate text-center text-base font-black uppercase tracking-tighter text-black md:text-lg">
+                <div className="mt-5 max-w-[220px] truncate text-center text-base font-black uppercase tracking-tighter text-black md:text-lg">
                     {getDisplayName(currentUser)}
                 </div>
+            </div>
+
+            {/* Connector: root trunk down to the referral row */}
+            <div className="relative flex flex-col items-center" aria-hidden="true">
+                <span className="h-1.5 w-1.5 rounded-full bg-black/20" />
+                <div className="h-8 w-px bg-black/15 md:h-10" />
             </div>
 
             {directReferrals.length === 0 ? (
                 <EmptyState />
             ) : (
                 <>
-                    {/* Connector from root down to the referral grid */}
-                    <div className="h-10 w-px bg-black/15 md:h-12" aria-hidden="true" />
-
                     <div className="mb-8 flex items-center gap-3 md:mb-10">
                         <span className="h-px w-8 bg-black/15" />
                         <TechnicalLabel text={`DIRECT REFERRALS · ${directReferrals.length}`} className="text-black/40" />
@@ -133,8 +146,8 @@ function ReferralCard({ user }: { user: NetworkUser }) {
     return (
         <div
             className={cn(
-                "group flex flex-col items-center rounded-2xl border border-black/15 bg-white px-3 py-5 transition-all duration-300",
-                "hover:border-primary/50 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
+                "group relative flex flex-col items-center rounded-2xl border border-black/15 bg-white px-3 pb-5 pt-6 shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-all duration-300",
+                "hover:-translate-y-1 hover:border-primary/50 hover:shadow-[0_12px_28px_rgba(0,0,0,0.1)]"
             )}
             data-testid={`referral-card-${user.id}`}
         >
@@ -150,13 +163,17 @@ function ReferralCard({ user }: { user: NetworkUser }) {
                 <RankBadge rankTier={user.userRankTier} size="sm" />
             </div>
 
-            <div className="mt-3 w-full truncate text-center text-[11px] font-black uppercase tracking-tight text-black md:text-xs">
+            <div className="mt-4 w-full truncate text-center text-[11px] font-black uppercase tracking-tight text-black md:text-xs">
                 {getDisplayName(user)}
             </div>
 
-            {earnings > 0 && (
-                <div className="mt-1 text-center text-[10px] font-bold leading-tight text-primary md:text-[11px]">
+            {earnings > 0 ? (
+                <div className="mt-2 rounded-full bg-primary/10 px-2.5 py-1 text-center text-[10px] font-black leading-none text-primary md:text-[11px]">
                     +{formatPoints(user.earningsFromUser)}
+                </div>
+            ) : (
+                <div className="mt-2 rounded-full bg-black/[0.04] px-2.5 py-1 text-center text-[9px] font-bold uppercase tracking-wide leading-none text-black/30 md:text-[10px]">
+                    Active
                 </div>
             )}
         </div>
@@ -165,16 +182,27 @@ function ReferralCard({ user }: { user: NetworkUser }) {
 
 function EmptyState() {
     return (
-        <div className="flex max-w-sm flex-col items-center py-12 text-center md:py-16" data-testid="referral-tree-empty">
-            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-black/15 bg-black/[0.03]">
-                <Users className="h-6 w-6 text-black/30" strokeWidth={1.75} />
+        <div className="flex w-full max-w-xs flex-col items-center" data-testid="referral-tree-empty">
+            {/* Ghost slot — same shape language as a populated ReferralCard so the
+                empty state reads as "your first referral will appear here", not
+                as an unrelated error/empty block. */}
+            <div className="flex flex-col items-center rounded-2xl border-2 border-dashed border-black/15 bg-black/[0.015] px-8 pb-6 pt-7">
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl border-2 border-dashed border-black/20 md:h-16 md:w-16">
+                    <Plus className="h-5 w-5 text-black/25" strokeWidth={2.25} />
+                </div>
+                <div className="mt-4 whitespace-nowrap text-[10px] font-black uppercase tracking-tight text-black/30 md:text-[11px]">
+                    Open Slot
+                </div>
             </div>
-            <div className="mb-2 text-sm font-black uppercase tracking-tight text-black">
-                No Direct Referrals Yet
+
+            <div className="mt-7 text-center">
+                <div className="mb-2 text-sm font-black uppercase tracking-tight text-black">
+                    No Direct Referrals Yet
+                </div>
+                <p className="text-xs leading-relaxed text-black/50">
+                    Share your referral code above — everyone who joins with it will appear here.
+                </p>
             </div>
-            <p className="text-xs leading-relaxed text-black/50">
-                Share your referral code above — everyone who joins with it will appear here.
-            </p>
         </div>
     );
 }
