@@ -2993,9 +2993,6 @@ export default function UserPortal() {
                         <div className="text-[10px] md:text-xs font-black uppercase tracking-widest text-muted-foreground mb-1">
                           Select Earning Period
                         </div>
-                        <div className="text-xs text-muted-foreground/60 font-medium">
-                          Choose which period's TX-Points to withdraw
-                        </div>
                       </div>
 
                       <div className="space-y-2 mb-4">
@@ -3010,8 +3007,6 @@ export default function UserPortal() {
                           return (
                             <motion.button
                               key={key}
-                              whileHover={isEmpty ? {} : { scale: 1.01, x: 4 }}
-                              whileTap={isEmpty ? {} : { scale: 0.99 }}
                               disabled={isEmpty}
                               onClick={() => {
                                 if (!isEmpty) {
@@ -3029,14 +3024,8 @@ export default function UserPortal() {
                             >
                               <div className="text-left">
                                 <div className={`text-xs font-black uppercase tracking-widest ${isSelected ? "text-background" : "text-foreground"}`}>{label}</div>
-                                <div className={`text-[10px] font-bold mt-0.5 ${isSelected ? "text-background/70" : "text-muted-foreground"}`}>
-                                  {pts > 0 ? `${pts.toLocaleString()} TX-Points${DEV_UNLOCK_PAYOUT && realPts === 0 ? " (dev)" : ""}` : "No points in this period"}
-                                </div>
                               </div>
                               {isSelected && <span className="text-lg">✓</span>}
-                              {!isSelected && pts > 0 && (
-                                <span className="text-xs font-black text-muted-foreground">→</span>
-                              )}
                             </motion.button>
                           );
                         })}
@@ -3061,16 +3050,8 @@ export default function UserPortal() {
                       className="w-full max-w-lg md:max-w-2xl mx-auto px-2 md:px-0"
                     >
                       <div className="text-center mb-4 md:mb-8">
-                        <div className="text-lg md:text-xl lg:text-2xl font-black text-primary mb-2">
-                          Withdrawing {formatCurrency(withdrawAmount)} PTS
-                        </div>
                         {isPreviewLoading && (
                           <div className="flex justify-center"><Skeleton className="h-3 w-48 rounded mt-1" /></div>
-                        )}
-                        {withdrawalPreviewError && (
-                          <div className="text-xs font-bold text-red-500 uppercase tracking-widest">
-                            {(withdrawalPreviewError as Error).message}
-                          </div>
                         )}
                         {withdrawalPreview && (
                           <div className="text-sm md:text-base font-bold text-foreground/70">
@@ -3087,8 +3068,6 @@ export default function UserPortal() {
                           return (
                             <motion.button
                               key={method.id}
-                              whileHover={{ scale: 1.01, x: 5 }}
-                              whileTap={{ scale: 0.99 }}
                               initial={false}
                               animate={{
                                 backgroundColor: isSelected ? 'rgba(255,107,0,0.08)' : '#ffffff',
@@ -3097,7 +3076,7 @@ export default function UserPortal() {
                               }}
                               transition={{ duration: 0.25, ease: "easeInOut" }}
                               onClick={() => setSelectedMethod(method.id)}
-                              className={`payment-method-selection-card flex items-center p-3 md:p-4 lg:p-6 rounded-2xl border-2 w-full transition-shadow duration-300 ${isSelected ? 'selected' : 'hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]'}`}
+                              className={`payment-method-selection-card flex items-center p-3 md:p-4 lg:p-6 rounded-2xl border-2 w-full transition-shadow duration-300 ${isSelected ? 'selected' : ''}`}
                             >
                               <div className="mr-3 md:mr-4 lg:mr-6">
                                 <LogoComponent className="w-14 h-14 md:w-16 md:h-16 lg:w-20 lg:h-20" />
@@ -3109,11 +3088,6 @@ export default function UserPortal() {
                                     }`}
                                 />
                               </div>
-                              {isSelected && (
-                                <div className="ml-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                                  <span className="text-black text-xs font-black">✓</span>
-                                </div>
-                              )}
                             </motion.button>
                           );
                         })}
@@ -3162,7 +3136,7 @@ export default function UserPortal() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
                           >
-                            <TechnicalLabel text="Phone/WhatsApp" className="text-foreground mb-2 md:mb-3 text-xs md:text-sm font-black" />
+                            <TechnicalLabel text="Account No." className="text-foreground mb-2 md:mb-3 text-xs md:text-sm font-black" />
                             <div className="relative">
                               <Input
                                 type="text"
@@ -3212,32 +3186,32 @@ export default function UserPortal() {
                         <div className="bg-muted/5 border border-black/15 rounded-2xl p-4 md:p-6 space-y-3">
                           <div className="flex justify-between items-center text-sm md:text-base">
                             <span className="font-bold text-muted-foreground">Requested</span>
-                            <span className="font-black text-foreground">{formatCurrency(withdrawAmount || "0")} PTS</span>
+                            <span className="font-black text-foreground">{formatCurrency(withdrawAmount || "0")}</span>
                           </div>
 
                           <div className="flex justify-between items-center text-sm md:text-base">
                             <span className="font-bold text-muted-foreground">Exact PKR Value</span>
                             <span className="font-black text-foreground">
-                              {isPreviewLoading ? <Skeleton className="h-5 w-24 rounded inline-block" /> : (withdrawalPreview ?? (DEV_UNLOCK_PAYOUT ? DEV_MOCK_PREVIEW : null)) ? `Rs. ${(withdrawalPreview ?? DEV_MOCK_PREVIEW).exactPkr.toFixed(2)}${DEV_UNLOCK_PAYOUT && !withdrawalPreview ? " (dev)" : ""}` : "—"}
+                              {isPreviewLoading ? <Skeleton className="h-5 w-24 rounded inline-block" /> : withdrawalPreview ? `Rs. ${withdrawalPreview.exactPkr.toFixed(2)}` : "—"}
                             </span>
                           </div>
 
                           <div className="flex justify-between items-center text-sm md:text-base">
                             <span className="font-bold text-muted-foreground flex items-center gap-2">
                               Withdrawal Fee
-                              <span className="text-[10px] bg-black text-white px-1.5 py-0.5 rounded-sm">{(withdrawalPreview ?? (DEV_UNLOCK_PAYOUT ? DEV_MOCK_PREVIEW : null))?.feePercent ?? WITHDRAWAL_FEE_PERCENT}%</span>
+                              <span className="text-[10px] bg-black text-white px-1.5 py-0.5 rounded-sm">{withdrawalPreview?.feePercent ?? WITHDRAWAL_FEE_PERCENT}%</span>
                             </span>
                             <span className="font-black text-red-500">
-                              {isPreviewLoading ? <Skeleton className="h-5 w-20 rounded inline-block" /> : (withdrawalPreview ?? (DEV_UNLOCK_PAYOUT ? DEV_MOCK_PREVIEW : null)) ? `-Rs. ${(withdrawalPreview ?? DEV_MOCK_PREVIEW).platformFee.toFixed(2)}${DEV_UNLOCK_PAYOUT && !withdrawalPreview ? " (dev)" : ""}` : "—"}
+                              {isPreviewLoading ? <Skeleton className="h-5 w-20 rounded inline-block" /> : withdrawalPreview ? `-Rs. ${withdrawalPreview.platformFee.toFixed(2)}` : "—"}
                             </span>
                           </div>
 
-                          {(withdrawalPreview ?? (DEV_UNLOCK_PAYOUT ? DEV_MOCK_PREVIEW : null))?.referrerName && (
+                          {withdrawalPreview?.referrerName && (
                             <>
                               <div className="my-2 border-t border-dashed border-black/20" />
                               <div className="flex justify-between items-center text-xs md:text-sm">
                                 <span className="text-muted-foreground font-bold">Referrer Share (of fee above)</span>
-                                <span className="text-foreground font-black">Rs. {(withdrawalPreview ?? DEV_MOCK_PREVIEW).referralCommission.toFixed(2)}</span>
+                                <span className="text-foreground font-black">Rs. {withdrawalPreview.referralCommission.toFixed(2)}</span>
                               </div>
                             </>
                           )}
