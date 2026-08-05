@@ -487,46 +487,50 @@ export default function EnhancedVideoPlayer({
         maxHeight: '100vh'
       } : {}}
     >
-      {/* Industrial Frame Container */}
-      <div className={`bg-black rounded-2xl overflow-hidden transition-all duration-300 ${isFullscreen
-          ? 'h-full w-full flex items-center justify-center rounded-none'
-          : isMobileDevice
-            ? 'border border-white/15 p-1'
-            : 'border-2 border-white/15 p-2'
-        }`}>
-        {/* Top Navigation Bar - Wireframe Style - Hidden in Fullscreen */}
-        {!isFullscreen && (
-          <div className={`bg-white transition-all duration-300 ${isMobileDevice ? 'mb-1 border border-black' : 'border-2 border-black mb-2'
-            }`}>
-            <div className={`flex items-center justify-between transition-all duration-300 ${isMobileDevice ? 'p-1.5' : 'p-2'
-              }`}>
-              {/* Area Tabs - Left Side - Simplified for Mobile */}
-              <div className={`flex items-center ${isMobileDevice ? 'gap-0.5' : 'gap-1'}`}>
-                {areaTabs.map((areaTab) => (
-                  <button
-                    key={areaTab.id}
-                    onClick={() => setActiveAreaTab(areaTab.id)}
-                    className={`border border-black transition-all duration-200 ${isMobileDevice
-                        ? 'text-xs px-2 py-1'
-                        : 'text-xs px-3 py-1'
-                      } ${activeAreaTab === areaTab.id
-                        ? 'bg-black text-white'
-                        : 'bg-white text-black hover:bg-gray-100'
-                      }`}
-                    data-testid={`area-tab-${areaTab.id}`}
-                  >
-                    <TechnicalLabel
-                      text={areaTab.label}
-                      className={isMobileDevice ? "text-xs" : "text-xs"}
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+      {/* ── Premium Area Tab Row (outside the player frame) ── */}
+      {!isFullscreen && (
+        <div className={`flex items-center gap-2 ${isMobileDevice ? 'mb-3' : 'mb-5'}`}>
+          {areaTabs.map((areaTab) => {
+            const active = activeAreaTab === areaTab.id;
+            return (
+              <button
+                key={areaTab.id}
+                onClick={() => setActiveAreaTab(areaTab.id)}
+                data-testid={`area-tab-${areaTab.id}`}
+                className={`
+                  relative flex-1 rounded-xl border-2 transition-all duration-300 ease-out
+                  ${isMobileDevice ? 'py-2.5 px-2' : 'py-3 px-4'}
+                  ${active
+                    ? 'bg-black border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.15)]'
+                    : 'bg-card border-black/12 hover:border-black/40 hover:bg-black/4'
+                  }
+                `}
+              >
+                <span className={`
+                  block font-black uppercase tracking-widest leading-none
+                  ${isMobileDevice ? 'text-[9px]' : 'text-[10px]'}
+                  ${active ? 'text-white' : 'text-black/40'}
+                  transition-colors duration-300
+                `}>
+                  {areaTab.label}
+                </span>
+                {active && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[1px] w-6 h-0.5 bg-primary rounded-full" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
-        {/* Main Video Content Area - Independent Players for Each Area */}
+      {/* ── Player Frame ── */}
+      <div className={`bg-black overflow-hidden transition-all duration-300 ${isFullscreen
+          ? 'h-full w-full flex items-center justify-center'
+          : isMobileDevice
+            ? 'rounded-2xl border border-black/20'
+            : 'rounded-2xl border-2 border-black/20'
+        }`}>
+        {/* Main Video Content Area */}
         <div className={isFullscreen ? 'w-full h-full' : 'w-full'}>
           {areaTabs.map((areaTab) => (
             <AreaPlayer
@@ -542,7 +546,6 @@ export default function EnhancedVideoPlayer({
             />
           ))}
         </div>
-
       </div>
     </div>
   );

@@ -2079,7 +2079,7 @@ export default function UserPortal() {
         </div>
 
         {/* ── Engine Pages (slide below selector) ── */}
-        <div className="overflow-hidden">
+        <div className="overflow-hidden mt-8">
           <AnimatePresence mode="wait" initial={false}>
             {activeWorkEngine === 1 ? (
               <motion.div
