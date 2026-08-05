@@ -73,12 +73,9 @@ import {
   Filter,
   Flame,
   HelpCircle,
-  MessageCircle,
-  Book,
 
   RotateCcw,
   RotateCw,
-  Phone,
   Mail,
   CreditCard,
   History,
@@ -543,8 +540,10 @@ export default function UserPortal() {
   const [showReferralLink, setShowReferralLink] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
-  const [referralZoom, setReferralZoom] = useState(1);
-  const resetZoom = () => setReferralZoom(1);
+  const getDefaultReferralZoom = () =>
+    typeof window !== "undefined" && window.innerWidth < 768 ? 0.8 : 1;
+  const [referralZoom, setReferralZoom] = useState(getDefaultReferralZoom);
+  const resetZoom = () => setReferralZoom(getDefaultReferralZoom());
 
   // Current section state
   const [currentSection, setCurrentSection] = useState(0);
@@ -3527,9 +3526,9 @@ export default function UserPortal() {
     // Help section tabs — same control renders on every breakpoint,
     // desktop shows the full label, mobile shows the short one.
     const helpSectionOptions = [
-      { id: "guide", label: "AREA GUIDE", shortLabel: "GUIDE", icon: Book },
-      { id: "help", label: "AREA HELP", shortLabel: "CHAT", icon: MessageCircle },
-      { id: "contact", label: "AREA CONTACT", shortLabel: "CONTACT", icon: Phone }
+      { id: "guide", label: "AREA GUIDE", shortLabel: "GUIDE" },
+      { id: "help", label: "AREA HELP", shortLabel: "CHAT" },
+      { id: "contact", label: "AREA CONTACT", shortLabel: "CONTACT" }
     ];
 
     return (
@@ -3611,14 +3610,12 @@ export default function UserPortal() {
             <Tabs value={activeHelpTab} onValueChange={setActiveHelpTab} className="w-full">
               <TabsList className="grid w-full grid-cols-3 mb-8 md:mb-10 bg-muted/60 border border-black/15 rounded-xl h-12 md:h-14 p-1 gap-1">
                 {helpSectionOptions.map((option) => {
-                  const Icon = option.icon;
                   return (
                     <TabsTrigger
                       key={option.id}
                       value={option.id}
                       className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white data-[state=inactive]:hover:bg-black/5 font-black text-[10px] md:text-sm tracking-wide h-full flex items-center justify-center gap-1.5 md:gap-2 transition-all duration-300"
                     >
-                      <Icon className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" />
                       <span className="md:hidden">{option.shortLabel}</span>
                       <span className="hidden md:inline">{option.label}</span>
                     </TabsTrigger>

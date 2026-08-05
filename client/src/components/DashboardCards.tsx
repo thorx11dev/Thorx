@@ -23,7 +23,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
-import { Zap, Gift } from "lucide-react";
+import { Zap, Users } from "lucide-react";
 import { PSProgressCard } from "@/components/PSProgressCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import TechnicalLabel from "@/components/ui/technical-label";
@@ -81,7 +81,7 @@ export function DashboardCards() {
       </CardShell>
 
       <CardShell testId="card-referral-balance">
-        <CardHead icon={Gift} label="REFERRALS" />
+        <CardHead icon={Users} label="REFERRALS" />
         <div className="text-3xl md:text-4xl font-black text-foreground mb-1 tracking-tighter">
           {isReferralStatsLoading
             ? <Skeleton className="h-8 w-20 rounded" />
