@@ -6,7 +6,7 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { storage, KNOWN_SYSTEM_CONFIG_KEYS } from "./storage";
 import { pool, db } from "./db";
-import { initRealtime, broadcastUserUpdated, broadcastTeamRefresh, broadcastGuildMessage, broadcastGuildEvent, broadcastToUser, closeUserSockets } from "./realtime";
+import { initRealtime, broadcastUserUpdated, broadcastTeamRefresh, broadcastGuildMessage, broadcastGuildEvent, broadcastToUser, closeUserSockets, isUserOnline } from "./realtime";
 import { insertRegistrationSchema, insertUserSchema, insertWithdrawalSchema, users, teamKeys, adViews, systemConfig, weeklyTasks, auditLogs, insertHilltopAdsConfigSchema, insertHilltopAdsZoneSchema, passwordResetTokens, insertEngineBTaskSchema, engineBRecords, guildCreationRequests, guildMembers, guildProfiles, guildWars, guilds, captainMessages } from "@shared/schema";
 import { TRUST_STATUSES } from "@shared/constants";
 import { eq, sql, and, desc, or, inArray } from "drizzle-orm";
@@ -2561,7 +2561,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const thorxPid = getThorxPrincipalId(req) as string;
       const leaderboard = await storage.getReferralLeaderboard(thorxPid);
-      res.json(leaderboard);
+      // Real-time presence: "Active" means the referral actually has THORX
+      // open right now (an open WebSocket), not just that they exist.
+      res.json(leaderboard.map((r) => ({ ...r, isOnline: isUserOnline(r.id) })));
     } catch (error) {
       logger.error({ err: error }, "Get referral leaderboard error:");
       res.status(500).json({
@@ -2975,7 +2977,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { userId } = req.params;
       const referrals = await storage.getReferralLeaderboard(userId);
       const stats = await storage.getReferralStats(userId);
-      res.json({ referrals, stats });
+      res.json({ referrals: referrals.map((r) => ({ ...r, isOnline: isUserOnline(r.id) })), stats });
     } catch (error) {
       logger.error({ err: error }, "Get user network error:");
       res.status(500).json({ message: "Failed to fetch user network" });

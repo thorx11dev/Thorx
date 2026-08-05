@@ -17,6 +17,8 @@ interface NetworkUser {
     level: number;
     referredBy: string;
     earningsFromUser: string;
+    /** True only while this referral currently has THORX open (live WebSocket connection). */
+    isOnline?: boolean;
 }
 
 interface ReferralTreeProps {
@@ -172,8 +174,21 @@ function ReferralCard({ user }: { user: NetworkUser }) {
                     +{formatPoints(user.earningsFromUser)}
                 </div>
             ) : (
-                <div className="mt-2 rounded-full bg-black/[0.04] px-2.5 py-1 text-center text-[9px] font-bold uppercase tracking-wide leading-none text-black/30 md:text-[10px]">
-                    Active
+                <div
+                    className={cn(
+                        "mt-2 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-center text-[9px] font-bold uppercase tracking-wide leading-none md:text-[10px]",
+                        user.isOnline ? "bg-emerald-500/10 text-emerald-600" : "bg-black/[0.04] text-black/30"
+                    )}
+                    data-testid={`status-${user.isOnline ? "online" : "offline"}-${user.id}`}
+                >
+                    <span
+                        className={cn(
+                            "h-1.5 w-1.5 rounded-full",
+                            user.isOnline ? "bg-emerald-500" : "bg-black/20"
+                        )}
+                        aria-hidden="true"
+                    />
+                    {user.isOnline ? "Active" : "Not Active"}
                 </div>
             )}
         </div>

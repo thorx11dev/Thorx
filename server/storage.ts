@@ -127,6 +127,7 @@ import {
   type InsertEngineBRecord,
   guildWars,
 } from "@shared/schema";
+import { pickAvatarIdForName } from "@shared/constants";
 import { drawThorxCard, RANK_REWARD_MULTIPLIERS } from "./modules/thorx-card";
 import { awardTaskPS, processStreak } from "./modules/ps-engine";
 import { checkAndUpdateRankTier } from "./modules/ps-engine";
@@ -980,6 +981,12 @@ export class DatabaseStorage implements IStorage {
     const { name, ...safeUserFields } = insertUser as any;
     const userData: any = { ...safeUserFields, passwordHash: hashedPassword, referralCode };
     if (insertUser.id) { userData.id = insertUser.id; }
+    // Give every fresh account a name-appropriate avatar from the very first
+    // render instead of the schema default ("default" -> always avatar-1).
+    if (!userData.avatar || userData.avatar === "default") {
+      const nameForAvatar = name || `${safeUserFields.firstName || ""} ${safeUserFields.lastName || ""}`.trim();
+      userData.avatar = pickAvatarIdForName(nameForAvatar);
+    }
 
     const user = await db.transaction(async (tx) => {
       if (insertUser.referredBy) {

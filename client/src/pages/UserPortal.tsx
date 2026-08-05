@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, queryClient, getCsrfToken } from "@/lib/queryClient";
 import { ReferralTree } from "@/components/ui/referral-tree";
+import { useDragToPan } from "@/hooks/useDragToPan";
 import { useToast } from "@/hooks/use-toast";
 import TechnicalLabel from "@/components/ui/technical-label";
 import Barcode from "@/components/ui/barcode";
@@ -544,6 +545,7 @@ export default function UserPortal() {
     typeof window !== "undefined" && window.innerWidth < 768 ? 0.8 : 1;
   const [referralZoom, setReferralZoom] = useState(getDefaultReferralZoom);
   const resetZoom = () => setReferralZoom(getDefaultReferralZoom());
+  const { containerRef: referralPanRef, isDragging: isReferralDragging, onMouseDown: onReferralMouseDown } = useDragToPan<HTMLDivElement>();
 
   // Current section state
   const [currentSection, setCurrentSection] = useState(0);
@@ -2654,8 +2656,12 @@ export default function UserPortal() {
                 </div>
 
                 <div
+                  ref={referralPanRef}
+                  onMouseDown={onReferralMouseDown}
+                  onDragStart={(e) => e.preventDefault()}
                   className={cn(
-                    "w-full overflow-auto scrollbar-hide p-4 cursor-grab active:cursor-grabbing md:p-8",
+                    "w-full overflow-auto scrollbar-hide p-4 cursor-grab md:p-8",
+                    isReferralDragging && "cursor-grabbing select-none",
                     directReferralsCount === 0 ? "min-h-[360px] md:min-h-[400px]" : "min-h-[460px] md:min-h-[520px]"
                   )}
                 >

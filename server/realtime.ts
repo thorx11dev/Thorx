@@ -130,6 +130,20 @@ export function broadcastUserUpdated(userId: string, reason?: string, data?: Rec
   });
 }
 
+/**
+ * True if the given user currently has at least one open WebSocket
+ * connection — i.e. THORX is genuinely open in a tab/device right now.
+ * Distinct from `lastActiveAt`, which only reflects the last authenticated
+ * HTTP request and can lag behind by however long the user has been idle.
+ * Used for real-time "Active" / "Not Active" presence badges (referral tree).
+ */
+export function isUserOnline(userId: string): boolean {
+  for (const meta of sockets.values()) {
+    if (meta.userId === userId) return true;
+  }
+  return false;
+}
+
 /** Notify all connected sessions permitted to see cross-user activity (e.g. new user registered, directory changed). */
 export function broadcastTeamRefresh(reason?: string) {
   const payload = { type: "team:refresh", reason, at: Date.now() };

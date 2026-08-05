@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from "react";
 import Decimal from "decimal.js";
 import { downloadFromUrl } from "@/lib/downloadFromUrl";
+import { useDragToPan } from "@/hooks/useDragToPan";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Users, 
@@ -120,6 +121,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
   const [psConfirming, setPsConfirming] = useState(false);
   const [newNote, setNewNote] = useState("");
   const [networkZoom, setNetworkZoom] = useState(1);
+  const { containerRef: networkPanRef, isDragging: isNetworkDragging, onMouseDown: onNetworkMouseDown } = useDragToPan<HTMLDivElement>();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedTrustStatus, setSelectedTrustStatus] = useState<string | null>(null);
   const [trustReason, setTrustReason] = useState("");
@@ -720,7 +722,13 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
           <div className="flex-1 overflow-hidden bg-[#fdfbf7] relative">
             {networkData ? (
                <div
-                 className="w-full h-full flex justify-center items-start overflow-auto scrollbar-hide pt-12"
+                 ref={networkPanRef}
+                 onMouseDown={onNetworkMouseDown}
+                 onDragStart={(e) => e.preventDefault()}
+                 className={cn(
+                   "w-full h-full flex justify-center items-start overflow-auto scrollbar-hide pt-12 cursor-grab",
+                   isNetworkDragging && "cursor-grabbing select-none"
+                 )}
                >
                  <div
                    style={{ 
