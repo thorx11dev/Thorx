@@ -4,7 +4,7 @@
  * Every role (simple user, guild member, captain) sees EXACTLY the same 3
  * primary metric cards, in the same order, with identical markup — never
  * more, never fewer, regardless of rank/tier/guild role:
- *   1. TX-Points Balance
+ *   1. TX-Points
  *   2. Referrals (total referral count)
  *   3. Performance Rank (PS Score)
  *
@@ -76,8 +76,8 @@ export function DashboardCards() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-12">
       <CardShell testId="card-tx-points">
-        <CardHead icon={Zap} label="TX-POINTS BALANCE" />
-        <p className="text-3xl md:text-4xl font-black text-primary mb-1 tracking-tighter">{txPoints.toLocaleString()} pts</p>
+        <CardHead icon={Zap} label="TX-POINTS" />
+        <p className="text-3xl md:text-4xl font-black text-primary mb-1 tracking-tighter">{txPoints.toLocaleString()}</p>
       </CardShell>
 
       <CardShell testId="card-referral-balance">

@@ -84,8 +84,6 @@ import {
   StopCircle,
   Filter,
   Flame,
-  HelpCircle,
-
   RotateCcw,
   RotateCw,
   Mail,
@@ -1504,7 +1502,7 @@ export default function UserPortal() {
               onClick={() => setShowNotificationModal(true)}
               variant="outline"
               size="sm"
-              className="relative border border-black/20 rounded-full text-black/50 bg-white hover:bg-black hover:text-white hover:border-black transition-all duration-200 w-9 h-9 p-0 flex items-center justify-center"
+              className="relative border-2 border-black rounded-lg text-black bg-white hover:bg-black hover:text-white hover:border-black transition-all duration-300 transform hover:scale-105"
               aria-label="Open notifications"
             >
               <Bell className="w-4 h-4" strokeWidth={2} />
@@ -3299,7 +3297,7 @@ export default function UserPortal() {
               }
               className="bg-white border border-black/15 rounded-2xl p-6 shadow-[0_12px_40px_rgba(0,0,0,0.06)]"
             >
-              <TechnicalLabel text="TRANSACTION HISTORY" className="text-foreground font-black text-sm mb-4" />
+              <TechnicalLabel text="HISTORY" className="text-foreground font-black text-sm mb-4" />
               <Button
                 onClick={() => setShowHistory(!showHistory)}
                 variant="outline"
@@ -3370,17 +3368,12 @@ export default function UserPortal() {
             >
               <TechnicalLabel text="NEED HELP?" className="text-foreground font-black text-sm mb-4" />
               <div className="space-y-3">
-                <div className="text-xs text-muted-foreground leading-relaxed font-bold">
-                  • Processing time: 2-48 hours<br />
-                  • Processing fee: 10%<br />
-                  • 24/7 customer support
-                </div>
                 <Button
                   variant="outline"
                   className="w-full border-2 border-black rounded-xl text-foreground hover:bg-black hover:text-white py-2 font-black text-xs transition-all"
-                  onClick={() => navigateToSection(4)} // Navigate to help section
+                  onClick={() => navigateToSection(5)} // Navigate to help section
                 >
-                  <HelpCircle className="w-3 h-3 mr-2" />
+                  <LifeBuoy className="w-4 h-4 mr-2" />
                   GET SUPPORT
                 </Button>
               </div>
@@ -3397,7 +3390,7 @@ export default function UserPortal() {
           className="lg:hidden mt-6"
         >
           <div className="bg-white border border-black/15 rounded-2xl p-3 md:p-4 shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
-            <TechnicalLabel text="TRANSACTION HISTORY" className="text-foreground font-black text-sm mb-4" />
+            <TechnicalLabel text="HISTORY" className="text-foreground font-black text-sm mb-4" />
             <Button
               onClick={() => setShowHistory(!showHistory)}
               variant="outline"
