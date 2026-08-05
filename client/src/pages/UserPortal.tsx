@@ -3264,7 +3264,7 @@ export default function UserPortal() {
                     aria-label={currentStep === 3 ? "Send payout request" : "Continue to next step"}
                     className={`flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-xs font-black tracking-widest transition-all sm:flex-none sm:px-6 md:px-8 ${canProceed() && !(currentStep === 3 && isProcessing)
                       ? currentStep === 3
-                        ? "border-primary bg-primary text-black shadow-[0_8px_24px_rgba(255,96,49,0.28)] hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_12px_28px_rgba(255,96,49,0.34)]"
+                        ? "border-black bg-black text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] hover:-translate-y-0.5 hover:bg-black hover:text-white hover:shadow-[0_12px_28px_rgba(0,0,0,0.24)]"
                         : "border-black bg-black text-white shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:bg-white hover:text-black"
                       : "cursor-not-allowed border-black/20 bg-[#f1f0ea] text-black/50 shadow-none"
                       }`}
