@@ -183,11 +183,16 @@ function AreaPlayer({
       className={`relative flex items-center justify-center overflow-hidden transition-all duration-300 ${isFullscreen
           ? 'h-screen w-full border-none'
           : isMobileDevice
-            ? 'aspect-video border border-black'
-            : 'aspect-video border-2 border-black'
+            ? 'w-full border border-black'
+            : 'w-full border-2 border-black'
         }`}
+      style={{
+        backgroundColor: "#0a0a0a",
+        ...(isFullscreen ? {} : isMobileDevice
+          ? { aspectRatio: '9/16', maxHeight: '75vh' }
+          : { aspectRatio: '16/9' })
+      }}
       data-testid={`video-player-${areaId}`}
-      style={{ backgroundColor: "#0a0a0a" }}
     >
       {/* Play Button */}
       <div className="relative z-10 flex items-center justify-center">
