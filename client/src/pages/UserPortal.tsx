@@ -770,12 +770,6 @@ export default function UserPortal() {
     enabled: !!user && user.id !== 'guest',
   });
 
-  // Referral LVL 1 / LVL 2 counts — derived directly from the referral
-  // leaderboard entries (by level), never from the aggregate total-referrals
-  // stat, which conflates L1 and L2 into a single number.
-  const referralLevel1Count = (referralLeaderboard || []).filter((r: any) => r.level === 1).length;
-  const referralLevel2Count = (referralLeaderboard || []).filter((r: any) => r.level === 2).length;
-
   const userRank = (user?.userRankTier || "E-Rank").toLowerCase();
 
   // Payout is always open — no task gate (Blueprint v2026)

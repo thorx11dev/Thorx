@@ -487,11 +487,18 @@ export interface IStorage {
   }>;
   getEarningsHistory(userId: string, period: 'week' | 'month' | 'year'): Promise<Array<{ date: string; amount: string }>>;
   getReferralLeaderboard(userId: string): Promise<Array<{
-    user: User;
-    referralCount: number;
-    totalEarnings: string;
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    avatar: string | null;
+    userRankTier: string;
+    createdAt: Date | null;
+    referredBy: string;
+    totalEarnings: string | null;
+    profilePicture: string | null;
+    earningsFromUser: string;
     level: number;
-    rank: number;
   }>>;
   getTransactionHistory(userId: string, limit?: number): Promise<Array<{
     id: string;
@@ -1611,17 +1618,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getReferralStats(userId: string): Promise<{ count: number; totalEarned: string }> {
-    const [result] = await db
-      .select({
-        count: sql<number>`COUNT(*)`,
-        totalEarned: sql<string>`COALESCE(SUM(${referrals.totalEarned}), '0.00')`
-      })
+    const [countResult] = await db
+      .select({ count: sql<number>`COUNT(*)` })
       .from(referrals)
       .where(eq(referrals.referrerId, userId));
 
+    // Same fix as R-01 (getDashboardStats): referrals.totalEarned is never
+    // incremented by processWithdrawal or awardEarning, so it is permanently
+    // stale. The current single-tier system credits commissions through two
+    // live tables — referral_commissions (withdrawal fee share) and
+    // referral_earn_commissions (1% of referred users' earn events) — so the
+    // lifetime total must be summed from both, never from commission_logs
+    // (frozen/dead) or referrals.totalEarned.
+    const [withdrawalTotal] = await db
+      .select({ total: sql<string>`COALESCE(SUM(${referralCommissions.commissionAmountPkr}), '0.00')` })
+      .from(referralCommissions)
+      .where(eq(referralCommissions.referrerId, userId));
+
+    const [earnTotal] = await db
+      .select({ total: sql<string>`COALESCE(SUM(${referralEarnCommissions.commissionPkr}), '0.00')` })
+      .from(referralEarnCommissions)
+      .where(eq(referralEarnCommissions.referrerId, userId));
+
+    const totalEarned = new Decimal(withdrawalTotal?.total || '0')
+      .plus(earnTotal?.total || '0')
+      .toFixed(2);
+
     return {
-      count: result?.count || 0,
-      totalEarned: result?.totalEarned || "0.00",
+      count: countResult?.count || 0,
+      totalEarned,
     };
   }
 
@@ -3351,12 +3376,14 @@ export class DatabaseStorage implements IStorage {
 
   async getReferralLeaderboard(userId: string) {
     try {
-      logger.info({ userId }, '[ReferralTree] Fetching network for user');
+      logger.info({ userId }, '[ReferralTree] Fetching direct referrals for user');
 
-      // 1. Get Top Level 1 Referees (Directly referred by userId)
-      //    Only real, active members count toward the leaderboard — team/admin/
-      //    founder accounts and deactivated users must never appear here.
-      const level1Users = await db
+      // Single-tier system: the tree only ever shows direct referrals. A
+      // referral's own downstream signups belong to them, not to userId, and
+      // generate no commission for userId — there is no Level-2 to display.
+      // Only real, active members count — team/admin/founder accounts and
+      // deactivated users must never appear here.
+      const directReferrals = await db
         .select({
           id: users.id,
           firstName: users.firstName,
@@ -3375,80 +3402,68 @@ export class DatabaseStorage implements IStorage {
           eq(users.role, "user"),
           eq(users.isActive, true)
         ))
-        .orderBy(desc(users.totalEarnings))
+        .orderBy(desc(users.createdAt))
         .limit(100);
 
-      logger.info({ count: level1Users.length }, '[ReferralTree] Found L1 users (capped at 100)');
+      logger.info({ count: directReferrals.length }, '[ReferralTree] Found direct referrals (capped at 100)');
 
-      // 2. Get Top Level 2 Referees (Referred by Level 1 users)
-      const level1Ids = level1Users.map(u => u.id);
-      let level2Users: any[] = [];
-
-      if (level1Ids.length > 0) {
-        level2Users = await db
-          .select({
-            id: users.id,
-            firstName: users.firstName,
-            lastName: users.lastName,
-            email: users.email,
-            avatar: users.avatar,
-            userRankTier: users.userRankTier,
-            createdAt: users.createdAt,
-            referredBy: users.referredBy,
-            totalEarnings: users.totalEarnings,
-          profilePicture: users.profilePicture
-          })
-          .from(users)
-          .where(and(
-            inArray(users.referredBy, level1Ids),
-            eq(users.role, "user"),
-            eq(users.isActive, true)
-          ))
-          .orderBy(desc(users.totalEarnings))
-          .limit(200);
-
-        logger.info({ count: level2Users.length }, '[ReferralTree] Found L2 users (capped at 200)');
+      if (directReferrals.length === 0) {
+        return [];
       }
 
-      // 3. Pull real per-referee commission totals in one batch query instead
-      //    of hardcoding "0.00" — this is how much the viewing user (userId)
-      //    actually earned from each downstream referee's payouts.
-      const allReferredIds = [...level1Users.map(u => u.id), ...level2Users.map(u => u.id)];
-      const earningsByUser = new Map<string, string>();
+      // Pull real per-referral commission totals in one batch instead of
+      // hardcoding "0.00" — this is how much userId actually earned from each
+      // direct referral. The current single-tier system pays the direct
+      // referrer from two live tables: a share of the referred user's
+      // withdrawal fee (referral_commissions) and 1% of their earn events
+      // (referral_earn_commissions). commission_logs is frozen/dead (see
+      // processWithdrawal) and must never be read for current totals.
+      const referredIds = directReferrals.map(u => u.id);
 
-      if (allReferredIds.length > 0) {
-        const earningsRows = await db
+      const [withdrawalRows, earnRows] = await Promise.all([
+        db
           .select({
-            sourceUserId: commissionLogs.sourceUserId,
-            total: sql<string>`COALESCE(SUM(${commissionLogs.amount}), '0.00')`
+            inviteeId: referralCommissions.inviteeId,
+            total: sql<string>`COALESCE(SUM(${referralCommissions.commissionAmountPkr}), '0.00')`
           })
-          .from(commissionLogs)
+          .from(referralCommissions)
           .where(and(
-            eq(commissionLogs.beneficiaryId, userId),
-            inArray(commissionLogs.sourceUserId, allReferredIds)
+            eq(referralCommissions.referrerId, userId),
+            inArray(referralCommissions.inviteeId, referredIds)
           ))
-          .groupBy(commissionLogs.sourceUserId);
+          .groupBy(referralCommissions.inviteeId),
+        db
+          .select({
+            earnerId: referralEarnCommissions.earnerId,
+            total: sql<string>`COALESCE(SUM(${referralEarnCommissions.commissionPkr}), '0.00')`
+          })
+          .from(referralEarnCommissions)
+          .where(and(
+            eq(referralEarnCommissions.referrerId, userId),
+            inArray(referralEarnCommissions.earnerId, referredIds)
+          ))
+          .groupBy(referralEarnCommissions.earnerId)
+      ]);
 
-        for (const row of earningsRows) {
-          earningsByUser.set(row.sourceUserId, row.total);
-        }
+      const earningsByUser = new Map<string, Decimal>();
+      for (const row of withdrawalRows) {
+        earningsByUser.set(row.inviteeId, new Decimal(row.total || '0'));
+      }
+      for (const row of earnRows) {
+        const existing = earningsByUser.get(row.earnerId) ?? new Decimal(0);
+        earningsByUser.set(row.earnerId, existing.plus(row.total || '0'));
       }
 
-      // 4. Format into a flat list for the frontend to reconstruct
-      const combined = [
-        ...level1Users.map((u) => ({
+      // Rank by how much each referral has actually earned userId — the most
+      // valuable relationships surface first, ties keep newest-first order.
+      const combined = directReferrals
+        .map((u) => ({
           ...u,
-          earningsFromUser: earningsByUser.get(u.id) || '0.00',
+          earningsFromUser: (earningsByUser.get(u.id) ?? new Decimal(0)).toFixed(2),
           level: 1,
           referredBy: userId
-        })),
-        ...level2Users.map((u) => ({
-          ...u,
-          earningsFromUser: earningsByUser.get(u.id) || '0.00',
-          level: 2,
-          referredBy: u.referredBy // This will be one of the L1 IDs
         }))
-      ];
+        .sort((a, b) => parseFloat(b.earningsFromUser) - parseFloat(a.earningsFromUser));
 
       return combined;
     } catch (error) {
