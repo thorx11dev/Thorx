@@ -23,6 +23,9 @@ interface ScratchCardModalProps {
 
 /**
  * Bridges old ScratchCardBreakdown shape → ThorxCardPayload.
+ * Currently only reached from Engine A's ad-completion flow, so the reward
+ * card is always labeled as Engine A (was previously hardcoded to
+ * "Engine_C", mislabeling every Engine A reward as a Guild Task).
  */
 export function ScratchCardModal({ open, breakdown, onClose }: ScratchCardModalProps) {
   if (!open || !breakdown) return null;
@@ -30,7 +33,7 @@ export function ScratchCardModal({ open, breakdown, onClose }: ScratchCardModalP
   const payload: ThorxCardPayload = {
     pointsCredited: breakdown.totalPoints,
     realPkrValue: parseFloat(breakdown.walletPkr || "0"),
-    engineType: "Engine_C",
+    engineType: "Engine_A",
   };
 
   return <ThorxCard payload={payload} onClaim={onClose} />;

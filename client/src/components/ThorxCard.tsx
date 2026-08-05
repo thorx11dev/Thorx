@@ -62,8 +62,8 @@ export function ThorxCard({ payload, onClaim }: ThorxCardProps) {
             initial={{ scale: 0.85, y: 40 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.85, y: 40 }}
-            className="relative w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl"
-            style={{ perspective: 600 }}
+            className="relative w-full max-w-sm rounded-2xl overflow-hidden border-2 border-black"
+            style={{ perspective: 600, boxShadow: "8px 8px 0px 0px rgba(0,0,0,1)" }}
           >
             {/* Card face-down state */}
             <AnimatePresence mode="wait">
@@ -73,20 +73,20 @@ export function ThorxCard({ payload, onClaim }: ThorxCardProps) {
                   initial={{ rotateY: 0 }}
                   exit={{ rotateY: 90, opacity: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="bg-zinc-900 p-8 text-center"
+                  className="bg-black p-8 text-center"
                 >
                   <div className="mb-6 flex justify-center">
                     <div
-                      className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-black"
-                      style={{ backgroundColor: accentColor + "20", color: accentColor }}
+                      className="w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-black tracking-tight"
+                      style={{ backgroundColor: accentColor + "1a", color: accentColor }}
                     >
                       THORX
                     </div>
                   </div>
-                  <p className="text-zinc-400 text-sm mb-6">You earned a reward card!</p>
+                  <p className="text-white/50 text-sm mb-6">You earned a reward card!</p>
                   <Button
                     onClick={handleReveal}
-                    className="w-full font-bold text-black"
+                    className="w-full font-bold text-black rounded-lg"
                     style={{ backgroundColor: accentColor }}
                   >
                     Reveal Card
@@ -102,7 +102,7 @@ export function ThorxCard({ payload, onClaim }: ThorxCardProps) {
                 >
                   {/* Engine badge */}
                   <span
-                    className="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full mb-4"
+                    className="inline-block text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-sm mb-5"
                     style={{ backgroundColor: accentColor + "15", color: accentColor }}
                   >
                     {engineLabel}
@@ -113,19 +113,16 @@ export function ThorxCard({ payload, onClaim }: ThorxCardProps) {
                     initial={{ opacity: 0, scale: 0.5 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    className="text-6xl font-black mb-1"
+                    className="text-6xl font-black mb-2"
                     style={{ color: accentColor }}
                   >
                     {payload.pointsCredited.toLocaleString()}
                   </motion.div>
-                  <div className="text-zinc-500 text-sm font-medium mb-1">TX-Points Earned</div>
-                  <div className="text-zinc-400 text-xs mb-6">
-                    TX-Points Credited
-                  </div>
+                  <div className="text-black/50 text-sm font-medium mb-6 uppercase tracking-wide">TX-Points Earned</div>
 
                   <Button
                     onClick={handleClaim}
-                    className="w-full font-bold text-white"
+                    className="w-full font-bold text-white rounded-lg"
                     style={{ backgroundColor: accentColor }}
                   >
                     <Zap size={16} className="mr-2" />

@@ -15,7 +15,8 @@ import {
   HelpCircle,
   MoreHorizontal,
   Minimize, // Import Minimize icon
-  Maximize // Import Maximize icon
+  Maximize, // Import Maximize icon
+  CheckCircle2
 } from "lucide-react";
 
 interface VideoTab {
@@ -46,18 +47,6 @@ interface PlayerState {
   showSkip: boolean;
   autoplayEnabled: boolean; // Added for autoplay toggle
 }
-
-// Thorx core color scheme for different players
-const playerColors: Record<string, string> = {
-  "001": "from-blue-600 via-blue-700 to-blue-800", // Example: Blue for AREA 001
-  "002": "from-green-600 via-green-700 to-green-800", // Example: Green for AREA 002
-  "003": "from-yellow-500 via-yellow-600 to-yellow-700", // Example: Yellow for AREA 003
-  "004": "from-purple-600 via-purple-700 to-purple-800", // Example: Purple for AREA 004
-};
-
-// Thorx core colors for UI elements
-const thorxOrange = "#F97316"; // Example: primary orange
-const thorxBlack = "#000000"; // Example: black
 
 // Single area player component
 interface AreaPlayerProps {
@@ -198,49 +187,39 @@ function AreaPlayer({
             : 'aspect-video border-2 border-black'
         }`}
       data-testid={`video-player-${areaId}`}
-      style={{
-        backgroundColor: areaId === "001" ? "#1E3A8A" :
-          areaId === "002" ? "#166534" :
-            areaId === "003" ? "#92400E" :
-              areaId === "004" ? "#581C87" :
-                "black"
-      }}
+      style={{ backgroundColor: "#0a0a0a" }}
     >
-      {/* Industrial Grid Pattern */}
-      <div className={`absolute inset-0 ${isMobileDevice ? 'hidden' : 'opacity-10'}`}>
-      </div>
-
-      {/* Video Content Background */}
-      <div className={`absolute inset-0 ${playerColors[areaId] || 'from-black/80 via-gray-900/90 to-black/80'}`} />
-
       {/* Play Button */}
       <div className="relative z-10 flex items-center justify-center">
         {!isPlaying ? (
           <button
             onClick={handlePlay}
-            className={`group relative bg-white/10 backdrop-blur-sm border border-white/20 rounded-full flex items-center justify-center transition-all duration-300 hover:bg-white/20 hover:scale-105 hover:border-white/40 ${isFullscreen ? 'w-24 h-24' : 'w-16 h-16'
+            className={`group relative bg-primary rounded-full flex items-center justify-center transition-all duration-300 hover:bg-primary/90 hover:scale-105 ${isFullscreen ? 'w-24 h-24' : 'w-16 h-16'
               }`}
             data-testid={`button-play-${areaId}`}
           >
-            <PlayCircle className={`text-white group-hover:text-white/90 transition-colors ${isFullscreen ? 'w-12 h-12' : 'w-8 h-8'
+            <PlayCircle className={`text-black transition-colors ${isFullscreen ? 'w-12 h-12' : 'w-8 h-8'
               }`} />
           </button>
         ) : (
-          <div className="text-center text-white">
+          <div className="text-center text-white px-6">
             <div className={`mb-2 ${isFullscreen ? 'text-6xl mb-4' : 'text-4xl'}`}>{tab.icon}</div>
             <TechnicalLabel
               text={`${areaLabel} - AD ${currentAdIndex + 1}/${adQueue.length}`}
               className={`text-white mb-1 ${isFullscreen ? 'text-2xl mb-2' : 'text-lg'}`}
             />
-            <p className={`text-white/80 ${isFullscreen ? 'text-lg' : 'text-sm'}`}>{tab.description}</p>
+            <p className={`text-white/60 ${isFullscreen ? 'text-lg' : 'text-sm'}`}>{tab.description}</p>
             {isCompleted && (
-              <div className={`mt-4 bg-green-600/20 border border-green-400 ${isFullscreen ? 'p-4 mt-6' : 'p-3'
+              <div className={`mt-4 bg-white rounded-xl ${isFullscreen ? 'p-5 mt-6' : 'p-4'
                 }`}>
-                <TechnicalLabel
-                  text="AD COMPLETED"
-                  className={`text-green-400 ${isFullscreen ? 'text-lg' : ''}`}
-                />
-                <p className={`text-white mt-1 ${isFullscreen ? 'text-lg mt-2' : ''}`}>
+                <div className="flex items-center justify-center gap-2">
+                  <CheckCircle2 className={`text-primary ${isFullscreen ? 'w-6 h-6' : 'w-4 h-4'}`} />
+                  <TechnicalLabel
+                    text="AD COMPLETED"
+                    className={`text-black ${isFullscreen ? 'text-lg' : ''}`}
+                  />
+                </div>
+                <p className={`text-black/70 mt-1 font-medium ${isFullscreen ? 'text-lg mt-2' : 'text-sm'}`}>
                   You earned {formatCurrency(tab.reward)}
                 </p>
               </div>
@@ -253,7 +232,7 @@ function AreaPlayer({
       {showSkip && canSkip && !isCompleted && (
         <button
           onClick={handleSkip}
-          className={`absolute bg-white/90 backdrop-blur-sm text-black border border-black/20 rounded-md hover:bg-white hover:border-black/40 transition-all duration-200 shadow-lg z-20 ${isFullscreen ? 'top-6 right-6 px-4 py-3' : 'top-4 right-4 px-3 py-2'
+          className={`absolute bg-white text-black border-2 border-black rounded-md hover:bg-white/90 transition-all duration-200 z-20 ${isFullscreen ? 'top-6 right-6 px-4 py-3' : 'top-4 right-4 px-3 py-2'
             }`}
           data-testid={`button-skip-${areaId}`}
         >
@@ -504,11 +483,11 @@ export default function EnhancedVideoPlayer({
       } : {}}
     >
       {/* Industrial Frame Container */}
-      <div className={`bg-black transition-all duration-300 ${isFullscreen
-          ? 'h-full w-full flex items-center justify-center'
+      <div className={`bg-black rounded-2xl overflow-hidden transition-all duration-300 ${isFullscreen
+          ? 'h-full w-full flex items-center justify-center rounded-none'
           : isMobileDevice
-            ? 'border-2 border-white p-1'
-            : 'border-4 border-white p-2'
+            ? 'border border-white/15 p-1'
+            : 'border-2 border-white/15 p-2'
         }`}>
         {/* Top Navigation Bar - Wireframe Style - Hidden in Fullscreen */}
         {!isFullscreen && (

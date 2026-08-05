@@ -704,7 +704,7 @@ export default function UserPortal() {
 
   const notifications = notificationsData || [];
 
-  const { data: todayAdViews } = useQuery({
+  const { data: todayAdViews, isLoading: todayAdViewsLoading } = useQuery({
     queryKey: ["ad-views", "today"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/ad-views/today");
@@ -2001,7 +2001,7 @@ export default function UserPortal() {
           }}
           onClick={() => handleHeroToggle(setIsWorkHeroToggled)}
           className={cn(
-            "wireframe-border rounded-lg p-6 md:p-12 mb-0 relative overflow-hidden group border-4 cursor-pointer",
+            "rounded-2xl p-6 md:p-12 mb-0 relative overflow-hidden group border-2 cursor-pointer",
             "h-[160px] md:h-[260px] flex items-center justify-center md:justify-start"
           )}
         >
@@ -2047,10 +2047,10 @@ export default function UserPortal() {
                 key={engine}
                 onClick={() => setActiveWorkEngine(engine)}
                 className={cn(
-                  "relative overflow-hidden wireframe-border border-4 rounded-lg p-5 md:p-7 text-left transition-all duration-300 group",
+                  "relative overflow-hidden border-2 rounded-2xl p-5 md:p-7 text-left transition-all duration-300 group",
                   active
                     ? "bg-black border-black"
-                    : "bg-card border-muted-foreground/30 hover:border-black/60"
+                    : "bg-card border-black/15 hover:border-black/60"
                 )}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -2097,70 +2097,78 @@ export default function UserPortal() {
                 }}
               >
                 {/* Key Metrics Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 mb-12 mt-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-12 mt-12">
                   <motion.div
                     variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } } }}
-                    whileHover={{ scale: 1.02, translateY: -4 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="group split-card bg-gradient-to-br from-card to-card/80 hover:from-primary/5 hover:to-primary/10 border-2 border-muted-foreground/20 hover:border-primary/30 p-6 text-left transition-all duration-300 cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] hover:shadow-primary/10"
+                    className="group relative rounded-2xl border border-black/15 dark:border-white/15 bg-card p-6 text-left transition-all duration-300 ease-out hover:-translate-y-1 hover:border-black dark:hover:border-white hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.15)]"
                     data-testid="card-work-ads-watched"
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <Eye className="w-8 h-8 text-primary group-hover:text-primary/80 transition-colors" />
-                      <TechnicalLabel text="ADS WATCHED" className="text-muted-foreground text-xs" />
+                    <div className="w-fit rounded-lg bg-black/5 dark:bg-white/10 p-2.5 mb-4">
+                      <Eye className="w-5 h-5 text-foreground/70" />
                     </div>
-                    <p className="text-2xl md:text-3xl font-black text-foreground mb-2 group-hover:text-primary/90 transition-colors" data-testid="text-work-ads-watched">
-                      {dashboardStats?.adsWatchedToday || todayAdViews?.count || 0}
-                    </p>
+                    <TechnicalLabel text="ADS WATCHED" className="text-muted-foreground text-[10px] md:text-xs mb-2" />
+                    {statsLoading && todayAdViewsLoading ? (
+                      <Skeleton className="h-8 w-14" />
+                    ) : (
+                      <p className="text-2xl md:text-3xl font-black text-foreground" data-testid="text-work-ads-watched">
+                        {dashboardStats?.adsWatchedToday || todayAdViews?.count || 0}
+                      </p>
+                    )}
                   </motion.div>
 
                   <motion.div
                     variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } } }}
-                    whileHover={{ scale: 1.02, translateY: -4 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="group split-card bg-gradient-to-br from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10 border-2 border-primary/20 hover:border-primary/40 p-6 text-left transition-all duration-300 cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:shadow-primary/20"
+                    className="group relative rounded-2xl border border-black/15 dark:border-white/15 bg-card p-6 text-left transition-all duration-300 ease-out hover:-translate-y-1 hover:border-black dark:hover:border-white hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.15)]"
                     data-testid="card-work-remaining-ads"
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <Target className="w-8 h-8 text-primary group-hover:text-primary/80 transition-colors" />
-                      <TechnicalLabel text="REMAINING ADS" className="text-muted-foreground text-xs" />
+                    <div className="w-fit rounded-lg bg-primary/10 p-2.5 mb-4">
+                      <Target className="w-5 h-5 text-primary" />
                     </div>
-                    <p className="text-2xl md:text-3xl font-black text-primary mb-2 group-hover:text-primary/90 transition-colors" data-testid="text-work-remaining-ads">
-                      {remainingAds}
-                    </p>
+                    <TechnicalLabel text="REMAINING ADS" className="text-muted-foreground text-[10px] md:text-xs mb-2" />
+                    {statsLoading ? (
+                      <Skeleton className="h-8 w-14" />
+                    ) : (
+                      <p className="text-2xl md:text-3xl font-black text-primary" data-testid="text-work-remaining-ads">
+                        {remainingAds}
+                      </p>
+                    )}
                   </motion.div>
 
                   <motion.div
                     variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } } }}
-                    whileHover={{ scale: 1.02, translateY: -4 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="group split-card bg-gradient-to-br from-muted to-muted/60 hover:from-muted/80 hover:to-muted/40 border-2 border-muted-foreground/20 hover:border-muted-foreground/40 p-6 text-left transition-all duration-300 cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] hover:shadow-muted-foreground/10"
+                    className="group relative rounded-2xl border border-black/15 dark:border-white/15 bg-card p-6 text-left transition-all duration-300 ease-out hover:-translate-y-1 hover:border-black dark:hover:border-white hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.15)]"
                     data-testid="card-work-today-earnings"
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <DollarSign className="w-8 h-8 text-foreground/80 group-hover:text-foreground transition-colors" />
-                      <TechnicalLabel text="TODAY'S EARNINGS" className="text-muted-foreground text-xs" />
+                    <div className="w-fit rounded-lg bg-black/5 dark:bg-white/10 p-2.5 mb-4">
+                      <DollarSign className="w-5 h-5 text-foreground/70" />
                     </div>
-                    <p className="text-2xl md:text-3xl font-black text-foreground mb-2 group-hover:text-foreground/90 transition-colors" data-testid="text-work-today-earnings">
-                      {formatCurrency(dashboardStats?.todayEarnings || (completedAds.size * 2.5))}
-                    </p>
+                    <TechnicalLabel text="TODAY'S EARNINGS" className="text-muted-foreground text-[10px] md:text-xs mb-2" />
+                    {statsLoading ? (
+                      <Skeleton className="h-8 w-20" />
+                    ) : (
+                      <p className="text-2xl md:text-3xl font-black text-foreground" data-testid="text-work-today-earnings">
+                        {formatCurrency(dashboardStats?.todayEarnings || (completedAds.size * 2.5))}
+                      </p>
+                    )}
                   </motion.div>
 
                   <motion.div
                     variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } } }}
-                    whileHover={{ scale: 1.02, translateY: -4 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="group split-card bg-gradient-to-br from-card to-card/80 hover:from-card/90 hover:to-card/70 border-2 border-muted-foreground/20 hover:border-muted-foreground/40 p-6 text-left transition-all duration-300 cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] hover:shadow-muted-foreground/10"
+                    className="group relative rounded-2xl border border-black/15 dark:border-white/15 bg-card p-6 text-left transition-all duration-300 ease-out hover:-translate-y-1 hover:border-black dark:hover:border-white hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.15)]"
                     data-testid="card-work-daily-goal"
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <Award className="w-8 h-8 text-primary group-hover:text-primary/80 transition-colors" />
-                      <TechnicalLabel text="DAILY GOAL" className="text-muted-foreground text-xs" />
+                    <div className="w-fit rounded-lg bg-primary/10 p-2.5 mb-4">
+                      <Award className="w-5 h-5 text-primary" />
                     </div>
-                    <p className="text-2xl md:text-3xl font-black text-primary mb-3 group-hover:text-primary/90 transition-colors" data-testid="text-work-daily-goal">
-                      {Math.round((adsWatchedTodayCount / adsDailyLimit) * 100)}%
-                    </p>
-                    <Progress value={Math.round((adsWatchedTodayCount / adsDailyLimit) * 100)} className="progress-enhanced h-2 mb-3" />
+                    <TechnicalLabel text="DAILY GOAL" className="text-muted-foreground text-[10px] md:text-xs mb-2" />
+                    {statsLoading ? (
+                      <Skeleton className="h-8 w-14 mb-3" />
+                    ) : (
+                      <p className="text-2xl md:text-3xl font-black text-primary mb-3" data-testid="text-work-daily-goal">
+                        {Math.round((adsWatchedTodayCount / adsDailyLimit) * 100)}%
+                      </p>
+                    )}
+                    <Progress value={Math.round((adsWatchedTodayCount / adsDailyLimit) * 100)} className="progress-enhanced h-1.5" />
                   </motion.div>
                 </div>
 
