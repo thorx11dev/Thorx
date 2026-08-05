@@ -28,7 +28,6 @@ import { DesktopNavTabs } from "@/components/ui/desktop-nav-tabs";
 import { AdWebPanel } from "@/components/ui/ad-web-panel";
 import { WaterfallAdPlayer } from "@/components/ads/HilltopAdsPlayer";
 import { NotificationModal } from "@/components/ui/notification-modal";
-import { CommissionCalculator } from "@/components/ui/commission-calculator";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiAbsolutePath } from "@/lib/apiOrigin";
@@ -3377,11 +3376,6 @@ export default function UserPortal() {
                 )}
               </AnimatePresence>
             </motion.div>
-
-            {/* Advanced Commission Calculator */}
-            <div className="hidden lg:block">
-              <CommissionCalculator />
-            </div>
 
             {/* Help & Support */}
             <motion.div
