@@ -574,7 +574,7 @@ export default function UserPortal() {
 
   // Engine B state
   const [engineBActiveTask, setEngineBActiveTask] = useState<any | null>(null);
-  const [engineBPhase, setEngineBPhase] = useState<"idle" | "timer" | "verify" | "done">("idle");
+  const [engineBPhase, setEngineBPhase] = useState<"idle" | "details" | "timer" | "verify" | "done">("idle");
   const [engineBTimer, setEngineBTimer] = useState(10);
   const [engineBCode, setEngineBCode] = useState("");
   const [engineBCodeError, setEngineBCodeError] = useState("");
@@ -779,10 +779,16 @@ export default function UserPortal() {
     [referralLeaderboard]
   );
 
-  const { data: tasksWithRecords } = useQuery<any[]>({
+  const { data: tasksWithRecordsRaw } = useQuery<any[]>({
     queryKey: QUERY_KEYS.tasks,
     enabled: !!user && user.id !== 'guest',
   });
+
+  // API returns each row as { task: EngineBTask, record: EngineBRecord | null } — flatten
+  // the task fields to the top level so the rest of the UI can read task.id/title/etc directly.
+  const tasksWithRecords = tasksWithRecordsRaw
+    ? tasksWithRecordsRaw.map((t: any) => ({ ...(t.task || t), record: t.record ?? null }))
+    : tasksWithRecordsRaw;
 
   const userRank = (user?.userRankTier || "E-Rank").toLowerCase();
 
@@ -898,7 +904,7 @@ export default function UserPortal() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earnings });
       toast({
         title: "Task Completed!",
-        description: `+25 PS credited. PKR earned has been added to your balance.`,
+        description: "Your reward has been added to your account.",
       });
     },
     onError: (err: any) => {
@@ -2160,13 +2166,7 @@ export default function UserPortal() {
                 className="mt-8 space-y-6 md:space-y-8"
               >
                 {/* Header */}
-                <div className="flex items-end justify-between gap-4">
-                  <div className="min-w-0">
-                    <TechnicalLabel text="ENGINE B — CPA TASKS" className="text-muted-foreground text-[10px] md:text-xs mb-2" />
-                    <p className="text-xs md:text-sm text-muted-foreground max-w-md">
-                      Complete offers &amp; earn PKR + <span className="font-black text-foreground">+25 PS</span> per task
-                    </p>
-                  </div>
+                <div className="flex items-center justify-end">
                   <div className="text-right shrink-0">
                     <TechnicalLabel text="COMPLETED" className="text-muted-foreground text-[10px] mb-1" />
                     <p className="text-3xl md:text-4xl font-black tracking-tighter text-primary" data-testid="text-engine-b-completed-count">{cpaCompletedCount}</p>
@@ -2184,9 +2184,12 @@ export default function UserPortal() {
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
-                          <TechnicalLabel text={`ACTIVE TASK — ${engineBActiveTask.difficulty?.toUpperCase() || "STANDARD"}`} className="text-muted-foreground text-[10px] md:text-xs mb-2" />
+                          <TechnicalLabel
+                            text={engineBPhase === "details" ? `TASK DETAILS — ${engineBActiveTask.difficulty?.toUpperCase() || "STANDARD"}` : `ACTIVE TASK — ${engineBActiveTask.difficulty?.toUpperCase() || "STANDARD"}`}
+                            className="text-muted-foreground text-[10px] md:text-xs mb-2"
+                          />
                           <h3 className="font-black text-lg md:text-xl tracking-tight">{engineBActiveTask.title}</h3>
-                          {engineBActiveTask.instructions && (
+                          {engineBPhase !== "details" && engineBActiveTask.instructions && (
                             <p className="text-sm text-muted-foreground mt-1.5">{engineBActiveTask.instructions}</p>
                           )}
                         </div>
@@ -2194,12 +2197,48 @@ export default function UserPortal() {
                           size="icon"
                           variant="ghost"
                           onClick={() => { setEngineBActiveTask(null); setEngineBPhase("idle"); setEngineBCodeError(""); }}
-                          className="shrink-0 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
+                          className="shrink-0 rounded-lg text-foreground hover:text-foreground hover:bg-black/8 dark:hover:bg-white/12"
                           data-testid="button-engine-b-close-active-task"
                         >
                           <X className="w-4 h-4" />
                         </Button>
                       </div>
+
+                      {engineBPhase === "details" && (
+                        <div className="space-y-4">
+                          {engineBActiveTask.description && (
+                            <div>
+                              <TechnicalLabel text="DESCRIPTION" className="text-muted-foreground text-[10px] mb-1.5" />
+                              <p className="text-sm text-foreground">{engineBActiveTask.description}</p>
+                            </div>
+                          )}
+                          {engineBActiveTask.instructions && (
+                            <div>
+                              <TechnicalLabel text="HOW TO DO IT" className="text-muted-foreground text-[10px] mb-1.5" />
+                              <p className="text-sm text-foreground">{engineBActiveTask.instructions}</p>
+                            </div>
+                          )}
+                          <div>
+                            <TechnicalLabel text="PROOF REQUIRED" className="text-muted-foreground text-[10px] mb-1.5" />
+                            <p className="text-sm text-foreground">
+                              {engineBActiveTask.secretCode
+                                ? "A secret code shown on the task page — you'll enter it here once you finish."
+                                : "None — this task is verified automatically once you finish it."}
+                            </p>
+                          </div>
+                          <Button
+                            onClick={() => {
+                              if (engineBActiveTask.actionUrl) window.open(engineBActiveTask.actionUrl, "_blank");
+                              engineBClickMutation.mutate(engineBActiveTask.id);
+                            }}
+                            disabled={engineBClickMutation.isPending}
+                            className="w-full bg-primary text-black font-black uppercase tracking-wider rounded-lg h-11 hover:bg-primary/90"
+                            data-testid="button-engine-b-begin-task"
+                          >
+                            {engineBClickMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Begin Task"}
+                          </Button>
+                        </div>
+                      )}
 
                       {engineBPhase === "timer" && (
                         <div className="space-y-3">
@@ -2264,7 +2303,7 @@ export default function UserPortal() {
                           </div>
                           <div>
                             <p className="font-black text-primary">Task Verified!</p>
-                            <p className="text-xs text-muted-foreground">+25 PS &amp; PKR added to your balance.</p>
+                            <p className="text-xs text-muted-foreground">Your reward has been added to your account.</p>
                           </div>
                         </div>
                       )}
@@ -2284,75 +2323,95 @@ export default function UserPortal() {
                     <p className="text-sm text-muted-foreground">New CPA tasks will appear here when the admin publishes them.</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {tasksWithRecords.map((task: any) => {
-                      const isCompleted = task.record?.status === "completed";
-                      const isActive = engineBActiveTask?.id === task.id && engineBPhase !== "idle";
-                      const pkrReward = parseFloat(task.grossPkrPerCompletion || "0") * 0.60;
+                  <div className="space-y-8">
+                    {(() => {
+                      const pendingTasks = tasksWithRecords.filter((t: any) => t.record?.status !== "completed");
+                      const completedTasks = tasksWithRecords.filter((t: any) => t.record?.status === "completed");
                       return (
-                        <motion.div
-                          key={task.id}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          data-testid={`card-engine-b-task-${task.id}`}
-                          className={cn(
-                            "group relative rounded-2xl border-2 bg-card p-5 md:p-6 flex items-start gap-4 transition-all duration-300 ease-out",
-                            isCompleted
-                              ? "border-black/10 dark:border-white/10 opacity-50"
-                              : "border-black/15 dark:border-white/15 hover:-translate-y-1 hover:border-black dark:hover:border-white hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.15)]",
-                            isActive && "border-primary shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+                        <>
+                          {pendingTasks.length > 0 ? (
+                            <div className="space-y-4">
+                              {pendingTasks.map((task: any) => {
+                                const isActive = engineBActiveTask?.id === task.id && engineBPhase !== "idle";
+                                return (
+                                  <motion.div
+                                    key={task.id}
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    data-testid={`card-engine-b-task-${task.id}`}
+                                    className={cn(
+                                      "group relative rounded-2xl border-2 bg-card p-5 md:p-6 flex items-start gap-4 transition-all duration-300 ease-out",
+                                      "border-black/15 dark:border-white/15 hover:-translate-y-1 hover:border-black dark:hover:border-white hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.15)]",
+                                      isActive && "border-primary shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+                                    )}
+                                  >
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 bg-foreground text-background rounded-sm">
+                                          {task.difficulty || "Standard"}
+                                        </span>
+                                      </div>
+                                      <h4 className="font-black tracking-tight text-base md:text-lg leading-tight">{task.title}</h4>
+                                      {task.description && <p className="text-xs md:text-sm text-muted-foreground mt-1.5 line-clamp-2">{task.description}</p>}
+                                    </div>
+                                    <div className="shrink-0">
+                                      <Button
+                                        size="sm"
+                                        onClick={() => {
+                                          setEngineBActiveTask(task);
+                                          setEngineBPhase("details");
+                                          setEngineBCodeError("");
+                                        }}
+                                        className="bg-primary text-black font-black text-xs uppercase tracking-wider rounded-lg hover:bg-primary/90"
+                                        data-testid={`button-engine-b-start-${task.id}`}
+                                      >
+                                        Start
+                                      </Button>
+                                    </div>
+                                  </motion.div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="rounded-2xl border-2 border-dashed border-black/15 dark:border-white/15 bg-card/50 p-10 md:p-12 text-center">
+                              <CheckCircle2 className="w-8 h-8 mx-auto mb-3 text-primary" />
+                              <TechnicalLabel text="ALL CAUGHT UP" className="text-muted-foreground text-xs mb-2" />
+                              <p className="text-sm text-muted-foreground">You've completed every available task. New tasks will appear here soon.</p>
+                            </div>
                           )}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-2 flex-wrap">
-                              <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 bg-foreground text-background rounded-sm">
-                                {task.difficulty || "Standard"}
-                              </span>
-                              {isCompleted && (
-                                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 bg-primary text-black rounded-sm">
-                                  ✓ Done
-                                </span>
-                              )}
-                            </div>
-                            <h4 className="font-black tracking-tight text-base md:text-lg leading-tight">{task.title}</h4>
-                            {task.description && <p className="text-xs md:text-sm text-muted-foreground mt-1.5 line-clamp-2">{task.description}</p>}
-                            <div className="flex items-center gap-2 mt-3 flex-wrap">
-                              <span className="text-xs font-black px-2.5 py-1 rounded-md bg-black/5 dark:bg-white/10 text-foreground">
-                                ~{pkrReward.toFixed(2)} PKR
-                              </span>
-                              <span className="text-xs font-black px-2.5 py-1 rounded-md bg-primary/10 text-primary">
-                                +25 PS
-                              </span>
-                            </div>
-                          </div>
-                          <div className="shrink-0">
-                            {isCompleted ? (
-                              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-                                <CheckCircle2 className="w-5 h-5 text-primary" />
+
+                          {completedTasks.length > 0 && (
+                            <div>
+                              <TechnicalLabel text={`COMPLETED — ${completedTasks.length}`} className="text-muted-foreground text-[10px] md:text-xs mb-3" />
+                              <div className="rounded-2xl border-2 border-black/10 dark:border-white/10 bg-black/[0.015] dark:bg-white/[0.03] overflow-hidden">
+                                {completedTasks.map((task: any, idx: number) => (
+                                  <motion.div
+                                    key={task.id}
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    data-testid={`card-engine-b-task-${task.id}`}
+                                    className={cn(
+                                      "flex items-center gap-3 px-5 md:px-6 py-3.5",
+                                      idx !== completedTasks.length - 1 && "border-b border-black/8 dark:border-white/8"
+                                    )}
+                                  >
+                                    <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-bold text-muted-foreground truncate">{task.title}</p>
+                                    </div>
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 shrink-0">
+                                      {task.difficulty || "Standard"}
+                                    </span>
+                                  </motion.div>
+                                ))}
                               </div>
-                            ) : (
-                              <Button
-                                size="sm"
-                                onClick={() => {
-                                  setEngineBActiveTask(task);
-                                  setEngineBPhase("idle");
-                                  setEngineBCodeError("");
-                                  if (task.actionUrl) window.open(task.actionUrl, "_blank");
-                                  engineBClickMutation.mutate(task.id);
-                                }}
-                                disabled={engineBClickMutation.isPending && engineBActiveTask?.id === task.id}
-                                className="bg-primary text-black font-black text-xs uppercase tracking-wider rounded-lg hover:bg-primary/90"
-                                data-testid={`button-engine-b-start-${task.id}`}
-                              >
-                                {engineBClickMutation.isPending && engineBActiveTask?.id === task.id
-                                  ? <RefreshCw className="w-3 h-3 animate-spin" />
-                                  : "Start"}
-                              </Button>
-                            )}
-                          </div>
-                        </motion.div>
+                            </div>
+                          )}
+                        </>
                       );
-                    })}
+                    })()}
                   </div>
                 )}
               </motion.div>
