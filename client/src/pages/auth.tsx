@@ -445,7 +445,7 @@ export default function Auth() {
       queryClient.setQueryData(QUERY_KEYS.sessionAuth, result.user);
       await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.sessionAuth });
       toast({ title: "Registration Successful!", description: `Welcome to THORX, ${firstName}!` });
-      setLocation(data.role === 'team' || data.role === 'founder' || data.role === 'admin' ? "/team-portal" : "/user-portal");
+      setLocation(data.role === 'team' || data.role === 'founder' || data.role === 'admin' ? "/team-portal" : "/dashboard");
     } catch (error: any) {
       toast({ title: "Registration Failed", description: error.message || "Failed to create account.", variant: "destructive" });
     } finally {
@@ -476,7 +476,7 @@ export default function Auth() {
       await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.sessionAuth });
       toast({ title: "Login Successful!", description: "Welcome back!" });
       const role = result.user?.role;
-      setLocation(role === 'team' || role === 'founder' || role === 'admin' ? "/team-portal" : "/user-portal");
+      setLocation(role === 'team' || role === 'founder' || role === 'admin' ? "/team-portal" : "/dashboard");
     } catch (error: any) {
       toast({ title: "Login Failed", description: error.message || "Invalid email or password", variant: "destructive" });
     } finally {
