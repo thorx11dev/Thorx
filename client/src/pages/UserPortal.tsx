@@ -557,7 +557,7 @@ export default function UserPortal() {
   const { containerRef: referralPanRef, isDragging: isReferralDragging, onMouseDown: onReferralMouseDown } = useDragToPan<HTMLDivElement>();
 
   // Current section state
-  const [currentSection, setCurrentSection] = useState(0);
+  const [currentSection, setCurrentSection] = useState(3); // TEMP: verifying Guild Discovery redesign, reverting after screenshot
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Work section states
