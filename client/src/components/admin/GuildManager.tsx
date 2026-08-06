@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Search, ShieldAlert, ShieldCheck, Snowflake, Play, RefreshCw, TrendingUp, Target, AlertTriangle, Crown, UserCog, Users2, ClipboardList, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp, Eye, Download, Send, Trash2, Inbox, Moon } from "lucide-react";
+import { Search, ShieldAlert, ShieldCheck, Snowflake, Play, RefreshCw, TrendingUp, Target, AlertTriangle, Crown, UserCog, Users2, ClipboardList, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp, Eye, Download, Send, Trash2, Moon } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -20,8 +20,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { GuildKpiHeader } from "./guild-manager/GuildKpiHeader";
 import { GuildDetailDrawer } from "./guild-manager/GuildDetailDrawer";
-import { RankOrUnknown, formatPkr, daysOffline, formatPersonName, formatDateTime, downloadCsvSafely } from "./guild-manager/guild-format";
-import type { AdminGuild, GuildApplicationRow, GuildCreationRequestRow, DormantGuildRow } from "./guild-manager/types";
+import { RankOrUnknown, formatPkr, daysOffline, formatPersonName, downloadCsvSafely } from "./guild-manager/guild-format";
+import type { AdminGuild, GuildCreationRequestRow, DormantGuildRow } from "./guild-manager/types";
 
 const GUILD_PAGE_SIZE = 20;
 
@@ -59,9 +59,6 @@ export function GuildManager() {
   const [bulkDisbandConfirmOpen, setBulkDisbandConfirmOpen] = useState(false);
   // Cross-guild pending applications queue (requests to JOIN an existing guild —
   // distinct from Guild Creation Requests, which are requests to found a new one)
-  const [applicationsOpen, setApplicationsOpen] = useState(true);
-  const [rejectAppId, setRejectAppId] = useState<string | null>(null);
-  const [rejectAppReason, setRejectAppReason] = useState("");
 
   const { data, isLoading } = useQuery<{ guilds: AdminGuild[]; total: number }>({
     queryKey: ["/api/admin/guilds", search, statusFilter, page],
@@ -280,30 +277,10 @@ export function GuildManager() {
     onError: (err: any) => toast({ title: "Failed to send message", description: err?.message, variant: "destructive" }),
   });
 
-  // ── Cross-guild join applications queue ────────────────────────────────
-  const { data: applicationsData, isLoading: applicationsLoading } = useQuery<{ applications: GuildApplicationRow[] }>({
-    queryKey: ["/api/admin/guild-applications"],
-    queryFn: async () => (await apiRequest("GET", "/api/admin/guild-applications")).json(),
-    refetchInterval: 30000,
-  });
-  const applications = applicationsData?.applications ?? [];
-
-  const decideApplicationMutation = useMutation({
-    mutationFn: async ({ id, action, rejectionReason }: { id: string; guildId: string; action: "accept" | "reject"; rejectionReason?: string }) =>
-      (await apiRequest("POST", `/api/admin/guild-applications/${id}/decide`, { action, rejectionReason })).json(),
-    onSuccess: (_data, vars) => {
-      toast({ title: vars.action === "accept" ? "Application accepted" : "Application rejected" });
-      setRejectAppId(null);
-      setRejectAppReason("");
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/guild-applications"] });
-      // An accepted application changes that guild's roster — refresh it so an
-      // already-open detail drawer doesn't keep showing the pre-accept member list.
-      queryClient.invalidateQueries({ queryKey: ["/api/guilds", vars.guildId, "members"] });
-      invalidate(); // member counts changed
-      invalidateStats();
-    },
-    onError: (err: any) => toast({ title: "Failed", description: err?.message, variant: "destructive" }),
-  });
+  // NOTE: The cross-guild join-applications admin queue was intentionally removed —
+  // guild join requests are decided exclusively by the guild's own captain
+  // (PATCH /api/guilds/:guildId/applications/:appId in CaptainPortal.tsx). Admins no
+  // longer have a parallel accept/reject path for guild membership decisions.
 
   const runResolutionMutation = useMutation({
     mutationFn: async () => (await apiRequest("POST", "/api/admin/guild-cycles/run-resolution", {})).json(),
@@ -453,70 +430,6 @@ export function GuildManager() {
       </div>
 
       {/* ── CROSS-GUILD JOIN APPLICATIONS ── */}
-      <div className="rounded-xl border-[1.5px] border-[#111] overflow-hidden">
-        <button
-          className="w-full flex items-center justify-between px-5 py-4 bg-white hover:bg-zinc-50 transition-colors"
-          onClick={() => setApplicationsOpen(o => !o)}
-        >
-          <div className="flex items-center gap-2">
-            <Inbox size={16} className="text-zinc-600" />
-            <span className="font-black text-sm uppercase tracking-tight">Guild Join Applications</span>
-            {applications.length > 0 && (
-              <Badge className="bg-amber-500 text-white border-0 font-black text-[10px] px-2">{applications.length} pending</Badge>
-            )}
-          </div>
-          {applicationsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
-
-        {applicationsOpen && (
-          <div className="border-t border-[#111]/10 p-4 space-y-3 bg-zinc-50">
-            {applicationsLoading ? (
-              <div className="space-y-2">{[1, 2].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}</div>
-            ) : applications.length === 0 ? (
-              <div className="text-center py-8 text-xs font-bold text-zinc-400 uppercase tracking-widest">No pending applications</div>
-            ) : (
-              <div className="space-y-3">
-                {applications.map((app) => (
-                  <div key={app.id} className="rounded-xl border border-zinc-200 bg-white p-4 space-y-2">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-black text-sm">{formatPersonName(`${app.userFirstName ?? ""} ${app.userLastName ?? ""}`)}</span>
-                          <RankOrUnknown rank={app.userRankTier} />
-                        </div>
-                        <div className="text-xs text-zinc-500 mt-0.5">
-                          {app.userEmail} · applying to <strong>{app.guildName}</strong>
-                        </div>
-                        {app.coverLetter && <div className="text-xs text-zinc-600 mt-1 italic">"{app.coverLetter}"</div>}
-                        <div className="text-[10px] text-zinc-400 mt-1">Requested {formatDateTime(app.requestedAt)}</div>
-                      </div>
-                      <div className="flex gap-1.5 shrink-0">
-                        <Button
-                          size="sm"
-                          className="h-8 text-[10px] font-black bg-emerald-600 hover:bg-emerald-700 text-white border-0"
-                          disabled={decideApplicationMutation.isPending}
-                          onClick={() => decideApplicationMutation.mutate({ id: app.id, guildId: app.guildId, action: "accept" })}
-                        >
-                          <CheckCircle2 size={11} className="mr-1" /> Accept
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 text-[10px] font-black border-red-400 text-red-600 hover:bg-red-50"
-                          onClick={() => { setRejectAppId(app.id); setRejectAppReason(""); }}
-                        >
-                          <XCircle size={11} className="mr-1" /> Reject
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
       {/* Approve/Reject Dialog */}
       <Dialog open={!!decideDialogId} onOpenChange={(open) => !open && setDecideDialogId(null)}>
         <DialogContent className="max-w-sm rounded-2xl">
@@ -550,43 +463,6 @@ export function GuildManager() {
             >
               {decideMutation.isPending ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : null}
               Confirm {decideAction === "approve" ? "Approval" : "Rejection"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Reject Application Dialog */}
-      <Dialog open={!!rejectAppId} onOpenChange={(open) => { if (!open) { setRejectAppId(null); setRejectAppReason(""); } }}>
-        <DialogContent className="max-w-sm rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-black text-lg uppercase text-red-600">Reject Application</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <p className="text-sm text-zinc-500">The applicant will be notified with this reason.</p>
-            <div className="space-y-1.5">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Reason (10+ characters)</Label>
-              <Textarea
-                placeholder="e.g. Guild is currently at capacity."
-                value={rejectAppReason}
-                onChange={(e) => setRejectAppReason(e.target.value)}
-                className="border-2 border-black"
-                maxLength={500}
-              />
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" className="border-2 border-black font-black text-xs" onClick={() => setRejectAppId(null)}>Cancel</Button>
-            <Button
-              className="font-black text-xs bg-red-600 hover:bg-red-700"
-              disabled={rejectAppReason.trim().length < 10 || decideApplicationMutation.isPending}
-              onClick={() => decideApplicationMutation.mutate({
-                id: rejectAppId!,
-                guildId: applications.find(a => a.id === rejectAppId)?.guildId ?? "",
-                action: "reject",
-                rejectionReason: rejectAppReason.trim(),
-              })}
-            >
-              Confirm Rejection
             </Button>
           </DialogFooter>
         </DialogContent>

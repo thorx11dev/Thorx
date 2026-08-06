@@ -359,7 +359,7 @@ export function CaptainPortal() {
                   {(guild.guildPerformanceScore || 0).toLocaleString()} GPS
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {active.length}/{guild.memberCapacity} members
+                  {active.length} member{active.length === 1 ? "" : "s"}
                 </span>
                 {(guild.weeklyTarget ?? 0) > 0 && (
                   <span className="text-xs text-muted-foreground">
@@ -527,7 +527,7 @@ export function CaptainPortal() {
         <div className="space-y-3 md:space-y-4">
           <div className="flex items-center justify-between">
             <TechnicalLabel
-              text={`Guild Roster — ${active.length}/${guild.memberCapacity}`}
+              text={`Guild Roster — ${active.length} member${active.length === 1 ? "" : "s"}`}
               className="text-foreground"
             />
           </div>

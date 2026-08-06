@@ -302,7 +302,7 @@ export function GuildMemberPanel() {
                 {(guild.guildPerformanceScore || 0).toLocaleString()} GPS
               </span>
               <TechnicalLabel
-                text={`${members.filter((m: any) => m.status === "active").length}/${guild.memberCapacity} Members`}
+                text={`${members.filter((m: any) => m.status === "active").length} Members`}
                 className="text-muted-foreground"
               />
             </div>

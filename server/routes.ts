@@ -1834,42 +1834,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ── Admin: cross-guild pending applications queue ─────────────────────────────
-  // Unlike guild-creation-requests (requests to found a NEW guild), these are
-  // requests to JOIN an existing guild — normally triaged per-guild by that guild's
-  // captain. This gives admins a single aggregate view/decide action across all guilds.
-  app.get("/api/admin/guild-applications", requireTeamRole, async (req, res) => {
-    try {
-      const applications = await storage.getAllPendingGuildApplications();
-      res.json({ applications });
-    } catch (error) {
-      logger.error({ err: error }, "Admin fetch pending guild applications error:");
-      res.status(500).json({ message: "Failed to fetch pending guild applications" });
-    }
+  // ── Admin: cross-guild pending applications queue — RETIRED ────────────────
+  // Guild join requests are now decided exclusively by the guild's own captain via
+  // PATCH /api/guilds/:guildId/applications/:applicationId. Admins no longer get a
+  // parallel accept/reject path so a captain's recruitment decisions can't be
+  // bypassed from the team portal. Kept as 410 stubs in case of stale clients.
+  app.get("/api/admin/guild-applications", requireTeamRole, async (_req, res) => {
+    res.status(410).json({ message: "Guild join requests are decided by the guild captain only.", error: "ENDPOINT_RETIRED" });
   });
 
-  const adminGuildApplicationDecideSchema = z.object({
-    action: z.enum(["accept", "reject"]),
-    rejectionReason: z.string().min(10).max(500).optional(),
-  });
-
-  app.post("/api/admin/guild-applications/:id/decide", requireTeamRole, adminActionRateLimiter, async (req, res) => {
-    try {
-      const adminId = getThorxPrincipalId(req) as string;
-      const parsed = adminGuildApplicationDecideSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid request." });
-      }
-      const membership = await storage.adminDecideGuildApplication(req.params.id, adminId, parsed.data.action, parsed.data.rejectionReason);
-      // Mirror the exact broadcast pair used by the captain-facing decide route (Line ~4711)
-      // so the existing client listeners (which key off this shape) pick it up unchanged.
-      broadcastToUser(membership.userId, 'guild.application_decided', { action: parsed.data.action, guildId: membership.guildId });
-      broadcastGuildEvent(membership.guildId, 'guild.application_decided_notify', { action: parsed.data.action, guildId: membership.guildId });
-      res.json({ membership });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to decide guild application";
-      res.status(400).json({ message });
-    }
+  app.post("/api/admin/guild-applications/:id/decide", requireTeamRole, adminActionRateLimiter, async (_req, res) => {
+    res.status(410).json({ message: "Guild join requests are decided by the guild captain only.", error: "ENDPOINT_RETIRED" });
   });
 
   // Points ledger — user's own earn/release history (feeds Scratch Card + Ledger view)

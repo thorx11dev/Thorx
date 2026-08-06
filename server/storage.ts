@@ -693,13 +693,6 @@ export interface IStorage {
   // ── Bulk guild admin operations ──────────────────────────────────────────
   adminBulkSetGuildStatus(guildIds: string[], status: "active" | "frozen" | "disbanded", adminId: string): Promise<{ updated: number; failed: Array<{ guildId: string; reason: string }> }>;
   adminBulkMessageGuilds(guildIds: string[], message: string, adminId: string): Promise<string[]>;
-  // ── Cross-guild join applications queue ──────────────────────────────────
-  getAllPendingGuildApplications(): Promise<Array<{
-    id: string; guildId: string; guildName: string; userId: string;
-    userFirstName: string | null; userLastName: string | null; userEmail: string | null;
-    userRankTier: string | null; coverLetter: string | null; requestedAt: Date | null;
-  }>>;
-  adminDecideGuildApplication(applicationId: string, adminId: string, action: "accept" | "reject", rejectionReason?: string): Promise<any>;
   // ── Guild target difficulty ───────────────────────────────────────────────
   adminSetGuildTargetDifficulty(guildId: string, difficulty: "low" | "medium" | "high", adminId: string): Promise<any>;
   // ── Ecosystem-wide KPI stats ─────────────────────────────────────────────
@@ -5545,9 +5538,8 @@ export class DatabaseStorage implements IStorage {
       if (guild.status !== "active" || !guild.recruitmentOpen) {
         throw new Error("This guild is not accepting new members right now.");
       }
-      if (guild.memberCount >= guild.memberCapacity) {
-        throw new Error("This guild is full.");
-      }
+      // No hard member cap — a guild's captain may accept as many members as they
+      // choose; recruitmentOpen is the only gate on new applications.
 
       const [user] = await tx.select().from(users).where(eq(users.id, userId));
       const RANK_ORDER = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
@@ -5685,103 +5677,6 @@ export class DatabaseStorage implements IStorage {
     });
 
     return notifiedUserIds;
-  }
-
-  async getAllPendingGuildApplications(): Promise<Array<{
-    id: string; guildId: string; guildName: string; userId: string;
-    userFirstName: string | null; userLastName: string | null; userEmail: string | null;
-    userRankTier: string | null; coverLetter: string | null; requestedAt: Date | null;
-  }>> {
-    const rows = await db
-      .select({
-        id: guildMembers.id,
-        guildId: guildMembers.guildId,
-        guildName: guilds.name,
-        userId: guildMembers.userId,
-        userFirstName: users.firstName,
-        userLastName: users.lastName,
-        userEmail: users.email,
-        userRankTier: users.userRankTier,
-        coverLetter: guildMembers.coverLetter,
-        requestedAt: guildMembers.requestedAt,
-      })
-      .from(guildMembers)
-      .innerJoin(guilds, eq(guildMembers.guildId, guilds.id))
-      .leftJoin(users, eq(guildMembers.userId, users.id))
-      .where(eq(guildMembers.status, "pending"))
-      .orderBy(guildMembers.requestedAt);
-    return rows;
-  }
-
-  // Admin-authorized version of decideGuildApplication/decideGuildJoinRequest — same
-  // effects (member activation + notification), but bypasses the captain-ownership
-  // check since an admin may act on behalf of any guild, and logs to audit_logs.
-  async adminDecideGuildApplication(
-    applicationId: string,
-    adminId: string,
-    action: "accept" | "reject",
-    rejectionReason?: string,
-  ): Promise<GuildMember> {
-    return await db.transaction(async (tx) => {
-      const [membership] = await tx
-        .select()
-        .from(guildMembers)
-        .where(and(eq(guildMembers.id, applicationId), eq(guildMembers.status, "pending")))
-        .limit(1);
-      if (!membership) throw new Error("No pending application found.");
-
-      const [guild] = await tx.select().from(guilds).where(eq(guilds.id, membership.guildId));
-      if (!guild) throw new Error("Guild not found");
-
-      let updated: GuildMember;
-      if (action === "accept") {
-        [updated] = await tx.update(guildMembers).set({
-          status: "active",
-          joinedAt: new Date(),
-        }).where(eq(guildMembers.id, membership.id)).returning();
-
-        await tx.update(guilds).set({
-          memberCount: sql`${guilds.memberCount} + 1`,
-          updatedAt: new Date(),
-        }).where(eq(guilds.id, membership.guildId));
-
-        await tx.update(users).set({
-          guildId: membership.guildId,
-          guildRole: "member",
-        }).where(eq(users.id, membership.userId));
-
-        await this.createNotification({
-          userId: membership.userId,
-          title: "Guild Application Accepted!",
-          message: `You've joined ${guild.name}.`,
-          type: "system",
-        });
-      } else {
-        if (!rejectionReason || rejectionReason.trim().length < 10) {
-          throw new Error("A rejection reason of at least 10 characters is required.");
-        }
-        [updated] = await tx.update(guildMembers).set({
-          status: "rejected",
-        }).where(eq(guildMembers.id, membership.id)).returning();
-
-        await this.createNotification({
-          userId: membership.userId,
-          title: "Guild Application Declined",
-          message: rejectionReason.trim(),
-          type: "system",
-        });
-      }
-
-      await tx.insert(auditLogs).values({
-        adminId,
-        action: action === "accept" ? "ADMIN_GUILD_APPLICATION_ACCEPTED" : "ADMIN_GUILD_APPLICATION_REJECTED",
-        targetType: "guild",
-        targetId: membership.guildId,
-        details: { applicationId, applicantUserId: membership.userId, guildName: guild.name, rejectionReason: rejectionReason ?? null },
-      });
-
-      return updated;
-    });
   }
 
   async getGuildWeeklyHistory(guildId: string): Promise<GuildWeeklySnapshot[]> {
@@ -6304,7 +6199,8 @@ export class DatabaseStorage implements IStorage {
       const [guild] = await tx.select().from(guilds).where(eq(guilds.id, guildId));
       if (!guild) throw new Error("Guild not found");
       if (guild.status === "disbanded") throw new Error("This guild has been disbanded.");
-      if (guild.memberCount >= guild.memberCapacity) throw new Error("This guild is full.");
+      // No hard member cap — captains (and admins on their behalf) may add as many
+      // active members as they choose.
 
       const [targetUser] = await tx.select().from(users).where(eq(users.id, targetUserId));
       if (!targetUser) throw new Error("User not found");

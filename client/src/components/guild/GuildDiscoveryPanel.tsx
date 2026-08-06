@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import TechnicalLabel from "@/components/ui/technical-label";
 import { PremiumCard } from "@/components/ui/premium-card";
 import {
-  Search, Users, Trophy, Lock, ChevronRight, Star, Shield, Loader2,
+  Search, Trophy, Lock, ChevronRight, Star, Shield, Loader2,
   ArrowLeft, Swords, Crown, Calendar, PlusCircle, CheckCircle2, XCircle,
   Hourglass, SlidersHorizontal, X, Flame,
 } from "lucide-react";
@@ -100,10 +100,9 @@ export function GuildDiscoveryPanel() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [rankFilter, setRankFilter] = useState("All");
-  const [slotsOnly, setSlotsOnly] = useState(false);
   const [recruitingOnly, setRecruitingOnly] = useState(false);
   const [warOnly, setWarOnly] = useState(false);
-  const [sortBy, setSortBy] = useState<"gps" | "members" | "streak" | "slots">("gps");
+  const [sortBy, setSortBy] = useState<"gps" | "members" | "streak">("gps");
   const [applyingTo, setApplyingTo] = useState<GuildDiscovery | null>(null);
   const [coverLetter, setCoverLetter] = useState("");
   const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
@@ -191,7 +190,6 @@ export function GuildDiscoveryPanel() {
     .filter(g => {
       if (search && !g.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (rankFilter !== "All" && gpsTier(g.guildPerformanceScore) !== rankFilter) return false;
-      if (slotsOnly && g.memberCount >= g.memberCapacity) return false;
       if (recruitingOnly && !g.recruitmentOpen) return false;
       if (warOnly && !g.inActiveWar) return false;
       return true;
@@ -200,15 +198,16 @@ export function GuildDiscoveryPanel() {
       if (sortBy === "gps") return b.guildPerformanceScore - a.guildPerformanceScore;
       if (sortBy === "members") return b.memberCount - a.memberCount;
       if (sortBy === "streak") return (b.successfulWeeks ?? 0) - (a.successfulWeeks ?? 0);
-      if (sortBy === "slots") return (b.memberCapacity - b.memberCount) - (a.memberCapacity - a.memberCount);
       return 0;
     });
 
-  const activeFilterCount = [rankFilter !== "All", slotsOnly, recruitingOnly, warOnly].filter(Boolean).length;
+  const activeFilterCount = [rankFilter !== "All", recruitingOnly, warOnly].filter(Boolean).length;
 
+  // No member cap — a guild accepts however many members its captain wants.
+  // Recruitment being open (and meeting the rank floor) is the only gate.
   const canApply = (guild: GuildDiscovery) => {
     const minIdx = RANK_ORDER.indexOf(guild.minRankRequired || "E-Rank");
-    return userTierIdx >= minIdx && guild.recruitmentOpen && guild.memberCount < guild.memberCapacity;
+    return userTierIdx >= minIdx && guild.recruitmentOpen;
   };
 
   const handleApply = (guild: GuildDiscovery) => {
@@ -230,7 +229,6 @@ export function GuildDiscoveryPanel() {
   if (viewingGuild) {
     const detail = guildDetail?.guild ?? viewingGuild;
     const accentColor = RANK_COLORS[gpsTier(viewingGuild.guildPerformanceScore)] ?? "#71717a";
-    const slots = viewingGuild.memberCapacity - viewingGuild.memberCount;
     const applied = appliedIds.has(viewingGuild.id);
     const canApplyToViewing = canApply(viewingGuild);
 
@@ -279,7 +277,7 @@ export function GuildDiscoveryPanel() {
             </div>
             <div>
               <TechnicalLabel text="MEMBERS" className="text-muted-foreground text-[9px] mb-1" />
-              <div className="font-black text-lg tracking-tighter">{viewingGuild.memberCount}/{viewingGuild.memberCapacity}</div>
+              <div className="font-black text-lg tracking-tighter">{viewingGuild.memberCount}</div>
             </div>
             <div>
               <TechnicalLabel text="MIN RANK" className="text-muted-foreground text-[9px] mb-1" />
@@ -318,10 +316,6 @@ export function GuildDiscoveryPanel() {
             ) : !viewingGuild.recruitmentOpen ? (
               <div className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground bg-muted/50 border-2 border-black/10 rounded-lg px-3 py-2">
                 <XCircle size={13} /> Recruitment Closed
-              </div>
-            ) : slots === 0 ? (
-              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground bg-muted/50 border-2 border-black/10 rounded-lg px-3 py-2">
-                <Users size={13} /> Guild Full
               </div>
             ) : !canApplyToViewing ? (
               <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
@@ -411,7 +405,7 @@ export function GuildDiscoveryPanel() {
                   </div>
                   <div className="min-w-0">
                     <div className="font-black truncate">{applyingTo.name}</div>
-                    <div className="text-xs text-muted-foreground">{applyingTo.memberCount}/{applyingTo.memberCapacity} members</div>
+                    <div className="text-xs text-muted-foreground">{applyingTo.memberCount} members</div>
                   </div>
                 </div>
                 <button
@@ -488,7 +482,6 @@ export function GuildDiscoveryPanel() {
               <SelectItem value="gps">Top GPS</SelectItem>
               <SelectItem value="members">Most Members</SelectItem>
               <SelectItem value="streak">Best Streak</SelectItem>
-              <SelectItem value="slots">Most Slots</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -527,7 +520,6 @@ export function GuildDiscoveryPanel() {
           {/* Toggle filters */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {[
-              { id: "slots",      active: slotsOnly,      set: () => setSlotsOnly(v => !v),       icon: Users,        label: "Open",       testId: "checkbox-slots-only" },
               { id: "recruiting", active: recruitingOnly, set: () => setRecruitingOnly(v => !v), icon: CheckCircle2, label: "Recruiting", testId: "chip-recruiting" },
               { id: "war",        active: warOnly,        set: () => setWarOnly(v => !v),         icon: Swords,       label: "In War",     testId: "chip-war" },
             ].map(({ id, active, set, icon: Icon, label, testId }) => (
@@ -635,7 +627,6 @@ export function GuildDiscoveryPanel() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
           {filtered.map((guild, idx) => {
-            const slots = guild.memberCapacity - guild.memberCount;
             const minIdx = RANK_ORDER.indexOf(guild.minRankRequired || "E-Rank");
             // Phase 3 redesign: dev preview mode never shows this as blocked so
             // the Apply flow stays clickable for visual/functional review — the
@@ -687,7 +678,7 @@ export function GuildDiscoveryPanel() {
                     </div>
                     <div>
                       <TechnicalLabel text="MEMBERS" className="text-muted-foreground text-[9px] mb-0.5" />
-                      <div className="font-black text-sm tracking-tighter">{guild.memberCount}/{guild.memberCapacity}</div>
+                      <div className="font-black text-sm tracking-tighter">{guild.memberCount}</div>
                     </div>
                     <div>
                       <TechnicalLabel text="MIN RANK" className="text-muted-foreground text-[9px] mb-0.5" />
@@ -713,10 +704,10 @@ export function GuildDiscoveryPanel() {
                     </div>
                   )}
 
-                  {/* Footer: slots + action */}
+                  {/* Footer: recruitment status + action */}
                   <div className="flex items-center justify-between gap-2 mt-auto pt-1">
-                    <span className={cn("text-[11px] font-black", slots > 0 ? "text-emerald-600" : "text-muted-foreground")}>
-                      {slots > 0 ? `${slots} slot${slots !== 1 ? "s" : ""} open` : "Full"}
+                    <span className={cn("text-[11px] font-black", guild.recruitmentOpen ? "text-emerald-600" : "text-muted-foreground")}>
+                      {guild.recruitmentOpen ? "Recruiting" : "Recruitment closed"}
                     </span>
                     {applied ? (
                       <div className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1">
@@ -729,8 +720,6 @@ export function GuildDiscoveryPanel() {
                       </div>
                     ) : !guild.recruitmentOpen ? (
                       <span className="text-[11px] font-bold text-muted-foreground">Closed</span>
-                    ) : slots === 0 ? (
-                      <span className="text-[11px] font-bold text-muted-foreground">Full</span>
                     ) : (
                       <Button
                         size="sm"
@@ -824,7 +813,7 @@ export function GuildDiscoveryPanel() {
                 </div>
                 <div className="min-w-0">
                   <div className="font-black truncate">{applyingTo.name}</div>
-                  <div className="text-xs text-muted-foreground">{applyingTo.memberCount}/{applyingTo.memberCapacity} members</div>
+                  <div className="text-xs text-muted-foreground">{applyingTo.memberCount} members</div>
                 </div>
               </div>
               <button

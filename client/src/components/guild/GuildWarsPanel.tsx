@@ -222,7 +222,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
                       <div>
                         <div className="font-bold text-sm text-foreground">{g.name}</div>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {(g.guildPerformanceScore || 0).toLocaleString()} GPS · {g.memberCount}/{g.memberCapacity} members
+                          {(g.guildPerformanceScore || 0).toLocaleString()} GPS · {g.memberCount} members
                         </p>
                       </div>
                       {selectedOpponent?.id === g.id && (
