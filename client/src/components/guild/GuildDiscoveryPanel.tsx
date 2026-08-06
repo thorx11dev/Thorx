@@ -519,14 +519,13 @@ export function GuildDiscoveryPanel() {
         <div className="rounded-2xl border-2 border-dashed border-black/15 dark:border-white/15 bg-card/50 p-12 md:p-16 text-center">
           <Shield className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
           <TechnicalLabel text="NO GUILDS YET" className="text-muted-foreground text-xs mb-2" />
-          <p className="text-sm text-muted-foreground max-w-sm mx-auto">Be the first to build one and lead your own team up the GPS leaderboard.</p>
           {!pendingRequest && (
             <Button
               onClick={() => setShowCreationForm(true)}
               className="mt-5 bg-primary text-black font-black text-xs uppercase tracking-wider rounded-lg hover:bg-primary/90"
               data-testid="button-request-guild-creation-empty"
             >
-              <PlusCircle size={14} className="mr-1.5" /> Request Guild Creation
+              <PlusCircle size={14} className="mr-1.5" /> Create
             </Button>
           )}
           {pendingRequest && (
