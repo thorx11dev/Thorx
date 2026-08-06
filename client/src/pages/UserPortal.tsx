@@ -2128,20 +2128,22 @@ export default function UserPortal() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 60 }}
                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="mt-12 max-w-xl mx-auto py-12 px-6 text-center"
+                className="mt-8 max-w-xl mx-auto rounded-2xl border-2 border-dashed border-black/15 dark:border-white/15 bg-card/50 py-12 px-6 md:py-16 md:px-10 text-center"
                 data-testid="panel-engine-b-locked"
               >
-                <Lock className="w-10 h-10 mx-auto mb-4 text-muted-foreground" />
-                <TechnicalLabel text="ENGINE B — UNLOCKS AT C-RANK" className="text-muted-foreground text-xs mb-3" />
-                <p className="text-sm text-muted-foreground mb-6">
+                <div className="w-14 h-14 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center mx-auto mb-5">
+                  <Lock className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <TechnicalLabel text="ENGINE B — UNLOCKS AT C-RANK" className="text-muted-foreground text-[10px] md:text-xs mb-3" />
+                <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
                   Premium CPA offers with higher payouts (+25 PS per completion).
                   You are {engineBUserRankTier} ({engineBPerformanceScore.toLocaleString()} PS).
                   Need {engineBPsToUnlock.toLocaleString()} more PS to unlock.
                 </p>
-                <Progress value={engineBUnlockPct} className="h-2 mb-6" />
+                <Progress value={engineBUnlockPct} className="h-1.5 mb-6" />
                 <Button
                   onClick={() => setActiveWorkEngine(1)}
-                  className="bg-primary text-black hover:bg-primary/90 font-black uppercase tracking-tighter"
+                  className="bg-primary text-black hover:bg-primary/90 font-black uppercase tracking-tighter rounded-lg"
                   data-testid="button-engine-b-locked-cta"
                 >
                   Keep earning with Engine A to reach C-Rank
@@ -2155,17 +2157,19 @@ export default function UserPortal() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 60 }}
                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="mt-8 space-y-6"
+                className="mt-8 space-y-6 md:space-y-8"
               >
                 {/* Header */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <TechnicalLabel text="ENGINE B — CPA TASKS" className="text-xs mb-1" />
-                    <p className="text-sm text-muted-foreground">Complete offers &amp; earn PKR + <span className="font-bold text-foreground">+25 PS</span> per task</p>
+                <div className="flex items-end justify-between gap-4">
+                  <div className="min-w-0">
+                    <TechnicalLabel text="ENGINE B — CPA TASKS" className="text-muted-foreground text-[10px] md:text-xs mb-2" />
+                    <p className="text-xs md:text-sm text-muted-foreground max-w-md">
+                      Complete offers &amp; earn PKR + <span className="font-black text-foreground">+25 PS</span> per task
+                    </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Completed</p>
-                    <p className="text-2xl font-black tracking-tighter">{cpaCompletedCount}</p>
+                  <div className="text-right shrink-0">
+                    <TechnicalLabel text="COMPLETED" className="text-muted-foreground text-[10px] mb-1" />
+                    <p className="text-3xl md:text-4xl font-black tracking-tighter text-primary" data-testid="text-engine-b-completed-count">{cpaCompletedCount}</p>
                   </div>
                 </div>
 
@@ -2176,21 +2180,22 @@ export default function UserPortal() {
                       initial={{ opacity: 0, y: -16 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -16 }}
-                      className="wireframe-border rounded-lg p-6 border-4 border-foreground bg-background space-y-4"
+                      className="rounded-2xl p-6 md:p-8 border-2 border-black bg-card space-y-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.12)]"
                     >
                       <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <TechnicalLabel text={`ACTIVE TASK — ${engineBActiveTask.difficulty?.toUpperCase() || "STANDARD"}`} className="text-xs mb-1" />
-                          <h3 className="font-black text-lg tracking-tight">{engineBActiveTask.title}</h3>
+                        <div className="flex-1 min-w-0">
+                          <TechnicalLabel text={`ACTIVE TASK — ${engineBActiveTask.difficulty?.toUpperCase() || "STANDARD"}`} className="text-muted-foreground text-[10px] md:text-xs mb-2" />
+                          <h3 className="font-black text-lg md:text-xl tracking-tight">{engineBActiveTask.title}</h3>
                           {engineBActiveTask.instructions && (
-                            <p className="text-sm text-muted-foreground mt-1">{engineBActiveTask.instructions}</p>
+                            <p className="text-sm text-muted-foreground mt-1.5">{engineBActiveTask.instructions}</p>
                           )}
                         </div>
                         <Button
-                          size="sm"
+                          size="icon"
                           variant="ghost"
                           onClick={() => { setEngineBActiveTask(null); setEngineBPhase("idle"); setEngineBCodeError(""); }}
-                          className="shrink-0"
+                          className="shrink-0 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
+                          data-testid="button-engine-b-close-active-task"
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -2198,33 +2203,34 @@ export default function UserPortal() {
 
                       {engineBPhase === "timer" && (
                         <div className="space-y-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-full border-4 border-primary flex items-center justify-center shrink-0">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-full border-2 border-primary bg-primary/10 flex items-center justify-center shrink-0">
                               <span className="font-black text-xl text-primary">{engineBTimer}</span>
                             </div>
                             <div>
-                              <p className="font-bold text-sm">Complete the task on the opened page</p>
-                              <p className="text-xs text-muted-foreground">Verification unlocks in {engineBTimer} second{engineBTimer !== 1 ? "s" : ""}</p>
+                              <p className="font-black text-sm">Complete the task on the opened page</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">Verification unlocks in {engineBTimer} second{engineBTimer !== 1 ? "s" : ""}</p>
                             </div>
                           </div>
-                          <Progress value={((10 - engineBTimer) / 10) * 100} className="h-2" />
+                          <Progress value={((10 - engineBTimer) / 10) * 100} className="h-1.5" />
                         </div>
                       )}
 
                       {engineBPhase === "verify" && (
                         <div className="space-y-3">
-                           <p className="text-sm font-medium">
+                           <p className="text-sm font-bold">
                              {engineBActiveTask.secretCode
                                ? "Enter the secret code from the task page to verify completion:"
                                : "This task has no secret code. Confirm when you are ready to finish:"}
                            </p>
-                          <div className="flex gap-2">
+                          <div className="flex flex-col sm:flex-row gap-2">
                             <Input
                                placeholder={engineBActiveTask.secretCode ? "Enter secret code…" : "No code required"}
                               value={engineBCode}
                               onChange={e => { setEngineBCode(e.target.value); setEngineBCodeError(""); }}
-                               className="font-mono uppercase tracking-widest"
+                               className="font-mono uppercase tracking-widest border-2 border-black/15 rounded-lg h-11"
                                disabled={!engineBActiveTask.secretCode}
+                               data-testid="input-engine-b-secret-code"
                                onKeyDown={e => {
                                  const codeRequired = Boolean(engineBActiveTask.secretCode);
                                  if (e.key === "Enter" && (!codeRequired || engineBCode.trim())) {
@@ -2238,12 +2244,13 @@ export default function UserPortal() {
                                  (Boolean(engineBActiveTask.secretCode) && !engineBCode.trim()) ||
                                  engineBVerifyMutation.isPending
                                }
-                              className="bg-primary text-black font-black shrink-0"
+                              className="bg-primary text-black font-black shrink-0 rounded-lg h-11 px-5 hover:bg-primary/90"
+                              data-testid="button-engine-b-verify"
                             >
                               {engineBVerifyMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                             </Button>
                           </div>
-                          {engineBCodeError && <p className="text-xs text-destructive">{engineBCodeError}</p>}
+                          {engineBCodeError && <p className="text-xs font-bold text-destructive">{engineBCodeError}</p>}
                            {!engineBActiveTask.secretCode && (
                              <p className="text-xs text-muted-foreground">No code required — click the check button to submit.</p>
                            )}
@@ -2252,7 +2259,9 @@ export default function UserPortal() {
 
                       {engineBPhase === "done" && (
                         <div className="flex items-center gap-3 py-2">
-                          <CheckCircle2 className="w-8 h-8 text-primary shrink-0" />
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <CheckCircle2 className="w-6 h-6 text-primary" />
+                          </div>
                           <div>
                             <p className="font-black text-primary">Task Verified!</p>
                             <p className="text-xs text-muted-foreground">+25 PS &amp; PKR added to your balance.</p>
@@ -2265,17 +2274,17 @@ export default function UserPortal() {
 
                 {/* Task List */}
                 {!tasksWithRecords ? (
-                  <div className="space-y-3">
-                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-24 w-full rounded-lg" />)}
+                  <div className="space-y-4">
+                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)}
                   </div>
                 ) : tasksWithRecords.length === 0 ? (
-                  <div className="wireframe-border rounded-lg p-12 text-center border-2 border-dashed">
+                  <div className="rounded-2xl border-2 border-dashed border-black/15 dark:border-white/15 bg-card/50 p-12 md:p-16 text-center">
                     <Briefcase className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
                     <TechnicalLabel text="NO TASKS AVAILABLE" className="text-muted-foreground text-xs mb-2" />
                     <p className="text-sm text-muted-foreground">New CPA tasks will appear here when the admin publishes them.</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {tasksWithRecords.map((task: any) => {
                       const isCompleted = task.record?.status === "completed";
                       const isActive = engineBActiveTask?.id === task.id && engineBPhase !== "idle";
@@ -2285,35 +2294,42 @@ export default function UserPortal() {
                           key={task.id}
                           initial={{ opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
+                          data-testid={`card-engine-b-task-${task.id}`}
                           className={cn(
-                            "wireframe-border rounded-lg p-5 border-2 flex items-start gap-4 transition-all",
-                            isCompleted && "opacity-50",
-                            isActive && "border-primary"
+                            "group relative rounded-2xl border-2 bg-card p-5 md:p-6 flex items-start gap-4 transition-all duration-300 ease-out",
+                            isCompleted
+                              ? "border-black/10 dark:border-white/10 opacity-50"
+                              : "border-black/15 dark:border-white/15 hover:-translate-y-1 hover:border-black dark:hover:border-white hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.15)]",
+                            isActive && "border-primary shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
                           )}
                         >
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
-                              <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 bg-foreground text-background rounded">
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                              <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 bg-foreground text-background rounded-sm">
                                 {task.difficulty || "Standard"}
                               </span>
                               {isCompleted && (
-                                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 bg-primary text-black rounded">
+                                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 bg-primary text-black rounded-sm">
                                   ✓ Done
                                 </span>
                               )}
                             </div>
-                            <h4 className="font-black tracking-tight text-base leading-tight">{task.title}</h4>
-                            {task.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>}
-                            <div className="flex items-center gap-4 mt-2">
-                              <span className="text-xs font-bold">
+                            <h4 className="font-black tracking-tight text-base md:text-lg leading-tight">{task.title}</h4>
+                            {task.description && <p className="text-xs md:text-sm text-muted-foreground mt-1.5 line-clamp-2">{task.description}</p>}
+                            <div className="flex items-center gap-2 mt-3 flex-wrap">
+                              <span className="text-xs font-black px-2.5 py-1 rounded-md bg-black/5 dark:bg-white/10 text-foreground">
                                 ~{pkrReward.toFixed(2)} PKR
                               </span>
-                              <span className="text-xs text-muted-foreground">+25 PS</span>
+                              <span className="text-xs font-black px-2.5 py-1 rounded-md bg-primary/10 text-primary">
+                                +25 PS
+                              </span>
                             </div>
                           </div>
                           <div className="shrink-0">
                             {isCompleted ? (
-                              <CheckCircle2 className="w-6 h-6 text-primary" />
+                              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                                <CheckCircle2 className="w-5 h-5 text-primary" />
+                              </div>
                             ) : (
                               <Button
                                 size="sm"
@@ -2325,7 +2341,8 @@ export default function UserPortal() {
                                   engineBClickMutation.mutate(task.id);
                                 }}
                                 disabled={engineBClickMutation.isPending && engineBActiveTask?.id === task.id}
-                                className="bg-primary text-black font-black text-xs uppercase tracking-wider"
+                                className="bg-primary text-black font-black text-xs uppercase tracking-wider rounded-lg hover:bg-primary/90"
+                                data-testid={`button-engine-b-start-${task.id}`}
                               >
                                 {engineBClickMutation.isPending && engineBActiveTask?.id === task.id
                                   ? <RefreshCw className="w-3 h-3 animate-spin" />
