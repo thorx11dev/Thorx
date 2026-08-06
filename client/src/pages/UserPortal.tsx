@@ -2054,16 +2054,14 @@ export default function UserPortal() {
                 key={engine}
                 onClick={() => setActiveWorkEngine(engine)}
                 className={cn(
-                  "relative overflow-hidden border-2 rounded-2xl p-5 md:p-7 text-left transition-all duration-300 group",
+                  "relative overflow-hidden border-2 rounded-2xl p-5 md:p-7 flex items-center justify-center transition-all duration-300 group",
                   active
                     ? "bg-black border-black"
-                    : "bg-card border-black/15 hover:border-black/60"
+                    : "bg-black/5 border-black/15 hover:border-black/60 hover:bg-black/10"
                 )}
               >
-                <div className="flex items-center justify-between mb-2">
-                </div>
                 <p className={cn(
-                  "text-2xl md:text-3xl font-black tracking-tighter uppercase transition-colors",
+                  "text-xl md:text-3xl font-black tracking-tighter uppercase whitespace-nowrap transition-colors",
                   active ? "text-white" : "text-foreground group-hover:text-black"
                 )}>
                   {engine === 1 ? "ENGINE A" : "ENGINE B"}

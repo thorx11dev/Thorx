@@ -368,15 +368,6 @@ export function GuildDiscoveryPanel() {
 
   return (
     <div className="space-y-5 md:space-y-6">
-      {/* Header */}
-      <div>
-        <TechnicalLabel text="GUILD DISCOVERY" className="text-muted-foreground text-[10px] md:text-xs mb-2" />
-        <h2 className="text-xl md:text-2xl font-black tracking-tight flex items-center gap-2">
-          <Trophy size={22} className="text-primary shrink-0" /> GPS Guild Leaderboard
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">Join a guild to unlock Engine C and earn Sunday bonuses.</p>
-      </div>
-
       {/* Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-2xl border-2 border-black/15 dark:border-white/15 bg-card">
         <div className="relative flex-1">
