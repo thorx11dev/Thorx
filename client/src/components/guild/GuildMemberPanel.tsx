@@ -1,5 +1,5 @@
 /**
- * GuildMemberPanel — THORX v3 (spec F.7)
+ * GuildMemberPanel — THORX v3 (spec F.7, Phase 3 premium redesign)
  * Default Engine C view for guild members (guildRole='member').
  * Tabs: Weekly Progress | Engine C Tasks | Guild Chat | Private Chat | Wars | My Profile
  * Private Chat: member-to-member DM (Phase 4.4 — any member can DM any other member).
@@ -16,10 +16,16 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Target, Clock, MessageCircle, Megaphone, Star, Send, Users, Zap, Swords, ArrowLeft, Crown } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PremiumCard } from "@/components/ui/premium-card";
+import TechnicalLabel from "@/components/ui/technical-label";
+import {
+  Trophy, Target, Clock, MessageCircle, Megaphone, Star, Send,
+  Users, Zap, Swords, ArrowLeft, Crown, CheckCircle, XCircle, Flame,
+  AlertCircle,
+} from "lucide-react";
 import { GuildWarsPanel } from "./GuildWarsPanel";
 import { GuildProfileWizard } from "./GuildProfileWizard";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
@@ -63,7 +69,12 @@ export function GuildMemberPanel() {
     enabled: !!guildId,
   });
 
-  const { data: guild } = useQuery<any>({
+  const {
+    data: guild,
+    isLoading: isGuildLoading,
+    isError: isGuildError,
+    refetch: refetchGuild,
+  } = useQuery<any>({
     queryKey: guildId ? QUERY_KEYS.guildDetail(guildId) : [],
     queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/${guildId}`); const d = await r.json(); return d.guild; },
     enabled: !!guildId,
@@ -195,7 +206,8 @@ export function GuildMemberPanel() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
 
-  if (!guildId || !guild) {
+  // Loading skeleton — shaped like the actual content
+  if (!guildId || (isGuildLoading && !guild)) {
     return (
       <div className="space-y-4 p-4">
         <div className="flex items-center gap-3">
@@ -206,10 +218,31 @@ export function GuildMemberPanel() {
           </div>
         </div>
         <div className="grid grid-cols-3 gap-3">
-          {[0, 1, 2].map(i => <Skeleton key={i} className="h-16 rounded-xl" />)}
+          {[0, 1, 2].map(i => <Skeleton key={i} className="h-16 rounded-2xl" />)}
         </div>
-        <Skeleton className="h-48 rounded-xl" />
+        <Skeleton className="h-48 rounded-2xl" />
       </div>
+    );
+  }
+
+  // Error state — guild detail query failed
+  if (isGuildError && !guild) {
+    return (
+      <PremiumCard className="p-6 md:p-8 flex flex-col items-center gap-4 text-center">
+        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
+          <AlertCircle className="w-6 h-6 text-destructive" />
+        </div>
+        <div>
+          <p className="font-bold text-foreground">Could not load guild data</p>
+          <p className="text-sm text-muted-foreground mt-1">There was a problem reaching the server.</p>
+        </div>
+        <button
+          onClick={() => refetchGuild()}
+          className="text-red-500 text-sm font-bold uppercase tracking-wider hover:underline"
+        >
+          Retry
+        </button>
+      </PremiumCard>
     );
   }
 
@@ -237,213 +270,329 @@ export function GuildMemberPanel() {
   ];
 
   return (
-    <div className="space-y-4">
-      {/* Captain announcement banner — shown whenever the captain has posted one */}
+    <div className="space-y-4 md:space-y-6">
+      {/* Captain announcement banner */}
       {guild.latestAnnouncement && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 flex items-start gap-2">
-          <Megaphone size={14} className="text-amber-600 mt-0.5 shrink-0" />
-          <div className="min-w-0">
-            <div className="text-xs font-bold text-amber-700 mb-0.5">Captain Announcement</div>
-            <div className="text-xs text-amber-800 break-words">{guild.latestAnnouncement}</div>
-            {guild.announcementPostedAt && (
-              <div className="text-[10px] text-amber-500 mt-0.5">
-                {formatDistanceToNow(new Date(guild.announcementPostedAt), { addSuffix: true })}
-              </div>
-            )}
+        <PremiumCard interactive={false} className="border-primary/30 bg-primary/5 p-4 md:p-5">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg shrink-0">
+              <Megaphone size={14} className="text-primary" />
+            </div>
+            <div className="min-w-0">
+              <TechnicalLabel text="Captain Announcement" className="text-primary mb-1" />
+              <p className="text-sm text-foreground break-words">{guild.latestAnnouncement}</p>
+              {guild.announcementPostedAt && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {formatDistanceToNow(new Date(guild.announcementPostedAt), { addSuffix: true })}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+        </PremiumCard>
       )}
 
       {/* Guild Header */}
-      <div className="rounded-xl border border-zinc-200 bg-white p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-black text-lg">{guild.name}</h2>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs font-semibold text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-full">{(guild.guildPerformanceScore || 0).toLocaleString()} GPS</span>
-              <span className="text-xs text-zinc-500">{members.filter((m: any) => m.status === "active").length}/{guild.memberCapacity} members</span>
+      <PremiumCard className="p-5 md:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="font-black text-2xl md:text-3xl tracking-tighter text-foreground truncate">{guild.name}</h2>
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border-2 border-black bg-white text-xs font-bold text-foreground">
+                <Trophy size={11} className="text-primary" />
+                {(guild.guildPerformanceScore || 0).toLocaleString()} GPS
+              </span>
+              <TechnicalLabel
+                text={`${members.filter((m: any) => m.status === "active").length}/${guild.memberCapacity} Members`}
+                className="text-muted-foreground"
+              />
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-xs text-zinc-400">GPS</div>
-            <div className="font-bold text-zinc-700">{(guild.guildPerformanceScore || 0).toLocaleString()}</div>
+          <div className="text-right shrink-0">
+            <TechnicalLabel text="Guild Score" className="text-muted-foreground mb-1" />
+            <p className="text-3xl font-black tracking-tighter text-primary">
+              {(guild.guildPerformanceScore || 0).toLocaleString()}
+            </p>
           </div>
         </div>
-      </div>
+      </PremiumCard>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-zinc-100 rounded-lg p-1 overflow-x-auto">
+      <div className="flex gap-1 bg-white border-2 border-black rounded-2xl p-1.5 overflow-x-auto scrollbar-hide">
         {TABS.map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-1.5 rounded-md transition-all",
-              tab === t.id ? "bg-white shadow text-zinc-900" : "text-zinc-500 hover:text-zinc-700"
+              "flex-1 min-w-[40px] flex items-center justify-center gap-1.5 text-xs font-bold py-2 px-2 rounded-xl transition-all",
+              tab === t.id
+                ? "bg-black text-white shadow"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             )}
           >
             {t.icon}
-            <span className="hidden sm:inline">{t.label}</span>
+            <span className="hidden sm:inline whitespace-nowrap">{t.label}</span>
           </button>
         ))}
       </div>
 
-      {/* Tab Content */}
+      {/* ── Tab: Progress ── */}
       {tab === "progress" && (
-        <div className="space-y-4">
-          {/* Weekly Target */}
-          <div className="rounded-xl border border-zinc-200 bg-white p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-sm">Guild Weekly Target</h3>
-              <span className="text-xs text-zinc-400 flex items-center gap-1"><Clock size={10} /> <CountdownTimer targetDate={nextSunday} /></span>
+        <div className="space-y-4 md:space-y-6">
+          {/* Weekly Target — focal point */}
+          <PremiumCard className="p-5 md:p-8">
+            <div className="flex items-start justify-between gap-3 mb-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
+                  <Target size={18} className="text-primary" />
+                </div>
+                <div>
+                  <TechnicalLabel text="Weekly Target" className="text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                    <Clock size={10} />
+                    <CountdownTimer targetDate={nextSunday} />
+                  </p>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-3xl md:text-4xl font-black tracking-tighter text-primary">
+                  {weeklyProgress.toFixed(0)}%
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Progress value={weeklyProgress} className="h-3 border border-black/15" />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{(guild.currentWeeklyPoints || 0).toLocaleString()} pts earned</span>
+                <span>Target: {(guild.weeklyTarget || 0).toLocaleString()} pts</span>
+              </div>
+            </div>
+
+            <p className={cn("text-sm font-semibold mt-4", weeklyProgress >= 100 ? "text-primary" : "text-muted-foreground")}>
+              {weeklyProgress >= 100
+                ? "Target hit! Sunday bonus pool unlocking."
+                : weeklyProgress >= 70
+                ? "Almost there — keep going for the Sunday bonus."
+                : "In progress — keep earning to unlock the Sunday bonus."}
+            </p>
+          </PremiumCard>
+
+          {/* Stat row: My Contribution + My Rank */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <PremiumCard className="p-5 md:p-6">
+              <div className="flex items-start justify-between mb-3">
+                <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
+                  <Zap size={16} className="text-primary" />
+                </div>
+                <TechnicalLabel text="My Contribution" className="text-muted-foreground" />
+              </div>
+              <p className="text-3xl md:text-4xl font-black tracking-tighter text-foreground">
+                {myContrib.toLocaleString()}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">points this week</p>
+            </PremiumCard>
+
+            <PremiumCard className="p-5 md:p-6">
+              <div className="flex items-start justify-between mb-3">
+                <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
+                  <Trophy size={16} className="text-primary" />
+                </div>
+                <TechnicalLabel text="Guild Rank" className="text-muted-foreground" />
+              </div>
+              <p className="text-3xl md:text-4xl font-black tracking-tighter text-primary">
+                {myRank > 0 ? `#${myRank}` : "—"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">in guild this week</p>
+            </PremiumCard>
+          </div>
+
+          {/* Team Leaderboard */}
+          <PremiumCard className="p-5 md:p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
+                <Users size={16} className="text-primary" />
+              </div>
+              <TechnicalLabel text="Team Leaderboard (This Week)" className="text-foreground" />
             </div>
             <div className="space-y-1">
-              <div className="flex justify-between text-xs text-zinc-500">
-                <span>{(guild.currentWeeklyPoints || 0).toLocaleString()} pts</span>
-                <span>{(guild.weeklyTarget || 0).toLocaleString()} pts</span>
-              </div>
-              <Progress value={weeklyProgress} className="h-3" />
-              <div className="text-xs font-semibold text-right">{weeklyProgress.toFixed(0)}%</div>
-            </div>
-            <p className={cn("text-xs", weeklyProgress >= 100 ? "text-emerald-600" : "text-zinc-500")}>
-              {weeklyProgress >= 100
-                ? "🎉 Target hit! Sunday bonus pool unlocking."
-                : weeklyProgress >= 70
-                ? "⏳ Keep going! Almost at Sunday bonus."
-                : "🚀 In Progress — keep earning to unlock Sunday bonus."}
-            </p>
-          </div>
-
-          {/* My contribution */}
-          <div className="rounded-xl border border-zinc-200 bg-white p-4">
-            <h3 className="font-bold text-sm mb-3">My Contribution This Week</h3>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-2xl font-black">{myContrib.toLocaleString()}<span className="text-sm font-normal text-zinc-400 ml-1">pts</span></span>
-              {myRank > 0 && <Badge variant="outline">#{myRank} in guild</Badge>}
-            </div>
-          </div>
-
-          {/* Team leaderboard */}
-          <div className="rounded-xl border border-zinc-200 bg-white p-4">
-            <h3 className="font-bold text-sm mb-3">Team Leaderboard (This Week)</h3>
-            <div className="space-y-2">
               {sortedMembers.slice(0, 10).map((m, i) => (
-                <div key={m.userId} className={cn("flex items-center justify-between py-1.5 px-2 rounded-lg", m.userId === user?.id ? "bg-zinc-50 border border-zinc-200" : "")}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-zinc-400 w-5">#{i + 1}</span>
-                    {m.isMvp && <Star size={12} className="text-yellow-500 fill-yellow-500" />}
-                    <span className="text-sm font-medium">{m.userId === user?.id ? "You" : (m.firstName || m.identity || "Member")}</span>
+                <div
+                  key={m.userId}
+                  className={cn(
+                    "flex items-center justify-between py-2.5 px-3 rounded-xl",
+                    m.userId === user?.id
+                      ? "bg-primary/5 border-2 border-primary/20"
+                      : "border border-transparent hover:bg-muted/30"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={cn(
+                      "text-xs font-black w-6 text-center",
+                      i === 0 ? "text-primary" : "text-muted-foreground"
+                    )}>#{i + 1}</span>
+                    {m.isMvp && <Star size={12} className="text-primary fill-primary shrink-0" />}
+                    <span className={cn("text-sm font-semibold", m.userId === user?.id ? "text-primary" : "text-foreground")}>
+                      {m.userId === user?.id ? "You" : (m.firstName || m.identity || "Member")}
+                    </span>
                   </div>
-                  <span className="text-sm font-bold">{(m.weeklyPointsContributed || 0).toLocaleString()} pts</span>
+                  <span className="text-sm font-black text-foreground">
+                    {(m.weeklyPointsContributed || 0).toLocaleString()} <span className="text-xs font-normal text-muted-foreground">pts</span>
+                  </span>
                 </div>
               ))}
             </div>
-          </div>
+          </PremiumCard>
 
-          {/* Guild performance history — last 8 cycles */}
-          <div className="rounded-xl border border-zinc-200 bg-white p-4">
-            <h3 className="font-bold text-sm mb-3">Guild History (Last 8 Cycles)</h3>
+          {/* Guild History */}
+          <PremiumCard className="p-5 md:p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
+                <Clock size={16} className="text-primary" />
+              </div>
+              <TechnicalLabel text="Guild History (Last 8 Cycles)" className="text-foreground" />
+            </div>
             {weeklyHistory.length === 0 ? (
-              <p className="text-xs text-zinc-400 text-center py-4">No completed cycles yet — results appear every Sunday.</p>
+              <p className="text-sm text-muted-foreground text-center py-6">
+                No completed cycles yet — results appear every Sunday.
+              </p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {weeklyHistory.slice(0, 8).map((snap: any, i: number) => {
                   const pct = snap.targetPoints > 0 ? Math.min(150, (snap.achievedPoints / snap.targetPoints) * 100) : 0;
                   return (
                     <div key={snap.id ?? i} className="flex items-center gap-3">
-                      <span className={cn("w-3.5 h-3.5 rounded-full shrink-0", snap.wasSuccessful ? "bg-emerald-500" : "bg-red-400")} />
+                      <div className={cn(
+                        "w-2 h-2 rounded-full shrink-0",
+                        snap.wasSuccessful ? "bg-primary" : "bg-destructive/60"
+                      )} />
                       <div className="flex-1">
-                        <div className="flex justify-between text-xs text-zinc-500 mb-0.5">
+                        <div className="flex justify-between text-xs text-muted-foreground mb-1">
                           <span>Cycle {weeklyHistory.length - i}</span>
-                          <span>{(snap.achievedPoints ?? 0).toLocaleString()} / {(snap.targetPoints ?? 0).toLocaleString()} pts ({pct.toFixed(0)}%)</span>
+                          <span>
+                            {(snap.achievedPoints ?? 0).toLocaleString()} / {(snap.targetPoints ?? 0).toLocaleString()} pts
+                            <span className="text-foreground font-semibold ml-1">({pct.toFixed(0)}%)</span>
+                          </span>
                         </div>
                         <Progress value={Math.min(100, pct)} className="h-1.5" />
                       </div>
-                      <span className="text-xs shrink-0">{snap.wasSuccessful ? "✅" : "❌"}</span>
+                      {snap.wasSuccessful
+                        ? <CheckCircle size={14} className="text-primary shrink-0" />
+                        : <XCircle size={14} className="text-muted-foreground shrink-0" />}
                     </div>
                   );
                 })}
               </div>
             )}
-          </div>
+          </PremiumCard>
         </div>
       )}
 
+      {/* ── Tab: Tasks ── */}
       {tab === "tasks" && (
         <div className="space-y-3">
           {weeklyTasks.length === 0 ? (
-            <div className="text-center py-12 text-zinc-400 text-sm">No guild tasks available this week.</div>
+            <PremiumCard interactive={false} className="text-center py-12">
+              <div className="p-3 bg-muted rounded-xl w-fit mx-auto mb-4">
+                <Zap size={22} className="text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">No guild tasks available this week.</p>
+            </PremiumCard>
           ) : (
             weeklyTasks.map((task: any) => (
-              <div key={task.id} className="rounded-xl border border-zinc-200 bg-white p-4 flex items-center justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">{task.title}</span>
+              <PremiumCard key={task.id} interactive={false} className="p-4 md:p-5 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-bold text-foreground">{task.title}</span>
                     {task.taskCategory === "indirect" && (
-                      <Badge variant="outline" className="text-[10px]">+15 PS</Badge>
+                      <Badge variant="outline" className="text-[10px] border-primary/30 text-primary font-bold">+15 PS</Badge>
                     )}
                   </div>
-                  {task.description && <p className="text-xs text-zinc-500 mt-0.5">{task.description}</p>}
+                  {task.description && (
+                    <p className="text-xs text-muted-foreground mt-1">{task.description}</p>
+                  )}
                   {task.txPointsReward > 0 && (
-                    <p className="text-xs text-emerald-600 mt-1 font-medium">
+                    <p className="text-xs text-primary font-semibold mt-1">
                       ~{task.txPointsReward}–{task.txPointsRewardMax} pts
                     </p>
                   )}
                 </div>
                 <Button
                   size="sm"
-                  className="shrink-0"
+                  className="shrink-0 min-h-[40px]"
                   disabled={completeTaskMutation.isPending}
                   onClick={() => completeTaskMutation.mutate(task.id)}
                 >
                   Complete
                 </Button>
-              </div>
+              </PremiumCard>
             ))
           )}
         </div>
       )}
 
+      {/* ── Tab: Guild Chat ── */}
       {tab === "chat" && (
-        <div className="rounded-xl border border-zinc-200 bg-white flex flex-col h-[400px] max-h-[60vh] min-h-[200px]">
-          <div className="p-3 border-b border-zinc-100 font-semibold text-sm">Guild Chat</div>
-          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        <PremiumCard interactive={false} className="flex flex-col h-[420px] max-h-[65vh] min-h-[280px] p-0 overflow-hidden">
+          <div className="px-5 py-3 border-b-2 border-black flex items-center gap-3">
+            <div className="p-1.5 bg-primary/10 border border-primary/20 rounded-lg">
+              <Users size={14} className="text-primary" />
+            </div>
+            <TechnicalLabel text="Guild Chat" className="text-foreground" />
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {chatMessages.map((msg: any, i) => (
               <div key={i} className={cn("flex", msg.senderId === user?.id ? "justify-end" : "justify-start")}>
-                <div className={cn("max-w-[75%] rounded-2xl px-3 py-2 text-sm", msg.senderId === user?.id ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-800")}>
-                  {msg.senderId !== user?.id && <div className="text-[10px] font-semibold text-zinc-400 mb-0.5">{msg.senderName || "Member"}</div>}
+                <div className={cn(
+                  "max-w-[78%] rounded-2xl px-4 py-2.5 text-sm",
+                  msg.senderId === user?.id
+                    ? "bg-black text-white"
+                    : "bg-muted border border-black/10 text-foreground"
+                )}>
+                  {msg.senderId !== user?.id && (
+                    <div className="text-[10px] font-bold text-primary mb-0.5">{msg.senderName || "Member"}</div>
+                  )}
                   {msg.message}
                 </div>
               </div>
             ))}
             <div ref={chatEndRef} />
           </div>
-          <div className="p-3 border-t border-zinc-100 flex gap-2">
+          <div className="px-4 py-3 border-t-2 border-black flex gap-2">
             <Input
               value={chatMsg}
               onChange={e => setChatMsg(e.target.value)}
               placeholder="Send a message…"
-              className="flex-1 h-8 text-sm"
+              className="flex-1 h-10 text-sm"
               maxLength={500}
               onKeyDown={e => { if (e.key === "Enter" && chatMsg.trim() && chatMsg.length <= 500) sendChatMutation.mutate(chatMsg.trim()); }}
             />
-            <Button size="sm" className="h-8 w-8 p-0" aria-label="Send message" disabled={!chatMsg.trim() || chatMsg.length > 500 || sendChatMutation.isPending} onClick={() => sendChatMutation.mutate(chatMsg.trim())}>
+            <Button
+              size="sm"
+              className="h-10 w-10 p-0 shrink-0"
+              aria-label="Send message"
+              disabled={!chatMsg.trim() || chatMsg.length > 500 || sendChatMutation.isPending}
+              onClick={() => sendChatMutation.mutate(chatMsg.trim())}
+            >
               <Send size={14} />
             </Button>
           </div>
-        </div>
+        </PremiumCard>
       )}
 
+      {/* ── Tab: Private Chat ── */}
       {tab === "dm" && (
         <div className="space-y-3">
           {!selectedDmMemberId ? (
-            /* ── Member Picker ── */
-            <div className="rounded-xl border border-zinc-200 bg-white p-4 space-y-3">
-              <div className="flex items-center gap-2 mb-1">
-                <MessageCircle size={14} />
-                <span className="font-semibold text-sm">Private Chat</span>
+            <PremiumCard interactive={false} className="p-5 md:p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
+                  <MessageCircle size={16} className="text-primary" />
+                </div>
+                <div>
+                  <TechnicalLabel text="Private Chat" className="text-foreground" />
+                  <p className="text-xs text-muted-foreground mt-0.5">Select a guild member to start a private conversation.</p>
+                </div>
               </div>
-              <p className="text-xs text-zinc-500">Select a guild member to start a private conversation.</p>
               <div className="space-y-1.5 max-h-72 overflow-y-auto">
                 {members
                   .filter((m: any) => m.userId !== user?.id && m.status === "active")
@@ -454,62 +603,74 @@ export function GuildMemberPanel() {
                       <button
                         key={m.userId}
                         onClick={() => { setSelectedDmMemberId(m.userId); setDmMsg(""); }}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-zinc-50 border border-transparent hover:border-zinc-200 transition-all text-left"
+                        className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 border border-transparent hover:border-black/10 transition-all text-left min-h-[56px]"
                       >
-                        <div className="w-8 h-8 rounded-full bg-zinc-800 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                        <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-xs font-black shrink-0">
                           {(m.firstName || m.identity || "M")[0].toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-medium truncate">{m.firstName || m.identity || "Member"}</span>
-                            {isCaptain && <Crown size={11} className="text-yellow-500 shrink-0" />}
-                            {isAssistant && !isCaptain && <Star size={11} className="text-blue-400 shrink-0" />}
+                            <span className="text-sm font-semibold text-foreground truncate">{m.firstName || m.identity || "Member"}</span>
+                            {isCaptain && <Crown size={11} className="text-primary shrink-0" />}
+                            {isAssistant && !isCaptain && <Star size={11} className="text-primary/70 shrink-0" />}
                           </div>
-                          <span className="text-[10px] text-zinc-400">{isCaptain ? "Captain" : isAssistant ? "Assistant Captain" : "Member"}</span>
+                          <TechnicalLabel
+                            text={isCaptain ? "Captain" : isAssistant ? "Assistant Captain" : "Member"}
+                            className="text-muted-foreground"
+                          />
                         </div>
-                        <MessageCircle size={14} className="text-zinc-300 shrink-0" />
+                        <MessageCircle size={14} className="text-muted-foreground shrink-0" />
                       </button>
                     );
                   })}
                 {members.filter((m: any) => m.userId !== user?.id && m.status === "active").length === 0 && (
-                  <p className="text-xs text-zinc-400 text-center py-6">No other active members yet.</p>
+                  <p className="text-sm text-muted-foreground text-center py-8">No other active members yet.</p>
                 )}
               </div>
-            </div>
+            </PremiumCard>
           ) : (
-            /* ── Chat with selected member ── */
-            <div className="rounded-xl border border-zinc-200 bg-white flex flex-col h-[420px] max-h-[65vh] min-h-[200px]">
-              <div className="p-3 border-b border-zinc-100 flex items-center gap-2">
-                <button onClick={() => { setSelectedDmMemberId(null); setDmMsg(""); }} className="text-zinc-400 hover:text-zinc-700 transition-colors">
+            <PremiumCard interactive={false} className="flex flex-col h-[440px] max-h-[68vh] min-h-[280px] p-0 overflow-hidden">
+              <div className="px-4 py-3 border-b-2 border-black flex items-center gap-3">
+                <button
+                  onClick={() => { setSelectedDmMemberId(null); setDmMsg(""); }}
+                  className="text-muted-foreground hover:text-foreground transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+                  aria-label="Back to member list"
+                >
                   <ArrowLeft size={16} />
                 </button>
-                <div className="w-7 h-7 rounded-full bg-zinc-800 text-white flex items-center justify-center text-xs font-bold">
+                <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-xs font-black shrink-0">
                   {(() => {
                     const m = members.find((m: any) => m.userId === selectedDmMemberId);
                     return (m?.firstName || m?.identity || "M")[0].toUpperCase();
                   })()}
                 </div>
                 <div>
-                  <div className="font-semibold text-sm leading-none">
+                  <div className="font-bold text-sm text-foreground leading-none">
                     {(() => {
                       const m = members.find((m: any) => m.userId === selectedDmMemberId);
                       return m?.firstName || m?.identity || "Member";
                     })()}
                   </div>
-                  <div className="text-[10px] text-zinc-400">
-                    {members.find((m: any) => m.userId === selectedDmMemberId)?.userId === guild?.captainId ? "Captain" : "Member"}
-                  </div>
+                  <TechnicalLabel
+                    text={members.find((m: any) => m.userId === selectedDmMemberId)?.userId === guild?.captainId ? "Captain" : "Member"}
+                    className="text-muted-foreground mt-0.5"
+                  />
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {dmMessages.length === 0 && (
-                  <div className="text-center py-8 text-zinc-400 text-sm">No messages yet. Start the conversation!</div>
+                  <div className="text-center py-10 text-muted-foreground text-sm">No messages yet. Start the conversation!</div>
                 )}
                 {dmMessages.map((msg: any, i) => (
                   <div key={i} className={cn("flex", msg.fromUserId === user?.id ? "justify-end" : "justify-start")}>
-                    <div className={cn("max-w-[75%] rounded-2xl px-3 py-2 text-sm", msg.fromUserId === user?.id ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-800")}>
+                    <div className={cn(
+                      "max-w-[78%] rounded-2xl px-4 py-2.5 text-sm",
+                      msg.fromUserId === user?.id
+                        ? "bg-black text-white"
+                        : "bg-muted border border-black/10 text-foreground"
+                    )}>
                       {msg.message}
-                      <div className="text-[10px] mt-0.5 opacity-50">
+                      <div className="text-[10px] mt-1 opacity-50">
                         {msg.createdAt ? formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true }) : ""}
                       </div>
                     </div>
@@ -517,18 +678,18 @@ export function GuildMemberPanel() {
                 ))}
                 <div ref={dmEndRef} />
               </div>
-              <div className="p-3 border-t border-zinc-100 flex gap-2">
+              <div className="px-4 py-3 border-t-2 border-black flex gap-2">
                 <Input
                   value={dmMsg}
                   onChange={e => setDmMsg(e.target.value)}
                   placeholder="Send a private message…"
-                  className="flex-1 h-8 text-sm"
+                  className="flex-1 h-10 text-sm"
                   maxLength={1000}
                   onKeyDown={e => { if (e.key === "Enter" && dmMsg.trim() && dmMsg.length <= 1000) sendDmMutation.mutate(dmMsg.trim()); }}
                 />
                 <Button
                   size="sm"
-                  className="h-8 w-8 p-0"
+                  className="h-10 w-10 p-0 shrink-0"
                   aria-label="Send private message"
                   disabled={!dmMsg.trim() || dmMsg.length > 1000 || sendDmMutation.isPending}
                   onClick={() => sendDmMutation.mutate(dmMsg.trim())}
@@ -536,16 +697,21 @@ export function GuildMemberPanel() {
                   <Send size={14} />
                 </Button>
               </div>
-            </div>
+            </PremiumCard>
           )}
         </div>
       )}
+
+      {/* ── Tab: Wars ── */}
       {tab === "wars" && (
         <GuildWarsPanel guildId={guildId} />
       )}
 
+      {/* ── Tab: My Profile ── */}
       {tab === "profile" && (
-        <GuildProfileWizard guildId={guildId} guildName={guild?.name ?? ""} />
+        <PremiumCard interactive={false} className="p-5 md:p-6">
+          <GuildProfileWizard guildId={guildId} guildName={guild?.name ?? ""} />
+        </PremiumCard>
       )}
     </div>
   );

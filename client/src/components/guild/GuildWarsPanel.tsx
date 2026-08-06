@@ -1,5 +1,5 @@
 /**
- * GuildWarsPanel — THORX v3 (Phase 6)
+ * GuildWarsPanel — THORX v3 (Phase 6, Phase 3 premium redesign)
  * Shows current war status, voting flow, and challenge initiation.
  * Used inside CaptainPortal (full control) and GuildMemberPanel (vote only).
  */
@@ -11,7 +11,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Sword, Shield, Trophy, Clock, CheckCircle, XCircle, Loader2, Swords, AlertTriangle, Crown } from "lucide-react";
+import { PremiumCard } from "@/components/ui/premium-card";
+import TechnicalLabel from "@/components/ui/technical-label";
+import {
+  Sword, Shield, Trophy, Clock, CheckCircle, XCircle, Loader2,
+  Swords, AlertTriangle, Crown, AlertCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
@@ -20,12 +25,12 @@ interface GuildWarsPanelProps {
   isCaptain?: boolean;
 }
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending_challenger_approval: { label: "Waiting: Your Guild to Vote", color: "bg-amber-100 text-amber-700 border-amber-200" },
-  pending_challenged_approval: { label: "Waiting: Opponent to Vote", color: "bg-blue-100 text-blue-700 border-blue-200" },
-  active: { label: "⚔️ WAR ACTIVE", color: "bg-red-100 text-red-700 border-red-200" },
-  completed: { label: "Completed", color: "bg-zinc-100 text-zinc-600 border-zinc-200" },
-  cancelled: { label: "Cancelled", color: "bg-zinc-100 text-zinc-500 border-zinc-200" },
+const STATUS_CONFIG: Record<string, { label: string; variant: "outline" | "default" | "secondary" | "destructive" }> = {
+  pending_challenger_approval: { label: "PENDING YOUR VOTE",     variant: "outline" },
+  pending_challenged_approval: { label: "PENDING OPPONENT VOTE", variant: "outline" },
+  active:                      { label: "WAR ACTIVE",            variant: "destructive" },
+  completed:                   { label: "COMPLETED",             variant: "secondary" },
+  cancelled:                   { label: "CANCELLED",             variant: "secondary" },
 };
 
 export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelProps) {
@@ -35,7 +40,12 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
   const [challengeMode, setChallengeMode] = useState(false);
   const [selectedOpponent, setSelectedOpponent] = useState<any>(null);
 
-  const { data: warData, isLoading } = useQuery<any>({
+  const {
+    data: warData,
+    isLoading,
+    isError,
+    refetch: refetchWar,
+  } = useQuery<any>({
     queryKey: ["/api/guilds", guildId, "war"],
     queryFn: async () => {
       const r = await apiRequest("GET", `/api/guilds/${guildId}/war`);
@@ -76,7 +86,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
       if (data.cancelled) {
         toast({ title: "War Cancelled", description: "The challenge has been withdrawn." });
       } else if (data.allApproved && data.war.status === "active") {
-        toast({ title: "⚔️ War Started!", description: "The battle is on! Earn points to win." });
+        toast({ title: "War Started!", description: "The battle is on! Earn points to win." });
       } else {
         toast({ title: "Vote Recorded" });
       }
@@ -97,12 +107,36 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
     onError: (err: any) => toast({ title: "Error", description: err?.message, variant: "destructive" }),
   });
 
+  // Loading skeleton
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 flex items-center justify-center gap-2 text-zinc-400">
-        <Loader2 size={16} className="animate-spin" />
-        <span className="text-sm">Loading war status…</span>
+      <div className="space-y-3">
+        <div className="bg-white border-2 border-black rounded-2xl p-6 flex items-center justify-center gap-2 text-muted-foreground">
+          <Loader2 size={16} className="animate-spin text-primary" />
+          <span className="text-sm font-medium">Loading war status…</span>
+        </div>
       </div>
+    );
+  }
+
+  // Error state
+  if (isError) {
+    return (
+      <PremiumCard className="p-6 md:p-8 flex flex-col items-center gap-4 text-center">
+        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
+          <AlertCircle className="w-6 h-6 text-destructive" />
+        </div>
+        <div>
+          <p className="font-bold text-foreground">Could not load war data</p>
+          <p className="text-sm text-muted-foreground mt-1">There was a problem reaching the server.</p>
+        </div>
+        <button
+          onClick={() => refetchWar()}
+          className="text-red-500 text-sm font-bold uppercase tracking-wider hover:underline"
+        >
+          Retry
+        </button>
+      </PremiumCard>
     );
   }
 
@@ -115,7 +149,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
   const challengedGuild = warData?.challengedGuild;
   const myGuildIsChallenger = war?.challengerGuildId === guildId;
   const myGuildIsChallenged = war?.challengedGuildId === guildId;
-  const statusInfo = war ? STATUS_LABELS[war.status] : null;
+  const statusCfg = war ? (STATUS_CONFIG[war.status] ?? null) : null;
 
   // Has the current user already voted?
   const myVote = approvals.find((a: any) => a.userId === user?.id);
@@ -124,211 +158,289 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
     (war?.status === "pending_challenged_approval" && myGuildIsChallenged);
 
   return (
-    <div className="space-y-4">
-      {/* Badges row */}
+    <div className="space-y-4 md:space-y-6">
+      {/* War badges earned */}
       {badges.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {badges.map((b: any) => (
-            <Badge key={b.id} variant="outline" className="text-xs font-semibold border-amber-300 text-amber-700 bg-amber-50">
+            <Badge key={b.id} variant="outline" className="text-xs font-bold border-primary/30 text-primary bg-primary/5">
               {b.badgeName}
             </Badge>
           ))}
         </div>
       )}
 
-      {/* No active war */}
+      {/* ── No active war ── */}
       {!war && (
-        <div className="rounded-xl border border-zinc-200 bg-white p-6 text-center space-y-4">
-          <div className="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center mx-auto">
-            <Swords size={22} className="text-zinc-400" />
+        <PremiumCard className="p-6 md:p-8 text-center space-y-5">
+          <div className="p-4 bg-muted rounded-2xl w-fit mx-auto">
+            <Swords size={28} className="text-muted-foreground" />
           </div>
           <div>
-            <div className="font-bold text-zinc-700">No Active War</div>
-            <p className="text-xs text-zinc-500 mt-1">Your guild is not currently engaged in any war.</p>
+            <TechnicalLabel text="No Active War" className="text-foreground mb-1" />
+            <p className="text-sm text-muted-foreground">Your guild is not currently engaged in any war.</p>
           </div>
 
           {isCaptain && !challengeMode && (
-            <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => setChallengeMode(true)}>
-              <Sword size={14} className="mr-1.5" /> Initiate Challenge
+            <Button
+              variant="destructive"
+              className="min-h-[44px]"
+              onClick={() => setChallengeMode(true)}
+            >
+              <Sword size={14} className="mr-2" /> Initiate Challenge
             </Button>
           )}
 
           {/* Challenge flow */}
           {isCaptain && challengeMode && (
-            <div className="text-left space-y-3 border-t border-zinc-100 pt-4">
-              <div className="text-sm font-semibold text-zinc-700">Select an opponent guild:</div>
+            <div className="text-left space-y-4 border-t-2 border-black/10 pt-5">
+              <TechnicalLabel text="Select an Opponent Guild" className="text-foreground" />
               {!opponentsData ? (
-                <div className="text-xs text-zinc-400 flex items-center gap-1.5"><Loader2 size={12} className="animate-spin" /> Loading eligible opponents…</div>
+                <div className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Loader2 size={14} className="animate-spin text-primary" />
+                  Loading eligible opponents…
+                </div>
               ) : opponentsData.opponents?.length === 0 ? (
-                <div className="text-xs text-zinc-500 bg-zinc-50 rounded-lg p-3">No eligible opponents available. Opponents must be active guilds not currently in a war.</div>
+                <PremiumCard interactive={false} className="p-4 bg-muted/50">
+                  <p className="text-sm text-muted-foreground">
+                    No eligible opponents available. Opponents must be active guilds not currently in a war.
+                  </p>
+                </PremiumCard>
               ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto">
+                <div className="space-y-2 max-h-56 overflow-y-auto">
                   {opponentsData.opponents.map((g: any) => (
                     <button
                       key={g.id}
                       className={cn(
-                        "w-full text-left rounded-lg border p-3 flex items-center justify-between transition-colors",
+                        "w-full text-left rounded-2xl border-2 p-4 flex items-center justify-between transition-all min-h-[64px]",
                         selectedOpponent?.id === g.id
-                          ? "border-red-300 bg-red-50"
-                          : "border-zinc-200 bg-white hover:bg-zinc-50"
+                          ? "border-black bg-primary/5"
+                          : "border-black/10 bg-white hover:border-black/30"
                       )}
                       onClick={() => setSelectedOpponent(g)}
                     >
                       <div>
-                        <div className="font-semibold text-sm">{g.name}</div>
-                        <div className="text-xs text-zinc-400">{(g.guildPerformanceScore || 0).toLocaleString()} GPS · {g.memberCount}/{g.memberCapacity} members</div>
+                        <div className="font-bold text-sm text-foreground">{g.name}</div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {(g.guildPerformanceScore || 0).toLocaleString()} GPS · {g.memberCount}/{g.memberCapacity} members
+                        </p>
                       </div>
-                      {selectedOpponent?.id === g.id && <CheckCircle size={16} className="text-red-500 shrink-0" />}
+                      {selectedOpponent?.id === g.id && (
+                        <CheckCircle size={18} className="text-primary shrink-0" />
+                      )}
                     </button>
                   ))}
                 </div>
               )}
-              <div className="flex gap-2 pt-1">
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => { setChallengeMode(false); setSelectedOpponent(null); }}>Cancel</Button>
+              <div className="flex gap-3 pt-1">
                 <Button
-                  size="sm"
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                  variant="outline"
+                  className="flex-1 min-h-[44px]"
+                  onClick={() => { setChallengeMode(false); setSelectedOpponent(null); }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1 min-h-[44px]"
                   disabled={!selectedOpponent || challengeMutation.isPending}
                   onClick={() => selectedOpponent && challengeMutation.mutate(selectedOpponent.id)}
                 >
-                  {challengeMutation.isPending ? <Loader2 size={12} className="animate-spin mr-1" /> : null}
+                  {challengeMutation.isPending ? <Loader2 size={12} className="animate-spin mr-2" /> : null}
                   Send Challenge
                 </Button>
               </div>
             </div>
           )}
-        </div>
+        </PremiumCard>
       )}
 
-      {/* Active or pending war */}
+      {/* ── Active or Pending War ── */}
       {war && (
-        <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden">
+        <PremiumCard className="p-0 overflow-hidden">
           {/* War header */}
-          <div className="p-4 border-b border-zinc-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sword size={16} className="text-red-500" />
-              <span className="font-bold text-sm">Guild War</span>
+          <div className="px-5 py-4 border-b-2 border-black flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
+                <Swords size={16} className="text-primary" />
+              </div>
+              <TechnicalLabel text="Guild War" className="text-foreground" />
             </div>
-            {statusInfo && (
-              <Badge variant="outline" className={cn("text-xs", statusInfo.color)}>{statusInfo.label}</Badge>
+            {statusCfg && (
+              <Badge variant={statusCfg.variant} className="font-bold text-xs tracking-wider">
+                {statusCfg.label}
+              </Badge>
             )}
           </div>
 
-          {/* Matchup */}
-          <div className="p-4 space-y-4">
-            <div className="flex items-center gap-3">
+          <div className="p-5 md:p-6 space-y-5">
+            {/* Matchup */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
               {/* Challenger */}
-              <div className={cn("flex-1 rounded-lg p-3 text-center border", myGuildIsChallenger ? "border-zinc-900 bg-zinc-50" : "border-zinc-200")}>
-                <div className="text-xs text-zinc-400 mb-0.5">{myGuildIsChallenger ? "Your Guild" : "Challenger"}</div>
-                <div className="font-bold text-sm truncate">{challengerGuild?.name ?? "Unknown"}</div>
-                {war.status === "active" && (
-                  <div className="text-2xl font-black mt-1">{(war.challengerScore || 0).toLocaleString()}</div>
+              <PremiumCard
+                interactive={false}
+                className={cn(
+                  "p-4 text-center",
+                  myGuildIsChallenger ? "border-primary bg-primary/5" : "border-black/20"
                 )}
-                <div className="text-xs text-zinc-400">{(challengerGuild?.guildPerformanceScore || 0).toLocaleString()} GPS</div>
-              </div>
+              >
+                <TechnicalLabel
+                  text={myGuildIsChallenger ? "Your Guild" : "Challenger"}
+                  className={cn("mb-2", myGuildIsChallenger ? "text-primary" : "text-muted-foreground")}
+                />
+                <p className="font-black text-sm text-foreground truncate">{challengerGuild?.name ?? "Unknown"}</p>
+                {war.status === "active" && (
+                  <p className="text-2xl md:text-3xl font-black tracking-tighter text-foreground mt-2">
+                    {(war.challengerScore || 0).toLocaleString()}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  {(challengerGuild?.guildPerformanceScore || 0).toLocaleString()} GPS
+                </p>
+              </PremiumCard>
 
-              <div className="font-black text-zinc-400 text-lg">⚔️</div>
+              {/* VS */}
+              <div className="flex flex-col items-center gap-1">
+                <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
+                  <Swords size={16} className="text-primary" />
+                </div>
+                <span className="text-xs font-black text-muted-foreground">VS</span>
+              </div>
 
               {/* Challenged */}
-              <div className={cn("flex-1 rounded-lg p-3 text-center border", myGuildIsChallenged ? "border-zinc-900 bg-zinc-50" : "border-zinc-200")}>
-                <div className="text-xs text-zinc-400 mb-0.5">{myGuildIsChallenged ? "Your Guild" : "Opponent"}</div>
-                <div className="font-bold text-sm truncate">{challengedGuild?.name ?? "Unknown"}</div>
-                {war.status === "active" && (
-                  <div className="text-2xl font-black mt-1">{(war.challengedScore || 0).toLocaleString()}</div>
+              <PremiumCard
+                interactive={false}
+                className={cn(
+                  "p-4 text-center",
+                  myGuildIsChallenged ? "border-primary bg-primary/5" : "border-black/20"
                 )}
-                <div className="text-xs text-zinc-400">{(challengedGuild?.guildPerformanceScore || 0).toLocaleString()} GPS</div>
-              </div>
+              >
+                <TechnicalLabel
+                  text={myGuildIsChallenged ? "Your Guild" : "Opponent"}
+                  className={cn("mb-2", myGuildIsChallenged ? "text-primary" : "text-muted-foreground")}
+                />
+                <p className="font-black text-sm text-foreground truncate">{challengedGuild?.name ?? "Unknown"}</p>
+                {war.status === "active" && (
+                  <p className="text-2xl md:text-3xl font-black tracking-tighter text-foreground mt-2">
+                    {(war.challengedScore || 0).toLocaleString()}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  {(challengedGuild?.guildPerformanceScore || 0).toLocaleString()} GPS
+                </p>
+              </PremiumCard>
             </div>
 
-            {/* Voting progress */}
+            {/* Voting section */}
             {(war.status === "pending_challenger_approval" || war.status === "pending_challenged_approval") && isMyGuildVotingPhase && (
-              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 space-y-3">
-                <div className="text-xs font-bold text-amber-700 flex items-center gap-1.5">
-                  <AlertTriangle size={12} />
-                  Member Vote Required
+              <PremiumCard interactive={false} className="bg-primary/5 border-primary/30 p-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={14} className="text-primary" />
+                  <TechnicalLabel text="Member Vote Required" className="text-primary" />
                 </div>
-                <div className="text-xs text-amber-600">
+                <p className="text-xs text-muted-foreground">
                   All active members must approve for the war to proceed.
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-amber-600">
-                    <span>Approved</span>
-                    <span>{approvedCount} / {totalActiveMembers}</span>
+                </p>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Approvals</span>
+                    <span className="font-bold text-foreground">{approvedCount} / {totalActiveMembers}</span>
                   </div>
-                  <Progress value={totalActiveMembers > 0 ? (approvedCount / totalActiveMembers) * 100 : 0} className="h-1.5" />
+                  <Progress
+                    value={totalActiveMembers > 0 ? (approvedCount / totalActiveMembers) * 100 : 0}
+                    className="h-2 border border-black/15"
+                  />
                 </div>
                 {!myVote && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                     <Button
-                      size="sm"
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-8"
+                      className="flex-1 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white"
                       disabled={voteMutation.isPending}
                       onClick={() => voteMutation.mutate({ warId: war.id, approved: true })}
                     >
-                      <CheckCircle size={12} className="mr-1" /> Approve
+                      <CheckCircle size={14} className="mr-2" /> Approve
                     </Button>
                     <Button
-                      size="sm"
                       variant="outline"
-                      className="flex-1 text-red-600 border-red-200 hover:bg-red-50 h-8"
+                      className="flex-1 min-h-[44px] text-destructive border-destructive/30 hover:bg-destructive/5"
                       disabled={voteMutation.isPending}
                       onClick={() => voteMutation.mutate({ warId: war.id, approved: false })}
                     >
-                      <XCircle size={12} className="mr-1" /> Reject
+                      <XCircle size={14} className="mr-2" /> Reject
                     </Button>
                   </div>
                 )}
                 {myVote && (
-                  <div className={cn("text-xs font-semibold text-center py-1.5 rounded-lg", myVote.approved ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600")}>
-                    {myVote.approved ? "✅ You approved" : "❌ You rejected"}
-                  </div>
+                  <PremiumCard
+                    interactive={false}
+                    className={cn(
+                      "py-3 text-center font-bold text-sm",
+                      myVote.approved
+                        ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                        : "border-destructive/30 bg-destructive/5 text-destructive"
+                    )}
+                  >
+                    {myVote.approved
+                      ? <span className="flex items-center justify-center gap-2"><CheckCircle size={14} /> You approved</span>
+                      : <span className="flex items-center justify-center gap-2"><XCircle size={14} /> You rejected</span>}
+                  </PremiumCard>
                 )}
-              </div>
+              </PremiumCard>
             )}
 
             {/* Waiting for other guild to vote */}
             {war.status === "pending_challenged_approval" && myGuildIsChallenger && (
-              <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-700 flex items-center gap-2">
-                <Clock size={12} />
-                Waiting for <strong>{challengedGuild?.name}</strong> members to vote…
-              </div>
+              <PremiumCard interactive={false} className="bg-muted/50 border-black/20 p-4 flex items-center gap-3">
+                <Clock size={14} className="text-muted-foreground shrink-0" />
+                <p className="text-sm text-muted-foreground">
+                  Waiting for <strong className="text-foreground">{challengedGuild?.name}</strong> members to vote…
+                </p>
+              </PremiumCard>
             )}
 
             {/* Active war info */}
             {war.status === "active" && (
-              <div className="text-xs text-zinc-500 flex items-center gap-1.5">
-                <Clock size={12} />
-                War started {war.startedAt ? formatDistanceToNow(new Date(war.startedAt), { addSuffix: true }) : "recently"}
-                <span className="text-zinc-300 mx-1">·</span>
-                <span>Complete your weekly target to win!</span>
-              </div>
+              <PremiumCard interactive={false} className="bg-muted/30 border-black/10 p-4 flex items-center gap-3">
+                <Clock size={14} className="text-muted-foreground shrink-0" />
+                <p className="text-sm text-muted-foreground">
+                  War started {war.startedAt ? formatDistanceToNow(new Date(war.startedAt), { addSuffix: true }) : "recently"}
+                  <span className="text-black/20 mx-2">·</span>
+                  Complete your weekly target to win!
+                </p>
+              </PremiumCard>
             )}
 
-            {/* Captain actions */}
+            {/* Captain: cancel challenge */}
             {isCaptain && (war.status === "pending_challenger_approval" || war.status === "pending_challenged_approval") && myGuildIsChallenger && (
               <Button
-                size="sm"
                 variant="outline"
-                className="w-full text-red-600 border-red-200 hover:bg-red-50 h-7 text-xs"
+                className="w-full min-h-[44px] text-destructive border-destructive/30 hover:bg-destructive/5"
                 disabled={cancelMutation.isPending}
                 onClick={() => cancelMutation.mutate(war.id)}
               >
-                {cancelMutation.isPending ? <Loader2 size={12} className="animate-spin mr-1" /> : null}
+                {cancelMutation.isPending ? <Loader2 size={12} className="animate-spin mr-2" /> : null}
                 Cancel Challenge
               </Button>
             )}
           </div>
-        </div>
+        </PremiumCard>
       )}
 
-      {/* War rules info */}
-      <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-3 text-xs text-zinc-500 space-y-1">
-        <div className="font-semibold text-zinc-600 mb-1.5">⚔️ War Rules</div>
-        <div>• All members must approve before a war starts</div>
-        <div>• The guild that earns the most weekly points wins</div>
-        <div>• Winner gets both guilds' weekly bonus pools on Sunday</div>
-        <div>• If neither completes the weekly target, both keep their own pools</div>
-      </div>
+      {/* War rules */}
+      <PremiumCard interactive={false} className="p-4 md:p-5 bg-muted/30 border-black/15">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="p-1.5 bg-primary/10 border border-primary/20 rounded-lg">
+            <Shield size={13} className="text-primary" />
+          </div>
+          <TechnicalLabel text="War Rules" className="text-foreground" />
+        </div>
+        <ul className="space-y-1.5 text-xs text-muted-foreground">
+          <li>• All members must approve before a war starts</li>
+          <li>• The guild that earns the most weekly points wins</li>
+          <li>• Winner gets both guilds' weekly bonus pools on Sunday</li>
+          <li>• If neither completes the weekly target, both keep their own pools</li>
+        </ul>
+      </PremiumCard>
     </div>
   );
 }
