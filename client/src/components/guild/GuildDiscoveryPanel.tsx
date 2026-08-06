@@ -16,10 +16,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import TechnicalLabel from "@/components/ui/technical-label";
-import { Search, Users, Trophy, Lock, ChevronRight, Star, Shield, Loader2, ArrowLeft, Swords, Crown, Calendar, PlusCircle, CheckCircle2, XCircle, Hourglass } from "lucide-react";
+import { Search, Users, Trophy, Lock, ChevronRight, Star, Shield, Loader2, ArrowLeft, Swords, Crown, Calendar, PlusCircle, CheckCircle2, XCircle, Hourglass, SlidersHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { DEV_UNLOCK_RANK_GATES } from "@/lib/previewAccess";
@@ -63,6 +62,9 @@ export function GuildDiscoveryPanel() {
   const [search, setSearch] = useState("");
   const [rankFilter, setRankFilter] = useState("All");
   const [slotsOnly, setSlotsOnly] = useState(false);
+  const [recruitingOnly, setRecruitingOnly] = useState(false);
+  const [warOnly, setWarOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<"gps" | "members" | "streak" | "slots">("gps");
   const [applyingTo, setApplyingTo] = useState<GuildDiscovery | null>(null);
   const [coverLetter, setCoverLetter] = useState("");
   const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
@@ -146,12 +148,24 @@ export function GuildDiscoveryPanel() {
 
   const userTierIdx = RANK_ORDER.indexOf(user?.userRankTier || "E-Rank");
 
-  const filtered = guilds.filter(g => {
-    if (search && !g.name.toLowerCase().includes(search.toLowerCase())) return false;
-    if (rankFilter !== "All" && gpsTier(g.guildPerformanceScore) !== rankFilter) return false;
-    if (slotsOnly && g.memberCount >= g.memberCapacity) return false;
-    return true;
-  });
+  const filtered = guilds
+    .filter(g => {
+      if (search && !g.name.toLowerCase().includes(search.toLowerCase())) return false;
+      if (rankFilter !== "All" && gpsTier(g.guildPerformanceScore) !== rankFilter) return false;
+      if (slotsOnly && g.memberCount >= g.memberCapacity) return false;
+      if (recruitingOnly && !g.recruitmentOpen) return false;
+      if (warOnly && !g.inActiveWar) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === "gps") return b.guildPerformanceScore - a.guildPerformanceScore;
+      if (sortBy === "members") return b.memberCount - a.memberCount;
+      if (sortBy === "streak") return (b.successfulWeeks ?? 0) - (a.successfulWeeks ?? 0);
+      if (sortBy === "slots") return (b.memberCapacity - b.memberCount) - (a.memberCapacity - a.memberCount);
+      return 0;
+    });
+
+  const activeFilterCount = [rankFilter !== "All", slotsOnly, recruitingOnly, warOnly].filter(Boolean).length;
 
   const canApply = (guild: GuildDiscovery) => {
     const minIdx = RANK_ORDER.indexOf(guild.minRankRequired || "E-Rank");
@@ -369,30 +383,126 @@ export function GuildDiscoveryPanel() {
   return (
     <div className="space-y-5 md:space-y-6">
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-2xl border-2 border-black/15 dark:border-white/15 bg-card">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="Search guilds…"
-            className="pl-9 border-2 border-black/15 dark:border-white/15 rounded-lg focus-visible:ring-primary"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            data-testid="input-guild-search"
-          />
+      <div className="space-y-2.5">
+        {/* Row 1: Search + Sort */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 pointer-events-none" />
+            <Input
+              placeholder="Search guilds…"
+              className="pl-9 pr-9 h-10 bg-background border border-black/10 dark:border-white/10 rounded-xl text-sm focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition-colors placeholder:text-muted-foreground/50"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              data-testid="input-guild-search"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+            <SelectTrigger className="h-10 w-auto gap-1.5 px-3 bg-background border border-black/10 dark:border-white/10 rounded-xl text-sm font-medium shrink-0 focus:ring-1 focus:ring-primary" data-testid="select-sort-by">
+              <SlidersHorizontal size={13} className="text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="gps">Top GPS</SelectItem>
+              <SelectItem value="members">Most Members</SelectItem>
+              <SelectItem value="streak">Best Streak</SelectItem>
+              <SelectItem value="slots">Most Slots</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={rankFilter} onValueChange={setRankFilter}>
-          <SelectTrigger className="w-full sm:w-40 border-2 border-black/15 dark:border-white/15 rounded-lg font-bold shrink-0" data-testid="select-rank-filter">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="All">All Ranks</SelectItem>
-            {RANK_ORDER.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <label className="flex items-center gap-2 text-sm font-medium cursor-pointer select-none shrink-0 px-1">
-          <Checkbox checked={slotsOnly} onCheckedChange={(v) => setSlotsOnly(v === true)} data-testid="checkbox-slots-only" />
-          Slots available only
-        </label>
+
+        {/* Row 2: Rank chips + Toggle filters */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Rank chips */}
+          <div className="flex items-center gap-1 flex-wrap">
+            {["All", ...RANK_ORDER].map(r => {
+              const active = rankFilter === r;
+              const color = r === "All" ? undefined : RANK_COLORS[r];
+              return (
+                <button
+                  key={r}
+                  onClick={() => setRankFilter(r)}
+                  data-testid={r === "All" ? "chip-rank-all" : `chip-rank-${r}`}
+                  className={cn(
+                    "h-7 px-2.5 rounded-lg text-[11px] font-bold tracking-wide transition-all duration-150",
+                    active
+                      ? "bg-foreground text-background shadow-sm"
+                      : "bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground hover:bg-black/[0.08] dark:hover:bg-white/[0.10] hover:text-foreground"
+                  )}
+                  style={active && color ? { backgroundColor: color, color: "#fff" } : undefined}
+                >
+                  {r === "All" ? "All" : r.replace("-Rank", "")}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Divider */}
+          <div className="h-5 w-px bg-black/10 dark:bg-white/10 hidden sm:block" />
+
+          {/* Toggle filters */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => setSlotsOnly(v => !v)}
+              data-testid="checkbox-slots-only"
+              className={cn(
+                "h-7 px-2.5 rounded-lg text-[11px] font-bold tracking-wide flex items-center gap-1.5 transition-all duration-150",
+                slotsOnly
+                  ? "bg-emerald-500 text-white shadow-sm"
+                  : "bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground hover:bg-black/[0.08] dark:hover:bg-white/[0.10] hover:text-foreground"
+              )}
+            >
+              <Users size={11} />
+              Open slots
+            </button>
+            <button
+              onClick={() => setRecruitingOnly(v => !v)}
+              className={cn(
+                "h-7 px-2.5 rounded-lg text-[11px] font-bold tracking-wide flex items-center gap-1.5 transition-all duration-150",
+                recruitingOnly
+                  ? "bg-blue-500 text-white shadow-sm"
+                  : "bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground hover:bg-black/[0.08] dark:hover:bg-white/[0.10] hover:text-foreground"
+              )}
+            >
+              <CheckCircle2 size={11} />
+              Recruiting
+            </button>
+            <button
+              onClick={() => setWarOnly(v => !v)}
+              className={cn(
+                "h-7 px-2.5 rounded-lg text-[11px] font-bold tracking-wide flex items-center gap-1.5 transition-all duration-150",
+                warOnly
+                  ? "bg-red-500 text-white shadow-sm"
+                  : "bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground hover:bg-black/[0.08] dark:hover:bg-white/[0.10] hover:text-foreground"
+              )}
+            >
+              <Swords size={11} />
+              In War
+            </button>
+            {activeFilterCount > 0 && (
+              <button
+                onClick={() => { setRankFilter("All"); setSlotsOnly(false); setRecruitingOnly(false); setWarOnly(false); }}
+                className="h-7 px-2.5 rounded-lg text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+              >
+                <X size={11} /> Clear ({activeFilterCount})
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Results count */}
+        {(search || activeFilterCount > 0) && (
+          <p className="text-[11px] text-muted-foreground/70 px-0.5">
+            {filtered.length} guild{filtered.length !== 1 ? "s" : ""} found
+          </p>
+        )}
       </div>
 
       {/* Guild Grid */}
