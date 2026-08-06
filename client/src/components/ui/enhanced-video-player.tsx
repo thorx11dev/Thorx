@@ -507,8 +507,8 @@ export default function EnhancedVideoPlayer({
                 `}
               >
                 <span className={`
-                  block font-black uppercase tracking-widest leading-none
-                  ${isMobileDevice ? 'text-[9px]' : 'text-[10px]'}
+                  block font-black uppercase leading-none whitespace-nowrap
+                  ${isMobileDevice ? 'text-[8px] tracking-tight' : 'text-[10px] tracking-widest'}
                   ${active ? 'text-white' : 'text-black/40'}
                   transition-colors duration-300
                 `}>

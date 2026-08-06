@@ -1091,6 +1091,7 @@ export default function UserPortal() {
   const [isReferralsHeroToggled, setIsReferralsHeroToggled] = useState(false);
   const [isPayoutHeroToggled, setIsPayoutHeroToggled] = useState(false);
   const [isHelpHeroToggled, setIsHelpHeroToggled] = useState(false);
+  const [isGuildHeroToggled, setIsGuildHeroToggled] = useState(false);
 
   const handleHeroToggle = (setter: any) => {
     setter((prev: boolean) => !prev);
@@ -2021,7 +2022,7 @@ export default function UserPortal() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -30 }}
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  className="font-black tracking-tighter uppercase leading-none text-8xl md:text-9xl text-black"
+                  className="font-black tracking-tighter uppercase leading-none text-[clamp(2.5rem,13vw,6rem)] md:text-9xl text-black"
                 >
                   WORK
                 </motion.h1>
@@ -2033,7 +2034,7 @@ export default function UserPortal() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -30 }}
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  className="font-black tracking-tighter uppercase leading-none text-8xl md:text-9xl text-white"
+                  className="font-black tracking-tighter uppercase leading-none text-[clamp(2.5rem,13vw,6rem)] md:text-9xl text-white"
                 >
                   WORK
                 </motion.h1>
@@ -2943,7 +2944,7 @@ export default function UserPortal() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -30 }}
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  className="font-black tracking-tighter uppercase leading-none text-7xl md:text-9xl text-black"
+                  className="font-black tracking-tighter uppercase leading-none text-[clamp(2rem,11vw,5rem)] md:text-9xl text-black"
                 >
                   PAYOUT
                 </motion.h1>
@@ -2955,7 +2956,7 @@ export default function UserPortal() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -30 }}
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  className="font-black tracking-tighter uppercase leading-none text-7xl md:text-9xl text-white"
+                  className="font-black tracking-tighter uppercase leading-none text-[clamp(2rem,11vw,5rem)] md:text-9xl text-white"
                 >
                   PAYOUT
                 </motion.h1>
@@ -3466,21 +3467,69 @@ export default function UserPortal() {
     return (
       <motion.div
         key="guild-section"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.4 }}
-        className="min-h-screen px-4 md:px-8 py-8"
+        initial="initial"
+        animate="animate"
+        variants={{
+          animate: {
+            transition: {
+              staggerChildren: 0.05
+            }
+          }
+        }}
+        className="max-w-[1600px] mx-auto px-4 md:px-12 py-8 md:pt-4 md:pb-12 relative z-10 w-full"
       >
-        {/* Section header */}
-        <div className="mb-8">
-          <TechnicalLabel text="ENGINE C — GUILD SYSTEM" className="text-xs text-muted-foreground mb-2" />
-          <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight">Engine C</h1>
-          <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-            The Social Gaming Hub. Create or join a Guild, complete weekly tasks exclusive to members,
-            coordinate via real-time team chat, and earn a share of the Guild Weekly Bonus Pool every week.
-          </p>
-        </div>
+        {/* Hero Header */}
+        <motion.div
+          initial={false}
+          animate={{
+            backgroundColor: isGuildHeroToggled ? "#ffffff" : "#000000",
+            borderColor: isGuildHeroToggled ? "#000000" : "#ffffff",
+            boxShadow: isGuildHeroToggled
+              ? "0 4px 20px rgba(0,0,0,0.06)"
+              : "0 8px 30px rgba(0,0,0,0.12)"
+          }}
+          transition={{
+            backgroundColor: { duration: 0.4 },
+            borderColor: { duration: 0.4 }
+          }}
+          onClick={() => handleHeroToggle(setIsGuildHeroToggled)}
+          className={cn(
+            "rounded-2xl p-6 md:p-12 mb-0 relative overflow-hidden group border-2 cursor-pointer",
+            "h-[160px] md:h-[260px] flex items-center justify-center md:justify-start"
+          )}
+        >
+          <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-700" />
+          <div className="relative z-10 w-full text-center md:text-left">
+            <AnimatePresence mode="popLayout" initial={false}>
+              {isGuildHeroToggled ? (
+                <motion.h1
+                  key="guild-expanded"
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -30 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  className="font-black tracking-tighter uppercase leading-none text-[clamp(2.5rem,13vw,6rem)] md:text-9xl text-black"
+                >
+                  GUILD
+                </motion.h1>
+              ) : (
+                <motion.h1
+                  layout
+                  key="guild-collapsed"
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -30 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  className="font-black tracking-tighter uppercase leading-none text-[clamp(2.5rem,13vw,6rem)] md:text-9xl text-white"
+                >
+                  GUILD
+                </motion.h1>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+
+        <InteractiveDivider className="my-12" />
 
         {/* THORX v3 (spec F.6–F.8): 3-context routing by guildRole. */}
         {user && (() => {
