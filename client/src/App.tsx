@@ -9,7 +9,6 @@ import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { WsStatusBanner } from "@/components/ui/WsStatusBanner";
 import { ProtectedRoute, PublicOnlyRoute, TeamProtectedRoute } from "@/components/auth/ProtectedRoute";
 import ThorxLoadingScreen from "@/components/ui/thorx-loading-screen";
-import ComicClickEffect from "@/components/ui/ComicClickEffect";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const Home = lazy(() => import("@/pages/home"));
@@ -172,7 +171,6 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ScrollToTop />
-        <ComicClickEffect />
         <Toaster />
         <Router />
       </TooltipProvider>
