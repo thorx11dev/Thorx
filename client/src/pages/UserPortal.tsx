@@ -557,7 +557,7 @@ export default function UserPortal() {
   const { containerRef: referralPanRef, isDragging: isReferralDragging, onMouseDown: onReferralMouseDown } = useDragToPan<HTMLDivElement>();
 
   // Current section state
-  const [currentSection, setCurrentSection] = useState(3); // TEMP: verifying Guild Discovery redesign, reverting after screenshot
+  const [currentSection, setCurrentSection] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Work section states
@@ -2061,11 +2061,6 @@ export default function UserPortal() {
                 )}
               >
                 <div className="flex items-center justify-between mb-2">
-                  {engine === 2 && (
-                    <span className="text-[10px] font-black tracking-widest uppercase bg-black text-white px-2 py-0.5 rounded-sm border border-white/20">
-                      SOON
-                    </span>
-                  )}
                 </div>
                 <p className={cn(
                   "text-2xl md:text-3xl font-black tracking-tighter uppercase transition-colors",
@@ -3602,7 +3597,7 @@ export default function UserPortal() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -30 }}
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  className="font-black tracking-tighter uppercase leading-none text-8xl md:text-9xl text-black"
+                  className="font-black tracking-tighter uppercase leading-none text-[clamp(2.5rem,13vw,6rem)] md:text-9xl text-black"
                 >
                   HELP
                 </motion.h1>
@@ -3614,7 +3609,7 @@ export default function UserPortal() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -30 }}
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  className="font-black tracking-tighter uppercase leading-none text-8xl md:text-9xl text-white"
+                  className="font-black tracking-tighter uppercase leading-none text-[clamp(2.5rem,13vw,6rem)] md:text-9xl text-white"
                 >
                   HELP
                 </motion.h1>
