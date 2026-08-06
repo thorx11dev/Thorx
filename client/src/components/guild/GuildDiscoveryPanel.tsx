@@ -383,14 +383,14 @@ export function GuildDiscoveryPanel() {
   return (
     <div className="space-y-5 md:space-y-6">
       {/* Filters */}
-      <div className="space-y-2.5">
+      <div className="rounded-2xl border-2 border-black dark:border-white bg-card p-3 md:p-4 space-y-3">
         {/* Row 1: Search + Sort */}
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 pointer-events-none" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <Input
               placeholder="Search guilds…"
-              className="pl-9 pr-9 h-10 bg-background border border-black/10 dark:border-white/10 rounded-xl text-sm focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition-colors placeholder:text-muted-foreground/50"
+              className="pl-9 pr-8 h-10 bg-background border-2 border-black/20 dark:border-white/20 rounded-xl text-sm font-medium focus-visible:border-primary focus-visible:ring-0 transition-colors placeholder:text-muted-foreground/50"
               value={search}
               onChange={e => setSearch(e.target.value)}
               data-testid="input-guild-search"
@@ -398,15 +398,18 @@ export function GuildDiscoveryPanel() {
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-md bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 flex items-center justify-center transition-colors"
               >
-                <X size={13} />
+                <X size={11} />
               </button>
             )}
           </div>
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-            <SelectTrigger className="h-10 w-auto gap-1.5 px-3 bg-background border border-black/10 dark:border-white/10 rounded-xl text-sm font-medium shrink-0 focus:ring-1 focus:ring-primary" data-testid="select-sort-by">
-              <SlidersHorizontal size={13} className="text-muted-foreground" />
+            <SelectTrigger
+              className="h-10 w-auto gap-2 px-3 bg-background border-2 border-black/20 dark:border-white/20 rounded-xl text-[11px] font-black uppercase tracking-wider shrink-0 focus:ring-0 focus:border-primary hover:border-black dark:hover:border-white transition-colors"
+              data-testid="select-sort-by"
+            >
+              <SlidersHorizontal size={12} />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -418,10 +421,14 @@ export function GuildDiscoveryPanel() {
           </Select>
         </div>
 
+        {/* Divider */}
+        <div className="h-px bg-black/10 dark:bg-white/10" />
+
         {/* Row 2: Rank chips + Toggle filters */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
           {/* Rank chips */}
-          <div className="flex items-center gap-1 flex-wrap">
+          <div className="flex items-center gap-1 flex-wrap flex-1">
+            <TechnicalLabel text="RANK" className="text-muted-foreground text-[9px] mr-1 shrink-0" />
             {["All", ...RANK_ORDER].map(r => {
               const active = rankFilter === r;
               const color = r === "All" ? undefined : RANK_COLORS[r];
@@ -431,12 +438,12 @@ export function GuildDiscoveryPanel() {
                   onClick={() => setRankFilter(r)}
                   data-testid={r === "All" ? "chip-rank-all" : `chip-rank-${r}`}
                   className={cn(
-                    "h-7 px-2.5 rounded-lg text-[11px] font-bold tracking-wide transition-all duration-150",
+                    "h-7 px-2.5 rounded-lg text-[10px] font-black uppercase tracking-wider border-2 transition-all duration-150",
                     active
-                      ? "bg-foreground text-background shadow-sm"
-                      : "bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground hover:bg-black/[0.08] dark:hover:bg-white/[0.10] hover:text-foreground"
+                      ? "border-black dark:border-white bg-black dark:bg-white text-white dark:text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)]"
+                      : "border-black/20 dark:border-white/20 text-muted-foreground hover:border-black dark:hover:border-white hover:text-foreground bg-transparent"
                   )}
-                  style={active && color ? { backgroundColor: color, color: "#fff" } : undefined}
+                  style={active && color ? { backgroundColor: color, borderColor: color, color: "#fff" } : undefined}
                 >
                   {r === "All" ? "All" : r.replace("-Rank", "")}
                 </button>
@@ -444,54 +451,38 @@ export function GuildDiscoveryPanel() {
             })}
           </div>
 
-          {/* Divider */}
-          <div className="h-5 w-px bg-black/10 dark:bg-white/10 hidden sm:block" />
+          {/* Vertical divider — desktop only */}
+          <div className="w-px h-7 bg-black/15 dark:bg-white/15 hidden sm:block shrink-0" />
 
           {/* Toggle filters */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <button
-              onClick={() => setSlotsOnly(v => !v)}
-              data-testid="checkbox-slots-only"
-              className={cn(
-                "h-7 px-2.5 rounded-lg text-[11px] font-bold tracking-wide flex items-center gap-1.5 transition-all duration-150",
-                slotsOnly
-                  ? "bg-emerald-500 text-white shadow-sm"
-                  : "bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground hover:bg-black/[0.08] dark:hover:bg-white/[0.10] hover:text-foreground"
-              )}
-            >
-              <Users size={11} />
-              Open slots
-            </button>
-            <button
-              onClick={() => setRecruitingOnly(v => !v)}
-              className={cn(
-                "h-7 px-2.5 rounded-lg text-[11px] font-bold tracking-wide flex items-center gap-1.5 transition-all duration-150",
-                recruitingOnly
-                  ? "bg-blue-500 text-white shadow-sm"
-                  : "bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground hover:bg-black/[0.08] dark:hover:bg-white/[0.10] hover:text-foreground"
-              )}
-            >
-              <CheckCircle2 size={11} />
-              Recruiting
-            </button>
-            <button
-              onClick={() => setWarOnly(v => !v)}
-              className={cn(
-                "h-7 px-2.5 rounded-lg text-[11px] font-bold tracking-wide flex items-center gap-1.5 transition-all duration-150",
-                warOnly
-                  ? "bg-red-500 text-white shadow-sm"
-                  : "bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground hover:bg-black/[0.08] dark:hover:bg-white/[0.10] hover:text-foreground"
-              )}
-            >
-              <Swords size={11} />
-              In War
-            </button>
+            <TechnicalLabel text="FILTER" className="text-muted-foreground text-[9px] mr-0.5 shrink-0 sm:hidden" />
+            {[
+              { id: "slots",      active: slotsOnly,      set: () => setSlotsOnly(v => !v),       icon: Users,        label: "Open",       testId: "checkbox-slots-only" },
+              { id: "recruiting", active: recruitingOnly, set: () => setRecruitingOnly(v => !v), icon: CheckCircle2, label: "Recruiting", testId: "chip-recruiting" },
+              { id: "war",        active: warOnly,        set: () => setWarOnly(v => !v),         icon: Swords,       label: "In War",     testId: "chip-war" },
+            ].map(({ id, active, set, icon: Icon, label, testId }) => (
+              <button
+                key={id}
+                onClick={set}
+                data-testid={testId}
+                className={cn(
+                  "h-7 px-2.5 rounded-lg text-[10px] font-black uppercase tracking-wider border-2 flex items-center gap-1.5 transition-all duration-150",
+                  active
+                    ? "bg-primary border-primary text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.25)]"
+                    : "border-black/20 dark:border-white/20 text-muted-foreground hover:border-black dark:hover:border-white hover:text-foreground bg-transparent"
+                )}
+              >
+                <Icon size={10} />
+                {label}
+              </button>
+            ))}
             {activeFilterCount > 0 && (
               <button
                 onClick={() => { setRankFilter("All"); setSlotsOnly(false); setRecruitingOnly(false); setWarOnly(false); }}
-                className="h-7 px-2.5 rounded-lg text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                className="h-7 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider border-2 border-black/20 dark:border-white/20 text-muted-foreground hover:border-black dark:hover:border-white hover:text-foreground flex items-center gap-1 transition-all duration-150"
               >
-                <X size={11} /> Clear ({activeFilterCount})
+                <X size={10} /> Reset
               </button>
             )}
           </div>
@@ -499,9 +490,12 @@ export function GuildDiscoveryPanel() {
 
         {/* Results count */}
         {(search || activeFilterCount > 0) && (
-          <p className="text-[11px] text-muted-foreground/70 px-0.5">
-            {filtered.length} guild{filtered.length !== 1 ? "s" : ""} found
-          </p>
+          <div className="pt-1 border-t border-black/10 dark:border-white/10">
+            <TechnicalLabel
+              text={`${filtered.length} GUILD${filtered.length !== 1 ? "S" : ""} FOUND`}
+              className="text-muted-foreground text-[9px]"
+            />
+          </div>
         )}
       </div>
 
@@ -749,60 +743,112 @@ export function GuildDiscoveryPanel() {
 
       {/* Guild Creation Request Modal */}
       {showCreationForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card rounded-2xl border-2 border-black dark:border-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.15)] w-full max-w-lg p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                <PlusCircle size={18} className="text-primary" />
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-0 sm:p-4"
+          onClick={e => { if (e.target === e.currentTarget) setShowCreationForm(false); }}
+        >
+          {/* Sheet on mobile, centered card on desktop */}
+          <div className="bg-card w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl border-2 border-black dark:border-white shadow-[0_-4px_0_0_rgba(0,0,0,1)] sm:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.15)] overflow-hidden">
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b-2 border-black/10 dark:border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center shrink-0">
+                  <PlusCircle size={16} className="text-primary" />
+                </div>
+                <div>
+                  <div className="font-black text-sm tracking-tight">Request Guild Creation</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">Admin will review and approve.</div>
+                </div>
               </div>
-              <div>
-                <div className="font-black text-base">Request Guild Creation</div>
-                <div className="text-xs text-muted-foreground">Admin will review and approve your request.</div>
-              </div>
+              <button
+                onClick={() => setShowCreationForm(false)}
+                className="w-8 h-8 rounded-xl border-2 border-black/15 dark:border-white/15 hover:border-black dark:hover:border-white flex items-center justify-center text-muted-foreground hover:text-foreground transition-all duration-150 shrink-0"
+                data-testid="button-close-creation-modal"
+              >
+                <X size={13} />
+              </button>
             </div>
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Guild Name *</label>
+
+            {/* Form */}
+            <div className="px-5 py-4 space-y-4">
+
+              {/* Guild Name */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <TechnicalLabel text="GUILD NAME" className="text-foreground/70 text-[9px]" />
+                  <TechnicalLabel text="REQUIRED" className="text-primary text-[9px]" />
+                </div>
                 <Input
                   value={creationForm.guildName}
                   onChange={e => setCreationForm(p => ({ ...p, guildName: e.target.value }))}
                   placeholder="e.g. Iron Wolves"
                   maxLength={60}
-                  className="border-2 border-black/15 dark:border-white/15 rounded-lg focus-visible:ring-primary"
+                  className="h-11 border-2 border-black/20 dark:border-white/20 rounded-xl bg-background font-medium text-sm focus-visible:ring-0 focus-visible:border-primary hover:border-black/40 dark:hover:border-white/40 transition-colors placeholder:text-muted-foreground/50"
                   data-testid="input-guild-name"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Short Description (optional)</label>
+
+              {/* Description */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <TechnicalLabel text="SHORT DESCRIPTION" className="text-foreground/70 text-[9px]" />
+                  <TechnicalLabel text="OPTIONAL" className="text-muted-foreground text-[9px]" />
+                </div>
                 <Input
                   value={creationForm.description}
                   onChange={e => setCreationForm(p => ({ ...p, description: e.target.value }))}
                   placeholder="What is your guild about?"
                   maxLength={200}
-                  className="border-2 border-black/15 dark:border-white/15 rounded-lg focus-visible:ring-primary"
+                  className="h-11 border-2 border-black/20 dark:border-white/20 rounded-xl bg-background font-medium text-sm focus-visible:ring-0 focus-visible:border-primary hover:border-black/40 dark:hover:border-white/40 transition-colors placeholder:text-muted-foreground/50"
                   data-testid="input-guild-description"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Why do you want to create a guild? *</label>
+
+              {/* Reason */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <TechnicalLabel text="WHY CREATE A GUILD?" className="text-foreground/70 text-[9px]" />
+                  <TechnicalLabel text="REQUIRED" className="text-primary text-[9px]" />
+                </div>
                 <Textarea
                   value={creationForm.reason}
                   onChange={e => setCreationForm(p => ({ ...p, reason: e.target.value }))}
                   rows={4}
                   maxLength={1000}
-                  placeholder="Explain your vision, how you'll lead your team, and why you're ready for this responsibility. (min 50 characters)"
-                  className="resize-none border-2 border-black/15 dark:border-white/15 rounded-lg focus-visible:ring-primary"
+                  placeholder="Explain your vision, how you'll lead your team, and why you're ready for this responsibility."
+                  className="resize-none border-2 border-black/20 dark:border-white/20 rounded-xl bg-background font-medium text-sm focus-visible:ring-0 focus-visible:border-primary hover:border-black/40 dark:hover:border-white/40 transition-colors placeholder:text-muted-foreground/50 leading-relaxed"
                   data-testid="input-guild-reason"
                 />
-                <div className={cn("text-[11px] text-right", creationForm.reason.length < 50 ? "text-red-500 font-medium" : "text-muted-foreground")}>
-                  {creationForm.reason.length}/1000 {creationForm.reason.length < 50 ? `(min 50 — need ${50 - creationForm.reason.length} more)` : "✓"}
+                <div className="flex items-center justify-between">
+                  {/* Progress bar */}
+                  <div className="flex-1 h-1 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden mr-3">
+                    <div
+                      className={cn("h-full rounded-full transition-all duration-300", creationForm.reason.length >= 50 ? "bg-primary" : "bg-red-400")}
+                      style={{ width: `${Math.min(100, (creationForm.reason.length / 50) * 100)}%` }}
+                    />
+                  </div>
+                  <span className={cn("text-[10px] font-black tabular-nums shrink-0", creationForm.reason.length < 50 ? "text-red-500" : "text-primary")}>
+                    {creationForm.reason.length < 50
+                      ? `${50 - creationForm.reason.length} more`
+                      : `${creationForm.reason.length}/1000 ✓`}
+                  </span>
                 </div>
               </div>
             </div>
-            <div className="flex gap-2 pt-1">
-              <Button variant="outline" className="flex-1 border-2 border-black/15 dark:border-white/15 rounded-lg" onClick={() => setShowCreationForm(false)} data-testid="button-cancel-creation-request">Cancel</Button>
+
+            {/* Actions */}
+            <div className="px-5 pb-5 pt-1 flex gap-2.5">
               <Button
-                className="flex-1 bg-primary text-black font-black uppercase tracking-wider rounded-lg hover:bg-primary/90"
+                variant="outline"
+                className="flex-1 h-11 border-2 border-black/20 dark:border-white/20 hover:border-black dark:hover:border-white rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-150"
+                onClick={() => setShowCreationForm(false)}
+                data-testid="button-cancel-creation-request"
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-2 h-11 bg-primary text-black font-black text-xs uppercase tracking-wider rounded-xl hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.25)] transition-all duration-150 px-6"
                 disabled={
                   creationForm.guildName.trim().length < 3 ||
                   creationForm.reason.trim().length < 50 ||
@@ -811,8 +857,9 @@ export function GuildDiscoveryPanel() {
                 onClick={() => creationRequestMutation.mutate(creationForm)}
                 data-testid="button-submit-creation-request"
               >
-                {creationRequestMutation.isPending ? <Loader2 size={14} className="animate-spin mr-1" /> : null}
-                Submit Request
+                {creationRequestMutation.isPending
+                  ? <><Loader2 size={13} className="animate-spin mr-1.5" /> Submitting…</>
+                  : "Submit Request"}
               </Button>
             </div>
           </div>
