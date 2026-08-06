@@ -4,7 +4,7 @@
  * GPS-sorted guild leaderboard with application flow.
  * NEVER shows PKR pool amounts — only TX-Points and success weeks.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -53,6 +53,40 @@ function gpsTier(gps: number): string {
   if (gps >= 1000)  return "C-Rank";
   if (gps >= 200)   return "D-Rank";
   return "E-Rank";
+}
+
+const GUILD_NAME_SUGGESTIONS = ["Iron Wolves", "Pixel Raiders", "Shadow Syndicate"];
+const GUILD_DESCRIPTION_SUGGESTIONS = ["A focused team that builds together", "Competitive players, one shared goal", "A crew for consistent weekly wins"];
+const GUILD_REASON_SUGGESTIONS = ["Share your vision for the team...", "Tell us how you will lead your members...", "Explain what makes your guild different..."];
+
+function AnimatedFieldPlaceholder({ examples }: { examples: string[] }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentText, setCurrentText] = useState("");
+  const [isTyping, setIsTyping] = useState(true);
+
+  useEffect(() => {
+    const example = examples[currentIndex];
+    let timeout: ReturnType<typeof setTimeout>;
+
+    if (isTyping) {
+      if (currentText.length < example.length) {
+        timeout = setTimeout(() => {
+          setCurrentText(example.slice(0, currentText.length + 1));
+        }, 55);
+      } else {
+        timeout = setTimeout(() => setIsTyping(false), 1200);
+      }
+    } else if (currentText.length > 0) {
+      timeout = setTimeout(() => setCurrentText(currentText.slice(0, -1)), 28);
+    } else {
+      setCurrentIndex(prev => (prev + 1) % examples.length);
+      setIsTyping(true);
+    }
+
+    return () => clearTimeout(timeout);
+  }, [currentText, currentIndex, examples, isTyping]);
+
+  return <span>{currentText}<span className="animate-pulse text-primary">|</span></span>;
 }
 
 export function GuildDiscoveryPanel() {
@@ -749,14 +783,9 @@ export function GuildDiscoveryPanel() {
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b-2 border-black/10 dark:border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center shrink-0">
-                  <PlusCircle size={16} className="text-primary" />
-                </div>
-                <div>
-                  <div className="font-black text-sm tracking-tight">Request Guild Creation</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">Admin will review and approve.</div>
-                </div>
+              <div>
+                <div className="font-black text-sm tracking-tight">Request Guild Creation</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">Admin will review and approve.</div>
               </div>
               <button
                 onClick={() => setShowCreationForm(false)}
@@ -776,14 +805,20 @@ export function GuildDiscoveryPanel() {
                   <TechnicalLabel text="GUILD NAME" className="text-foreground/70 text-[9px]" />
                   <TechnicalLabel text="REQUIRED" className="text-primary text-[9px]" />
                 </div>
-                <Input
-                  value={creationForm.guildName}
-                  onChange={e => setCreationForm(p => ({ ...p, guildName: e.target.value }))}
-                  placeholder="e.g. Iron Wolves"
-                  maxLength={60}
-                  className="h-11 border-2 border-black/20 dark:border-white/20 rounded-xl bg-background font-medium text-sm focus-visible:ring-0 focus-visible:border-primary hover:border-black/40 dark:hover:border-white/40 transition-colors placeholder:text-muted-foreground/50"
-                  data-testid="input-guild-name"
-                />
+                <div className="relative">
+                  <Input
+                    value={creationForm.guildName}
+                    onChange={e => setCreationForm(p => ({ ...p, guildName: e.target.value }))}
+                    maxLength={60}
+                    className="h-11 border-2 border-black/20 dark:border-white/20 rounded-xl bg-background font-medium text-sm focus-visible:ring-0 focus-visible:border-primary hover:border-black/40 dark:hover:border-white/40 transition-colors placeholder:text-transparent"
+                    data-testid="input-guild-name"
+                  />
+                  {!creationForm.guildName && (
+                    <div className="absolute inset-0 flex items-center px-3 pointer-events-none text-sm text-muted-foreground/60">
+                      <AnimatedFieldPlaceholder examples={GUILD_NAME_SUGGESTIONS} />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Description */}
@@ -792,14 +827,20 @@ export function GuildDiscoveryPanel() {
                   <TechnicalLabel text="SHORT DESCRIPTION" className="text-foreground/70 text-[9px]" />
                   <TechnicalLabel text="OPTIONAL" className="text-muted-foreground text-[9px]" />
                 </div>
-                <Input
-                  value={creationForm.description}
-                  onChange={e => setCreationForm(p => ({ ...p, description: e.target.value }))}
-                  placeholder="What is your guild about?"
-                  maxLength={200}
-                  className="h-11 border-2 border-black/20 dark:border-white/20 rounded-xl bg-background font-medium text-sm focus-visible:ring-0 focus-visible:border-primary hover:border-black/40 dark:hover:border-white/40 transition-colors placeholder:text-muted-foreground/50"
-                  data-testid="input-guild-description"
-                />
+                <div className="relative">
+                  <Input
+                    value={creationForm.description}
+                    onChange={e => setCreationForm(p => ({ ...p, description: e.target.value }))}
+                    maxLength={200}
+                    className="h-11 border-2 border-black/20 dark:border-white/20 rounded-xl bg-background font-medium text-sm focus-visible:ring-0 focus-visible:border-primary hover:border-black/40 dark:hover:border-white/40 transition-colors placeholder:text-transparent"
+                    data-testid="input-guild-description"
+                  />
+                  {!creationForm.description && (
+                    <div className="absolute inset-0 flex items-center px-3 pointer-events-none text-sm text-muted-foreground/60">
+                      <AnimatedFieldPlaceholder examples={GUILD_DESCRIPTION_SUGGESTIONS} />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Reason */}
@@ -808,24 +849,30 @@ export function GuildDiscoveryPanel() {
                   <TechnicalLabel text="WHY CREATE A GUILD?" className="text-foreground/70 text-[9px]" />
                   <TechnicalLabel text="REQUIRED" className="text-primary text-[9px]" />
                 </div>
-                <Textarea
-                  value={creationForm.reason}
-                  onChange={e => setCreationForm(p => ({ ...p, reason: e.target.value }))}
-                  rows={4}
-                  maxLength={1000}
-                  placeholder="Explain your vision, how you'll lead your team, and why you're ready for this responsibility."
-                  className="resize-none border-2 border-black/20 dark:border-white/20 rounded-xl bg-background font-medium text-sm focus-visible:ring-0 focus-visible:border-primary hover:border-black/40 dark:hover:border-white/40 transition-colors placeholder:text-muted-foreground/50 leading-relaxed"
-                  data-testid="input-guild-reason"
-                />
+                <div className="relative">
+                  <Textarea
+                    value={creationForm.reason}
+                    onChange={e => setCreationForm(p => ({ ...p, reason: e.target.value }))}
+                    rows={4}
+                    maxLength={1000}
+                    className="resize-none border-2 border-black/20 dark:border-white/20 rounded-xl bg-background font-medium text-sm focus-visible:ring-0 focus-visible:border-primary hover:border-black/40 dark:hover:border-white/40 transition-colors placeholder:text-transparent leading-relaxed"
+                    data-testid="input-guild-reason"
+                  />
+                  {!creationForm.reason && (
+                    <div className="absolute top-3 left-3 right-3 pointer-events-none text-sm text-muted-foreground/60 leading-relaxed">
+                      <AnimatedFieldPlaceholder examples={GUILD_REASON_SUGGESTIONS} />
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-center justify-between">
                   {/* Progress bar */}
                   <div className="flex-1 h-1 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden mr-3">
                     <div
-                      className={cn("h-full rounded-full transition-all duration-300", creationForm.reason.length >= 50 ? "bg-primary" : "bg-red-400")}
+                      className="h-full rounded-full bg-primary transition-all duration-300"
                       style={{ width: `${Math.min(100, (creationForm.reason.length / 50) * 100)}%` }}
                     />
                   </div>
-                  <span className={cn("text-[10px] font-black tabular-nums shrink-0", creationForm.reason.length < 50 ? "text-red-500" : "text-primary")}>
+                  <span className="text-[10px] font-black tabular-nums shrink-0 text-primary">
                     {creationForm.reason.length < 50
                       ? `${50 - creationForm.reason.length} more`
                       : `${creationForm.reason.length}/1000 ✓`}
