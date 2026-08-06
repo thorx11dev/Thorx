@@ -616,6 +616,7 @@ export interface IStorage {
   // Notifications
   createNotification(notification: InsertNotification): Promise<Notification>;
   getUserNotifications(userId: string): Promise<Notification[]>;
+  clearAllNotifications(userId: string): Promise<void>;
 
   // Device Fingerprinting & Email Verification
   createDeviceFingerprint(data: InsertDeviceFingerprint): Promise<DeviceFingerprint>;
@@ -4669,6 +4670,10 @@ export class DatabaseStorage implements IStorage {
       .from(notifications)
       .where(eq(notifications.userId, userId))
       .orderBy(desc(notifications.createdAt));
+  }
+
+  async clearAllNotifications(userId: string): Promise<void> {
+    await db.delete(notifications).where(eq(notifications.userId, userId));
   }
 
   async deleteUser(userId: string): Promise<void> {

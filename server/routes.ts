@@ -1099,6 +1099,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clear all notifications for the authenticated user
+  app.delete("/api/notifications", requireSessionAuth, async (req, res) => {
+    try {
+      const thorxPid = getThorxPrincipalId(req) as string;
+      await storage.clearAllNotifications(thorxPid);
+      res.json({ message: "All notifications cleared." });
+    } catch (error) {
+      logger.error({ err: error }, "Clear notifications error:");
+      res.status(500).json({ message: "Failed to clear notifications" });
+    }
+  });
+
   // Get user earnings endpoint
   app.get("/api/earnings", requireSessionAuth, async (req, res) => {
     try {

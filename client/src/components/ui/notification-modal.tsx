@@ -1,9 +1,11 @@
 import * as React from "react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
-import { TrendingUp, User, Bell, Wallet, Zap, X, ArrowUpRight, ArrowDownRight, GripHorizontal } from "lucide-react";
+import { TrendingUp, User, Bell, Wallet, X, GripHorizontal, Trash2 } from "lucide-react";
 import { format, isToday, subDays, isAfter } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Commission {
     id: string;
@@ -56,6 +58,16 @@ export function NotificationModal({
     const isDesktop = !isMobile;
     const dragControls = useDragControls();
     const constraintsRef = React.useRef<HTMLDivElement>(null);
+    const queryClient = useQueryClient();
+
+    const clearAllMutation = useMutation({
+        mutationFn: async () => {
+            await apiRequest("DELETE", "/api/notifications");
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+        },
+    });
 
     const startDrag = (e: React.PointerEvent) => {
         if (!isDesktop) return;
@@ -194,14 +206,28 @@ export function NotificationModal({
                                 isDesktop && "cursor-grab active:cursor-grabbing touch-none select-none"
                             )}
                         >
-                            <div className="flex items-end gap-4">
-                                <h1 className="text-[40px] md:text-[48px] font-black tracking-tighter text-black uppercase leading-none">
-                                    Activity
-                                </h1>
-                                {totalCount > 0 && (
-                                    <div className="mb-1 flex h-7 min-w-[28px] items-center justify-center bg-primary text-white font-black text-xs px-2 border-2 border-black">
-                                        {totalCount}
-                                    </div>
+                            <div className="flex items-end justify-between gap-4">
+                                <div className="flex items-end gap-4">
+                                    <h1 className="text-[40px] md:text-[48px] font-black tracking-tighter text-black uppercase leading-none">
+                                        Activity
+                                    </h1>
+                                    {totalCount > 0 && (
+                                        <div className="mb-1 flex h-7 min-w-[28px] items-center justify-center bg-primary text-white font-black text-xs px-2 border-2 border-black">
+                                            {totalCount}
+                                        </div>
+                                    )}
+                                </div>
+                                {notifications.length > 0 && (
+                                    <button
+                                        onPointerDown={e => e.stopPropagation()}
+                                        onClick={() => clearAllMutation.mutate()}
+                                        disabled={clearAllMutation.isPending}
+                                        className="mb-1 flex items-center gap-1.5 px-3 h-7 border-2 border-black/20 hover:border-black hover:bg-black hover:text-white text-black/40 text-[10px] font-black uppercase tracking-wider transition-all duration-150 disabled:opacity-40"
+                                        aria-label="Clear all notifications"
+                                    >
+                                        <Trash2 className="w-3 h-3" strokeWidth={2.5} />
+                                        Clear All
+                                    </button>
                                 )}
                             </div>
                             <div className="h-[3px] w-12 bg-primary mt-3" />
@@ -339,7 +365,10 @@ function FinancialCard({
     getRoleBadgeStyle: (role?: string) => string;
 }) {
     const isCredit = notification.adjustmentType === 'credit';
-    const amount = parseFloat(notification.amount || "0").toFixed(0);
+    const rawAmount = parseFloat(notification.amount || "0");
+    // Only show TX-PTS badge when a real balance adjustment occurred (non-zero amount + type set)
+    const hasAmount = notification.adjustmentType && rawAmount > 0;
+    const amount = rawAmount.toFixed(0);
 
     return (
         <motion.div
@@ -350,16 +379,8 @@ function FinancialCard({
         >
             {/* Row 1: icon + title + time */}
             <div className="flex items-start gap-3">
-                <div className={cn(
-                    "w-10 h-10 flex-shrink-0 flex items-center justify-center border-2",
-                    isCredit
-                        ? "bg-emerald-600 border-emerald-600"
-                        : "bg-black border-black"
-                )}>
-                    {isCredit
-                        ? <Wallet className="w-5 h-5 text-white" strokeWidth={2} />
-                        : <Zap className="w-5 h-5 text-white" strokeWidth={2} />
-                    }
+                <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center border-2 bg-black border-black">
+                    <Wallet className="w-5 h-5 text-white" strokeWidth={2} />
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -389,17 +410,22 @@ function FinancialCard({
                 </div>
             </div>
 
-            {/* Row 2: amount + message */}
+            {/* Row 2: amount (only when real balance change) + message */}
             <div className="mt-3 pl-[52px]">
-                <p className={cn(
-                    "text-2xl font-black tracking-tighter leading-none",
-                    isCredit ? "text-emerald-600" : "text-black"
-                )}>
-                    {isCredit ? "+" : "−"}{amount}
-                    <span className="text-primary text-base font-black ml-1.5">TX-PTS</span>
-                </p>
+                {hasAmount && (
+                    <p className={cn(
+                        "text-2xl font-black tracking-tighter leading-none",
+                        isCredit ? "text-emerald-600" : "text-black"
+                    )}>
+                        {isCredit ? "+" : "−"}{amount}
+                        <span className="text-primary text-base font-black ml-1.5">TX-PTS</span>
+                    </p>
+                )}
                 {notification.message && (
-                    <p className="text-[11px] text-black/45 font-medium leading-relaxed mt-1.5 max-w-xs">
+                    <p className={cn(
+                        "text-[11px] text-black/45 font-medium leading-relaxed max-w-xs",
+                        hasAmount ? "mt-1.5" : "mt-0"
+                    )}>
                         {notification.message}
                     </p>
                 )}
