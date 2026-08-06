@@ -684,6 +684,9 @@ export interface IStorage {
   adminAdjustUserPS(userId: string, delta: number, reason: string, adminId: string): Promise<User>;
   adminAdjustGuildGPS(guildId: string, delta: number, reason: string, adminId: string): Promise<any>;
   adminReassignCaptain(guildId: string, newCaptainUserId: string, adminId: string): Promise<any>;
+  adminAddGuildMember(guildId: string, targetUserId: string, adminId: string): Promise<void>;
+  adminSetAssistantCaptain(guildId: string, memberId: string, adminId: string): Promise<any>;
+  adminRemoveAssistantCaptain(guildId: string, adminId: string): Promise<any>;
   adminSetGuildWeeklyTarget(guildId: string, weeklyTarget: number, adminId: string): Promise<any>;
   adminBulkSetWeeklyTargetsByRank(targets: Partial<Record<GuildRankTier, number>>, adminId: string): Promise<Record<string, number>>;
   // ── Bulk guild admin operations ──────────────────────────────────────────
@@ -6282,6 +6285,116 @@ export class DatabaseStorage implements IStorage {
         details: { targets, updatedCounts, guildIdsByRank },
       });
       return updatedCounts;
+    });
+  }
+
+  // Admin: add a user directly to a guild roster as an active member,
+  // bypassing the application/approval flow (which is the only path a
+  // regular user has). Mirrors the acceptance side-effects of
+  // applyToGuildWithCoverLetter/decideGuildApplication (member row, denormalized
+  // memberCount + users.guildId/guildRole, notification) without ever creating
+  // a pending application row.
+  async adminAddGuildMember(guildId: string, targetUserId: string, adminId: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      const [guild] = await tx.select().from(guilds).where(eq(guilds.id, guildId));
+      if (!guild) throw new Error("Guild not found");
+      if (guild.status === "disbanded") throw new Error("This guild has been disbanded.");
+      if (guild.memberCount >= guild.memberCapacity) throw new Error("This guild is full.");
+
+      const [targetUser] = await tx.select().from(users).where(eq(users.id, targetUserId));
+      if (!targetUser) throw new Error("User not found");
+
+      const existing = await this.getActiveGuildMembershipTx(tx, targetUserId);
+      if (existing) throw new Error("This user is already in a guild.");
+
+      // A prior pending row for this guild+user should not block re-adding
+      // them — clear it before inserting the fresh active membership.
+      const [stalePending] = await tx.select().from(guildMembers)
+        .where(and(eq(guildMembers.guildId, guildId), eq(guildMembers.userId, targetUserId), eq(guildMembers.status, "pending")))
+        .limit(1);
+      if (stalePending) {
+        await tx.update(guildMembers).set({ status: "rejected" }).where(eq(guildMembers.id, stalePending.id));
+      }
+
+      await tx.insert(guildMembers).values({
+        guildId,
+        userId: targetUserId,
+        role: "member",
+        status: "active",
+        joinedAt: new Date(),
+      });
+
+      await tx.update(guilds).set({
+        memberCount: sql`${guilds.memberCount} + 1`,
+        updatedAt: new Date(),
+      }).where(eq(guilds.id, guildId));
+
+      await tx.update(users).set({ guildId, guildRole: "member" }).where(eq(users.id, targetUserId));
+
+      await tx.insert(auditLogs).values({
+        adminId, action: "ADMIN_GUILD_MEMBER_ADDED", targetType: "guild", targetId: guildId,
+        details: { addedUserId: targetUserId },
+      });
+
+      await tx.insert(notifications).values({
+        userId: targetUserId,
+        title: "Added to a Guild",
+        message: `An administrator added you to ${guild.name}.`,
+        type: "system",
+      });
+    });
+  }
+
+  // Admin version of the captain-only POST /api/guilds/:id/assistant-captain —
+  // same effects, but callable by team/admin accounts on any guild.
+  async adminSetAssistantCaptain(guildId: string, memberId: string, adminId: string): Promise<Guild> {
+    return await db.transaction(async (tx) => {
+      const [guild] = await tx.select().from(guilds).where(eq(guilds.id, guildId));
+      if (!guild) throw new Error("Guild not found");
+      if (memberId === guild.captainId) throw new Error("The captain cannot also be the assistant captain.");
+
+      const [membership] = await tx.select().from(guildMembers)
+        .where(and(eq(guildMembers.guildId, guildId), eq(guildMembers.userId, memberId), eq(guildMembers.status, "active")))
+        .limit(1);
+      if (!membership) throw new Error("This user is not an active member of this guild.");
+
+      const [updated] = await tx.update(guilds)
+        .set({ assistantCaptainId: memberId, updatedAt: new Date() })
+        .where(eq(guilds.id, guildId)).returning();
+
+      await tx.insert(auditLogs).values({
+        adminId, action: "ADMIN_ASSISTANT_CAPTAIN_ASSIGNED", targetType: "guild", targetId: guildId,
+        details: { assistantUserId: memberId },
+      });
+
+      await tx.insert(notifications).values({
+        userId: memberId,
+        title: "⚔️ You are now Assistant Captain!",
+        message: `An administrator appointed you as Assistant Captain of ${guild.name}.`,
+        type: "info",
+      });
+
+      return updated;
+    });
+  }
+
+  // Admin version of DELETE /api/guilds/:id/assistant-captain.
+  async adminRemoveAssistantCaptain(guildId: string, adminId: string): Promise<Guild> {
+    return await db.transaction(async (tx) => {
+      const [guild] = await tx.select().from(guilds).where(eq(guilds.id, guildId));
+      if (!guild) throw new Error("Guild not found");
+      const removedAssistantUserId = guild.assistantCaptainId;
+
+      const [updated] = await tx.update(guilds)
+        .set({ assistantCaptainId: null, assistantPermissions: [], updatedAt: new Date() })
+        .where(eq(guilds.id, guildId)).returning();
+
+      await tx.insert(auditLogs).values({
+        adminId, action: "ADMIN_ASSISTANT_CAPTAIN_REMOVED", targetType: "guild", targetId: guildId,
+        details: { removedAssistantUserId },
+      });
+
+      return updated;
     });
   }
 

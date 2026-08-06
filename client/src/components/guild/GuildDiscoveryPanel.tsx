@@ -56,10 +56,6 @@ function gpsTier(gps: number): string {
   return "E-Rank";
 }
 
-const RANK_ORDER_IDX: Record<string, number> = {
-  "E-Rank": 0, "D-Rank": 1, "C-Rank": 2, "B-Rank": 3, "A-Rank": 4, "S-Rank": 5,
-};
-
 export function GuildDiscoveryPanel() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -100,10 +96,8 @@ export function GuildDiscoveryPanel() {
     },
   });
 
-  // Dev preview mode never hides the guild-creation CTA behind the B-Rank+
-  // gate so the whole flow stays visible/clickable for review — the backend
-  // still independently enforces the real rank requirement on submission.
-  const isBRankPlus = DEV_UNLOCK_RANK_GATES || (RANK_ORDER_IDX[user?.userRankTier ?? "E-Rank"] ?? 0) >= RANK_ORDER_IDX["B-Rank"];
+  // Any rank may request guild creation — the backend no longer enforces a
+  // rank floor here either, admin approval is the only gate.
   const pendingRequest = myRequest?.request;
 
   // Detail view — guild info + members (fetched on demand)
@@ -433,7 +427,7 @@ export function GuildDiscoveryPanel() {
           <Shield className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
           <TechnicalLabel text="NO GUILDS YET" className="text-muted-foreground text-xs mb-2" />
           <p className="text-sm text-muted-foreground max-w-sm mx-auto">Be the first to build one and lead your own team up the GPS leaderboard.</p>
-          {isBRankPlus && !pendingRequest && (
+          {!pendingRequest && (
             <Button
               onClick={() => setShowCreationForm(true)}
               className="mt-5 bg-primary text-black font-black text-xs uppercase tracking-wider rounded-lg hover:bg-primary/90"
@@ -561,15 +555,15 @@ export function GuildDiscoveryPanel() {
         </div>
       )}
 
-      {/* Guild Creation Request CTA — B-Rank+ users */}
-      {isBRankPlus && !pendingRequest && guilds.length > 0 && (
+      {/* Guild Creation Request CTA — open to any rank, admin-approved */}
+      {!pendingRequest && guilds.length > 0 && (
         <div className="rounded-2xl border-2 border-black/15 dark:border-white/15 bg-card p-4 md:p-5 flex items-center gap-4 hover:border-black dark:hover:border-white transition-colors duration-300">
           <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
             <PlusCircle size={18} className="text-primary" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-black">Want to start your own guild?</div>
-            <div className="text-xs text-muted-foreground">B-Rank+ users can request admin approval to create a new guild.</div>
+            <div className="text-xs text-muted-foreground">Any rank can request admin approval to create a new guild.</div>
           </div>
           <Button
             size="sm"

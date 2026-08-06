@@ -1321,12 +1321,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const parsed = createGuildSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid guild data" });
       const { name, description } = parsed.data;
-      // THORX v3 (spec E.9): B-Rank gate for guild creation.
-      const creator = await storage.getUserById(userId);
-      const RANK_ORDER = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
-      if (RANK_ORDER.indexOf(creator?.userRankTier || "E-Rank") < RANK_ORDER.indexOf("B-Rank")) {
-        return res.status(403).json({ message: "B-Rank or higher required to create a guild.", error: "RANK_GATE" });
-      }
+      // Any rank may create a guild directly through this legacy path — the
+      // primary flow (POST /api/guilds/creation-request) is admin-approved
+      // and is likewise open to any rank; see that handler for context.
       const guild = await storage.createGuild({ name, description, captainId: userId });
       try {
         await storage.createAuditLog({
@@ -2355,6 +2352,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to remove member";
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  // Admin: add a user directly to a guild roster — bypasses the
+  // application/approval flow that regular users must go through.
+  app.post("/api/admin/guilds/:id/members", requireTeamRole, adminActionRateLimiter, async (req, res) => {
+    try {
+      const adminId = getThorxPrincipalId(req) as string;
+      const parsed = z.object({ userId: z.string().min(1) }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "userId is required" });
+      await storage.adminAddGuildMember(req.params.id, parsed.data.userId, adminId);
+      broadcastUserUpdated(parsed.data.userId, "guild_joined");
+      broadcastGuildEvent(req.params.id, 'guild.member_added', { userId: parsed.data.userId, guildId: req.params.id });
+      res.json({ success: true });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to add member";
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  // Admin: appoint / remove a guild's assistant captain — same effect as the
+  // captain-only routes further below, but callable by team/admin accounts.
+  app.patch("/api/admin/guilds/:id/assistant-captain", requireTeamRole, adminActionRateLimiter, async (req, res) => {
+    try {
+      const adminId = getThorxPrincipalId(req) as string;
+      const parsed = z.object({ memberId: z.string().min(1) }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "memberId is required" });
+      const guild = await storage.adminSetAssistantCaptain(req.params.id, parsed.data.memberId, adminId);
+      broadcastToUser(parsed.data.memberId, 'guild.assistant_captain_appointed', { guildId: req.params.id });
+      broadcastGuildEvent(req.params.id, 'guild.assistant_captain_changed', { assistantCaptainId: parsed.data.memberId });
+      res.json({ guild });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to set assistant captain";
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  app.delete("/api/admin/guilds/:id/assistant-captain", requireTeamRole, adminActionRateLimiter, async (req, res) => {
+    try {
+      const adminId = getThorxPrincipalId(req) as string;
+      const guild = await storage.adminRemoveAssistantCaptain(req.params.id, adminId);
+      broadcastGuildEvent(req.params.id, 'guild.assistant_captain_changed', { assistantCaptainId: null });
+      res.json({ guild });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to remove assistant captain";
       res.status(400).json({ message: msg });
     }
   });
@@ -6404,11 +6447,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input" });
 
+      // Any rank may request guild creation — admin approval is the gate, not rank.
       const user = await storage.getUserById(userId);
-      const RANK_ORDER = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
-      if (RANK_ORDER.indexOf(user?.userRankTier || "E-Rank") < RANK_ORDER.indexOf("B-Rank")) {
-        return res.status(403).json({ message: "B-Rank or higher required to request guild creation.", error: "RANK_GATE" });
-      }
 
       // Check if user already has a pending request
       const existing = await db.select().from(guildCreationRequests)

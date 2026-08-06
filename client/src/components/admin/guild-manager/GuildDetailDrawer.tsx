@@ -8,13 +8,17 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Crown, UserMinus, ShieldAlert, Shield, Users2, Trash2, Wallet, Target, History, Download, Activity, type LucideIcon } from "lucide-react";
+import { Crown, UserMinus, UserPlus, ShieldAlert, Shield, ShieldOff, Users2, Trash2, Wallet, Target, History, Download, Activity, Search, type LucideIcon } from "lucide-react";
 import { RankOrUnknown, formatPkr, formatPersonName, formatDate, formatDateTime, daysOffline, downloadCsvSafely, explainDisposition } from "./guild-format";
 import type { AdminGuild, GuildMemberRow, GuildStrikeRow, GuildWeeklySnapshotRow, GuildChatMessageRow, GuildAuditLogRow } from "./types";
 
@@ -54,6 +58,8 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
   const [kickTarget, setKickTarget] = useState<GuildMemberRow | null>(null);
   const [deleteMsgId, setDeleteMsgId] = useState<string | null>(null);
   const [difficulty, setDifficulty] = useState(guild.targetDifficulty);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [addMemberSearch, setAddMemberSearch] = useState("");
 
   const membersQuery = useQuery<{ members: GuildMemberRow[] }>({
     queryKey: ["/api/guilds", guild.id, "members"],
@@ -63,6 +69,15 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
   const members = membersQuery.data?.members ?? [];
   const captain = members.find((m) => m.role === "captain") ?? null;
   const assistantCaptain = members.find((m) => m.userId === guild.assistantCaptainId) ?? null;
+
+  // Search THORX users to add directly to this guild's roster — reuses the
+  // same paginated/search endpoint the Team Portal user directory uses.
+  const addMemberQuery = useQuery<{ users: any[] }>({
+    queryKey: ["/api/team/users", "add-member", guild.id, addMemberSearch],
+    queryFn: async () => (await apiRequest("GET", `/api/team/users?limit=8&search=${encodeURIComponent(addMemberSearch)}`)).json(),
+    enabled: addMemberOpen && addMemberSearch.trim().length >= 2,
+  });
+  const addMemberResults: any[] = (addMemberQuery.data?.users ?? []).filter((u) => !u.guildId);
 
   const strikesQuery = useQuery<{ strikes: GuildStrikeRow[] }>({
     queryKey: ["/api/admin/guilds", guild.id, "strikes"],
@@ -105,6 +120,39 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
       toast({ title: "Failed to remove member", description: err?.message, variant: "destructive" });
       setKickTarget(null);
     },
+  });
+
+  const addMemberMutation = useMutation({
+    mutationFn: async (userId: string) => (await apiRequest("POST", `/api/admin/guilds/${guild.id}/members`, { userId })).json(),
+    onSuccess: () => {
+      toast({ title: "Member added" });
+      setAddMemberOpen(false);
+      setAddMemberSearch("");
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guild.id, "members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/guilds"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/guilds/stats"] });
+    },
+    onError: (err: any) => toast({ title: "Failed to add member", description: err?.message, variant: "destructive" }),
+  });
+
+  const setAssistantMutation = useMutation({
+    mutationFn: async (memberId: string) => (await apiRequest("PATCH", `/api/admin/guilds/${guild.id}/assistant-captain`, { memberId })).json(),
+    onSuccess: () => {
+      toast({ title: "Assistant captain appointed" });
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guild.id, "members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/guilds"] });
+    },
+    onError: (err: any) => toast({ title: "Failed to appoint assistant", description: err?.message, variant: "destructive" }),
+  });
+
+  const removeAssistantMutation = useMutation({
+    mutationFn: async () => (await apiRequest("DELETE", `/api/admin/guilds/${guild.id}/assistant-captain`, {})).json(),
+    onSuccess: () => {
+      toast({ title: "Assistant captain removed" });
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guild.id, "members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/guilds"] });
+    },
+    onError: (err: any) => toast({ title: "Failed to remove assistant", description: err?.message, variant: "destructive" }),
   });
 
   const deleteMsgMutation = useMutation({
@@ -225,6 +273,15 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
           </TabsContent>
 
           <TabsContent value="members" className="mt-0">
+            <div className="flex justify-end mb-2">
+              <Button
+                size="sm"
+                className="h-8 text-[10px] font-black bg-black hover:bg-zinc-800 text-white"
+                onClick={() => setAddMemberOpen(true)}
+              >
+                <UserPlus size={12} className="mr-1" /> Add Member
+              </Button>
+            </div>
             {membersQuery.isLoading ? (
               <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 rounded-lg" />)}</div>
             ) : members.length === 0 ? (
@@ -281,15 +338,38 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm" variant="outline"
-                          className="h-7 text-[10px] font-black border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-30"
-                          disabled={m.role === "captain"}
-                          title={m.role === "captain" ? "Reassign the captain before removing them" : undefined}
-                          onClick={() => setKickTarget(m)}
-                        >
-                          <UserMinus size={10} className="mr-1" /> Kick
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {m.role !== "captain" && (
+                            m.userId === guild.assistantCaptainId ? (
+                              <Button
+                                size="sm" variant="outline"
+                                className="h-7 text-[10px] font-black border-blue-300 text-blue-700 hover:bg-blue-50"
+                                disabled={removeAssistantMutation.isPending}
+                                onClick={() => removeAssistantMutation.mutate()}
+                              >
+                                <ShieldOff size={10} className="mr-1" /> Unassist
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm" variant="outline"
+                                className="h-7 text-[10px] font-black border-blue-300 text-blue-700 hover:bg-blue-50"
+                                disabled={setAssistantMutation.isPending}
+                                onClick={() => setAssistantMutation.mutate(m.userId)}
+                              >
+                                <Shield size={10} className="mr-1" /> Make Assistant
+                              </Button>
+                            )
+                          )}
+                          <Button
+                            size="sm" variant="outline"
+                            className="h-7 text-[10px] font-black border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-30"
+                            disabled={m.role === "captain"}
+                            title={m.role === "captain" ? "Reassign the captain before removing them" : undefined}
+                            onClick={() => setKickTarget(m)}
+                          >
+                            <UserMinus size={10} className="mr-1" /> Kick
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                     );
@@ -452,6 +532,52 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
           </TabsContent>
         </div>
       </Tabs>
+
+      <Dialog open={addMemberOpen} onOpenChange={(open) => { setAddMemberOpen(open); if (!open) setAddMemberSearch(""); }}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-black text-lg uppercase">Add Member to {guild.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <Input
+                autoFocus
+                placeholder="Search by name or email…"
+                value={addMemberSearch}
+                onChange={(e) => setAddMemberSearch(e.target.value)}
+                className="border-2 border-black pl-9"
+              />
+            </div>
+            {addMemberSearch.trim().length < 2 ? (
+              <p className="text-xs text-zinc-400 text-center py-6">Type at least 2 characters to search users.</p>
+            ) : addMemberQuery.isLoading ? (
+              <div className="space-y-2">{[1, 2].map((i) => <Skeleton key={i} className="h-12 rounded-lg" />)}</div>
+            ) : addMemberResults.length === 0 ? (
+              <p className="text-xs text-zinc-400 text-center py-6">No matching users without a guild.</p>
+            ) : (
+              <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                {addMemberResults.map((u) => (
+                  <div key={u.id} className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 p-2.5">
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold truncate">{formatPersonName(`${u.firstName ?? ""} ${u.lastName ?? ""}`)}</div>
+                      <div className="text-xs text-zinc-400 truncate">{u.email} · <RankOrUnknown rank={u.userRankTier} /></div>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="h-7 text-[10px] font-black bg-black hover:bg-zinc-800 text-white shrink-0"
+                      disabled={addMemberMutation.isPending}
+                      onClick={() => addMemberMutation.mutate(u.id)}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!kickTarget} onOpenChange={(open) => !open && setKickTarget(null)}>
         <AlertDialogContent>
