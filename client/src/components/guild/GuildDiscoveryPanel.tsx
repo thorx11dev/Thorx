@@ -556,7 +556,7 @@ export function GuildDiscoveryPanel() {
           {!pendingRequest && (
             <Button
               onClick={() => setShowCreationForm(true)}
-              className="mt-5 bg-primary text-black font-black text-xs uppercase tracking-wider rounded-lg hover:bg-primary/90"
+              className="mt-5 h-10 bg-black text-white border-2 border-black font-black text-xs uppercase tracking-wider rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] hover:bg-zinc-800 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.25)] transition-all duration-150"
               data-testid="button-request-guild-creation-empty"
             >
               <PlusCircle size={14} className="mr-1.5" /> Create
@@ -892,7 +892,7 @@ export function GuildDiscoveryPanel() {
                 Cancel
               </Button>
               <Button
-                className="flex-2 h-11 bg-primary text-black font-black text-xs uppercase tracking-wider rounded-xl hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.25)] transition-all duration-150 px-6"
+                className="flex-2 h-11 bg-black text-white border-2 border-black font-black text-xs uppercase tracking-wider rounded-xl hover:bg-zinc-800 disabled:bg-zinc-300 disabled:text-zinc-500 disabled:border-zinc-300 disabled:opacity-100 disabled:cursor-not-allowed shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.25)] disabled:shadow-none transition-all duration-150 px-6"
                 disabled={
                   creationForm.guildName.trim().length < 3 ||
                   creationForm.reason.trim().length < 50 ||
