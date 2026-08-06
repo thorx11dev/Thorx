@@ -431,7 +431,6 @@ export function GuildDiscoveryPanel() {
             <TechnicalLabel text="RANK" className="text-muted-foreground text-[9px] mr-1 shrink-0" />
             {["All", ...RANK_ORDER].map(r => {
               const active = rankFilter === r;
-              const color = r === "All" ? undefined : RANK_COLORS[r];
               return (
                 <button
                   key={r}
@@ -443,7 +442,6 @@ export function GuildDiscoveryPanel() {
                       ? "border-black dark:border-white bg-black dark:bg-white text-white dark:text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)]"
                       : "border-black/20 dark:border-white/20 text-muted-foreground hover:border-black dark:hover:border-white hover:text-foreground bg-transparent"
                   )}
-                  style={active && color ? { backgroundColor: color, borderColor: color, color: "#fff" } : undefined}
                 >
                   {r === "All" ? "All" : r.replace("-Rank", "")}
                 </button>
