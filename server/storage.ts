@@ -5427,7 +5427,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateGuildSettings(guildId: string, captainId: string, settings: {
     name?: string; description?: string; minRankRequired?: string;
-    recruitmentOpen?: boolean; isPublic?: boolean; pinnedMemberId?: string | null; avatarUrl?: string;
+    recruitmentOpen?: boolean; isPublic?: boolean; pinnedMemberId?: string | null; avatarUrl?: string | null;
   }): Promise<any> {
     const membership = await this.getUserGuildMembership(captainId);
     if (!membership || membership.guildId !== guildId || membership.role !== "captain") {

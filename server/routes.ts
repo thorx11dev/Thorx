@@ -1583,7 +1583,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     isPublic: z.boolean().optional(), // R-26: discoverable in guild search
     memberCapacity: z.number().int().min(10).max(50).optional(),
     pinnedMemberId: z.string().optional().nullable(),
-    avatarUrl: z.string().max(500).optional().nullable(),
+    // Uploaded guild images are resized client-side but remain data URLs.
+    avatarUrl: z.string().max(2_000_000).optional().nullable(),
   });
 
   app.patch("/api/guilds/:id/settings", requireSessionAuth, async (req, res) => {
@@ -1602,7 +1603,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recruitmentOpen,
         isPublic,
         pinnedMemberId: pinnedMemberId ?? undefined,
-        avatarUrl: avatarUrl ?? undefined,
+        // Preserve an explicit null so the captain can remove the picture.
+        avatarUrl: Object.prototype.hasOwnProperty.call(parsed.data, "avatarUrl")
+          ? avatarUrl
+          : undefined,
       });
       // Notify all guild members of settings change
       broadcastGuildEvent(req.params.id, 'guild.settings_updated', { guildId: req.params.id });

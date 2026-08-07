@@ -22,6 +22,7 @@ import {
   CheckCircle, XCircle, Star, Send, Bell, Sword, Crown, Target,
   MessagesSquare, Loader2, Swords, UserPlus, UserMinus, Shield,
   AlertTriangle, RefreshCw, Flame, ArrowLeft, ChevronRight,
+  ImagePlus, Trash2,
 } from "lucide-react";
 import { GuildWarsPanel } from "./GuildWarsPanel";
 import { GuildProfileWizard } from "./GuildProfileWizard";
@@ -261,9 +262,47 @@ export function CaptainPortal() {
         minRankRequired: guild.minRankRequired || "E-Rank",
         recruitmentOpen: guild.recruitmentOpen ?? true,
         isPublic: guild.isPublic ?? true,
+        avatarUrl: guild.avatarUrl || null,
       });
     }
   }, [guild]);
+
+  const handleGuildAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file", description: "Please choose an image file.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Guild images must be 5MB or smaller.", variant: "destructive" });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const source = new Image();
+      source.onload = () => {
+        // Keep discovery cards fast while preserving enough detail for a
+        // square/portrait guild mark.
+        const maxSide = 768;
+        const scale = Math.min(1, maxSide / Math.max(source.width, source.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(source.width * scale));
+        canvas.height = Math.max(1, Math.round(source.height * scale));
+        canvas.getContext("2d")?.drawImage(source, 0, 0, canvas.width, canvas.height);
+        setSettingsForm((current: any) => ({
+          ...current,
+          avatarUrl: canvas.toDataURL("image/jpeg", 0.82),
+        }));
+      };
+      source.onerror = () => toast({ title: "Upload failed", description: "Could not read that image.", variant: "destructive" });
+      source.src = reader.result as string;
+    };
+    reader.onerror = () => toast({ title: "Upload failed", description: "Could not read that image.", variant: "destructive" });
+    reader.readAsDataURL(file);
+  };
 
   const sendChatMutation = useMutation({
     mutationFn: async (message: string) => {
@@ -974,6 +1013,41 @@ export function CaptainPortal() {
                   onChange={e => setSettingsForm((f: any) => ({ ...f, description: e.target.value }))}
                   className="w-full border-2 border-black/20 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-black transition-colors bg-white"
                 />
+              </div>
+
+              {/* Guild profile picture — captain-only because this panel is captain-only. */}
+              <div>
+                <TechnicalLabel text="Guild Profile Picture" className="text-muted-foreground mb-1.5" />
+                <div className="flex items-center gap-3 rounded-xl border-2 border-black/10 bg-muted/30 p-3">
+                  <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-black/15 bg-primary/15 flex items-center justify-center shrink-0">
+                    {settingsForm.avatarUrl ? (
+                      <img src={settingsForm.avatarUrl} alt="Guild profile preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Crown className="w-7 h-7 text-primary" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-muted-foreground mb-2">
+                      This image appears on the public guild discovery cards.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <label className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-foreground text-background text-[10px] font-black uppercase tracking-wider cursor-pointer hover:opacity-85">
+                        <ImagePlus size={12} />
+                        {settingsForm.avatarUrl ? "Change picture" : "Add picture"}
+                        <input type="file" accept="image/*" className="sr-only" onChange={handleGuildAvatarChange} />
+                      </label>
+                      {settingsForm.avatarUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setSettingsForm((f: any) => ({ ...f, avatarUrl: null }))}
+                          className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border-2 border-black/15 text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:border-destructive hover:text-destructive"
+                        >
+                          <Trash2 size={12} /> Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div>

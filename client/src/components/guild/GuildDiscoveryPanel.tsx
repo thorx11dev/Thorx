@@ -540,7 +540,7 @@ export function GuildDiscoveryPanel() {
             ))}
             {activeFilterCount > 0 && (
               <button
-                onClick={() => { setRankFilter("All"); setSlotsOnly(false); setRecruitingOnly(false); setWarOnly(false); }}
+                onClick={() => { setRankFilter("All"); setRecruitingOnly(false); setWarOnly(false); }}
                 className="h-8 px-2.5 rounded-lg text-[10px] font-black uppercase tracking-wider border-2 border-black/20 text-muted-foreground hover:border-black hover:text-foreground flex items-center gap-1 transition-all duration-150"
               >
                 <X size={10} /> Reset
@@ -562,7 +562,7 @@ export function GuildDiscoveryPanel() {
 
       {/* Guild Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="bg-white rounded-2xl border-2 border-black overflow-hidden">
               <Skeleton className="h-24 md:h-28 w-full rounded-none" />
@@ -625,7 +625,7 @@ export function GuildDiscoveryPanel() {
           <p className="text-sm text-muted-foreground">No guilds match your current filters.</p>
         </PremiumCard>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
           {filtered.map((guild, idx) => {
             const minIdx = RANK_ORDER.indexOf(guild.minRankRequired || "E-Rank");
             // Phase 3 redesign: dev preview mode never shows this as blocked so
@@ -633,84 +633,80 @@ export function GuildDiscoveryPanel() {
             // backend still independently enforces real rank eligibility.
             const rankBlocked = !DEV_UNLOCK_RANK_GATES && userTierIdx < minIdx;
             const applied = appliedIds.has(guild.id);
-            const accentColor = RANK_COLORS[gpsTier(guild.guildPerformanceScore)] ?? "#71717a";
-
             return (
               <div
                 key={guild.id}
                 onClick={() => setViewingGuild(guild)}
                 data-testid={`card-guild-${guild.id}`}
-                className="group relative bg-white rounded-2xl border-2 border-black overflow-hidden cursor-pointer flex flex-col transition-all duration-300 ease-out hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+                className="group relative bg-[#111111] rounded-xl border-2 border-black overflow-hidden cursor-pointer flex flex-col transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(255,107,61,0.75)]"
               >
-                {/* Hero band — solid accent color, no gradient */}
+                {/* Reference-style portrait media block using THORX neutrals and orange. */}
                 <div
-                  className="relative h-20 md:h-24 flex items-center justify-center shrink-0 overflow-hidden"
-                  style={{ backgroundColor: accentColor }}
+                  className="relative aspect-[4/5] flex items-center justify-center shrink-0 overflow-hidden bg-[#252525]"
                 >
                   {guild.avatarUrl ? (
                     <img src={guild.avatarUrl} alt={guild.name} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-4xl font-black text-white/90 select-none">{guild.name[0].toUpperCase()}</span>
+                    <div className="w-full h-full flex items-center justify-center bg-primary/20">
+                      <span className="text-5xl font-black text-primary select-none">{guild.name[0].toUpperCase()}</span>
+                    </div>
                   )}
-                  {/* Rank position badge */}
-                  <span className="absolute top-2.5 left-3 text-[10px] font-black text-white/80 tracking-wider">#{idx + 1}</span>
-                  <RankBadge rank={gpsTier(guild.guildPerformanceScore)} size="sm" className="absolute top-2 right-2 !bg-white/95 !border-white/50" />
+                  <span className="absolute top-2 left-2 text-[9px] font-black text-white/85 tracking-wider bg-black/65 rounded px-1.5 py-0.5">#{idx + 1}</span>
+                  <span className="absolute top-2 right-2 rounded bg-primary px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wide text-primary-foreground">
+                    {gpsTier(guild.guildPerformanceScore).replace("-Rank", "")}
+                  </span>
                   {guild.inActiveWar && (
-                    <span className="absolute bottom-2.5 left-3 inline-flex items-center gap-1 text-[10px] font-black text-white uppercase tracking-wider bg-destructive/80 rounded-full px-2 py-0.5">
+                    <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 text-[9px] font-black text-white uppercase tracking-wider bg-destructive/90 rounded px-1.5 py-0.5">
                       <Swords size={10} /> War
                     </span>
                   )}
                 </div>
 
-                {/* Body */}
-                <div className="p-4 flex flex-col flex-1 gap-3">
+                {/* Compact catalog body, matching the pinned image's dense cards. */}
+                <div className="p-2.5 md:p-3 flex flex-col flex-1 gap-2 text-white">
                   {/* Name + description */}
                   <div>
-                    <h3 className="font-black text-base leading-tight truncate" data-testid={`text-guild-name-${guild.id}`}>{guild.name}</h3>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2 min-h-[2em]">{guild.description || "No description provided."}</p>
+                    <h3 className="font-black text-xs md:text-sm leading-tight truncate" data-testid={`text-guild-name-${guild.id}`}>{guild.name}</h3>
+                    <p className="text-[9px] text-white/55 mt-1 truncate">{guild.description || "No description provided."}</p>
                   </div>
 
-                  {/* Stats grid */}
-                  <div className="grid grid-cols-2 gap-y-2.5 gap-x-3 py-3 border-y-2 border-black/10">
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-1 border-y border-white/15 py-2">
                     <div>
-                      <TechnicalLabel text="GPS SCORE" className="text-muted-foreground text-[9px] mb-0.5" />
-                      <div className="font-black text-sm tracking-tighter tabular-nums text-primary">{guild.guildPerformanceScore.toLocaleString()}</div>
+                      <span className="block text-[8px] uppercase tracking-wider text-white/45">GPS</span>
+                      <span className="block text-[10px] font-black tabular-nums text-primary truncate">{guild.guildPerformanceScore.toLocaleString()}</span>
                     </div>
                     <div>
-                      <TechnicalLabel text="MEMBERS" className="text-muted-foreground text-[9px] mb-0.5" />
-                      <div className="font-black text-sm tracking-tighter">{guild.memberCount}</div>
+                      <span className="block text-[8px] uppercase tracking-wider text-white/45">Members</span>
+                      <span className="block text-[10px] font-black">{guild.memberCount}/{guild.memberCapacity}</span>
                     </div>
                     <div>
-                      <TechnicalLabel text="MIN RANK" className="text-muted-foreground text-[9px] mb-0.5" />
-                      <RankBadge rank={guild.minRankRequired} size="sm" className="mt-0.5" />
+                      <span className="block text-[8px] uppercase tracking-wider text-white/45">Min rank</span>
+                      <span className="block text-[10px] font-black">{guild.minRankRequired.replace("-Rank", "")}</span>
                     </div>
                     <div>
-                      <TechnicalLabel text="STREAK" className="text-muted-foreground text-[9px] mb-0.5" />
-                      <div className="font-black text-sm tracking-tighter flex items-center gap-1">
-                        {(guild.successfulWeeks ?? 0) > 0 && <Star size={11} className="text-primary fill-primary shrink-0" />}
-                        {guild.successfulWeeks ?? 0}w
-                      </div>
+                      <span className="block text-[8px] uppercase tracking-wider text-white/45">Streak</span>
+                      <span className="block text-[10px] font-black">{guild.successfulWeeks ?? 0}w</span>
                     </div>
                   </div>
 
                   {/* Weekly progress */}
                   {guild.weeklyTarget > 0 && (
                     <div className="space-y-1">
-                      <div className="flex justify-between text-[10px] text-muted-foreground">
-                        <span className="flex items-center gap-1"><Calendar size={10} /> This week</span>
+                      <div className="flex justify-between text-[8px] text-white/55">
+                        <span>This week</span>
                         <span className="font-bold tabular-nums">{guild.currentWeeklyPoints.toLocaleString()}/{guild.weeklyTarget.toLocaleString()}</span>
                       </div>
-                      <Progress value={Math.min(100, (guild.currentWeeklyPoints / guild.weeklyTarget) * 100)} className="h-1.5 border border-black/10" />
+                      <Progress value={Math.min(100, (guild.currentWeeklyPoints / guild.weeklyTarget) * 100)} className="h-1 bg-white/15 [&>div]:bg-primary" />
                     </div>
                   )}
 
                   {/* Footer: recruitment status + action */}
                   <div className="flex items-center justify-between gap-2 mt-auto pt-1">
-                    <span className={cn("text-[11px] font-black", guild.recruitmentOpen ? "text-emerald-600" : "text-muted-foreground")}>
-                      {guild.recruitmentOpen ? "Recruiting" : "Recruitment closed"}
+                    <span className={cn("text-[9px] font-black truncate", guild.recruitmentOpen ? "text-primary" : "text-white/45")}>
+                      {guild.recruitmentOpen ? "Recruiting" : "Closed"}
                     </span>
                     {applied ? (
-                      <div className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1">
+                      <div className="inline-flex items-center gap-1 text-[9px] font-black text-primary bg-primary/15 border border-primary/30 rounded px-1.5 py-1">
                         <CheckCircle2 size={10} /> Applied
                       </div>
                     ) : rankBlocked ? (
@@ -724,7 +720,7 @@ export function GuildDiscoveryPanel() {
                       <Button
                         size="sm"
                         onClick={(e) => { e.stopPropagation(); handleApply(guild); }}
-                        className="h-8 px-3 text-[11px] font-black uppercase tracking-wider"
+                        className="h-7 px-2 text-[9px] font-black uppercase tracking-wider"
                         data-testid={`button-apply-guild-${guild.id}`}
                       >
                         Apply <ChevronRight size={12} />
