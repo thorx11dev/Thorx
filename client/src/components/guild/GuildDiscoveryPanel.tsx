@@ -562,21 +562,20 @@ export function GuildDiscoveryPanel() {
 
       {/* Guild Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-3 bg-[#050505] border-2 border-black rounded-xl p-2.5 md:p-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl border-2 border-black overflow-hidden">
-              <Skeleton className="h-24 md:h-28 w-full rounded-none" />
-              <div className="p-4 space-y-3">
-                <Skeleton className="h-5 w-2/3 rounded-lg" />
-                <Skeleton className="h-3 w-full rounded" />
-                <Skeleton className="h-3 w-4/5 rounded" />
-                <div className="grid grid-cols-2 gap-2 py-3 border-y border-black/10">
-                  <Skeleton className="h-9 w-full rounded-lg" />
-                  <Skeleton className="h-9 w-full rounded-lg" />
-                  <Skeleton className="h-9 w-full rounded-lg" />
-                  <Skeleton className="h-9 w-full rounded-lg" />
+            <div key={i} className="bg-[#101010] rounded-[10px] border border-white/15 overflow-hidden">
+              <Skeleton className="aspect-square w-full rounded-none bg-white/10" />
+              <div className="p-2 space-y-2">
+                <Skeleton className="h-3 w-2/3 rounded bg-white/10" />
+                <Skeleton className="h-2 w-full rounded bg-white/10" />
+                <div className="grid grid-cols-2 gap-1.5 py-2 border-y border-white/10">
+                  <Skeleton className="h-6 w-full rounded bg-white/10" />
+                  <Skeleton className="h-6 w-full rounded bg-white/10" />
+                  <Skeleton className="h-6 w-full rounded bg-white/10" />
+                  <Skeleton className="h-6 w-full rounded bg-white/10" />
                 </div>
-                <Skeleton className="h-9 w-full rounded-lg" />
+                <Skeleton className="h-6 w-full rounded bg-white/10" />
               </div>
             </div>
           ))}
@@ -625,7 +624,7 @@ export function GuildDiscoveryPanel() {
           <p className="text-sm text-muted-foreground">No guilds match your current filters.</p>
         </PremiumCard>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-3 bg-[#050505] border-2 border-black rounded-xl p-2.5 md:p-3">
           {filtered.map((guild, idx) => {
             const minIdx = RANK_ORDER.indexOf(guild.minRankRequired || "E-Rank");
             // Phase 3 redesign: dev preview mode never shows this as blocked so
@@ -638,89 +637,90 @@ export function GuildDiscoveryPanel() {
                 key={guild.id}
                 onClick={() => setViewingGuild(guild)}
                 data-testid={`card-guild-${guild.id}`}
-                className="group relative bg-[#111111] rounded-xl border-2 border-black overflow-hidden cursor-pointer flex flex-col transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(255,107,61,0.75)]"
+                className="group relative bg-[#111111] rounded-[10px] border border-white/15 overflow-hidden cursor-pointer flex flex-col transition-all duration-200 ease-out hover:-translate-y-1 hover:border-primary hover:shadow-[3px_3px_0px_0px_rgba(255,107,61,0.85)]"
               >
-                {/* Reference-style portrait media block using THORX neutrals and orange. */}
+                {/* Compact square media block from the reference catalog layout. */}
                 <div
-                  className="relative aspect-[4/5] flex items-center justify-center shrink-0 overflow-hidden bg-[#252525]"
+                  className="relative aspect-square flex items-center justify-center shrink-0 overflow-hidden bg-[#252525]"
                 >
                   {guild.avatarUrl ? (
-                    <img src={guild.avatarUrl} alt={guild.name} className="w-full h-full object-cover" />
+                    <img src={guild.avatarUrl} alt={guild.name} className="w-full h-full object-cover grayscale-[0.2] contrast-[1.05]" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-primary/20">
-                      <span className="text-5xl font-black text-primary select-none">{guild.name[0].toUpperCase()}</span>
+                    <div className="w-full h-full flex items-center justify-center bg-white/[0.06]">
+                      <span className="text-4xl md:text-5xl font-black text-primary select-none">{guild.name[0].toUpperCase()}</span>
                     </div>
                   )}
-                  <span className="absolute top-2 left-2 text-[9px] font-black text-white/85 tracking-wider bg-black/65 rounded px-1.5 py-0.5">#{idx + 1}</span>
-                  <span className="absolute top-2 right-2 rounded bg-primary px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wide text-primary-foreground">
+                  <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-black/70 to-transparent pointer-events-none" />
+                  <span className="absolute top-1.5 left-1.5 text-[8px] font-black text-white/85 tracking-wider bg-black/70 rounded px-1.5 py-0.5">#{idx + 1}</span>
+                  <span className="absolute top-1.5 left-1/2 -translate-x-1/2 rounded-full bg-primary px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-black shadow-[0_1px_0_rgba(255,255,255,0.45)]">
                     {gpsTier(guild.guildPerformanceScore).replace("-Rank", "")}
                   </span>
                   {guild.inActiveWar && (
-                    <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 text-[9px] font-black text-white uppercase tracking-wider bg-destructive/90 rounded px-1.5 py-0.5">
+                    <span className="absolute bottom-1.5 left-1.5 inline-flex items-center gap-1 text-[8px] font-black text-black uppercase tracking-wider bg-primary rounded px-1.5 py-0.5">
                       <Swords size={10} /> War
                     </span>
                   )}
                 </div>
 
                 {/* Compact catalog body, matching the pinned image's dense cards. */}
-                <div className="p-2.5 md:p-3 flex flex-col flex-1 gap-2 text-white">
+                <div className="p-2 md:p-2.5 flex flex-col flex-1 gap-1.5 text-white">
                   {/* Name + description */}
                   <div>
-                    <h3 className="font-black text-xs md:text-sm leading-tight truncate" data-testid={`text-guild-name-${guild.id}`}>{guild.name}</h3>
-                    <p className="text-[9px] text-white/55 mt-1 truncate">{guild.description || "No description provided."}</p>
+                    <h3 className="font-black text-[10px] md:text-xs leading-tight truncate uppercase tracking-tight" data-testid={`text-guild-name-${guild.id}`}>{guild.name}</h3>
+                    <p className="text-[8px] md:text-[9px] text-white/55 mt-0.5 truncate">{guild.description || "No description provided."}</p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-x-2 gap-y-1 border-y border-white/15 py-2">
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-1 border-y border-white/15 py-1.5">
                     <div>
-                      <span className="block text-[8px] uppercase tracking-wider text-white/45">GPS</span>
-                      <span className="block text-[10px] font-black tabular-nums text-primary truncate">{guild.guildPerformanceScore.toLocaleString()}</span>
+                      <span className="block text-[7px] uppercase tracking-wider text-white/45">GPS</span>
+                      <span className="block text-[9px] font-black tabular-nums text-primary truncate">{guild.guildPerformanceScore.toLocaleString()}</span>
                     </div>
                     <div>
-                      <span className="block text-[8px] uppercase tracking-wider text-white/45">Members</span>
-                      <span className="block text-[10px] font-black">{guild.memberCount}/{guild.memberCapacity}</span>
+                      <span className="block text-[7px] uppercase tracking-wider text-white/45">Members</span>
+                      <span className="block text-[9px] font-black">{guild.memberCount}/{guild.memberCapacity}</span>
                     </div>
                     <div>
-                      <span className="block text-[8px] uppercase tracking-wider text-white/45">Min rank</span>
-                      <span className="block text-[10px] font-black">{guild.minRankRequired.replace("-Rank", "")}</span>
+                      <span className="block text-[7px] uppercase tracking-wider text-white/45">Min rank</span>
+                      <span className="block text-[9px] font-black">{guild.minRankRequired.replace("-Rank", "")}</span>
                     </div>
                     <div>
-                      <span className="block text-[8px] uppercase tracking-wider text-white/45">Streak</span>
-                      <span className="block text-[10px] font-black">{guild.successfulWeeks ?? 0}w</span>
+                      <span className="block text-[7px] uppercase tracking-wider text-white/45">Streak</span>
+                      <span className="block text-[9px] font-black">{guild.successfulWeeks ?? 0}w</span>
                     </div>
                   </div>
 
                   {/* Weekly progress */}
                   {guild.weeklyTarget > 0 && (
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[8px] text-white/55">
+                    <div className="space-y-0.5">
+                      <div className="flex justify-between text-[7px] text-white/55">
                         <span>This week</span>
                         <span className="font-bold tabular-nums">{guild.currentWeeklyPoints.toLocaleString()}/{guild.weeklyTarget.toLocaleString()}</span>
                       </div>
-                      <Progress value={Math.min(100, (guild.currentWeeklyPoints / guild.weeklyTarget) * 100)} className="h-1 bg-white/15 [&>div]:bg-primary" />
+                      <Progress value={Math.min(100, (guild.currentWeeklyPoints / guild.weeklyTarget) * 100)} className="h-0.5 bg-white/15 [&>div]:bg-primary" />
                     </div>
                   )}
 
                   {/* Footer: recruitment status + action */}
-                  <div className="flex items-center justify-between gap-2 mt-auto pt-1">
-                    <span className={cn("text-[9px] font-black truncate", guild.recruitmentOpen ? "text-primary" : "text-white/45")}>
+                  <div className="flex items-center justify-between gap-1.5 mt-auto pt-0.5">
+                    <span className={cn("text-[8px] font-black truncate uppercase", guild.recruitmentOpen ? "text-primary" : "text-white/45")}>
                       {guild.recruitmentOpen ? "Recruiting" : "Closed"}
                     </span>
                     {applied ? (
-                      <div className="inline-flex items-center gap-1 text-[9px] font-black text-primary bg-primary/15 border border-primary/30 rounded px-1.5 py-1">
+                      <div className="inline-flex items-center gap-1 text-[8px] font-black text-primary bg-primary/15 border border-primary/30 rounded px-1.5 py-0.5">
                         <CheckCircle2 size={10} /> Applied
                       </div>
                     ) : rankBlocked ? (
-                      <div className="flex items-center gap-1 text-[11px] font-bold text-muted-foreground">
+                      <div className="flex items-center gap-1 text-[9px] font-bold text-white/60">
                         <Lock size={11} />
-                        <span>{guild.minRankRequired}</span>
+                        <span>{guild.minRankRequired.replace("-Rank", "")}</span>
                       </div>
                     ) : !guild.recruitmentOpen ? (
-                      <span className="text-[11px] font-bold text-muted-foreground">Closed</span>
+                      <span className="text-[9px] font-bold text-white/60">Closed</span>
                     ) : (
                       <Button
                         size="sm"
                         onClick={(e) => { e.stopPropagation(); handleApply(guild); }}
-                        className="h-7 px-2 text-[9px] font-black uppercase tracking-wider"
+                        className="h-6 px-2 text-[8px] font-black uppercase tracking-wider bg-primary text-black hover:bg-white hover:text-black"
                         data-testid={`button-apply-guild-${guild.id}`}
                       >
                         Apply <ChevronRight size={12} />
