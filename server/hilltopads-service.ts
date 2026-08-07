@@ -49,6 +49,17 @@ export class HilltopAdsService {
   }
 
   /**
+   * True when a HilltopAds API key is configured and active. Lets callers
+   * (e.g. the scheduler) skip work cleanly with an info log instead of
+   * surfacing a startup error when the key hasn't been set yet.
+   */
+  async isConfigured(): Promise<boolean> {
+    if (this.apiKey) return true;
+    await this.initialize();
+    return Boolean(this.apiKey);
+  }
+
+  /**
    * Execute a GET request against the HilltopAds API with exponential-backoff
    * retry logic.  Transient 429 / 5xx errors are retried up to MAX_RETRIES
    * times; 4xx client errors (except 429) are surfaced immediately.

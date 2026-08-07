@@ -14,11 +14,63 @@
 import { spawn, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import path from "node:path";
+
+const ROOT = path.resolve(import.meta.dirname, "..");
+
+// Anchor the process to the project root as early as possible. Cloud preview
+// runners sometimes start with a stale/deleted cwd (`getcwd: cannot access
+// parent directories`), which breaks every relative path below.
+try {
+  process.chdir(ROOT);
+} catch {
+  console.warn(`[bootstrap] Could not chdir to ${ROOT}; using absolute paths instead.`);
+}
 
 const REQUIRED_BINARIES = [
-  "node_modules/.bin/tsx",
-  "node_modules/.bin/drizzle-kit",
+  path.join(ROOT, "node_modules/.bin/tsx"),
+  path.join(ROOT, "node_modules/.bin/drizzle-kit"),
 ];
+
+/**
+ * Loads the project's .env file into process.env so `npm run dev` works in
+ * any hosting context (Replit auto-injects secrets, but Freebuff Cloud and
+ * plain Node do not). Rules:
+ *   - Existing environment variables ALWAYS win (platform-injected values
+ *     take precedence over the file).
+ *   - Values are never logged — only the key names.
+ */
+function loadDotEnv(file) {
+  if (!fs.existsSync(file)) return false;
+  const loaded = [];
+  for (const raw of fs.readFileSync(file, "utf8").split("\n")) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eq = line.indexOf("=");
+    if (eq < 0) continue;
+    const key = line.slice(0, eq).trim();
+    let value = line.slice(eq + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    if (!(key in process.env)) {
+      // Normalize pg SSL modes to the explicit form the installed pg version
+      // actually uses. Neon/Railway connection strings commonly carry
+      // sslmode=require, which makes pg-connection-string emit a noisy
+      // "SECURITY WARNING" on every Pool construction. Per pg's own advice
+      // this is behavior-identical, so the warning simply disappears.
+      if (key === "DATABASE_URL" && /sslmode=(prefer|require|verify-ca)(?=&|$)/i.test(value)) {
+        value = value.replace(/sslmode=(prefer|require|verify-ca)(?=&|$)/i, "sslmode=verify-full");
+      }
+      process.env[key] = value;
+      loaded.push(key);
+    }
+  }
+  if (loaded.length > 0) {
+    console.log(`[bootstrap] Loaded env var(s) from .env: ${loaded.join(", ")} (values never logged).`);
+  }
+  return loaded.length > 0;
+}
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -69,14 +121,45 @@ async function withDatabaseLock(pool, callback) {
 async function bootstrapDatabase() {
   if (!process.env.DATABASE_URL) {
     throw new Error(
-      "DATABASE_URL is missing. Add the Replit PostgreSQL database, then press Run again.",
+      "DATABASE_URL is missing. Ensure .env contains DATABASE_URL (e.g. your Neon connection string), then press Run again.",
     );
   }
 
   const { Pool } = await import("pg");
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  // Timeouts prevent a slow/unreachable database from hanging the bootstrap
+  // forever (the preview runner would otherwise stall before the port opens).
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    connectionTimeoutMillis: 8000,
+    query_timeout: 15000,
+    statement_timeout: 15000,
+  });
 
   try {
+    // Fast path: when the core tables already exist (the common case), skip the
+    // advisory lock + schema push entirely so the dev server starts within a
+    // second or two instead of waiting on a drizzle-kit round-trip.
+    const { rows: quickRows } = await pool.query(`
+      SELECT count(*) AS n
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name IN ('users','system_config','user_transactions','withdrawals')
+    `);
+    if (Number(quickRows[0].n) >= 3) {
+      console.log("[bootstrap] Database already initialized; skipping schema push.");
+      // Still ensure the ledger uniqueness indexes exist (idempotent, cheap).
+      await pool.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS uniq_withdrawals_one_pending_per_user
+          ON withdrawals (user_id) WHERE status = 'pending';
+        CREATE UNIQUE INDEX IF NOT EXISTS uniq_withdrawals_one_approved_per_user
+          ON withdrawals (user_id) WHERE status = 'approved';
+        CREATE UNIQUE INDEX IF NOT EXISTS uniq_user_transactions_source
+          ON user_transactions (user_id, source_type, source_id)
+          WHERE source_id IS NOT NULL;
+      `);
+      return;
+    }
+
     await withDatabaseLock(pool, async (client) => {
       const { rows } = await client.query(`
         SELECT
@@ -134,7 +217,7 @@ function startServer() {
   }
 
   const child = spawn(
-    "node_modules/.bin/tsx",
+    path.join(ROOT, "node_modules/.bin/tsx"),
     ["watch", "server/index.ts"],
     { stdio: "inherit", env: process.env },
   );
@@ -148,6 +231,9 @@ function startServer() {
 }
 
 try {
+  // Load .env first so the rest of the bootstrap sees DATABASE_URL,
+  // SESSION_SECRET, etc. even when the platform does not inject them.
+  loadDotEnv(path.join(ROOT, ".env"));
   ensureDependencies();
   await bootstrapDatabase();
   startServer();

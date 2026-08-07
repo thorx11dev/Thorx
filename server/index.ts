@@ -2,21 +2,12 @@ import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
-import { registerRoutes } from "./routes";
+import { createServer, get as httpGet } from "http";
 import { setupVite, serveStatic, log } from "./vite";
 import { isOriginAllowed, runtimeConfig } from "./config/runtime";
 import { csrfProtection } from "./middleware/csrf";
-import { startLeaderboardCleanup } from "./jobs/leaderboard-cleanup";
-import { startLeaderboardRefreshJob } from "./jobs/leaderboard-refresh";
-import { startHealthSnapshotJob } from "./jobs/health-snapshot";
-import { startGuildWeeklyResetJob } from "./jobs/guild-weekly-reset";
-import { startInactivityPenaltyJob } from "./jobs/inactivity-penalty";
-import { startRetentionCleanupJob } from "./jobs/retention-cleanup";
-import { startEconomySnapshotJob } from "./jobs/economy-snapshot";
-import { startLedgerIntegrityScanJob } from "./jobs/ledger-integrity-scan";
-import { hilltopAdsScheduler } from "./hilltopads-scheduler";
 import { initSentry, sentryErrorHandler, Sentry } from "./lib/sentry";
-import { pool } from "./db";
+import { logger } from "./lib/logger";
 
 // Suppress pg v8 SSL deprecation warning (Railway injects sslmode=require in DATABASE_URL)
 const originalEmitWarning = process.emitWarning;
@@ -24,8 +15,6 @@ process.emitWarning = ((warning: string | Error, ...args: any[]) => {
   if (typeof warning === "string" && warning.includes("SECURITY WARNING: The SSL modes")) return;
   return (originalEmitWarning as any).call(process, warning, ...args);
 }) as typeof process.emitWarning;
-
-import { logger } from "./lib/logger";
 
 process.on('unhandledRejection', (reason, _promise) => {
   logger.error({ reason }, 'Unhandled promise rejection — continuing');
@@ -104,21 +93,30 @@ function gracefulShutdown(signal: string): void {
     process.exit(1);
   }, 30_000).unref();
   // Stop the HilltopAds polling scheduler before closing HTTP so no in-flight
-  // sync calls are abandoned mid-write.
-  hilltopAdsScheduler.stop();
-  if (typeof (global as any).__thorxServer?.close === "function") {
-    (global as any).__thorxServer.close(async () => {
+  // sync calls are abandoned mid-write. Lazy-imported: heavy modules load after
+  // the port binds, so shutdown must not depend on static imports.
+  void (async () => {
+    try {
+      const { hilltopAdsScheduler } = await import("./hilltopads-scheduler");
+      hilltopAdsScheduler.stop();
+    } catch (e) {
+      logger.warn({ err: e }, 'HilltopAds scheduler stop skipped during shutdown');
+    }
+    const { pool } = await import("./db");
+    if (typeof (global as any).__thorxServer?.close === "function") {
+      (global as any).__thorxServer.close(async () => {
+        clearTimeout(drainTimeout);
+        // H-09: Drain DB connection pool after HTTP server closes so in-flight
+        // queries can complete cleanly before the process exits.
+        try { await pool.end(); } catch (e) { logger.error({ err: e }, 'Pool drain error during shutdown'); }
+        logger.info({ signal }, 'All connections drained — exiting cleanly');
+        process.exit(0);
+      });
+    } else {
       clearTimeout(drainTimeout);
-      // H-09: Drain DB connection pool after HTTP server closes so in-flight
-      // queries can complete cleanly before the process exits.
-      try { await pool.end(); } catch (e) { logger.error({ err: e }, 'Pool drain error during shutdown'); }
-      logger.info({ signal }, 'All connections drained — exiting cleanly');
       process.exit(0);
-    });
-  } else {
-    clearTimeout(drainTimeout);
-    process.exit(0);
-  }
+    }
+  })();
 }
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
@@ -197,56 +195,215 @@ app.use((req, res, next) => {
   next();
 });
 
+// Startup readiness: the platform's preview runner probes the port within a few
+// seconds of `npm run dev`. THORX's cold boot compiles a large module graph
+// (routes.ts ~7000 lines + storage + schema + jobs), so instead of making the
+// probe wait for all of that, we bind the port immediately below and answer
+// /api/health with 200 "starting" until the heavy modules finish loading.
+let appReady = false;
+app.use((req, res, next) => {
+  if (!appReady) {
+    if (req.path === "/api/health" || req.path === "/api/health/") {
+      return res.status(200).json({ status: "starting", db: "connecting", uptime: process.uptime() });
+    }
+    if (req.method === "GET" && !req.path.startsWith("/api/")) {
+      return res.status(200).send("<!DOCTYPE html><html><head><title>THORX</title></head><body style=\"font-family:system-ui;background:#0b0b0f;color:#f5f5f5;display:grid;place-items:center;height:100vh;margin:0\"><div style=\"text-align:center\"><h1>THORX</h1><p>Starting… please refresh in a moment.</p></div></body></html>");
+    }
+  }
+  next();
+});
+
 (async () => {
-  const server = await registerRoutes(app);
+  // ── Duplicate-start guard ────────────────────────────────────────────────
+  // Freebuff's preview runner can spawn `npm run dev` while an earlier instance
+  // is still alive and holding the port. Without this guard the duplicate dies
+  // with a FATAL EADDRINUSE, which the platform reads as a failed start and the
+  // preview gets stuck waiting. A duplicate now detects the incumbent healthy
+  // instance and stands by: it binds nothing, starts no jobs, and only takes
+  // over the port if the incumbent ever stops responding.
+  const port = runtimeConfig.port;
+  type PortState = "free" | "thorx" | "foreign";
 
-  // Sentry must come BEFORE the generic error handler so it can capture errors
-  // Cast needed: Sentry's error handler signature matches Express error middleware at runtime
-  app.use(sentryErrorHandler() as any);
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = runtimeConfig.isProd
-      ? "Internal Server Error"
-      : (err.message || "Internal Server Error");
-
-    logger.error({ err, status }, "Express error handler");
-    res.status(status).json({ message });
-  });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+  function probePort(timeoutMs = 3000): Promise<PortState> {
+    return new Promise((resolve) => {
+      const req = httpGet(
+        { host: "127.0.0.1", port, path: "/api/health", timeout: timeoutMs },
+        (res) => {
+          let body = "";
+          res.on("data", (chunk: Buffer) => (body += chunk.toString()));
+          res.on("end", () => {
+            try {
+              const parsed = JSON.parse(body);
+              resolve(typeof parsed?.status === "string" ? "thorx" : "foreign");
+            } catch {
+              resolve("foreign");
+            }
+          });
+        },
+      );
+      req.on("timeout", () => { req.destroy(); resolve("foreign"); });
+      // Connection refused → nothing is listening, so the port is free.
+      req.on("error", () => resolve("free"));
+    });
   }
 
-  // ALWAYS serve the app on Railway's injected port, strictly binding to 0.0.0.0
-  server.listen(runtimeConfig.port, "0.0.0.0", () => {
-    log(`serving on port ${runtimeConfig.port}`);
-    // Expose server ref for graceful shutdown in the uncaughtException handler
-    (global as any).__thorxServer = server;
+  const httpServer = createServer(app);
+  let mode: "booting" | "serving" | "standby" = "booting";
+  let releaseBind: (() => void) | null = null;
+  let standbyTimer: ReturnType<typeof setInterval> | null = null;
 
+  // Bind the port IMMEDIATELY (before the heavy module graph loads) so the
+  // platform's readiness probe sees the server as up within a second or two,
+  // not after the full cold-boot compile. Requests that arrive before the app
+  // is ready are answered by the "starting" middleware above.
+  httpServer.on("error", (err: any) => {
+    if (err?.code === "EADDRINUSE") {
+      void handlePortConflict();
+      return;
+    }
+    logger.fatal({ err }, "HTTP server error");
+    process.exit(1);
+  });
+
+  async function handlePortConflict(): Promise<void> {
+    if (mode !== "booting") return;
+    const state = await probePort();
+    if (state === "thorx") {
+      mode = "standby";
+      log(`port ${port} already serves a healthy THORX instance — duplicate start detected; standing by`);
+      releaseBind?.();
+      startStandbyMonitor();
+    } else {
+      logger.fatal(
+        { port },
+        `Port ${port} is held by a process that is not a healthy THORX instance — free the port and retry.`,
+      );
+      process.exit(1);
+    }
+  }
+
+  function startStandbyMonitor(): void {
+    if (standbyTimer) return;
+    log(`standing by on port ${port} (checks every 10s for takeover)`);
+    standbyTimer = setInterval(() => {
+      void (async () => {
+        if (mode !== "standby") return;
+        const state = await probePort(3000);
+        if (state !== "thorx") {
+          if (standbyTimer) { clearInterval(standbyTimer); standbyTimer = null; }
+          log(`incumbent instance on port ${port} is gone — taking over`);
+          mode = "booting";
+          await serve();
+        }
+      })();
+    }, 10_000);
+    // Deliberately NOT unref'd: in standby mode this process has no listening
+    // socket, so the timer is what keeps it alive. The platform's preview
+    // runner must keep seeing a live `npm run dev` process.
+  }
+
+  function bindAndBoot(): Promise<void> {
+    return new Promise((resolve) => {
+      releaseBind = () => {
+        if (mode !== "serving") resolve();
+      };
+      httpServer.listen(port, "0.0.0.0", () => {
+        mode = "serving";
+        releaseBind = null;
+        // Expose server ref for graceful shutdown in the uncaughtException handler
+        (global as any).__thorxServer = httpServer;
+        log(`serving on port ${port}`);
+        resolve();
+      });
+    });
+  }
+
+  // ── Heavy modules load here (cold-boot cost) ─────────────────────────────
+  async function loadApp(): Promise<void> {
+    const { registerRoutes } = await import("./routes");
+    // registerRoutes(app, httpServer) attaches routes + realtime to the server
+    // that is already listening, so the readiness probe never waits on compile.
+    await registerRoutes(app, httpServer);
+
+    // Sentry must come BEFORE the generic error handler so it can capture errors
+    // Cast needed: Sentry's error handler signature matches Express error middleware at runtime
+    app.use(sentryErrorHandler() as any);
+
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = runtimeConfig.isProd
+        ? "Internal Server Error"
+        : (err.message || "Internal Server Error");
+
+      logger.error({ err, status }, "Express error handler");
+      res.status(status).json({ message });
+    });
+
+    // importantly only setup vite in development and after
+    // setting up all the other routes so the catch-all route
+    // doesn't interfere with the other routes
+    if (app.get("env") === "development") {
+      await setupVite(app, httpServer);
+    } else {
+      serveStatic(app);
+    }
+
+    appReady = true;
+    log("application ready");
+  }
+
+  async function startJobs(): Promise<void> {
     // Start background jobs
     if (runtimeConfig.isProd) {
+      const { startLeaderboardCleanup } = await import("./jobs/leaderboard-cleanup");
       startLeaderboardCleanup();
     }
     // Health snapshots run in all environments so development builds have data
+    const { startHealthSnapshotJob } = await import("./jobs/health-snapshot");
     startHealthSnapshotJob();
+    const { startGuildWeeklyResetJob } = await import("./jobs/guild-weekly-reset");
     startGuildWeeklyResetJob();
+    const { startInactivityPenaltyJob } = await import("./jobs/inactivity-penalty");
     startInactivityPenaltyJob();
     // 5-minute leaderboard + risk-scan cron (decoupled from earn events per Q4 decision)
+    const { startLeaderboardRefreshJob } = await import("./jobs/leaderboard-refresh");
     startLeaderboardRefreshJob();
     // Nightly retention cleanup (score_history: 90d, audit_logs: 2yr)
+    const { startRetentionCleanupJob } = await import("./jobs/retention-cleanup");
     startRetentionCleanupJob();
     // HilltopAds daily inventory + stats sync (no-ops gracefully if API key not configured)
+    const { hilltopAdsScheduler } = await import("./hilltopads-scheduler");
     hilltopAdsScheduler.start();
     // Daily economy multiplier snapshot — populates economy_state for recordEarnEvent()
+    const { startEconomySnapshotJob } = await import("./jobs/economy-snapshot");
     startEconomySnapshotJob();
     // Daily automated ledger integrity scan — catches balance/ledger drift without
     // waiting on an admin to manually run Ledger Validator.
+    const { startLedgerIntegrityScanJob } = await import("./jobs/ledger-integrity-scan");
     startLedgerIntegrityScanJob();
-  });
+  }
+
+  async function serve(): Promise<void> {
+    await bindAndBoot();
+    if (mode !== "serving") return; // duplicate start — standing by instead
+    await loadApp();
+    await startJobs();
+  }
+
+  // Decide: does another healthy THORX instance already own the port?
+  const initialState = await probePort();
+  if (initialState === "thorx") {
+    log(`port ${port} already serves a healthy THORX instance — duplicate start detected; standing by (no duplicate bind, no duplicate jobs)`);
+    mode = "standby";
+    startStandbyMonitor();
+    return;
+  }
+  if (initialState === "foreign") {
+    logger.fatal(
+      { port },
+      `Port ${port} is held by a process that is not a THORX instance — free it and retry.`,
+    );
+    process.exit(1);
+  }
+  await serve();
 })();

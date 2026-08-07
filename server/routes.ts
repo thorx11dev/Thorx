@@ -300,7 +300,7 @@ const inviteSchema = z.object({
   permissions: z.array(z.string()).default([])
 });
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express, existingServer?: Server): Promise<Server> {
   // Ensure the session table exists before connect-pg-simple tries to use it.
   // createTableIfMissing has a race condition on first boot; we pre-create it.
   try {
@@ -7038,7 +7038,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
+  const httpServer = existingServer ?? createServer(app);
   initRealtime(httpServer, session(sessionConfig));
   return httpServer;
 }

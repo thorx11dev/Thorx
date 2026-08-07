@@ -32,6 +32,12 @@ export class HilltopAdsScheduler {
   }
 
   private async runImmediateSync() {
+    // No API key configured (fresh DB / key not set yet) is the normal state,
+    // not an error — skip quietly so startup logs stay clean.
+    if (!(await hilltopAdsService.isConfigured())) {
+      logger.info("Skipping initial HilltopAds sync — no active API key configured");
+      return;
+    }
     try {
       logger.info("Running initial HilltopAds inventory sync...");
       await hilltopAdsService.syncInventory();
