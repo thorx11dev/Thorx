@@ -216,9 +216,15 @@ function startServer() {
     );
   }
 
+  // Restrict tsx's file watcher to server/shared sources. By default `tsx watch`
+  // watches the whole workspace, so any client-side file change (which Vite's
+  // own middleware already hot-reloads) restarts the entire server — and every
+  // restart invalidates the module map of every open page, producing
+  // "Failed to fetch dynamically imported module" errors until a reload lands
+  // after Vite is back up. Client-only edits therefore must not restart us.
   const child = spawn(
     path.join(ROOT, "node_modules/.bin/tsx"),
-    ["watch", "server/index.ts"],
+    ["watch", "--exclude", "client/**", "server/index.ts"],
     { stdio: "inherit", env: process.env },
   );
 
@@ -228,16 +234,35 @@ function startServer() {
   child.once("exit", (code, signal) => {
     process.exit(signal ? 1 : code ?? 1);
   });
+
+  return child;
 }
 
+let serverChild;
 try {
   // Load .env first so the rest of the bootstrap sees DATABASE_URL,
   // SESSION_SECRET, etc. even when the platform does not inject them.
   loadDotEnv(path.join(ROOT, ".env"));
   ensureDependencies();
+
+  // Start the server BEFORE the DB bootstrap. The server binds its port
+  // immediately and answers /api/health with 200 "starting" while the heavy
+  // module graph loads (server/index.ts). The platform's readiness probe
+  // gives the dev process only a few seconds to open the port — doing the
+  // DB handshake first (cold pool creation + first query) can consume that
+  // whole window and get reported as "failed to start" even though the app
+  // recovers moments later. The schema bootstrap then runs in this same
+  // process while the server child is already serving; on a fresh import
+  // the drizzle push completes before any real user traffic arrives.
+  serverChild = startServer();
   await bootstrapDatabase();
-  startServer();
 } catch (error) {
+  // If the DB bootstrap failed after the server already spawned, don't leave
+  // an orphaned server behind — terminate it before exiting non-zero so the
+  // platform sees the real startup error instead of a half-alive process.
+  if (serverChild && !serverChild.killed) {
+    serverChild.kill("SIGTERM");
+  }
   console.error(`[bootstrap] ${error instanceof Error ? error.message : error}`);
   process.exit(1);
 }

@@ -19,7 +19,7 @@
 // and the `resolved` flag on guild_weekly_cycles.
 import Decimal from "decimal.js";
 import { db } from "../db";
-import { guilds, guildMembers, guildWeeklyCycles, guildWeeklySnapshots, users } from "@shared/schema";
+import { guilds, guildMembers, guildWeeklyCycles, guildWeeklySnapshots, guildWars, users } from "@shared/schema";
 import { eq, and, sql as drizzleSql } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { awardMilestoneGPS } from "./gps-engine";
@@ -356,6 +356,29 @@ export async function runWeeklyGuildReset(): Promise<WeeklyGuildResetSummary> {
     await db.update(guildMembers)
       .set({ weeklyPointsContributed: 0, isMvp: false, mvpSetWeek: null as any })
       .where(eq(guildMembers.guildId, guild.id));
+  }
+
+  // ── Resolve active guild wars at the week boundary ──────────────────────────
+  // Wars previously had NO automatic completion path — the admin-only
+  // PATCH /api/admin/guild-wars/wars/:id/resolve endpoint was the only caller,
+  // so captain-facing wars stayed "active" forever and the winner / pool-capture
+  // mechanic never ran. Resolve any war still active at the sweep (score-based
+  // winner, loser's weekly bonus pool captured, war badge awarded). Pending
+  // phases are untouched — their votes stay open.
+  try {
+    const { resolveWar } = await import("./guild-wars");
+    const activeWars = await db
+      .select({ id: guildWars.id })
+      .from(guildWars)
+      .where(eq(guildWars.status, "active"));
+    for (const w of activeWars) {
+      await resolveWar(w.id);
+    }
+    if (activeWars.length > 0) {
+      logger.info({ resolvedWars: activeWars.length }, "[GuildReset] Active wars resolved at week boundary.");
+    }
+  } catch (err) {
+    logger.error({ err }, "[GuildReset] War resolution sweep failed.");
   }
 
   return { guildsProcessed: activeGuilds.length, distributed, partial, voided, skipped };

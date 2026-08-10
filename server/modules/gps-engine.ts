@@ -7,6 +7,7 @@ import { db } from "../db";
 import { eq, sql as drizzleSql } from "drizzle-orm";
 import { guilds, rankLogs } from "@shared/schema";
 import { storage } from "../storage";
+import { logger } from "../lib/logger";
 import Decimal from "decimal.js";
 
 export const GUILD_RANK_TIERS = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"] as const;
@@ -170,11 +171,27 @@ export async function checkAndUpdateGuildRankTier(guildId: string, tx?: DbClient
     weeklyTarget: config.weeklyTargets[newRank],
   }).where(eq(guilds.id, guildId));
 
-  const { emitFeedEvent } = await import("./live-feed");
-  await emitFeedEvent({
-    type: "guild_event",
+  const feedEvent = {
+    type: "guild_event" as const,
     guildId,
     displayMessage: `Guild '${guild.name}' GPS tier updated to ${newRank}. Capacity and weekly target adjusted.`,
     data: { newTier: newRank, guildPerformanceScore: guild.guildPerformanceScore },
-  });
+  };
+  if (tx) {
+    // Deadlock guard (found 2026-08-09 deep E2E): never await the feed insert
+    // inside an outer transaction. emitFeedEvent writes activity_feed via the
+    // global pool, and that insert's guild_id FK takes a KEY SHARE lock on the
+    // guild row THIS transaction holds with FOR UPDATE — the transaction then
+    // blocks on its own lock and Postgres cannot see the cycle (the tx is not
+    // running a query), hanging the caller indefinitely (Engine C task
+    // completion froze; an idle-in-transaction zombie held guild/user locks).
+    // Fire-and-forget: the insert completes as soon as the tx commits and
+    // releases the row lock. Feed events are non-critical telemetry.
+    import("./live-feed")
+      .then(({ emitFeedEvent }) => emitFeedEvent(feedEvent))
+      .catch((err) => logger.error({ err }, "[gps-engine] Deferred feed event failed"));
+  } else {
+    const { emitFeedEvent } = await import("./live-feed");
+    await emitFeedEvent(feedEvent);
+  }
 }

@@ -13,48 +13,30 @@ import { RankBadge } from "@/components/RankBadge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PremiumCard } from "@/components/ui/premium-card";
 import TechnicalLabel from "@/components/ui/technical-label";
 import {
-  Megaphone, Users, MessageCircle, BarChart3, Settings,
-  CheckCircle, XCircle, Star, Send, Bell, Sword, Crown, Target,
-  MessagesSquare, Loader2, Swords, UserPlus, UserMinus, Shield,
-  AlertTriangle, RefreshCw, Flame, ArrowLeft, ChevronRight,
-  ImagePlus, Trash2,
-} from "lucide-react";
+  GuildIdentityHeader, GuildTabBar, SectionChip, QueryError,
+  CTA_CLASS, OUTLINE_CLASS, DESTRUCTIVE_CLASS, DESTRUCTIVE_OUTLINE, ICON_BTN_CLASS,
+  FIELD_CLASS, FIELD_AREA_CLASS, FieldLabel, useEscape, ModalShell,
+  AvatarStamp, EmptyState, SelectField, SegmentedToggle, ChatComposer,
+  PanelSkeleton, SkeletonBlock,
+} from "./GuildPanelShell";
+import {
+  GiKnightBanner, GiChatBubble, GiWarhammer, GiCog,
+  GiRoundShield, GiSkullCrossedBones, GiLaurelsTrophy, GiHuntingHorn, GiBroadsword, GiSpartanHelmet,
+  GiSwordSpin, GiCrossedSwords, GiCrossedAxes, GiShield,
+  GiArrowCluster, GiArrowhead, GiPortrait, GiMagnifyingGlass,
+} from "./guild-icons";
 import { GuildWarsPanel } from "./GuildWarsPanel";
 import { GuildProfileWizard } from "./GuildProfileWizard";
+import { GuildTasksPanel } from "./GuildTasksPanel";
+import { GuildDiscoveryPanel } from "./GuildDiscoveryPanel";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
-type Tab = "requests" | "roster" | "chat" | "dm" | "stats" | "settings" | "wars" | "profile";
-
-/** Small icon chip matching the premium icon-chip spec */
-function IconChip({ icon: Icon }: { icon: React.ElementType }) {
-  return (
-    <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg shrink-0">
-      <Icon className="w-4 h-4 text-primary" />
-    </div>
-  );
-}
-
-/** Inline error/retry pattern — matches DashboardCards.tsx retry style */
-function QueryError({ message, onRetry }: { message?: string; onRetry: () => void }) {
-  return (
-    <div className="flex items-center gap-2 py-3">
-      <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
-      <span className="text-sm text-red-400">{message ?? "Failed to load."}</span>
-      <button
-        onClick={onRetry}
-        className="text-red-400 text-sm font-bold uppercase tracking-wider hover:underline ml-1"
-      >
-        Retry
-      </button>
-    </div>
-  );
-}
+type Tab = "requests" | "roster" | "tasks" | "chat" | "dm" | "wars" | "discover" | "profile" | "stats" | "settings";
 
 export function CaptainPortal() {
   const { user } = useAuth();
@@ -66,9 +48,15 @@ export function CaptainPortal() {
   const [kickConfirm, setKickConfirm] = useState<string | null>(null);
   const [selectedDmMember, setSelectedDmMember] = useState<string | null>(null);
   const [dmMsg, setDmMsg] = useState("");
-  const [settingsForm, setSettingsForm] = useState<any>(null);
+  const [settingsForm, setGiCogForm] = useState<any>(null);
   const [announcementText, setAnnouncementText] = useState("");
   const guildId = user?.guildId;
+
+  // Esc closes any open modal/sheet.
+  useEscape(() => {
+    if (rejectModal) { setRejectModal(null); setRejectReason(""); }
+    if (kickConfirm) setKickConfirm(null);
+  });
 
   // Guild info
   const {
@@ -80,7 +68,7 @@ export function CaptainPortal() {
     queryKey: ["/api/guilds", guildId],
     queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/${guildId}`); const d = await r.json(); return d.guild; },
     enabled: !!guildId,
-    refetchInterval: 15000,
+    refetchInterval: 60000, // header + settings; members tick faster for roster
   });
 
   // Members
@@ -93,12 +81,26 @@ export function CaptainPortal() {
     queryKey: ["/api/guilds", guildId, "members"],
     queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/${guildId}/members`); const d = await r.json(); return d.members ?? []; },
     enabled: !!guildId,
-    refetchInterval: 15000,
+    refetchInterval: 30000,
   });
 
-  // Pending applications
-  const pending = members.filter((m: any) => m.status === "pending");
+  // Pending applications — dedicated endpoint. The roster only returns active
+  // members, so filtering members for status === "pending" always came back
+  // empty (Requests used to look permanently empty).
+  const {
+    data: pendingApplications = [],
+    isLoading: isAppsLoading,
+    isError: isAppsError,
+    refetch: refetchApps,
+  } = useQuery<any[]>({
+    queryKey: ["/api/guilds", guildId, "applications"],
+    queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/${guildId}/applications`); const d = await r.json(); return d.applications ?? []; },
+    enabled: !!guildId,
+    refetchInterval: 15000,
+  });
+  const pending = pendingApplications;
   const active  = members.filter((m: any) => m.status === "active");
+  const weekMvpSet = active.some((m: any) => m.isMvp);
 
   // Weekly history
   const {
@@ -114,6 +116,7 @@ export function CaptainPortal() {
 
   // Guild Chat
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const dmEndRef = useRef<HTMLDivElement>(null);
   const [chatMsg, setChatMsg] = useState("");
   const {
     data: chatMessages = [],
@@ -148,6 +151,7 @@ export function CaptainPortal() {
       setRejectModal(null);
       setRejectReason("");
       queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "applications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId] });
     },
     onError: (err: any) => toast({ title: "Error", description: err?.message, variant: "destructive" }),
@@ -158,7 +162,11 @@ export function CaptainPortal() {
       const r = await apiRequest("POST", `/api/guilds/${guildId}/members/${memberId}/nudge`);
       return r.json();
     },
-    onSuccess: () => toast({ title: "Nudge sent!" }),
+    onSuccess: () => {
+      toast({ title: "Nudge sent!" });
+      // Refresh roster so the 24h cooldown shows immediately (like the assistant panel).
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "members"] });
+    },
     onError: (err: any) => toast({ title: "Error", description: err?.message, variant: "destructive" }),
   });
 
@@ -167,8 +175,12 @@ export function CaptainPortal() {
       const r = await apiRequest("POST", `/api/guilds/${guildId}/members/${memberId}/mvp`);
       return r.json();
     },
-    onSuccess: () => {
-      toast({ title: "MVP Selected!", description: "+200 GPS awarded to the guild." });
+    onSuccess: (data: any) => {
+      // Bonus amount comes from the server (GPS_MVP_BONUS config) — never hardcode it.
+      toast({
+        title: "MVP Selected!",
+        description: data?.bonus ? `+${data.bonus.toLocaleString()} GPS awarded to the guild.` : "Designated as this week's MVP.",
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "members"] });
     },
     onError: (err: any) => toast({ title: "Error", description: err?.message, variant: "destructive" }),
@@ -223,7 +235,7 @@ export function CaptainPortal() {
       toast({ title: "Settings saved." });
       queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId] });
       if (data?.guild?.weeklyTarget) {
-        setSettingsForm((f: any) => ({ ...f, weeklyTarget: data.guild.weeklyTarget }));
+        setGiCogForm((f: any) => ({ ...f, weeklyTarget: data.guild.weeklyTarget }));
       }
     },
     onError: (err: any) => toast({ title: "Error", description: err?.message, variant: "destructive" }),
@@ -254,9 +266,21 @@ export function CaptainPortal() {
     onError: (err: any) => toast({ title: "Error", description: err?.message, variant: "destructive" }),
   });
 
+  // Auto-scroll chat to the newest message.
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  // DM thread scrolls to the latest message when it loads/updates.
+  useEffect(() => {
+    if (tab === "dm" && selectedDmMember) {
+      dmEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [dmMessages, selectedDmMember, tab]);
+
   useEffect(() => {
     if (guild && !settingsForm) {
-      setSettingsForm({
+      setGiCogForm({
         name: guild.name || "",
         description: guild.description || "",
         minRankRequired: guild.minRankRequired || "E-Rank",
@@ -292,7 +316,7 @@ export function CaptainPortal() {
         canvas.width = Math.max(1, Math.round(source.width * scale));
         canvas.height = Math.max(1, Math.round(source.height * scale));
         canvas.getContext("2d")?.drawImage(source, 0, 0, canvas.width, canvas.height);
-        setSettingsForm((current: any) => ({
+        setGiCogForm((current: any) => ({
           ...current,
           avatarUrl: canvas.toDataURL("image/jpeg", 0.82),
         }));
@@ -307,6 +331,7 @@ export function CaptainPortal() {
   const sendChatMutation = useMutation({
     mutationFn: async (message: string) => {
       const r = await apiRequest("POST", `/api/guilds/${guildId}/chat`, { message });
+      if (!r.ok) throw await r.json();
       return r.json();
     },
     onMutate: async (message: string) => {
@@ -330,49 +355,24 @@ export function CaptainPortal() {
   const RANK_ORDER = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
 
   const TABS: { id: Tab; label: string; icon: React.ElementType; badge?: number }[] = [
-    { id: "requests", label: "Requests",     icon: Sword,          badge: pending.length },
-    { id: "roster",   label: "Roster",       icon: Users },
-    { id: "chat",     label: "Guild Chat",   icon: MessagesSquare },
-    { id: "dm",       label: "Private Chat", icon: MessageCircle },
-    { id: "wars",     label: "Wars",         icon: Swords },
-    { id: "profile",  label: "My Profile",   icon: Shield },
-    { id: "stats",    label: "Stats",        icon: BarChart3 },
-    { id: "settings", label: "Settings",     icon: Settings },
+    { id: "requests", label: "Requests",     icon: GiBroadsword,          badge: pending.length },
+    { id: "roster",   label: "Roster",       icon: GiRoundShield },
+    { id: "tasks",    label: "Tasks",        icon: GiWarhammer },
+    { id: "chat",     label: "Guild Chat",   icon: GiChatBubble },
+    { id: "dm",       label: "Private Chat", icon: GiChatBubble },
+    { id: "wars",     label: "Wars",         icon: GiCrossedSwords },
+    { id: "discover", label: "Discover",     icon: GiMagnifyingGlass },
+    { id: "profile",  label: "My Profile",   icon: GiPortrait },
+    { id: "stats",    label: "Stats",        icon: GiWarhammer },
+    { id: "settings", label: "Settings",   icon: GiCog },
   ];
 
   // ── Loading / no-guild guard ──────────────────────────────────────────────
   if (!guildId || (isGuildLoading && !guild)) return (
     <div className="space-y-4">
-      {/* Header skeleton */}
-      <PremiumCard interactive={false} className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Skeleton className="w-10 h-10 rounded-lg" />
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-36 rounded" />
-            <Skeleton className="h-3 w-24 rounded" />
-          </div>
-        </div>
-        <Skeleton className="h-4 w-20 rounded" />
-      </PremiumCard>
-      {/* Tabs skeleton */}
-      <div className="flex gap-1.5 overflow-x-auto pb-0.5">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-10 w-20 rounded-xl shrink-0" />
-        ))}
-      </div>
-      {/* Content skeleton */}
-      <PremiumCard interactive={false} className="space-y-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3 py-2">
-            <Skeleton className="w-9 h-9 rounded-lg" />
-            <div className="flex-1 space-y-1.5">
-              <Skeleton className="h-4 w-1/3 rounded" />
-              <Skeleton className="h-3 w-1/4 rounded" />
-            </div>
-            <Skeleton className="h-8 w-20 rounded-lg" />
-          </div>
-        ))}
-      </PremiumCard>
+      <PanelSkeleton lines={1} />
+      <SkeletonBlock className="h-14" />
+      <PanelSkeleton lines={4} />
     </div>
   );
 
@@ -386,174 +386,120 @@ export function CaptainPortal() {
   return (
     <div className="space-y-4 md:space-y-6">
 
-      {/* ── Captain Header ─────────────────────────────────────────────── */}
-      <PremiumCard interactive={false} className="p-5 md:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <IconChip icon={Crown} />
-            <div>
-              <div className="font-black text-foreground text-lg leading-tight">{guild.name}</div>
-              <div className="flex flex-wrap items-center gap-2 mt-1">
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full">
-                  {(guild.guildPerformanceScore || 0).toLocaleString()} GPS
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {active.length} member{active.length === 1 ? "" : "s"}
-                </span>
-                {(guild.weeklyTarget ?? 0) > 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    Target: <span className="font-semibold text-foreground">{(guild.weeklyTarget || 0).toLocaleString()} pts/wk</span>
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          <Badge variant="secondary" className="self-start sm:self-auto shrink-0 font-bold text-xs uppercase tracking-wider">
-            Captain
-          </Badge>
-        </div>
-      </PremiumCard>
+      {/* ── Guild identity header — nav-plate signature ────────────────── */}
+      <GuildIdentityHeader
+        guild={guild}
+        role="CAPTAIN"
+        memberCount={active.length}
+        avatarUrl={guild.avatarUrl}
+      />
 
       {/* ── Active announcement preview ─────────────────────────────────── */}
       {guild.latestAnnouncement && (
-        <PremiumCard interactive={false} className="border-primary/40 bg-primary/5 p-4 md:p-5">
+        <PremiumCard interactive={false} className="border-2 border-primary/30 bg-primary/5 p-4 md:p-5">
           <div className="flex items-start gap-3">
             <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg shrink-0 mt-0.5">
-              <Megaphone className="w-4 h-4 text-primary" />
+              <GiKnightBanner className="w-4 h-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
               <TechnicalLabel text="Active Announcement" className="text-primary text-xs mb-1" />
-              <p className="text-sm text-foreground break-words">{guild.latestAnnouncement}</p>
+              <p className="text-sm text-black/75 break-words font-medium">{guild.latestAnnouncement}</p>
               {guild.announcementPostedAt && (
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-1">
                   Posted {formatDistanceToNow(new Date(guild.announcementPostedAt), { addSuffix: true })}
                 </p>
               )}
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              className="shrink-0 h-8 text-xs"
+            <button
               onClick={() => clearAnnouncementMutation.mutate()}
               disabled={clearAnnouncementMutation.isPending}
+              className="shrink-0 inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border-2 border-black/20 bg-white text-black/50 font-black uppercase tracking-wider text-[10px] transition-all duration-200 hover:border-destructive hover:text-destructive disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              {clearAnnouncementMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Clear"}
-            </Button>
+              {clearAnnouncementMutation.isPending ? <GiSwordSpin className="w-3 h-3 animate-spin" /> : <GiCrossedAxes size={12} />}
+              Clear
+            </button>
           </div>
         </PremiumCard>
       )}
 
-      {/* ── Tab bar ────────────────────────────────────────────────────── */}
-      <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
-        {TABS.map(t => {
-          const Icon = t.icon;
-          const isActive = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={cn(
-                "relative flex-shrink-0 flex items-center justify-center gap-1.5 min-h-[40px] px-3 py-2 rounded-xl border-2 text-xs font-bold transition-all duration-200",
-                isActive
-                  ? "bg-foreground border-foreground text-background shadow-[3px_3px_0px_0px_rgba(0,0,0,0.4)]"
-                  : "bg-white border-black/20 text-muted-foreground hover:border-black/60 hover:text-foreground"
-              )}
-            >
-              <Icon size={13} />
-              <span className="hidden sm:inline">{t.label}</span>
-              {(t.badge ?? 0) > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-black border-2 border-white">
-                  {t.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* ── Tab bar — landing-grade segmented ──────────────────────────── */}
+      <GuildTabBar
+        tabs={TABS.map(t => ({ ...t, icon: <t.icon size={13} /> }))}
+        value={tab}
+        onChange={setTab}
+      />
+
+      {/* Tab content — keyed so each switch plays the landing entrance motion */}
+      <div key={tab} className="animate-in fade-in slide-in-from-bottom-1 duration-200">
 
       {/* ── REQUESTS ────────────────────────────────────────────────────── */}
       {tab === "requests" && (
         <div className="space-y-3 md:space-y-4">
-          <div className="flex items-center justify-between">
-            <TechnicalLabel text={`Pending Requests${pending.length > 0 ? ` (${pending.length})` : ""}`} className="text-foreground" />
-          </div>
+          <SectionChip>PENDING REQUESTS{pending.length > 0 ? ` · ${pending.length}` : ""}</SectionChip>
 
-          {isMembersLoading && (
+          {isAppsLoading && (
             <div className="space-y-3">
               {[0, 1].map(i => (
-                <PremiumCard key={i} interactive={false} className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Skeleton className="w-9 h-9 rounded-lg" />
-                    <div className="flex-1 space-y-1.5">
-                      <Skeleton className="h-4 w-32 rounded" />
-                      <Skeleton className="h-3 w-20 rounded" />
-                    </div>
-                    <Skeleton className="h-9 w-20 rounded-lg" />
-                  </div>
-                </PremiumCard>
+                <PanelSkeleton key={i} lines={2} />
               ))}
             </div>
           )}
 
-          {isMembersError && (
+          {isAppsError && (
             <PremiumCard interactive={false}>
-              <QueryError message="Could not load applications." onRetry={() => refetchMembers()} />
+              <QueryError message="Could not load applications." onRetry={() => refetchApps()} />
             </PremiumCard>
           )}
 
-          {!isMembersLoading && !isMembersError && pending.length === 0 && (
-            <PremiumCard interactive={false} className="text-center py-16">
-              <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl w-fit mx-auto mb-3">
-                <UserPlus className="w-6 h-6 text-primary" />
-              </div>
-              <p className="font-bold text-foreground">No pending applications</p>
-              <p className="text-sm text-muted-foreground mt-1">New applicants will appear here for review.</p>
-            </PremiumCard>
+          {!isAppsLoading && !isAppsError && pending.length === 0 && (
+            <EmptyState
+              icon={<GiBroadsword size={22} className="text-black/40" />}
+              chip="NO PENDING REQUESTS"
+              title="Inbox clear"
+              caption="New applicants will appear here for review."
+            />
           )}
 
-          {!isMembersLoading && !isMembersError && pending.map((app: any) => (
-            <PremiumCard key={app.id} interactive={false} className="space-y-3">
+          {!isAppsLoading && !isAppsError && pending.map((app: any) => (
+            <PremiumCard key={app.id} interactive={false} className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="flex items-start gap-3">
-                  <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg shrink-0">
-                    <UserPlus className="w-4 h-4 text-primary" />
-                  </div>
+                  {/* Real applicant profile picture (falls back to initial) */}
+                  <AvatarStamp name={app.firstName || app.identity} avatarUrl={app.avatarUrl} size="md" />
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold text-foreground">{app.firstName || app.identity || "Applicant"}</span>
+                      <span className="font-black text-foreground text-base tracking-tight">{app.firstName || app.identity || "Applicant"}</span>
                       <RankBadge rank={app.userRankTier || "E-Rank"} size="sm" />
-                      <span className="text-xs text-muted-foreground font-semibold">{app.performanceScore || 0} PS</span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Joined Thorx {app.createdAt ? formatDistanceToNow(new Date(app.createdAt), { addSuffix: true }) : "recently"}
+                    <p className="text-[10px] text-black/50 mt-0.5 font-semibold">
+                      Applied {app.createdAt ? formatDistanceToNow(new Date(app.createdAt), { addSuffix: true }) : "recently"}
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0 sm:mt-0">
                   <Button
                     size="sm"
-                    variant="default"
-                    className="h-10 px-4 text-xs font-bold"
+                    className={cn(CTA_CLASS, "h-10 px-4 text-[10px]")}
                     disabled={appActionMutation.isPending}
                     onClick={() => appActionMutation.mutate({ appId: app.id, action: "accept" })}
                   >
-                    <CheckCircle size={13} className="mr-1" />
+                    <GiRoundShield size={13} />
                     Accept
                   </Button>
                   <Button
                     size="sm"
-                    variant="destructive"
-                    className="h-10 px-4 text-xs font-bold"
+                    className={cn(OUTLINE_CLASS, "h-10 px-4 text-[10px]")}
                     onClick={() => setRejectModal({ appId: app.id, applicantName: app.firstName || "this applicant" })}
                   >
-                    <XCircle size={13} className="mr-1" />
+                    <GiSkullCrossedBones size={13} />
                     Reject
                   </Button>
                 </div>
               </div>
               {app.coverLetter && (
-                <div className="bg-muted/50 border border-black/10 rounded-xl p-3 text-sm text-muted-foreground italic">
-                  "{app.coverLetter}"
+                <div className="border-2 border-black/10 rounded-lg p-3.5 border-l-[3px] border-l-primary">
+                  <TechnicalLabel text="APPLICATION LETTER" className="text-black/40 text-[10px] mb-1.5" />
+                  <p className="text-sm text-black/65 leading-relaxed">"{app.coverLetter}"</p>
                 </div>
               )}
             </PremiumCard>
@@ -564,26 +510,8 @@ export function CaptainPortal() {
       {/* ── ROSTER ──────────────────────────────────────────────────────── */}
       {tab === "roster" && (
         <div className="space-y-3 md:space-y-4">
-          <div className="flex items-center justify-between">
-            <TechnicalLabel
-              text={`Guild Roster — ${active.length} member${active.length === 1 ? "" : "s"}`}
-              className="text-foreground"
-            />
-          </div>
-
           {isMembersLoading && (
-            <PremiumCard interactive={false} className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3 py-1">
-                  <Skeleton className="w-9 h-9 rounded-lg" />
-                  <div className="flex-1 space-y-1.5">
-                    <Skeleton className="h-4 w-28 rounded" />
-                    <Skeleton className="h-3 w-20 rounded" />
-                  </div>
-                  <Skeleton className="h-8 w-24 rounded-lg" />
-                </div>
-              ))}
-            </PremiumCard>
+            <PanelSkeleton lines={5} />
           )}
 
           {isMembersError && (
@@ -593,122 +521,180 @@ export function CaptainPortal() {
           )}
 
           {!isMembersLoading && !isMembersError && active.length === 0 && (
-            <PremiumCard interactive={false} className="text-center py-16">
-              <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl w-fit mx-auto mb-3">
-                <Users className="w-6 h-6 text-primary" />
-              </div>
-              <p className="font-bold text-foreground">No active members yet</p>
-              <p className="text-sm text-muted-foreground mt-1">Review pending applications to build your team.</p>
-            </PremiumCard>
+            <EmptyState
+              icon={<GiRoundShield size={22} className="text-black/40" />}
+              chip="ROSTER"
+              title="No active members yet"
+              caption="Review pending applications to build your team."
+            />
           )}
 
           {!isMembersLoading && !isMembersError && active.length > 0 && (
-            <PremiumCard interactive={false} className="overflow-hidden p-0">
-              <div className="divide-y divide-black/8">
-                {active
-                  .sort((a: any, b: any) => (b.weeklyPointsContributed || 0) - (a.weeklyPointsContributed || 0))
-                  .map((m: any, i: number) => {
-                    const isCaptain = m.userId === guild.captainId;
-                    const isMe = m.userId === user?.id;
-                    const isInactive = m.lastActiveAt && (Date.now() - new Date(m.lastActiveAt).getTime()) > 48 * 3600 * 1000;
-                    return (
-                      <div
-                        key={m.id}
-                        className={cn(
-                          "flex items-center justify-between px-5 py-3 gap-3 transition-colors",
-                          isMe ? "bg-primary/5" : "hover:bg-muted/30"
-                        )}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-8 flex items-center justify-center shrink-0">
-                            {isCaptain
-                              ? <Crown size={16} className="text-primary" />
-                              : <span className="text-xs font-bold text-muted-foreground">#{i + 1}</span>
-                            }
-                          </div>
-                          {m.isMvp && <Star size={13} className="text-yellow-500 fill-yellow-500 shrink-0" />}
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <span className={cn("font-bold text-sm truncate", isMe && "text-primary")}>
-                                {isMe ? "You" : (m.firstName || m.identity || "Member")}
-                              </span>
-                              <RankBadge rank={m.userRankTier || "E-Rank"} size="sm" showLabel={false} />
-                              {isCaptain && (
-                                <TechnicalLabel text="Captain" className="text-primary text-[10px]" />
-                              )}
-                              {isInactive && (
-                                <TechnicalLabel text="Inactive" className="text-red-500 text-[10px]" />
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              {(m.weeklyPointsContributed || 0).toLocaleString()} pts this week
-                            </p>
-                          </div>
-                        </div>
-                        {!isCaptain && !isMe && (
-                          <div className="flex items-center gap-1 shrink-0">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-9 w-9 p-0 border-black/20 hover:border-black hover:text-foreground"
-                              title="Nudge"
-                              disabled={nudgeMutation.isPending}
-                              onClick={() => nudgeMutation.mutate(m.userId)}
-                            >
-                              {nudgeMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Bell size={13} />}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-9 w-9 p-0 border-black/20 hover:border-black hover:text-foreground"
-                              title="DM"
-                              onClick={() => { setSelectedDmMember(m.userId); setTab("dm"); }}
-                            >
-                              <MessageCircle size={13} />
-                            </Button>
-                            {!m.isMvp && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-9 w-9 p-0 border-black/20 hover:border-yellow-500 hover:text-yellow-500"
-                                title="Set MVP"
-                                disabled={mvpMutation.isPending}
-                                onClick={() => mvpMutation.mutate(m.userId)}
-                              >
-                                {mvpMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Star size={13} />}
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              className="h-9 w-9 p-0"
-                              title="Kick member"
-                              onClick={() => setKickConfirm(m.userId)}
-                            >
-                              <UserMinus size={13} />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+            <>
+              {/* Roster KPI strip */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="bg-white rounded-2xl border-2 border-black px-4 py-3.5">
+                  <TechnicalLabel text="TOTAL MEMBERS" className="text-black/40 text-[10px] mb-1" />
+                  <div className="font-black text-xl md:text-2xl tracking-tight tabular-nums">{active.length}</div>
+                </div>
+                <div className="bg-white rounded-2xl border-2 border-black px-4 py-3.5">
+                  <TechnicalLabel text="WEEKLY POINTS" className="text-black/40 text-[10px] mb-1" />
+                  <div className="font-black text-xl md:text-2xl tracking-tight tabular-nums text-primary">
+                    {active.reduce((s: number, m: any) => s + (m.weeklyPointsContributed || 0), 0).toLocaleString()}
+                  </div>
+                </div>
+                <div className="bg-white rounded-2xl border-2 border-black px-4 py-3.5">
+                  <TechnicalLabel text="WEEKLY MVP" className="text-black/40 text-[10px] mb-1" />
+                  <div className="font-black text-lg md:text-xl tracking-tight truncate">
+                    {active.find((m: any) => m.isMvp)?.firstName || active.find((m: any) => m.isMvp)?.identity || "—"}
+                  </div>
+                </div>
+                <div className="bg-white rounded-2xl border-2 border-black px-4 py-3.5">
+                  <TechnicalLabel text="AVG PER MEMBER" className="text-black/40 text-[10px] mb-1" />
+                  <div className="font-black text-xl md:text-2xl tracking-tight tabular-nums">
+                    {Math.round(active.reduce((s: number, m: any) => s + (m.weeklyPointsContributed || 0), 0) / Math.max(1, active.length)).toLocaleString()}
+                  </div>
+                </div>
               </div>
-            </PremiumCard>
+
+              {/* Roster — premium member card grid */}
+              {(() => {
+                const maxPts = Math.max(1, ...active.map((m: any) => m.weeklyPointsContributed || 0));
+                const sorted = [...active].sort((a: any, b: any) => (b.weeklyPointsContributed || 0) - (a.weeklyPointsContributed || 0));
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
+                    {sorted.map((m: any) => {
+                      const isCaptain = m.userId === guild.captainId;
+                      const isMe = m.userId === user?.id;
+                      const isInactive = m.lastActiveAt && (Date.now() - new Date(m.lastActiveAt).getTime()) > 48 * 3600 * 1000;
+                      const pts = m.weeklyPointsContributed || 0;
+                      const pct = Math.max(3, (pts / maxPts) * 100);
+                      return (
+                        <div
+                          key={m.id}
+                          className={cn(
+                            "relative bg-white rounded-2xl border-2 p-4 md:p-5 transition-all duration-200 flex flex-col gap-3.5",
+                            isCaptain
+                              ? "border-black hover:shadow-[4px_4px_0_0_rgba(10,10,10,0.9)]"
+                              : "border-black/10 hover:border-black hover:shadow-[4px_4px_0_0_rgba(10,10,10,0.9)]"
+                          )}
+                        >
+
+                          {/* Header: avatar + name */}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <AvatarStamp name={m.firstName || m.identity} avatarUrl={m.avatarUrl} size="md" />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className={cn("font-bold text-sm md:text-base truncate", isMe ? "text-primary" : "text-black")}>
+                                  {isMe ? "You" : (m.firstName || m.identity || "Member")}
+                                </span>
+                                {m.isMvp && <GiLaurelsTrophy size={13} className="text-primary fill-primary shrink-0" />}
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <RankBadge rank={m.userRankTier || "E-Rank"} size="sm" showLabel={false} />
+                                {isCaptain && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm bg-primary/10 border border-primary/30 text-primary font-black uppercase tracking-wider text-[10px]">
+                                    CAPTAIN
+                                  </span>
+                                )}
+                                {isInactive && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm bg-destructive/10 border border-destructive/30 text-destructive font-black uppercase tracking-wider text-[10px]">INACTIVE</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Weekly contribution — hero number + bar */}
+                          <div className="rounded-xl border-2 border-black/10 bg-[#EAE5DD]/30 px-3.5 py-3">
+                            <div className="flex items-end justify-between gap-2">
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/45">This Week</p>
+                                <p className="font-black text-2xl tracking-tighter tabular-nums mt-0.5">
+                                  {pts.toLocaleString()}
+                                  <span className="text-xs text-black/40 font-black"> PTS</span>
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/45">% of Top</p>
+                                <p className="font-black text-sm tabular-nums mt-0.5">{pct.toFixed(0)}%</p>
+                              </div>
+                            </div>
+                            <Progress value={pct} className="h-2 bg-black/10 border border-black/10 rounded-full [&>div]:bg-primary mt-2.5" />
+                          </div>
+
+                          {/* Actions */}
+                          {!isCaptain && !isMe && (
+                            <div className="flex items-center gap-1.5 pt-0.5">
+                              {(() => {
+                                const lastNudged = m.lastNudgedAt ? new Date(m.lastNudgedAt).getTime() : 0;
+                                const onCooldown = lastNudged > 0 && Date.now() - lastNudged < 24 * 60 * 60 * 1000;
+                                return (
+                                  <button
+                                    className={ICON_BTN_CLASS}
+                                    title={onCooldown ? "Nudged within the last 24h" : "Nudge"}
+                                    aria-label={`Nudge ${m.firstName || "member"}`}
+                                    disabled={nudgeMutation.isPending || onCooldown}
+                                    onClick={() => nudgeMutation.mutate(m.userId)}
+                                  >
+                                    {nudgeMutation.isPending ? <GiSwordSpin size={13} className="animate-spin" /> : <GiHuntingHorn size={13} />}
+                                  </button>
+                                );
+                              })()}
+                              <button
+                                className={ICON_BTN_CLASS}
+                                title="DM"
+                                aria-label={`Message ${m.firstName || "member"}`}
+                                onClick={() => { setSelectedDmMember(m.userId); setTab("dm"); }}
+                              >
+                                <GiChatBubble size={13} />
+                              </button>
+                              {!m.isMvp && !weekMvpSet && (
+                                <button
+                                  className={cn(ICON_BTN_CLASS, "hover:border-primary hover:text-primary")}
+                                  title="Set MVP"
+                                  aria-label={`Set ${m.firstName || "member"} as MVP`}
+                                  disabled={mvpMutation.isPending}
+                                  onClick={() => mvpMutation.mutate(m.userId)}
+                                >
+                                  {mvpMutation.isPending ? <GiSwordSpin size={13} className="animate-spin" /> : <GiLaurelsTrophy size={13} />}
+                                </button>
+                              )}
+                              <button
+                                className="inline-flex items-center justify-center w-10 h-10 ml-auto rounded-lg border-2 border-black bg-black text-white transition-all duration-150 hover:bg-destructive hover:border-destructive"
+                                title="Kick member"
+                                aria-label={`Remove ${m.firstName || "member"}`}
+                                onClick={() => setKickConfirm(m.userId)}
+                              >
+                                <GiCrossedAxes size={13} />
+                              </button>
+                            </div>
+                          )}
+
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </>
           )}
         </div>
+      )}
+
+      {/* ── TASKS ──────────────────────────────────────────────────────── */}
+      {tab === "tasks" && (
+        <GuildTasksPanel />
       )}
 
       {/* ── GUILD CHAT ──────────────────────────────────────────────────── */}
       {tab === "chat" && (
         <PremiumCard interactive={false} className="flex flex-col p-0 overflow-hidden h-[460px] max-h-[60vh] min-h-[280px]">
-          <div className="px-5 py-3 border-b-2 border-black/10">
-            <div className="flex items-center gap-2">
-              <IconChip icon={MessagesSquare} />
-              <div>
-                <div className="font-bold text-foreground text-sm">{guild.name} — Guild Chat</div>
-                <p className="text-xs text-muted-foreground">Visible to all active members</p>
-              </div>
+          <div className="px-5 py-3.5 border-b-2 border-black flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <SectionChip>GUILD CHAT</SectionChip>
+              <span className="text-[10px] font-black uppercase tracking-wider text-black/40 truncate">Visible to all active members</span>
             </div>
+            <GiChatBubble size={14} className="text-primary shrink-0" />
           </div>
 
           {isChatError && (
@@ -720,21 +706,25 @@ export function CaptainPortal() {
           {!isChatError && (
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {chatMessages.length === 0 ? (
-                <div className="text-center text-muted-foreground text-sm py-12">
-                  No messages yet. Say hello to your guild!
+                <div className="text-center py-12">
+                  <p className="text-sm font-black uppercase tracking-tight text-black/45 mb-1">No messages yet</p>
+                  <p className="text-xs font-medium text-black/40">Say hello to your guild!</p>
                 </div>
               ) : chatMessages.map((msg: any, i: number) => {
-                const isMe = msg.userId === user?.id || msg.fromUserId === user?.id;
+                // engine_c_messages stores senderId (not userId/fromUserId) — the
+                // senderId check is what aligns server messages to the right side;
+                // userId/fromUserId cover the optimistic append until refetch.
+                const isMe = msg.senderId === user?.id || msg.userId === user?.id || msg.fromUserId === user?.id;
                 return (
-                  <div key={i} className={cn("flex", isMe ? "justify-end" : "justify-start")}>
+                  <div key={msg.id ?? i} className={cn("flex", isMe ? "justify-end" : "justify-start")}>
                     <div className={cn(
-                      "max-w-[75%] rounded-2xl px-3.5 py-2 text-sm",
+                      "max-w-[75%] rounded-2xl px-3.5 py-2 text-sm border-2",
                       isMe
-                        ? "bg-foreground text-background"
-                        : "bg-muted text-foreground border border-black/10"
+                        ? "bg-black text-white border-black"
+                        : "bg-white text-black border-black/10"
                     )}>
                       {!isMe && (
-                        <p className="text-[10px] font-bold text-muted-foreground mb-0.5">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-primary mb-0.5">
                           {msg.senderName || msg.firstName || "Member"}
                         </p>
                       )}
@@ -747,28 +737,13 @@ export function CaptainPortal() {
             </div>
           )}
 
-          <div className="px-4 py-3 border-t-2 border-black/10 flex gap-2">
-            <Input
-              value={chatMsg}
-              onChange={e => setChatMsg(e.target.value)}
-              placeholder="Message the guild…"
-              className="flex-1 h-10 text-sm"
-              maxLength={500}
-              onKeyDown={e => {
-                if (e.key === "Enter" && chatMsg.trim() && chatMsg.length <= 500)
-                  sendChatMutation.mutate(chatMsg.trim());
-              }}
-            />
-            <Button
-              size="sm"
-              className="h-10 w-10 p-0 shrink-0"
-              aria-label="Send message"
-              disabled={!chatMsg.trim() || chatMsg.length > 500 || sendChatMutation.isPending}
-              onClick={() => sendChatMutation.mutate(chatMsg.trim())}
-            >
-              {sendChatMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-            </Button>
-          </div>
+          <ChatComposer
+            value={chatMsg}
+            onChange={setChatMsg}
+            onSend={(v) => sendChatMutation.mutate(v)}
+            placeholder="Message the guild…"
+            isPending={sendChatMutation.isPending}
+          />
         </PremiumCard>
       )}
 
@@ -777,17 +752,17 @@ export function CaptainPortal() {
         <div className="space-y-3 md:space-y-4">
           {!selectedDmMember ? (
             <>
-              <TechnicalLabel text="Select a member to message" className="text-foreground" />
+              <SectionChip>SELECT A MEMBER TO MESSAGE</SectionChip>
               {isMembersLoading && (
                 <div className="space-y-2">
                   {[0, 1, 2].map(i => (
-                    <PremiumCard key={i} interactive={false} className="flex items-center gap-3 p-4">
-                      <Skeleton className="w-10 h-10 rounded-lg" />
+                    <div key={i} className="flex items-center gap-3 p-4 bg-white rounded-2xl border-2 border-black/10">
+                      <SkeletonBlock className="w-10 h-10 rounded-lg" />
                       <div className="space-y-1.5 flex-1">
-                        <Skeleton className="h-4 w-28 rounded" />
-                        <Skeleton className="h-3 w-16 rounded" />
+                        <SkeletonBlock className="h-3 w-28" />
+                        <SkeletonBlock className="h-3 w-16" />
                       </div>
-                    </PremiumCard>
+                    </div>
                   ))}
                 </div>
               )}
@@ -797,50 +772,49 @@ export function CaptainPortal() {
                 </PremiumCard>
               )}
               {!isMembersLoading && !isMembersError && active.filter((m: any) => m.userId !== user?.id).length === 0 && (
-                <PremiumCard interactive={false} className="text-center py-10">
-                  <p className="text-muted-foreground text-sm">No other members to message yet.</p>
-                </PremiumCard>
+                <EmptyState
+                  icon={<GiChatBubble size={22} className="text-black/40" />}
+                  chip="PRIVATE CHAT"
+                  title="No members to message yet"
+                  caption="Active members will appear here."
+                />
               )}
               <div className="space-y-2">
                 {active.filter((m: any) => m.userId !== user?.id).map((m: any) => (
                   <button
                     key={m.id}
-                    className="w-full text-left"
+                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-black/10 bg-white text-left transition-all duration-150 hover:border-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     onClick={() => setSelectedDmMember(m.userId)}
                   >
-                    <PremiumCard interactive className="flex items-center gap-3 p-4">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-sm font-black text-primary shrink-0">
-                        {(m.firstName || "M")[0].toUpperCase()}
+                    <AvatarStamp name={m.firstName || m.identity} avatarUrl={m.avatarUrl} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-foreground text-sm truncate">
+                        {m.firstName || m.identity || "Member"}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-bold text-foreground text-sm truncate">
-                          {m.firstName || m.identity || "Member"}
-                        </div>
-                        <RankBadge rank={m.userRankTier || "E-Rank"} size="sm" />
-                      </div>
-                      <ChevronRight size={16} className="text-muted-foreground shrink-0" />
-                    </PremiumCard>
+                      <RankBadge rank={m.userRankTier || "E-Rank"} size="sm" />
+                    </div>
+                    <GiArrowhead size={16} className="text-black/40 shrink-0" />
                   </button>
                 ))}
               </div>
             </>
           ) : (
             <PremiumCard interactive={false} className="flex flex-col p-0 overflow-hidden h-[420px] max-h-[60vh] min-h-[280px]">
-              <div className="px-4 py-3 border-b-2 border-black/10 flex items-center gap-3">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-9 w-9 p-0 border-black/20"
+              <div className="px-4 py-3 border-b-2 border-black flex items-center gap-3">
+                <button
+                  className={ICON_BTN_CLASS}
                   onClick={() => setSelectedDmMember(null)}
                   aria-label="Back to member list"
                 >
-                  <ArrowLeft size={14} />
-                </Button>
+                  <GiArrowCluster size={14} />
+                </button>
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-black text-primary">
-                    {(active.find((m: any) => m.userId === selectedDmMember)?.firstName || "M")[0].toUpperCase()}
-                  </div>
-                  <span className="font-bold text-foreground text-sm">
+                  <AvatarStamp
+                    name={active.find((m: any) => m.userId === selectedDmMember)?.firstName || active.find((m: any) => m.userId === selectedDmMember)?.identity}
+                    avatarUrl={active.find((m: any) => m.userId === selectedDmMember)?.avatarUrl}
+                    size="sm"
+                  />
+                  <span className="font-bold text-black text-sm">
                     {active.find((m: any) => m.userId === selectedDmMember)?.firstName || "Member"}
                   </span>
                 </div>
@@ -855,42 +829,28 @@ export function CaptainPortal() {
               {!isDmError && (
                 <div className="flex-1 overflow-y-auto p-4 space-y-2">
                   {dmMessages.map((msg: any, i) => (
-                    <div key={i} className={cn("flex", msg.fromUserId === user?.id ? "justify-end" : "justify-start")}>
+                    <div key={msg.id ?? i} className={cn("flex", msg.fromUserId === user?.id ? "justify-end" : "justify-start")}>
                       <div className={cn(
-                        "max-w-[75%] rounded-2xl px-3.5 py-2 text-sm",
+                        "max-w-[75%] rounded-2xl px-3.5 py-2 text-sm border-2",
                         msg.fromUserId === user?.id
-                          ? "bg-foreground text-background"
-                          : "bg-muted text-foreground border border-black/10"
+                          ? "bg-black text-white border-black"
+                          : "bg-white text-black border-black/10"
                       )}>
                         {msg.message}
                       </div>
                     </div>
                   ))}
+                  <div ref={dmEndRef} />
                 </div>
               )}
 
-              <div className="px-4 py-3 border-t-2 border-black/10 flex gap-2">
-                <Input
-                  value={dmMsg}
-                  onChange={e => setDmMsg(e.target.value)}
-                  placeholder="Message member…"
-                  className="flex-1 h-10 text-sm"
-                  maxLength={500}
-                  onKeyDown={e => {
-                    if (e.key === "Enter" && dmMsg.trim() && dmMsg.length <= 500)
-                      sendDmMutation.mutate(dmMsg.trim());
-                  }}
-                />
-                <Button
-                  size="sm"
-                  className="h-10 w-10 p-0 shrink-0"
-                  aria-label="Send message"
-                  disabled={!dmMsg.trim() || dmMsg.length > 500 || sendDmMutation.isPending}
-                  onClick={() => sendDmMutation.mutate(dmMsg.trim())}
-                >
-                  {sendDmMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                </Button>
-              </div>
+              <ChatComposer
+                value={dmMsg}
+                onChange={setDmMsg}
+                onSend={(v) => sendDmMutation.mutate(v)}
+                placeholder="Message member…"
+                isPending={sendDmMutation.isPending}
+              />
             </PremiumCard>
           )}
         </div>
@@ -898,17 +858,34 @@ export function CaptainPortal() {
 
       {/* ── WEEKLY STATS ────────────────────────────────────────────────── */}
       {tab === "stats" && (
-        <div className="space-y-3 md:space-y-4">
-          <TechnicalLabel text="Performance History — Last 8 Weeks" className="text-foreground" />
+        <div className="space-y-4 md:space-y-6">
+          {/* KPI row */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            {[
+              { label: "GPS SCORE", value: (guild.guildPerformanceScore || 0).toLocaleString(), accent: true },
+              { label: "MEMBERS", value: active.length.toLocaleString() },
+              { label: "WEEKLY TARGET", value: (guild.weeklyTarget || 0).toLocaleString(), accent: false },
+              { label: "SUCCESS WEEKS", value: weeklyHistory.filter((s: any) => s.wasSuccessful).length.toLocaleString(), accent: false },
+            ].map((s) => (
+              <div key={s.label} className="bg-white rounded-2xl border-2 border-black p-4 md:p-5">
+                <TechnicalLabel text={s.label} className="text-black/40 text-[10px] mb-2" />
+                <div className={cn("font-black text-xl md:text-2xl tracking-tight tabular-nums", s.accent ? "text-primary" : "text-black")}>
+                  {s.value}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <SectionChip>PERFORMANCE HISTORY · LAST 8 WEEKS</SectionChip>
 
           {isHistoryLoading && (
             <PremiumCard interactive={false} className="space-y-4">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <Skeleton className="w-5 h-5 rounded-full shrink-0" />
+                  <SkeletonBlock className="w-5 h-5 rounded-full shrink-0" />
                   <div className="flex-1 space-y-1.5">
-                    <Skeleton className="h-3 w-40 rounded" />
-                    <Skeleton className="h-2.5 w-full rounded" />
+                    <SkeletonBlock className="h-3 w-40" />
+                    <SkeletonBlock className="h-2.5 w-full" />
                   </div>
                 </div>
               ))}
@@ -922,13 +899,12 @@ export function CaptainPortal() {
           )}
 
           {!isHistoryLoading && !isHistoryError && weeklyHistory.length === 0 && (
-            <PremiumCard interactive={false} className="text-center py-12">
-              <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl w-fit mx-auto mb-3">
-                <BarChart3 className="w-6 h-6 text-primary" />
-              </div>
-              <p className="font-bold text-foreground">No history yet</p>
-              <p className="text-sm text-muted-foreground mt-1">Stats will appear after your first completed week.</p>
-            </PremiumCard>
+            <EmptyState
+              icon={<GiWarhammer size={22} className="text-black/40" />}
+              chip="PERFORMANCE HISTORY"
+              title="No history yet"
+              caption="Stats will appear after your first completed week."
+            />
           )}
 
           {!isHistoryLoading && !isHistoryError && weeklyHistory.length > 0 && (
@@ -940,29 +916,27 @@ export function CaptainPortal() {
                 return (
                   <div key={snap.id} className="flex items-center gap-3">
                     <div className={cn(
-                      "w-5 h-5 rounded-full shrink-0 border-2",
-                      snap.wasSuccessful
-                        ? "bg-green-500 border-green-600"
-                        : "bg-red-400 border-red-500"
+                      "w-5 h-5 rounded-full shrink-0 border-2 border-black/10",
+                      snap.wasSuccessful ? "bg-primary" : "bg-black/20"
                     )} />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                        <span className="font-semibold text-foreground">Week {weeklyHistory.length - i}</span>
-                        <span>
+                      <div className="flex items-center justify-between text-[10px] md:text-xs font-black uppercase tracking-wider mb-1.5">
+                        <span className="text-black/45">Week {weeklyHistory.length - i}</span>
+                        <span className="text-black/50">
                           {snap.achievedPoints?.toLocaleString()}
                           {" / "}
-                          {snap.targetPoints?.toLocaleString()} pts
-                          <span className="ml-1 text-muted-foreground">({pct.toFixed(0)}%)</span>
+                          {snap.targetPoints?.toLocaleString()} PTS
+                          <span className="ml-1">({pct.toFixed(0)}%)</span>
                         </span>
                       </div>
-                      <Progress value={Math.min(100, pct)} className="h-2 border border-black/10" />
+                      <Progress value={Math.min(100, pct)} className="h-2 bg-black/10 border-2 border-black/10 rounded-full [&>div]:bg-primary" />
                     </div>
-                    <Badge
-                      variant={snap.wasSuccessful ? "default" : "destructive"}
-                      className="shrink-0 text-[10px] font-bold uppercase"
-                    >
+                    <span className={cn(
+                      "shrink-0 inline-flex items-center px-2.5 py-1 rounded-sm font-black uppercase tracking-[0.2em] text-[10px] border-2",
+                      snap.wasSuccessful ? "bg-black text-white border-black" : "bg-white text-black/50 border-black/15"
+                    )}>
                       {snap.wasSuccessful ? "MET" : "MISSED"}
-                    </Badge>
+                    </span>
                   </div>
                 );
               })}
@@ -974,6 +948,11 @@ export function CaptainPortal() {
       {/* ── WARS ────────────────────────────────────────────────────────── */}
       {tab === "wars" && guildId && (
         <GuildWarsPanel guildId={guildId} isCaptain={true} />
+      )}
+
+      {/* ── DISCOVER ───────────────────────────────────────────────────── */}
+      {tab === "discover" && (
+        <GuildDiscoveryPanel />
       )}
 
       {/* ── MY GUILD PROFILE ────────────────────────────────────────────── */}
@@ -989,60 +968,60 @@ export function CaptainPortal() {
 
           {/* Guild settings */}
           <PremiumCard interactive={false}>
-            <div className="flex items-center gap-3 mb-5">
-              <IconChip icon={Settings} />
-              <TechnicalLabel text="Guild Settings" className="text-foreground" />
+            <div className="flex items-center justify-between mb-5">
+              <SectionChip>GUILD SETTINGS</SectionChip>
+              <GiCog size={16} className="text-primary" />
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
-                <TechnicalLabel text="Guild Name" className="text-muted-foreground mb-1.5" />
+                <FieldLabel>Guild Name</FieldLabel>
                 <Input
                   value={settingsForm.name}
-                  onChange={e => setSettingsForm((f: any) => ({ ...f, name: e.target.value }))}
-                  className="h-10"
+                  onChange={e => setGiCogForm((f: any) => ({ ...f, name: e.target.value }))}
+                  className={FIELD_CLASS}
                 />
               </div>
 
               <div>
-                <TechnicalLabel text="Description (max 200 chars)" className="text-muted-foreground mb-1.5" />
+                <FieldLabel hint={`${settingsForm.description.length}/500`}>Description</FieldLabel>
                 <textarea
-                  maxLength={200}
+                  maxLength={500}
                   rows={3}
                   value={settingsForm.description}
-                  onChange={e => setSettingsForm((f: any) => ({ ...f, description: e.target.value }))}
-                  className="w-full border-2 border-black/20 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-black transition-colors bg-white"
+                  onChange={e => setGiCogForm((f: any) => ({ ...f, description: e.target.value }))}
+                  className={cn(FIELD_AREA_CLASS, "min-h-[90px]")}
                 />
               </div>
 
               {/* Guild profile picture — captain-only because this panel is captain-only. */}
               <div>
-                <TechnicalLabel text="Guild Profile Picture" className="text-muted-foreground mb-1.5" />
-                <div className="flex items-center gap-3 rounded-xl border-2 border-black/10 bg-muted/30 p-3">
-                  <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-black/15 bg-primary/15 flex items-center justify-center shrink-0">
+                <FieldLabel>Guild Profile Picture</FieldLabel>
+                <div className="flex items-center gap-3.5 rounded-2xl border-2 border-black/10 bg-[#EAE5DD]/30 p-3.5">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden border-2 border-black/20 bg-[#EAE5DD] flex items-center justify-center shrink-0">
                     {settingsForm.avatarUrl ? (
                       <img src={settingsForm.avatarUrl} alt="Guild profile preview" className="w-full h-full object-cover" />
                     ) : (
-                      <Crown className="w-7 h-7 text-primary" />
+                      <GiSpartanHelmet className="w-7 h-7 text-primary" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs text-muted-foreground mb-2">
-                      This image appears on the public guild discovery cards.
+                    <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-2.5">
+                      Appears on the public guild discovery cards.
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      <label className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-foreground text-background text-[10px] font-black uppercase tracking-wider cursor-pointer hover:opacity-85">
-                        <ImagePlus size={12} />
+                      <label className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-black text-white text-[10px] font-black uppercase tracking-wider cursor-pointer hover:bg-primary transition-colors">
+                        <GiPortrait size={12} />
                         {settingsForm.avatarUrl ? "Change picture" : "Add picture"}
                         <input type="file" accept="image/*" className="sr-only" onChange={handleGuildAvatarChange} />
                       </label>
                       {settingsForm.avatarUrl && (
                         <button
                           type="button"
-                          onClick={() => setSettingsForm((f: any) => ({ ...f, avatarUrl: null }))}
-                          className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border-2 border-black/15 text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:border-destructive hover:text-destructive"
+                          onClick={() => setGiCogForm((f: any) => ({ ...f, avatarUrl: null }))}
+                          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border-2 border-black/15 text-[10px] font-black uppercase tracking-wider text-black/50 hover:border-destructive hover:text-destructive transition-colors"
                         >
-                          <Trash2 size={12} /> Remove
+                          <GiCrossedAxes size={12} /> Remove
                         </button>
                       )}
                     </div>
@@ -1051,51 +1030,32 @@ export function CaptainPortal() {
               </div>
 
               <div>
-                <TechnicalLabel text="Min Rank to Join" className="text-muted-foreground mb-1.5" />
-                <select
+                <FieldLabel>Min Rank to Join</FieldLabel>
+                <SelectField
                   value={settingsForm.minRankRequired}
-                  onChange={e => setSettingsForm((f: any) => ({ ...f, minRankRequired: e.target.value }))}
-                  className="w-full h-10 border-2 border-black/20 rounded-xl px-3 text-sm bg-white focus:outline-none focus:border-black transition-colors"
+                  onChange={e => setGiCogForm((f: any) => ({ ...f, minRankRequired: e.target.value }))}
                 >
                   {RANK_ORDER.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
+                </SelectField>
               </div>
 
               <div>
-                <TechnicalLabel text="Recruitment" className="text-muted-foreground mb-2" />
-                <div className="flex gap-4">
-                  {[{ v: true, l: "Open" }, { v: false, l: "Closed" }].map(opt => (
-                    <label key={String(opt.v)} className="flex items-center gap-2 text-sm cursor-pointer font-semibold">
-                      <input
-                        type="radio"
-                        name="recruitment"
-                        checked={settingsForm.recruitmentOpen === opt.v}
-                        onChange={() => setSettingsForm((f: any) => ({ ...f, recruitmentOpen: opt.v }))}
-                        className="accent-primary w-4 h-4"
-                      />
-                      {opt.l}
-                    </label>
-                  ))}
-                </div>
+                <FieldLabel>Recruitment</FieldLabel>
+                <SegmentedToggle
+                  options={[{ v: true, l: "Open" }, { v: false, l: "Closed" }].map(o => ({ value: o.v, label: o.l }))}
+                  value={settingsForm.recruitmentOpen}
+                  onChange={v => setGiCogForm((f: any) => ({ ...f, recruitmentOpen: v }))}
+                />
               </div>
 
               <div>
-                <TechnicalLabel text="Discoverability" className="text-muted-foreground mb-2" />
-                <div className="flex gap-4 mb-1.5">
-                  {[{ v: true, l: "Public (discoverable)" }, { v: false, l: "Private (invite only)" }].map(opt => (
-                    <label key={String(opt.v)} className="flex items-center gap-2 text-sm cursor-pointer font-semibold">
-                      <input
-                        type="radio"
-                        name="isPublic"
-                        checked={settingsForm.isPublic === opt.v}
-                        onChange={() => setSettingsForm((f: any) => ({ ...f, isPublic: opt.v }))}
-                        className="accent-primary w-4 h-4"
-                      />
-                      {opt.l}
-                    </label>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">
+                <FieldLabel>Discoverability</FieldLabel>
+                <SegmentedToggle
+                  options={[{ value: true, label: "Public" }, { value: false, label: "Private" }]}
+                  value={settingsForm.isPublic}
+                  onChange={v => setGiCogForm((f: any) => ({ ...f, isPublic: v }))}
+                />
+                <p className="text-xs font-medium text-black/45">
                   {settingsForm.isPublic
                     ? "Your guild appears in the discovery list and accepts public applications."
                     : "Your guild is hidden from discovery. Only invite links can bring in members."}
@@ -1103,22 +1063,22 @@ export function CaptainPortal() {
               </div>
 
               {/* Weekly target — admin-only, read-only for captains */}
-              <div className="bg-muted/40 border-2 border-black/10 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+              <div className="bg-[#EAE5DD]/30 border-2 border-black/10 rounded-2xl px-4 py-3.5 flex items-center justify-between gap-3">
                 <div>
-                  <TechnicalLabel text="Weekly Target" className="text-muted-foreground mb-0.5" />
-                  <div className="font-black text-foreground text-lg">
-                    {(guild.weeklyTarget || 0).toLocaleString()} pts
+                  <TechnicalLabel text="Weekly Target" className="text-black/40 text-[10px] mb-1" />
+                  <div className="font-black text-black text-lg tabular-nums">
+                    {(guild.weeklyTarget || 0).toLocaleString()} PTS
                   </div>
                 </div>
                 <div className="text-right">
-                  <TechnicalLabel text={`Difficulty: ${guild.targetDifficulty || "medium"}`} className="text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground mt-0.5">Set by admin</p>
+                  <TechnicalLabel text={`Difficulty: ${guild.targetDifficulty || "medium"}`} className="text-black/40 text-[10px]" />
+                  <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-0.5">Set by admin</p>
                 </div>
               </div>
             </div>
 
             <Button
-              className="w-full mt-5 h-11 font-bold"
+              className={cn(CTA_CLASS, "w-full mt-6")}
               disabled={settingsMutation.isPending}
               onClick={() => {
                 if (!settingsForm.name || settingsForm.name.trim().length < 3) {
@@ -1131,16 +1091,16 @@ export function CaptainPortal() {
               }}
             >
               {settingsMutation.isPending
-                ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Saving…</>
+                ? <><GiSwordSpin className="w-4 h-4 animate-spin mr-2" />Saving…</>
                 : "Save Settings"}
             </Button>
           </PremiumCard>
 
           {/* Assistant Captain */}
           <PremiumCard interactive={false}>
-            <div className="flex items-center gap-3 mb-4">
-              <IconChip icon={Shield} />
-              <TechnicalLabel text="Assistant Captain" className="text-foreground" />
+            <div className="flex items-center justify-between mb-4">
+              <SectionChip>ASSISTANT CAPTAIN</SectionChip>
+              <GiShield size={16} className="text-primary" />
             </div>
 
             {guild.assistantCaptainId ? (
@@ -1149,19 +1109,20 @@ export function CaptainPortal() {
                 assistantName={active.find((m: any) => m.userId === guild.assistantCaptainId)?.firstName || "Assistant"}
                 currentPermissions={(guild.assistantPermissions as string[]) || []}
                 onRemove={() => {
-                  apiRequest("DELETE", `/api/guilds/${guildId}/assistant-captain`).then(() => {
-                    toast({ title: "Assistant Captain removed." });
-                    queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId] });
-                  });
+                  apiRequest("DELETE", `/api/guilds/${guildId}/assistant-captain`)
+                    .then(() => {
+                      toast({ title: "Assistant Captain removed." });
+                      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId] });
+                    })
+                    .catch((err: any) => toast({ title: "Error", description: err?.message ?? "Could not remove assistant captain.", variant: "destructive" }));
                 }}
               />
             ) : (
               <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm font-medium text-black/55">
                   Appoint a trusted member as your assistant. They can help manage the guild based on permissions you grant.
                 </p>
-                <select
-                  className="w-full h-10 border-2 border-black/20 rounded-xl px-3 text-sm bg-white focus:outline-none focus:border-black transition-colors"
+                <SelectField
                   defaultValue=""
                   onChange={async (e) => {
                     if (!e.target.value) return;
@@ -1180,18 +1141,18 @@ export function CaptainPortal() {
                       {m.firstName || m.identity || "Member"} ({m.userRankTier})
                     </option>
                   ))}
-                </select>
+                </SelectField>
               </div>
             )}
           </PremiumCard>
 
           {/* Announcements */}
           <PremiumCard interactive={false}>
-            <div className="flex items-center gap-3 mb-4">
-              <IconChip icon={Megaphone} />
-              <TechnicalLabel text="Post Announcement" className="text-foreground" />
+            <div className="flex items-center justify-between mb-4">
+              <SectionChip>POST ANNOUNCEMENT</SectionChip>
+              <GiKnightBanner size={16} className="text-primary" />
             </div>
-            <p className="text-sm text-muted-foreground mb-3">
+            <p className="text-sm font-medium text-black/55 mb-3">
               Pin a message for all guild members. It appears as a banner on their dashboard until you clear it.
             </p>
             <textarea
@@ -1200,100 +1161,107 @@ export function CaptainPortal() {
               value={announcementText}
               onChange={e => setAnnouncementText(e.target.value)}
               placeholder="Write an announcement for your guild members…"
-              className="w-full border-2 border-black/20 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-black transition-colors bg-white"
+              className={cn(FIELD_AREA_CLASS, "min-h-[100px]")}
             />
-            <div className="flex items-center justify-between mt-2">
-              <span className={cn("text-xs", announcementText.length > 480 ? "text-red-400 font-bold" : "text-muted-foreground")}>
+            <div className="flex items-center justify-between mt-3">
+              <span className={cn("text-[10px] font-black uppercase tracking-wider", announcementText.length > 480 ? "text-destructive" : "text-black/40")}>
                 {announcementText.length}/500
               </span>
               <Button
                 size="sm"
-                className="h-10 px-4 font-bold"
+                className={cn(CTA_CLASS, "h-10 px-4")}
                 disabled={announcementText.trim().length === 0 || announcementMutation.isPending}
                 onClick={() => announcementMutation.mutate(announcementText.trim())}
               >
-                <Megaphone size={13} className="mr-1.5" />
-                {announcementMutation.isPending
-                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />Posting…</>
-                  : "Post Announcement"}
+                <GiKnightBanner size={13} />
+                {announcementMutation.isPending ? "Posting…" : "Post Announcement"}
               </Button>
             </div>
           </PremiumCard>
         </div>
       )}
 
-      {/* ── Reject modal ────────────────────────────────────────────────── */}
+      </div>{/* end tab content */}
+
+      {/* ── Reject modal — ModalShell (bottom sheet mobile / centered desktop) ── */}
       {rejectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-white border-2 border-black rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-red-50 border border-red-200 rounded-lg">
-                <XCircle className="w-4 h-4 text-red-500" />
-              </div>
-              <p className="font-black text-foreground">Reject {rejectModal.applicantName}?</p>
-            </div>
-            <div>
-              <TechnicalLabel text="Reason (min 10 chars, required)" className="text-muted-foreground mb-1.5" />
-              <textarea
-                value={rejectReason}
-                onChange={e => setRejectReason(e.target.value)}
-                rows={3}
-                placeholder="Explain why you're rejecting this application…"
-                className="w-full border-2 border-black/20 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-black transition-colors bg-white"
-              />
-              <p className={cn("text-xs text-right mt-1", rejectReason.length < 10 ? "text-red-400 font-bold" : "text-muted-foreground")}>
-                {rejectReason.length} chars
-              </p>
-            </div>
-            <div className="flex gap-2">
+        <ModalShell
+          onClose={() => { setRejectModal(null); setRejectReason(""); }}
+          footer={
+            <div className="flex gap-2.5">
               <Button
-                variant="outline"
-                className="flex-1 h-11"
+                className={cn(OUTLINE_CLASS, "flex-1")}
                 onClick={() => { setRejectModal(null); setRejectReason(""); }}
               >
                 Cancel
               </Button>
               <Button
-                variant="destructive"
-                className="flex-1 h-11 font-bold"
-                disabled={rejectReason.length < 10 || appActionMutation.isPending}
+                className={cn(CTA_CLASS, "flex-1")}
+                disabled={rejectReason.trim().length < 10 || appActionMutation.isPending}
                 onClick={() => appActionMutation.mutate({ appId: rejectModal.appId, action: "reject", reason: rejectReason })}
               >
-                {appActionMutation.isPending ? <Loader2 size={14} className="animate-spin mr-1" /> : null}
+                {appActionMutation.isPending ? <GiSwordSpin size={14} className="animate-spin" /> : null}
                 Reject
               </Button>
             </div>
+          }
+        >
+          <div className="flex items-center justify-between gap-2">
+            <SectionChip>REJECT APPLICATION</SectionChip>
+            <button
+              onClick={() => { setRejectModal(null); setRejectReason(""); }}
+              className={ICON_BTN_CLASS}
+              aria-label="Close"
+            >
+              <GiSkullCrossedBones size={14} />
+            </button>
           </div>
-        </div>
+          <p className="font-black text-lg tracking-tight text-black">Reject {rejectModal.applicantName}?</p>
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-1.5">
+              <TechnicalLabel text="REASON · MIN 10 CHARS · REQUIRED" className="text-black/50 text-[10px]" />
+              <span className={cn("text-[10px] font-black tabular-nums", rejectReason.length < 10 ? "text-destructive" : "text-black/50")}>
+                {rejectReason.length} chars
+              </span>
+            </div>
+            <textarea
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              rows={3}
+              placeholder="Explain why you're rejecting this application…"
+              className={cn(FIELD_AREA_CLASS, "min-h-[100px]")}
+            />
+          </div>
+        </ModalShell>
       )}
 
-      {/* ── Kick confirm modal ──────────────────────────────────────────── */}
+      {/* ── Kick confirm modal — ModalShell ── */}
       {kickConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-white border-2 border-black rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-red-50 border border-red-200 rounded-lg">
-                <UserMinus className="w-4 h-4 text-red-500" />
-              </div>
-              <p className="font-black text-foreground">Remove this member?</p>
-            </div>
-            <p className="text-sm text-muted-foreground">They will need to re-apply to join again.</p>
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1 h-11" onClick={() => setKickConfirm(null)}>
+        <ModalShell
+          onClose={() => setKickConfirm(null)}
+          footer={
+            <div className="flex gap-2.5">
+              <Button
+                className={cn(OUTLINE_CLASS, "flex-1")}
+                onClick={() => setKickConfirm(null)}
+              >
                 Cancel
               </Button>
               <Button
-                variant="destructive"
-                className="flex-1 h-11 font-bold"
+                className={cn(DESTRUCTIVE_CLASS, "flex-1")}
                 disabled={kickMutation.isPending}
                 onClick={() => kickMutation.mutate(kickConfirm)}
               >
-                {kickMutation.isPending ? <Loader2 size={14} className="animate-spin mr-1" /> : null}
+                {kickMutation.isPending ? <GiSwordSpin size={14} className="animate-spin" /> : null}
                 Remove
               </Button>
             </div>
-          </div>
-        </div>
+          }
+        >
+          <SectionChip>REMOVE MEMBER</SectionChip>
+          <p className="font-black text-lg tracking-tight text-black mt-3">Remove this member?</p>
+          <p className="text-sm text-black/50 font-medium mt-1">They will need to re-apply to join again.</p>
+        </ModalShell>
       )}
     </div>
   );
@@ -1305,7 +1273,7 @@ export function CaptainPortal() {
 const ASSISTANT_PERMISSIONS: { key: string; label: string; description: string }[] = [
   { key: "join_applications",   label: "Join Applications",  description: "Accept or reject member applications" },
   { key: "guild_announcements", label: "Announcements",      description: "Post and delete guild announcements" },
-  { key: "guild_settings",      label: "Guild Settings",     description: "Update name, description, and banner" },
+  { key: "guild_settings",      label: "Guild Settings",  description: "Update name, description, and banner" },
   { key: "min_rank_required",   label: "Min Rank",           description: "Change minimum rank requirement" },
   { key: "recruitment_toggle",  label: "Recruitment",        description: "Open or close guild recruitment" },
   { key: "member_capacity",     label: "Capacity",           description: "Change maximum member count" },
@@ -1356,16 +1324,19 @@ function AssistantPermissionsEditor({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          Current: <strong className="text-foreground">{assistantName}</strong>
+        <div className="text-sm font-medium text-black/55">
+          Current: <strong className="text-black">{assistantName}</strong>
         </div>
-        <Button size="sm" variant="destructive" className="h-8 text-xs" onClick={onRemove}>
-          <UserMinus size={12} className="mr-1" />
+        <button
+          onClick={onRemove}
+          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border-2 border-destructive/40 text-destructive font-black uppercase tracking-wider text-[10px] hover:border-destructive hover:bg-destructive/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          <GiCrossedAxes size={12} />
           Remove
-        </Button>
+        </button>
       </div>
 
-      <TechnicalLabel text="Permissions" className="text-muted-foreground" />
+      <SectionChip>PERMISSIONS</SectionChip>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         {ASSISTANT_PERMISSIONS.map(p => {
@@ -1375,10 +1346,10 @@ function AssistantPermissionsEditor({
               key={p.key}
               onClick={() => toggle(p.key)}
               className={cn(
-                "flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl border-2 transition-all text-xs min-h-[44px]",
+                "flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg border-2 transition-all text-xs min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                 enabled
-                  ? "border-primary bg-primary/10 text-foreground"
-                  : "border-black/15 bg-white text-muted-foreground hover:border-black/40 hover:bg-muted/30"
+                  ? "border-primary bg-primary/10 text-black"
+                  : "border-black/15 bg-white text-black/55 hover:border-black/40 hover:bg-black/[0.03]"
               )}
             >
               <div className={cn(
@@ -1393,7 +1364,7 @@ function AssistantPermissionsEditor({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-bold">{p.label}</div>
-                <div className="text-[10px] text-muted-foreground">{p.description}</div>
+                <div className="text-[10px] text-black/40">{p.description}</div>
               </div>
             </button>
           );
@@ -1402,11 +1373,11 @@ function AssistantPermissionsEditor({
 
       {dirty && (
         <Button
-          className="w-full h-11 font-bold"
+          className={cn(CTA_CLASS, "w-full")}
           disabled={permsMutation.isPending}
           onClick={() => permsMutation.mutate(perms)}
         >
-          {permsMutation.isPending ? <Loader2 size={13} className="animate-spin mr-1.5" /> : null}
+          {permsMutation.isPending ? <GiSwordSpin size={13} className="animate-spin" /> : null}
           Save Permissions
         </Button>
       )}

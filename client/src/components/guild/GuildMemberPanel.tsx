@@ -13,23 +13,27 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { RankBadge } from "@/components/RankBadge";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { PremiumCard } from "@/components/ui/premium-card";
 import TechnicalLabel from "@/components/ui/technical-label";
 import {
-  Trophy, Target, Clock, MessageCircle, Megaphone, Star, Send,
-  Users, Zap, Swords, ArrowLeft, Crown, CheckCircle, XCircle, Flame,
-  AlertCircle,
-} from "lucide-react";
+  GiLaurelsTrophy, GiBullseye, GiPocketWatch, GiChatBubble, GiKnightBanner, GiPortrait, GiBeveledStar,
+  GiRoundShield, GiWarhammer, GiCrossedSwords, GiArrowCluster, GiSpartanHelmet, GiSkullCrossedBones, GiFlame,
+  GiMagnifyingGlass,
+} from "./guild-icons";
 import { GuildWarsPanel } from "./GuildWarsPanel";
 import { GuildProfileWizard } from "./GuildProfileWizard";
+import { GuildTasksPanel } from "./GuildTasksPanel";
+import { GuildDiscoveryPanel } from "./GuildDiscoveryPanel";
+import {
+  GuildIdentityHeader, GuildTabBar, SectionChip,
+  CTA_CLASS, FOCUS_RING, ICON_BTN_CLASS,
+  AvatarStamp, EmptyState, ChatComposer, PanelSkeleton, SkeletonBlock,
+} from "./GuildPanelShell";
+import { AssistantPanel } from "./AssistantPanel";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
-type Tab = "progress" | "tasks" | "chat" | "dm" | "wars" | "profile";
+type Tab = "progress" | "tasks" | "chat" | "dm" | "wars" | "discover" | "profile";
 
 function CountdownTimer({ targetDate }: { targetDate: Date }) {
   const [timeLeft, setTimeLeft] = useState("");
@@ -62,13 +66,8 @@ export function GuildMemberPanel() {
 
   const guildId = user?.guildId;
 
-  // Membership + guild info
-  const { data: membership } = useQuery<any>({
-    queryKey: QUERY_KEYS.guildMine,
-    queryFn: async () => { const r = await apiRequest("GET", "/api/guilds/mine"); const d = await r.json(); return d.membership; },
-    enabled: !!guildId,
-  });
-
+  // Guild info (membership detail is not read by this panel — the member view
+  // derives everything from the guild detail + roster queries below).
   const {
     data: guild,
     isLoading: isGuildLoading,
@@ -78,23 +77,19 @@ export function GuildMemberPanel() {
     queryKey: guildId ? QUERY_KEYS.guildDetail(guildId) : [],
     queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/${guildId}`); const d = await r.json(); return d.guild; },
     enabled: !!guildId,
-    refetchInterval: 30000,
+    refetchInterval: 60000, // header + announcement freshness; points tick via members query
   });
 
-  // Guild members (for contribution leaderboard)
+  // Guild members — only needed on the Progress (leaderboard) and Private Chat
+  // (member list) tabs; the identity header count uses the denormalized
+  // guild.memberCount instead, so the roster isn't polled on every tab.
   const { data: members = [] } = useQuery<any[]>({
     queryKey: guildId ? QUERY_KEYS.guildMembers(guildId) : [],
     queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/${guildId}/members`); const d = await r.json(); return d.members ?? []; },
-    enabled: !!guildId,
+    enabled: !!guildId && (tab === "progress" || tab === "dm"),
     refetchInterval: 30000,
   });
 
-  // Weekly tasks
-  const { data: weeklyTasks = [] } = useQuery<any[]>({
-    queryKey: guildId ? QUERY_KEYS.guildTasks(guildId) : [],
-    queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/weekly-tasks`); const d = await r.json(); return Array.isArray(d) ? d : (d.weeklyTasks ?? []); },
-    enabled: !!guildId,
-  });
 
   // Group chat
   const { data: chatMessages = [] } = useQuery<any[]>({
@@ -127,6 +122,7 @@ export function GuildMemberPanel() {
   const sendChatMutation = useMutation({
     mutationFn: async (message: string) => {
       const r = await apiRequest("POST", `/api/guilds/${guildId}/chat`, { message });
+      if (!r.ok) throw await r.json();
       return r.json();
     },
     // Optimistic update — append message immediately so the chat doesn't flash
@@ -183,44 +179,28 @@ export function GuildMemberPanel() {
     },
   });
 
-  const completeTaskMutation = useMutation({
-    mutationFn: async (taskId: string) => {
-      const r = await apiRequest("POST", `/api/guilds/weekly-tasks/${taskId}/complete`);
-      return r.json();
-    },
-    onSuccess: () => {
-      toast({ title: "Task Completed!", description: "Points and PS awarded." });
-      if (guildId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildTasks(guildId) });
-      // Refresh guild header + progress bar so weekly contribution updates immediately
-      // (audit finding BB — these were previously missing causing stale progress display).
-      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/guilds/mine"] });
-      queryClient.invalidateQueries({ queryKey: ["earnings"] });
-    },
-    onError: (err: any) => {
-      toast({ title: "Error", description: err?.message || "Could not complete task.", variant: "destructive" });
-    },
-  });
-
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
 
+  // Private chat scrolls to the latest message when a thread loads/updates
+  // (chat has its own effect above; the DM thread was missing it).
+  useEffect(() => {
+    if (tab === "dm" && selectedDmMemberId) {
+      dmEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [dmMessages, selectedDmMemberId, tab]);
+
   // Loading skeleton — shaped like the actual content
   if (!guildId || (isGuildLoading && !guild)) {
     return (
-      <div className="space-y-4 p-4">
-        <div className="flex items-center gap-3">
-          <Skeleton className="h-10 w-10 rounded-full" />
-          <div className="space-y-2 flex-1">
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-3 w-24" />
-          </div>
+      <div className="space-y-4">
+        <PanelSkeleton lines={1} />
+        <div className="grid grid-cols-2 gap-3">
+          <SkeletonBlock className="h-20" />
+          <SkeletonBlock className="h-20" />
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          {[0, 1, 2].map(i => <Skeleton key={i} className="h-16 rounded-2xl" />)}
-        </div>
-        <Skeleton className="h-48 rounded-2xl" />
+        <PanelSkeleton lines={4} />
       </div>
     );
   }
@@ -229,16 +209,16 @@ export function GuildMemberPanel() {
   if (isGuildError && !guild) {
     return (
       <PremiumCard className="p-6 md:p-8 flex flex-col items-center gap-4 text-center">
-        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
-          <AlertCircle className="w-6 h-6 text-destructive" />
+        <div className="p-3 bg-[#EAE5DD] border-2 border-black/10 rounded-xl">
+          <GiSpartanHelmet className="w-6 h-6 text-black/50" />
         </div>
         <div>
           <p className="font-bold text-foreground">Could not load guild data</p>
-          <p className="text-sm text-muted-foreground mt-1">There was a problem reaching the server.</p>
+          <p className="text-sm font-medium text-black/50 mt-1">There was a problem reaching the server.</p>
         </div>
         <button
           onClick={() => refetchGuild()}
-          className="text-red-500 text-sm font-bold uppercase tracking-wider hover:underline"
+          className={cn(CTA_CLASS, "h-10 px-4 text-[10px]")}
         >
           Retry
         </button>
@@ -246,10 +226,19 @@ export function GuildMemberPanel() {
     );
   }
 
+  // Assistant captains get the dedicated permission-gated AssistantPanel.
+  if (guild?.assistantCaptainId === user?.id) {
+    return <AssistantPanel />;
+  }
+
+  // Weekly reset is Sunday 23:59 UTC (matches the DB cycle boundary). On Sunday
+  // itself the reset is later TODAY, not next week — `(7 - day) % 7` yields 0 on
+  // Sunday so the countdown shows hours instead of jumping 7 days ahead.
   const nextSunday = (() => {
     const d = new Date();
-    d.setDate(d.getDate() + (7 - d.getDay()) % 7 || 7);
-    d.setHours(23, 59, 0, 0);
+    const day = d.getUTCDay(); // 0 = Sunday
+    d.setUTCDate(d.getUTCDate() + ((7 - day) % 7));
+    d.setUTCHours(23, 59, 0, 0);
     return d;
   })();
 
@@ -259,30 +248,35 @@ export function GuildMemberPanel() {
   const sortedMembers = [...members].sort((a, b) => (b.weeklyPointsContributed || 0) - (a.weeklyPointsContributed || 0));
   const myContrib = members.find(m => m.userId === user?.id)?.weeklyPointsContributed ?? 0;
   const myRank = sortedMembers.findIndex(m => m.userId === user?.id) + 1;
+  const myRole: "CAPTAIN" | "ASSISTANT" | "MEMBER" =
+    user?.id === guild?.captainId ? "CAPTAIN"
+    : user?.id === guild?.assistantCaptainId ? "ASSISTANT"
+    : "MEMBER";
 
   const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: "progress", label: "Progress",     icon: <Target size={14} /> },
-    { id: "tasks",    label: "Tasks",        icon: <Zap size={14} /> },
-    { id: "chat",     label: "Guild Chat",   icon: <Users size={14} /> },
-    { id: "dm",       label: "Private Chat", icon: <MessageCircle size={14} /> },
-    { id: "wars",     label: "Wars",         icon: <Swords size={14} /> },
-    { id: "profile",  label: "My Profile",   icon: <Star size={14} /> },
+    { id: "progress", label: "Progress",     icon: <GiBullseye size={14} /> },
+    { id: "tasks",    label: "Tasks",        icon: <GiWarhammer size={14} /> },
+    { id: "chat",     label: "Guild Chat",   icon: <GiChatBubble size={14} /> },
+    { id: "dm",       label: "Private Chat", icon: <GiChatBubble size={14} /> },
+    { id: "wars",     label: "Wars",         icon: <GiCrossedSwords size={14} /> },
+    { id: "discover", label: "Discover",     icon: <GiMagnifyingGlass size={14} /> },
+    { id: "profile",  label: "My Profile",   icon: <GiPortrait size={14} /> },
   ];
 
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Captain announcement banner */}
       {guild.latestAnnouncement && (
-        <PremiumCard interactive={false} className="border-primary/30 bg-primary/5 p-4 md:p-5">
+        <PremiumCard interactive={false} className="border-2 border-primary/30 bg-primary/5 p-4 md:p-5">
           <div className="flex items-start gap-3">
             <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg shrink-0">
-              <Megaphone size={14} className="text-primary" />
+              <GiKnightBanner size={14} className="text-primary" />
             </div>
             <div className="min-w-0">
               <TechnicalLabel text="Captain Announcement" className="text-primary mb-1" />
               <p className="text-sm text-foreground break-words">{guild.latestAnnouncement}</p>
               {guild.announcementPostedAt && (
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-1">
                   {formatDistanceToNow(new Date(guild.announcementPostedAt), { addSuffix: true })}
                 </p>
               )}
@@ -291,152 +285,113 @@ export function GuildMemberPanel() {
         </PremiumCard>
       )}
 
-      {/* Guild Header */}
-      <PremiumCard className="p-5 md:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h2 className="font-black text-2xl md:text-3xl tracking-tighter text-foreground truncate">{guild.name}</h2>
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border-2 border-black bg-white text-xs font-bold text-foreground">
-                <Trophy size={11} className="text-primary" />
-                {(guild.guildPerformanceScore || 0).toLocaleString()} GPS
-              </span>
-              <TechnicalLabel
-                text={`${members.filter((m: any) => m.status === "active").length} Members`}
-                className="text-muted-foreground"
-              />
-            </div>
-          </div>
-          <div className="text-right shrink-0">
-            <TechnicalLabel text="Guild Score" className="text-muted-foreground mb-1" />
-            <p className="text-3xl font-black tracking-tighter text-primary">
-              {(guild.guildPerformanceScore || 0).toLocaleString()}
-            </p>
-          </div>
-        </div>
-      </PremiumCard>
+      {/* Guild identity header — shared landing-grade shell */}
+      <GuildIdentityHeader
+        guild={guild}
+        role={myRole}
+        memberCount={guild?.memberCount ?? members.length}
+        avatarUrl={guild?.avatarUrl}
+      />
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-white border-2 border-black rounded-2xl p-1.5 overflow-x-auto scrollbar-hide">
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={cn(
-              "flex-1 min-w-[40px] flex items-center justify-center gap-1.5 text-xs font-bold py-2 px-2 rounded-xl transition-all",
-              tab === t.id
-                ? "bg-black text-white shadow"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            )}
-          >
-            {t.icon}
-            <span className="hidden sm:inline whitespace-nowrap">{t.label}</span>
-          </button>
-        ))}
-      </div>
+      {/* Unified segmented tabs */}
+      <GuildTabBar tabs={TABS} value={tab} onChange={setTab} />
+
+      {/* Tab content — keyed so each switch plays the landing entrance motion */}
+      <div key={tab} className="animate-in fade-in slide-in-from-bottom-1 duration-200">
 
       {/* ── Tab: Progress ── */}
       {tab === "progress" && (
         <div className="space-y-4 md:space-y-6">
-          {/* Weekly Target — focal point */}
+          {/* Weekly GiBullseye — focal point */}
           <PremiumCard className="p-5 md:p-8">
             <div className="flex items-start justify-between gap-3 mb-5">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
-                  <Target size={18} className="text-primary" />
-                </div>
+                <GiBullseye size={18} className="text-primary" />
                 <div>
-                  <TechnicalLabel text="Weekly Target" className="text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <Clock size={10} />
-                    <CountdownTimer targetDate={nextSunday} />
+                  <SectionChip>WEEKLY TARGET</SectionChip>
+                  <p className="text-[10px] md:text-xs font-black uppercase tracking-wider text-black/45 flex items-center gap-1.5 mt-1.5">
+                    <GiPocketWatch size={11} />
+                    RESETS IN <CountdownTimer targetDate={nextSunday} />
                   </p>
                 </div>
               </div>
               <div className="text-right shrink-0">
-                <p className="text-3xl md:text-4xl font-black tracking-tighter text-primary">
+                <p className="text-3xl md:text-4xl font-black tracking-tighter text-primary tabular-nums">
                   {weeklyProgress.toFixed(0)}%
                 </p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Progress value={weeklyProgress} className="h-3 border border-black/15" />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{(guild.currentWeeklyPoints || 0).toLocaleString()} pts earned</span>
-                <span>Target: {(guild.weeklyTarget || 0).toLocaleString()} pts</span>
+              <Progress value={weeklyProgress} className="h-3 bg-black/10 border-2 border-black/10 rounded-lg [&>div]:bg-primary" />
+              <div className="flex justify-between text-[10px] md:text-xs font-black uppercase tracking-wider text-black/45">
+                <span>{(guild.currentWeeklyPoints || 0).toLocaleString()} PTS EARNED</span>
+                <span className="text-black/30">TARGET {(guild.weeklyTarget || 0).toLocaleString()} PTS</span>
               </div>
             </div>
 
-            <p className={cn("text-sm font-semibold mt-4", weeklyProgress >= 100 ? "text-primary" : "text-muted-foreground")}>
-              {weeklyProgress >= 100
-                ? "Target hit! Sunday bonus pool unlocking."
-                : weeklyProgress >= 70
-                ? "Almost there — keep going for the Sunday bonus."
-                : "In progress — keep earning to unlock the Sunday bonus."}
-            </p>
+            <div className="mt-5 border-t-[3px] border-black/10 pt-4 flex items-center gap-2">
+              {weeklyProgress >= 100 ? <GiRoundShield size={14} className="text-primary shrink-0" /> : <GiFlame size={14} className="text-primary shrink-0" />}
+              <p className={cn("text-sm font-bold", weeklyProgress >= 100 ? "text-primary" : "text-black/60")}>
+                {weeklyProgress >= 100
+                  ? "Bullseye hit! Sunday bonus pool unlocking."
+                  : weeklyProgress >= 70
+                  ? "Almost there — keep going for the Sunday bonus."
+                  : "In progress — keep earning to unlock the Sunday bonus."}
+              </p>
+            </div>
           </PremiumCard>
 
           {/* Stat row: My Contribution + My Rank */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <PremiumCard className="p-5 md:p-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
-                  <Zap size={16} className="text-primary" />
-                </div>
-                <TechnicalLabel text="My Contribution" className="text-muted-foreground" />
+              <div className="flex items-center justify-between mb-4">
+                <SectionChip>MY CONTRIBUTION</SectionChip>
+                <GiFlame size={16} className="text-primary" />
               </div>
-              <p className="text-3xl md:text-4xl font-black tracking-tighter text-foreground">
-                {myContrib.toLocaleString()}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">points this week</p>
+              <p className="text-3xl md:text-4xl font-black tracking-tighter tabular-nums">{myContrib.toLocaleString()}</p>
+              <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-1.5">Points This Week</p>
             </PremiumCard>
 
             <PremiumCard className="p-5 md:p-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
-                  <Trophy size={16} className="text-primary" />
-                </div>
-                <TechnicalLabel text="Guild Rank" className="text-muted-foreground" />
+              <div className="flex items-center justify-between mb-4">
+                <SectionChip>GUILD RANK</SectionChip>
+                <GiLaurelsTrophy size={16} className="text-primary" />
               </div>
-              <p className="text-3xl md:text-4xl font-black tracking-tighter text-primary">
+              <p className="text-3xl md:text-4xl font-black tracking-tighter text-primary tabular-nums">
                 {myRank > 0 ? `#${myRank}` : "—"}
+                {myRank > 0 && <span className="text-base text-black/40 font-black"> / {sortedMembers.length}</span>}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">in guild this week</p>
+              <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-1.5">In Guild This Week</p>
             </PremiumCard>
           </div>
 
           {/* Team Leaderboard */}
-          <PremiumCard className="p-5 md:p-6">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
-                <Users size={16} className="text-primary" />
+          <PremiumCard className="p-5 md:p-6">              <div className="flex items-center justify-between mb-5">
+                <SectionChip>TEAM LEADERBOARD · THIS WEEK</SectionChip>
+                <GiRoundShield size={16} className="text-primary" />
               </div>
-              <TechnicalLabel text="Team Leaderboard (This Week)" className="text-foreground" />
-            </div>
-            <div className="space-y-1">
+            <div className="divide-y divide-black/10">
               {sortedMembers.slice(0, 10).map((m, i) => (
                 <div
                   key={m.userId}
                   className={cn(
-                    "flex items-center justify-between py-2.5 px-3 rounded-xl",
-                    m.userId === user?.id
-                      ? "bg-primary/5 border-2 border-primary/20"
-                      : "border border-transparent hover:bg-muted/30"
+                    "flex items-center justify-between py-3 pl-3 border-l-[3px]",
+                    m.userId === user?.id ? "bg-primary/5 border-primary" : "border-transparent"
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <span className={cn(
-                      "text-xs font-black w-6 text-center",
-                      i === 0 ? "text-primary" : "text-muted-foreground"
-                    )}>#{i + 1}</span>
-                    {m.isMvp && <Star size={12} className="text-primary fill-primary shrink-0" />}
-                    <span className={cn("text-sm font-semibold", m.userId === user?.id ? "text-primary" : "text-foreground")}>
+                      "w-6 h-6 rounded-sm border-2 flex items-center justify-center text-[10px] font-black shrink-0",
+                      i === 0 ? "border-black bg-black text-white" : "border-black/15 text-black/50"
+                    )}>{i + 1}</span>
+                    {m.isMvp && <GiLaurelsTrophy size={12} className="text-primary shrink-0" />}
+                    <span className={cn("text-sm font-bold truncate", m.userId === user?.id ? "text-primary" : "text-foreground")}>
                       {m.userId === user?.id ? "You" : (m.firstName || m.identity || "Member")}
                     </span>
                   </div>
-                  <span className="text-sm font-black text-foreground">
-                    {(m.weeklyPointsContributed || 0).toLocaleString()} <span className="text-xs font-normal text-muted-foreground">pts</span>
+                  <span className="text-sm font-black tabular-nums text-foreground">
+                    {(m.weeklyPointsContributed || 0).toLocaleString()} <span className="text-[10px] font-black uppercase tracking-wider text-black/40">pts</span>
                   </span>
                 </div>
               ))}
@@ -445,39 +400,40 @@ export function GuildMemberPanel() {
 
           {/* Guild History */}
           <PremiumCard className="p-5 md:p-6">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
-                <Clock size={16} className="text-primary" />
-              </div>
-              <TechnicalLabel text="Guild History (Last 8 Cycles)" className="text-foreground" />
+            <div className="flex items-center justify-between mb-5">
+              <SectionChip>GUILD HISTORY · LAST 8 CYCLES</SectionChip>
+              <GiPocketWatch size={16} className="text-primary" />
             </div>
             {weeklyHistory.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">
-                No completed cycles yet — results appear every Sunday.
-              </p>
+              <EmptyState
+                icon={<GiPocketWatch size={22} className="text-black/40" />}
+                chip="GUILD HISTORY"
+                title="No completed cycles yet"
+                caption="Results appear every Sunday."
+              />
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {weeklyHistory.slice(0, 8).map((snap: any, i: number) => {
                   const pct = snap.targetPoints > 0 ? Math.min(150, (snap.achievedPoints / snap.targetPoints) * 100) : 0;
                   return (
                     <div key={snap.id ?? i} className="flex items-center gap-3">
                       <div className={cn(
-                        "w-2 h-2 rounded-full shrink-0",
-                        snap.wasSuccessful ? "bg-primary" : "bg-destructive/60"
+                        "w-2 h-2 rounded-full shrink-0 border-2 border-black/10",
+                        snap.wasSuccessful ? "bg-primary" : "bg-black/20"
                       )} />
                       <div className="flex-1">
-                        <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                          <span>Cycle {weeklyHistory.length - i}</span>
-                          <span>
-                            {(snap.achievedPoints ?? 0).toLocaleString()} / {(snap.targetPoints ?? 0).toLocaleString()} pts
-                            <span className="text-foreground font-semibold ml-1">({pct.toFixed(0)}%)</span>
+                        <div className="flex justify-between text-[10px] md:text-xs font-black uppercase tracking-wider mb-1.5">
+                          <span className="text-black/40">Cycle {weeklyHistory.length - i}</span>
+                          <span className="text-black/50">
+                            {(snap.achievedPoints ?? 0).toLocaleString()} / {(snap.targetPoints ?? 0).toLocaleString()} PTS
+                            <span className={cn("ml-1", snap.wasSuccessful ? "text-primary" : "text-black/30")}>({pct.toFixed(0)}%)</span>
                           </span>
                         </div>
-                        <Progress value={Math.min(100, pct)} className="h-1.5" />
+                        <Progress value={Math.min(100, pct)} className="h-1.5 bg-black/10 [&>div]:bg-primary" />
                       </div>
                       {snap.wasSuccessful
-                        ? <CheckCircle size={14} className="text-primary shrink-0" />
-                        : <XCircle size={14} className="text-muted-foreground shrink-0" />}
+                        ? <GiRoundShield size={14} className="text-primary shrink-0" />
+                        : <GiSkullCrossedBones size={14} className="text-black/30 shrink-0" />}
                     </div>
                   );
                 })}
@@ -489,93 +445,56 @@ export function GuildMemberPanel() {
 
       {/* ── Tab: Tasks ── */}
       {tab === "tasks" && (
-        <div className="space-y-3">
-          {weeklyTasks.length === 0 ? (
-            <PremiumCard interactive={false} className="text-center py-12">
-              <div className="p-3 bg-muted rounded-xl w-fit mx-auto mb-4">
-                <Zap size={22} className="text-muted-foreground" />
-              </div>
-              <p className="text-sm text-muted-foreground">No guild tasks available this week.</p>
-            </PremiumCard>
-          ) : (
-            weeklyTasks.map((task: any) => (
-              <PremiumCard key={task.id} interactive={false} className="p-4 md:p-5 flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-bold text-foreground">{task.title}</span>
-                    {task.taskCategory === "indirect" && (
-                      <Badge variant="outline" className="text-[10px] border-primary/30 text-primary font-bold">+15 PS</Badge>
-                    )}
-                  </div>
-                  {task.description && (
-                    <p className="text-xs text-muted-foreground mt-1">{task.description}</p>
-                  )}
-                  {task.txPointsReward > 0 && (
-                    <p className="text-xs text-primary font-semibold mt-1">
-                      ~{task.txPointsReward}–{task.txPointsRewardMax} pts
-                    </p>
-                  )}
-                </div>
-                <Button
-                  size="sm"
-                  className="shrink-0 min-h-[40px]"
-                  disabled={completeTaskMutation.isPending}
-                  onClick={() => completeTaskMutation.mutate(task.id)}
-                >
-                  Complete
-                </Button>
-              </PremiumCard>
-            ))
-          )}
-        </div>
+        <GuildTasksPanel />
       )}
 
       {/* ── Tab: Guild Chat ── */}
       {tab === "chat" && (
         <PremiumCard interactive={false} className="flex flex-col h-[420px] max-h-[65vh] min-h-[280px] p-0 overflow-hidden">
-          <div className="px-5 py-3 border-b-2 border-black flex items-center gap-3">
-            <div className="p-1.5 bg-primary/10 border border-primary/20 rounded-lg">
-              <Users size={14} className="text-primary" />
-            </div>
-            <TechnicalLabel text="Guild Chat" className="text-foreground" />
+          <div className="px-5 py-3.5 border-b-2 border-black flex items-center justify-between gap-3">
+            <SectionChip>GUILD CHAT</SectionChip>
+            <GiChatBubble size={14} className="text-primary" />
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {chatMessages.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-sm font-black uppercase tracking-tight text-black/45 mb-1">No messages yet</p>
+                <p className="text-xs font-medium text-black/40">Say hello to your guild!</p>
+              </div>
+            )}
             {chatMessages.map((msg: any, i) => (
-              <div key={i} className={cn("flex", msg.senderId === user?.id ? "justify-end" : "justify-start")}>
+              <div key={msg.id ?? i} className={cn("flex items-end gap-2", msg.senderId === user?.id ? "justify-end" : "justify-start")}>
+                {msg.senderId !== user?.id && (
+                  <AvatarStamp
+                    name={msg.firstName || msg.senderName}
+                    avatarUrl={msg.avatarUrl}
+                    size="sm"
+                  />
+                )}
                 <div className={cn(
-                  "max-w-[78%] rounded-2xl px-4 py-2.5 text-sm",
+                  "max-w-[78%] rounded-2xl px-4 py-2.5 text-sm border-2",
                   msg.senderId === user?.id
-                    ? "bg-black text-white"
-                    : "bg-muted border border-black/10 text-foreground"
+                    ? "bg-black text-white border-black"
+                    : "bg-white border-black/10 text-foreground"
                 )}>
                   {msg.senderId !== user?.id && (
-                    <div className="text-[10px] font-bold text-primary mb-0.5">{msg.senderName || "Member"}</div>
+                    <div className="text-[10px] font-bold text-primary mb-0.5">{msg.firstName || msg.senderName || "Member"}</div>
                   )}
                   {msg.message}
+                  <div className={cn("text-[10px] mt-1", msg.senderId === user?.id ? "text-white/50" : "text-black/40")}>
+                    {msg.createdAt ? formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true }) : ""}
+                  </div>
                 </div>
               </div>
             ))}
             <div ref={chatEndRef} />
-          </div>
-          <div className="px-4 py-3 border-t-2 border-black flex gap-2">
-            <Input
+          </div>            <ChatComposer
               value={chatMsg}
-              onChange={e => setChatMsg(e.target.value)}
+              onChange={setChatMsg}
+              onSend={(v) => sendChatMutation.mutate(v)}
               placeholder="Send a message…"
-              className="flex-1 h-10 text-sm"
-              maxLength={500}
-              onKeyDown={e => { if (e.key === "Enter" && chatMsg.trim() && chatMsg.length <= 500) sendChatMutation.mutate(chatMsg.trim()); }}
+              isPending={sendChatMutation.isPending}
             />
-            <Button
-              size="sm"
-              className="h-10 w-10 p-0 shrink-0"
-              aria-label="Send message"
-              disabled={!chatMsg.trim() || chatMsg.length > 500 || sendChatMutation.isPending}
-              onClick={() => sendChatMutation.mutate(chatMsg.trim())}
-            >
-              <Send size={14} />
-            </Button>
-          </div>
         </PremiumCard>
       )}
 
@@ -584,14 +503,12 @@ export function GuildMemberPanel() {
         <div className="space-y-3">
           {!selectedDmMemberId ? (
             <PremiumCard interactive={false} className="p-5 md:p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
-                  <MessageCircle size={16} className="text-primary" />
-                </div>
+              <div className="flex items-center justify-between gap-3">
                 <div>
-                  <TechnicalLabel text="Private Chat" className="text-foreground" />
-                  <p className="text-xs text-muted-foreground mt-0.5">Select a guild member to start a private conversation.</p>
+                  <SectionChip>PRIVATE CHAT</SectionChip>
+                  <p className="text-xs font-medium text-black/45 mt-1.5">Select a guild member to start a private conversation.</p>
                 </div>
+                <GiChatBubble size={16} className="text-primary shrink-0" />
               </div>
               <div className="space-y-1.5 max-h-72 overflow-y-auto">
                 {members
@@ -603,28 +520,26 @@ export function GuildMemberPanel() {
                       <button
                         key={m.userId}
                         onClick={() => { setSelectedDmMemberId(m.userId); setDmMsg(""); }}
-                        className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 border border-transparent hover:border-black/10 transition-all text-left min-h-[56px]"
+                        className={cn("w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-black/[0.04] border-2 border-transparent hover:border-black/15 transition-all text-left min-h-[56px]", FOCUS_RING)}
                       >
-                        <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-xs font-black shrink-0">
-                          {(m.firstName || m.identity || "M")[0].toUpperCase()}
-                        </div>
+                        <AvatarStamp name={m.firstName || m.identity} avatarUrl={m.avatarUrl} size="sm" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
                             <span className="text-sm font-semibold text-foreground truncate">{m.firstName || m.identity || "Member"}</span>
-                            {isCaptain && <Crown size={11} className="text-primary shrink-0" />}
-                            {isAssistant && !isCaptain && <Star size={11} className="text-primary/70 shrink-0" />}
+                            {isCaptain && <GiSpartanHelmet size={11} className="text-primary shrink-0" />}
+                            {isAssistant && !isCaptain && <GiBeveledStar size={11} className="text-primary/70 shrink-0" />}
                           </div>
                           <TechnicalLabel
                             text={isCaptain ? "Captain" : isAssistant ? "Assistant Captain" : "Member"}
-                            className="text-muted-foreground"
+                            className="text-black/40"
                           />
                         </div>
-                        <MessageCircle size={14} className="text-muted-foreground shrink-0" />
+                        <GiChatBubble size={14} className="text-black/40 shrink-0" />
                       </button>
                     );
                   })}
                 {members.filter((m: any) => m.userId !== user?.id && m.status === "active").length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-8">No other active members yet.</p>
+                  <p className="text-sm font-medium text-black/50 text-center py-8">No other active members yet.</p>
                 )}
               </div>
             </PremiumCard>
@@ -633,17 +548,16 @@ export function GuildMemberPanel() {
               <div className="px-4 py-3 border-b-2 border-black flex items-center gap-3">
                 <button
                   onClick={() => { setSelectedDmMemberId(null); setDmMsg(""); }}
-                  className="text-muted-foreground hover:text-foreground transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+                  className={ICON_BTN_CLASS}
                   aria-label="Back to member list"
                 >
-                  <ArrowLeft size={16} />
+                  <GiArrowCluster size={16} />
                 </button>
-                <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-xs font-black shrink-0">
-                  {(() => {
-                    const m = members.find((m: any) => m.userId === selectedDmMemberId);
-                    return (m?.firstName || m?.identity || "M")[0].toUpperCase();
-                  })()}
-                </div>
+                <AvatarStamp
+                  name={members.find((m: any) => m.userId === selectedDmMemberId)?.firstName || members.find((m: any) => m.userId === selectedDmMemberId)?.identity}
+                  avatarUrl={members.find((m: any) => m.userId === selectedDmMemberId)?.avatarUrl}
+                  size="sm"
+                />
                 <div>
                   <div className="font-bold text-sm text-foreground leading-none">
                     {(() => {
@@ -652,22 +566,29 @@ export function GuildMemberPanel() {
                     })()}
                   </div>
                   <TechnicalLabel
-                    text={members.find((m: any) => m.userId === selectedDmMemberId)?.userId === guild?.captainId ? "Captain" : "Member"}
-                    className="text-muted-foreground mt-0.5"
+                    text={members.find((m: any) => m.userId === selectedDmMemberId)?.userId === guild?.captainId
+                      ? "Captain"
+                      : members.find((m: any) => m.userId === selectedDmMemberId)?.userId === guild?.assistantCaptainId
+                        ? "Assistant Captain"
+                        : "Member"}
+                    className="text-black/40 mt-0.5"
                   />
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {dmMessages.length === 0 && (
-                  <div className="text-center py-10 text-muted-foreground text-sm">No messages yet. Start the conversation!</div>
+                  <div className="text-center py-12">
+                    <p className="text-sm font-black uppercase tracking-tight text-black/45 mb-1">No messages yet</p>
+                    <p className="text-xs font-medium text-black/40">Start the conversation!</p>
+                  </div>
                 )}
                 {dmMessages.map((msg: any, i) => (
-                  <div key={i} className={cn("flex", msg.fromUserId === user?.id ? "justify-end" : "justify-start")}>
+                  <div key={msg.id ?? i} className={cn("flex", msg.fromUserId === user?.id ? "justify-end" : "justify-start")}>
                     <div className={cn(
                       "max-w-[78%] rounded-2xl px-4 py-2.5 text-sm",
                       msg.fromUserId === user?.id
                         ? "bg-black text-white"
-                        : "bg-muted border border-black/10 text-foreground"
+                        : "bg-white border-2 border-black/10 text-foreground"
                     )}>
                       {msg.message}
                       <div className="text-[10px] mt-1 opacity-50">
@@ -678,28 +599,22 @@ export function GuildMemberPanel() {
                 ))}
                 <div ref={dmEndRef} />
               </div>
-              <div className="px-4 py-3 border-t-2 border-black flex gap-2">
-                <Input
-                  value={dmMsg}
-                  onChange={e => setDmMsg(e.target.value)}
-                  placeholder="Send a private message…"
-                  className="flex-1 h-10 text-sm"
-                  maxLength={1000}
-                  onKeyDown={e => { if (e.key === "Enter" && dmMsg.trim() && dmMsg.length <= 1000) sendDmMutation.mutate(dmMsg.trim()); }}
-                />
-                <Button
-                  size="sm"
-                  className="h-10 w-10 p-0 shrink-0"
-                  aria-label="Send private message"
-                  disabled={!dmMsg.trim() || dmMsg.length > 1000 || sendDmMutation.isPending}
-                  onClick={() => sendDmMutation.mutate(dmMsg.trim())}
-                >
-                  <Send size={14} />
-                </Button>
-              </div>
+              <ChatComposer
+                value={dmMsg}
+                onChange={setDmMsg}
+                onSend={(v) => sendDmMutation.mutate(v)}
+                placeholder="Send a private message…"
+                maxLength={1000}
+                isPending={sendDmMutation.isPending}
+              />
             </PremiumCard>
           )}
         </div>
+      )}
+
+      {/* ── Tab: Discover ── */}
+      {tab === "discover" && (
+        <GuildDiscoveryPanel />
       )}
 
       {/* ── Tab: Wars ── */}
@@ -710,9 +625,14 @@ export function GuildMemberPanel() {
       {/* ── Tab: My Profile ── */}
       {tab === "profile" && (
         <PremiumCard interactive={false} className="p-5 md:p-6">
-          <GuildProfileWizard guildId={guildId} guildName={guild?.name ?? ""} />
+          <div className="flex items-center justify-between mb-5">
+            <SectionChip>MY PROFILE</SectionChip>
+            <GiPortrait size={16} className="text-primary" />
+          </div>
+          <GuildProfileWizard guildId={guildId} guildName={guild?.name ?? ""} mode="edit" />
         </PremiumCard>
       )}
+      </div>{/* end tab content */}
     </div>
   );
 }

@@ -205,10 +205,17 @@ export function useRealtimeSync(user: User | null, guildId?: string | null) {
         }
 
         // ── Phase 15.7: DM received — invalidate the DM thread ───────────────
+        // broadcastToUser sends { type, userId: <recipient>, data: { fromUserId,
+        // guildId, messageId } }. The old predicate matched "/dm/" query keys that
+        // no longer exist — private-chat threads use ["guild", guildId, "private-chat",
+        // otherId] (member panel) and ["/api/guilds", guildId, "private-chat", otherId]
+        // (captain portal), so DM pushes silently never refreshed the thread.
         if (msg.type === "guild.dm_received" && msg.userId === user.id) {
-          queryClient.invalidateQueries({
-            predicate: (q) => typeof q.queryKey[0] === "string" && (q.queryKey[0] as string).includes("/dm/"),
-          });
+          const dmData = (msg as any).data as { guildId?: string; fromUserId?: string } | undefined;
+          if (dmData?.guildId && dmData.fromUserId) {
+            queryClient.invalidateQueries({ queryKey: ["guild", dmData.guildId, "private-chat", dmData.fromUserId] });
+            queryClient.invalidateQueries({ queryKey: ["/api/guilds", dmData.guildId, "private-chat", dmData.fromUserId] });
+          }
         }
 
         // ── Phase 6.3: Guild settings updated ────────────────────────────────
@@ -280,6 +287,43 @@ export function useRealtimeSync(user: User | null, guildId?: string | null) {
           const gpsGuildId = (msg as any).guildId as string | undefined;
           if (gpsGuildId) {
             queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildDetail(gpsGuildId) });
+          }
+        }
+
+        // ── Audit fix W: Guild war lifecycle pushes → instant Wars tab refresh ──
+        // Server broadcasts guild.war_challenge_initiated / war_challenge_received /
+        // war_started / war_cancelled / war_pool_captured, but the client had NO
+        // handlers — the Wars tab only refreshed on its 15s poll, so votes,
+        // status transitions, and Sunday resolution appeared up to 15s late, and
+        // the winner pool-capture toast never rendered at all. Invalidate the war
+        // query key on every lifecycle event so status changes land instantly.
+        if (
+          msg.type === "guild.war_challenge_initiated" ||
+          msg.type === "guild.war_challenge_received" ||
+          msg.type === "guild.war_started" ||
+          msg.type === "guild.war_cancelled"
+        ) {
+          const warGuildId = (msg as any).guildId as string | undefined;
+          if (warGuildId) {
+            queryClient.invalidateQueries({ queryKey: ["/api/guilds", warGuildId, "war"] });
+            if (msg.type === "guild.war_challenge_received") {
+              toast({ title: "⚔️ Guild Challenged!", description: "Your guild has been challenged to a war — vote to accept or decline." });
+            } else if (msg.type === "guild.war_started") {
+              toast({ title: "⚔️ War Started!", description: "The battle is on — earn points to win the weekly bonus pool!" });
+            }
+          }
+        }
+
+        // Winner pool-capture push — resolveWar broadcasts this to the winning
+        // guild with the captured amount in msg.data.message.
+        if (msg.type === "guild.war_pool_captured") {
+          const winnerGuildId = (msg as any).guildId as string | undefined;
+          if (winnerGuildId) {
+            queryClient.invalidateQueries({ queryKey: ["/api/guilds", winnerGuildId, "war"] });
+            const poolMsg = (msg.data as any)?.message as string | undefined;
+            if (poolMsg) {
+              toast({ title: "🏆 War Victor!", description: poolMsg });
+            }
           }
         }
 

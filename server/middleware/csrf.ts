@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import type { Request, Response, NextFunction } from "express";
-import { runtimeConfig } from "../config/runtime";
+import { resolveCookiePolicy } from "./cookie-policy";
 
 /**
  * Double-Submit Cookie CSRF protection.
@@ -18,9 +18,10 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction) 
 
   // Mirror the session cookie's SameSite/Secure policy so the CSRF
   // double-submit cookie round-trips in the same contexts the session
-  // cookie does (see runtimeConfig for why Replit needs SameSite=None).
-  const secure = runtimeConfig.sessionCookieSecure;
-  const sameSite = runtimeConfig.sessionCookieSameSite;
+  // cookie does (resolveCookiePolicy switches to None+Secure+Partitioned
+  // for cross-site preview iframes — Replit, Freebuff — so the token is
+  // actually sent on the POST from inside the iframe).
+  const policy = resolveCookiePolicy(req);
 
   if (SAFE_METHODS.includes(req.method)) {
     // Always (re)issue the cookie on safe methods rather than only when
@@ -31,14 +32,14 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction) 
     const token = req.cookies?.["thorx.csrf.v2"] || crypto.randomBytes(32).toString("hex");
     res.cookie("thorx.csrf.v2", token, {
       httpOnly: false, // JS must read it to set the header
-      secure,
-      sameSite,
+      secure: policy.secure,
+      sameSite: policy.sameSite,
       path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week (matches session TTL)
       // CHIPS: exempt this cookie from third-party-cookie blocking inside
-      // Replit's cross-site preview iframe (see session cookie config for
-      // the full explanation). Only valid alongside SameSite=None.
-      ...(sameSite === "none" ? { partitioned: true } : {}),
+      // cross-site preview iframes (Replit, Freebuff). Only valid alongside
+      // SameSite=None.
+      ...(policy.partitioned ? { partitioned: true } : {}),
     });
     return next();
   }

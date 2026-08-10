@@ -354,7 +354,7 @@ describe("removeGuildMember()", () => {
   it("throws if a non-captain tries to remove", async () => {
     await expect(
       storage.removeGuildMember(guildId, memberId, outsiderId)
-    ).rejects.toThrow(/only the guild captain/i);
+    ).rejects.toThrow(/only the captain or an authorized assistant/i);
   });
 
   it("throws if captain tries to remove themselves", async () => {

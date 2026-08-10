@@ -1,8 +1,20 @@
 /**
- * GuildDiscoveryPanel — THORX v3 (spec F.6, Phase 3 redesign)
+ * GuildDiscoveryPanel — THORX Engine C / Guild Directory.
  * Default Engine C view for simple users (guildRole='simple').
- * GPS-sorted guild leaderboard with application flow.
- * NEVER shows PKR pool amounts — only TX-Points and success weeks.
+ * GPS-sorted guild directory with application flow.
+ *
+ * Design system: mirrors the THORX landing page exactly —
+ *   • Radius:      rounded-2xl (plates/cards/modals) · rounded-lg (buttons/inputs) · rounded-sm (chips)
+ *   • Borders:     interactive plates + modals = nav-plate signature `border-2 md:border-[3px] border-black`
+ *                  data tiles           = `border-2 border-black/10 hover:border-black`
+ *                  dividers             = `h-[3px] bg-black/10` · `border-t-[3px] border-black/10`
+ *   • Media tone:  ivory `bg-[#EAE5DD]` (landing value-proposition section tone)
+ *   • Chips:       `bg-black text-white rounded-sm tracking-[0.2em]`
+ *   • CTAs:        `bg-primary text-white border-2 border-black rounded-lg hover:bg-black`
+ *   • Typography:  big `font-black uppercase tracking-tighter` display type
+ *
+ * Desktop + tablet + mobile. NEVER shows PKR pool amounts — only THORX-Points
+ * and success weeks.
  */
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,16 +26,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import TechnicalLabel from "@/components/ui/technical-label";
-import { PremiumCard } from "@/components/ui/premium-card";
 import {
-  Search, Trophy, Lock, ChevronRight, Star, Shield, Loader2,
-  ArrowLeft, Swords, Crown, Calendar, PlusCircle, CheckCircle2, XCircle,
-  Hourglass, SlidersHorizontal, X, Flame,
-} from "lucide-react";
+  GiMagnifyingGlass, GiPadlock, GiArrowhead, GiLaurelsTrophy, GiShield, GiSwordSpin,
+  GiCrossedSwords, GiSpartanHelmet, GiRoundShield, GiSkullCrossedBones,
+  GiHourglass, GiCog, GiCrossedAxes, GiFlame,
+} from "./guild-icons";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { DEV_UNLOCK_RANK_GATES } from "@/lib/previewAccess";
@@ -42,29 +52,56 @@ interface GuildDiscovery {
   weeklyTarget: number;
   successfulWeeks?: number;
   inActiveWar?: boolean;
+  rankTier?: string;
 }
 
 const RANK_ORDER = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
-const RANK_COLORS: Record<string, string> = {
-  "E-Rank": "#71717a", "D-Rank": "#16a34a", "C-Rank": "#2563eb",
-  "B-Rank": "#7c3aed", "A-Rank": "#ea580c", "S-Rank": "#dc2626",
-};
 
-/** Derive a display tier from raw GPS score. Used for coloring only — no DB column needed. */
+/** Derive a display tier from raw GPS score — local fallback only. Thresholds
+ *  mirror the server's live GPS config (GPS_RANK_*_MIN) so the fallback can
+ *  never disagree with the backend's rankTier (single source of truth). */
 function gpsTier(gps: number): string {
-  if (gps >= 15000) return "S-Rank";
-  if (gps >= 10000) return "A-Rank";
-  if (gps >= 5000)  return "B-Rank";
-  if (gps >= 1000)  return "C-Rank";
-  if (gps >= 200)   return "D-Rank";
+  if (gps >= 300000) return "S-Rank";
+  if (gps >= 150000) return "A-Rank";
+  if (gps >= 70000)  return "B-Rank";
+  if (gps >= 30000)  return "C-Rank";
+  if (gps >= 10000)  return "D-Rank";
   return "E-Rank";
 }
 
-const GUILD_NAME_SUGGESTIONS = ["Iron Wolves", "Pixel Raiders", "Shadow Syndicate"];
+/** Server-computed tier (single source of truth from live GPS config) with local fallback. */
+function tierOf(g: GuildDiscovery): string {
+  return g.rankTier ?? gpsTier(g.guildPerformanceScore);
+}
+
+/** Black label chip — same as the landing page's FOR EARNERS / label chips. */
+function BlackChip({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span className={cn("inline-flex items-center bg-black text-white px-3 py-1.5 rounded-sm font-black uppercase tracking-[0.2em] text-[9px] md:text-[10px]", className)}>
+      {children}
+    </span>
+  );
+}
+
+/** Landing CTA button style — exact `bg-primary border-2 border-black hover:bg-black`. */
+const CTA_CLASS = "bg-primary text-white border-2 border-black rounded-lg hover:bg-black transition-all duration-300 transform hover:scale-[1.02] font-black uppercase tracking-wider";
+
+/** Outline button — bordered, inverts to black on hover. */
+const OUTLINE_CLASS = "bg-white text-black border-2 border-black rounded-lg hover:bg-black hover:text-white transition-all duration-300 font-black uppercase tracking-wider";
+
+const GUILD_NAME_SUGGESTIONS = ["Iron Wolves", "Pixel Raiders", "Shadow Syndicate", "Aurora Vanguard"];
 const GUILD_DESCRIPTION_SUGGESTIONS = ["A focused team that builds together", "Competitive players, one shared goal", "A crew for consistent weekly wins"];
 const GUILD_REASON_SUGGESTIONS = ["Share your vision for the team...", "Tell us how you will lead your members...", "Explain what makes your guild different..."];
+const COVER_LETTER_SUGGESTIONS = [
+  "I'm active daily and ready to help the guild hit its weekly target...",
+  "Reliable, consistent and focused on helping the team win...",
+  "I bring discipline, availability and a winning mentality...",
+];
 
-function AnimatedFieldPlaceholder({ examples }: { examples: string[] }) {
+/** Animated placeholder — same behavior as the auth page's AnimatedPlaceholder
+ *  (auth.tsx): types at 100ms/char, holds 1000ms, deletes at 50ms/char,
+ *  pulsing caret. Inputs get live text suggestions exactly like auth fields. */
+function AnimatedPlaceholder({ examples, className = "text-muted-foreground" }: { examples: string[]; className?: string }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentText, setCurrentText] = useState("");
   const [isTyping, setIsTyping] = useState(true);
@@ -77,28 +114,36 @@ function AnimatedFieldPlaceholder({ examples }: { examples: string[] }) {
       if (currentText.length < example.length) {
         timeout = setTimeout(() => {
           setCurrentText(example.slice(0, currentText.length + 1));
-        }, 55);
+        }, 100);
       } else {
-        timeout = setTimeout(() => setIsTyping(false), 1200);
+        timeout = setTimeout(() => setIsTyping(false), 1000);
       }
-    } else if (currentText.length > 0) {
-      timeout = setTimeout(() => setCurrentText(currentText.slice(0, -1)), 28);
     } else {
-      setCurrentIndex(prev => (prev + 1) % examples.length);
-      setIsTyping(true);
+      if (currentText.length > 0) {
+        timeout = setTimeout(() => {
+          setCurrentText(currentText.slice(0, -1));
+        }, 50);
+      } else {
+        setCurrentIndex(prev => (prev + 1) % examples.length);
+        setIsTyping(true);
+      }
     }
 
     return () => clearTimeout(timeout);
   }, [currentText, currentIndex, examples, isTyping]);
 
-  return <span>{currentText}<span className="animate-pulse text-primary">|</span></span>;
+  return (
+    <span className={className}>
+      {currentText}<span className="animate-pulse">|</span>
+    </span>
+  );
 }
 
 export function GuildDiscoveryPanel() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
+  const [search, setGiMagnifyingGlass] = useState("");
   const [rankFilter, setRankFilter] = useState("All");
   const [recruitingOnly, setRecruitingOnly] = useState(false);
   const [warOnly, setWarOnly] = useState(false);
@@ -120,6 +165,20 @@ export function GuildDiscoveryPanel() {
     },
   });
 
+  // Applied-state persistence: seed from the server so a reload (or a pending
+  // application) keeps the "Applied" label instead of reverting to "Apply Now".
+  const { data: myApplication } = useQuery<{ application: { guildId: string } | null }>({
+    queryKey: ["/api/guilds/my-application"],
+    queryFn: async () => {
+      const r = await apiRequest("GET", "/api/guilds/my-application");
+      return r.json();
+    },
+  });
+  useEffect(() => {
+    const guildId = myApplication?.application?.guildId;
+    if (guildId) setAppliedIds(prev => new Set(prev).add(guildId));
+  }, [myApplication]);
+
   const creationRequestMutation = useMutation({
     mutationFn: async (data: typeof creationForm) => {
       const r = await apiRequest("POST", "/api/guilds/creation-request", data);
@@ -140,7 +199,7 @@ export function GuildDiscoveryPanel() {
   // rank floor here either, admin approval is the only gate.
   const pendingRequest = myRequest?.request;
 
-  // Detail view — guild info + members (fetched on demand)
+  // Detail modal — guild info + members (fetched on demand)
   const { data: guildDetail } = useQuery<any>({
     queryKey: ["guild", "detail", viewingGuild?.id],
     queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/${viewingGuild!.id}`); return r.json(); },
@@ -152,8 +211,8 @@ export function GuildDiscoveryPanel() {
     enabled: !!viewingGuild,
   });
   const { data: guildWars = [] } = useQuery<any[]>({
-    queryKey: ["guild", "wars", viewingGuild?.id],
-    queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/${viewingGuild!.id}/war`); const d = await r.json(); return d.wars ?? d ?? []; },
+    queryKey: ["guild", "wars", "history", viewingGuild?.id],
+    queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/${viewingGuild!.id}/war/history`); const d = await r.json(); return d.wars ?? []; },
     enabled: !!viewingGuild,
   });
 
@@ -177,6 +236,7 @@ export function GuildDiscoveryPanel() {
       setCoverLetter("");
       toast({ title: "Application Sent", description: "The captain will review your application soon." });
       queryClient.invalidateQueries({ queryKey: ["/api/guilds/discovery"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds/my-application"] });
     },
     onError: (err: any) => {
       const msg = err?.message || "Failed to submit application.";
@@ -185,11 +245,14 @@ export function GuildDiscoveryPanel() {
   });
 
   const userTierIdx = RANK_ORDER.indexOf(user?.userRankTier || "E-Rank");
+  // Guild members (e.g. via a portal's Discover tab) cannot apply to another
+  // guild — the backend enforces this too, so surface it in the UI up front.
+  const alreadyInGuild = !!user?.guildId;
 
   const filtered = guilds
     .filter(g => {
       if (search && !g.name.toLowerCase().includes(search.toLowerCase())) return false;
-      if (rankFilter !== "All" && gpsTier(g.guildPerformanceScore) !== rankFilter) return false;
+      if (rankFilter !== "All" && tierOf(g) !== rankFilter) return false;
       if (recruitingOnly && !g.recruitmentOpen) return false;
       if (warOnly && !g.inActiveWar) return false;
       return true;
@@ -207,7 +270,7 @@ export function GuildDiscoveryPanel() {
   // Recruitment being open (and meeting the rank floor) is the only gate.
   const canApply = (guild: GuildDiscovery) => {
     const minIdx = RANK_ORDER.indexOf(guild.minRankRequired || "E-Rank");
-    return userTierIdx >= minIdx && guild.recruitmentOpen;
+    return !alreadyInGuild && userTierIdx >= minIdx && guild.recruitmentOpen;
   };
 
   const handleApply = (guild: GuildDiscovery) => {
@@ -225,257 +288,49 @@ export function GuildDiscoveryPanel() {
     applyMutation.mutate({ guildId: applyingTo.id, letter: coverLetter.trim() });
   };
 
-  /* ── Guild Detail View ──────────────────────────────────────────── */
-  if (viewingGuild) {
-    const detail = guildDetail?.guild ?? viewingGuild;
-    const accentColor = RANK_COLORS[gpsTier(viewingGuild.guildPerformanceScore)] ?? "#71717a";
-    const applied = appliedIds.has(viewingGuild.id);
-    const canApplyToViewing = canApply(viewingGuild);
-
-    return (
-      <div className="space-y-4 md:space-y-5">
-        {/* Back */}
-        <button
-          onClick={() => setViewingGuild(null)}
-          className="flex items-center gap-1.5 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors min-h-[40px]"
-          data-testid="button-back-to-guilds"
-        >
-          <ArrowLeft size={14} /> Back to guilds
-        </button>
-
-        {/* Guild Hero */}
-        <PremiumCard className="space-y-4">
-          <div className="flex items-start gap-4">
-            {/* Avatar */}
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-black text-2xl shrink-0 overflow-hidden border-2 border-black/15"
-              style={{ backgroundColor: accentColor }}
-            >
-              {viewingGuild.avatarUrl
-                ? <img src={viewingGuild.avatarUrl} alt={viewingGuild.name} className="w-full h-full object-cover" />
-                : viewingGuild.name[0].toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="font-black text-xl md:text-2xl tracking-tight" data-testid="text-guild-detail-name">{viewingGuild.name}</h2>
-                <RankBadge rank={gpsTier(viewingGuild.guildPerformanceScore)} size="sm" />
-                {viewingGuild.inActiveWar && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-black text-destructive uppercase tracking-wider bg-destructive/10 border border-destructive/20 rounded-full px-2 py-0.5">
-                    <Swords size={10} /> Active War
-                  </span>
-                )}
-              </div>
-              {viewingGuild.description && <p className="text-sm text-muted-foreground mt-1">{viewingGuild.description}</p>}
-            </div>
-          </div>
-
-          {/* Stats grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t-2 border-black/10">
-            <div>
-              <TechnicalLabel text="GPS SCORE" className="text-muted-foreground text-[9px] mb-1" />
-              <div className="font-black text-lg tracking-tighter tabular-nums">{viewingGuild.guildPerformanceScore.toLocaleString()}</div>
-            </div>
-            <div>
-              <TechnicalLabel text="MEMBERS" className="text-muted-foreground text-[9px] mb-1" />
-              <div className="font-black text-lg tracking-tighter">{viewingGuild.memberCount}</div>
-            </div>
-            <div>
-              <TechnicalLabel text="MIN RANK" className="text-muted-foreground text-[9px] mb-1" />
-              <div className="mt-0.5">
-                <RankBadge rank={viewingGuild.minRankRequired} size="sm" />
-              </div>
-            </div>
-            <div>
-              <TechnicalLabel text="SUCCESS WEEKS" className="text-muted-foreground text-[9px] mb-1" />
-              <div className="font-black text-lg tracking-tighter flex items-center gap-1">
-                {(viewingGuild.successfulWeeks ?? 0) > 0 && <Star size={13} className="text-primary fill-primary shrink-0" />}
-                {viewingGuild.successfulWeeks ?? 0}
-              </div>
-            </div>
-          </div>
-
-          {/* Weekly progress */}
-          {viewingGuild.weeklyTarget > 0 && (
-            <div className="pt-4 border-t-2 border-black/10 space-y-1.5">
-              <div className="flex justify-between items-center">
-                <TechnicalLabel text="WEEKLY TARGET" className="text-muted-foreground text-[9px]" />
-                <span className="text-xs font-bold tabular-nums text-muted-foreground">
-                  {viewingGuild.currentWeeklyPoints.toLocaleString()} / {viewingGuild.weeklyTarget.toLocaleString()} pts
-                </span>
-              </div>
-              <Progress value={Math.min(100, (viewingGuild.currentWeeklyPoints / viewingGuild.weeklyTarget) * 100)} className="h-2.5 border border-black/15" />
-            </div>
-          )}
-
-          {/* Apply CTA */}
-          <div className="pt-4 border-t-2 border-black/10">
-            {applied ? (
-              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border-2 border-emerald-200 rounded-lg px-3 py-2">
-                <CheckCircle2 size={13} /> Application Sent
-              </div>
-            ) : !viewingGuild.recruitmentOpen ? (
-              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground bg-muted/50 border-2 border-black/10 rounded-lg px-3 py-2">
-                <XCircle size={13} /> Recruitment Closed
-              </div>
-            ) : !canApplyToViewing ? (
-              <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
-                <Lock size={12} />
-                <span>Need <RankBadge rank={viewingGuild.minRankRequired} size="sm" /> to apply</span>
-              </div>
-            ) : (
-              <Button
-                onClick={() => { setApplyingTo(viewingGuild); setCoverLetter(""); }}
-                data-testid="button-apply-to-join"
-              >
-                Apply to Join <ChevronRight size={14} />
-              </Button>
-            )}
-          </div>
-        </PremiumCard>
-
-        {/* Members List */}
-        <PremiumCard interactive={false}>
-          <TechnicalLabel text={`GUILD ROSTER — ${viewingGuild.memberCount}`} className="text-muted-foreground text-[10px] mb-3" />
-          {guildMembersLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
-            </div>
-          ) : guildMembers.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-2">No members data available.</p>
-          ) : (
-            <div className="space-y-1 max-h-64 overflow-y-auto">
-              {guildMembers.map((m: any) => (
-                <div key={m.userId} className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-black/[0.03] transition-colors min-h-[44px]">
-                  <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-black shrink-0">
-                    {(m.firstName || m.identity || "M")[0].toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold truncate">{m.firstName || m.identity || "Member"}</span>
-                      {m.userId === detail?.captainId && (
-                        <span className="p-1 bg-primary/10 border border-primary/20 rounded-md">
-                          <Crown size={10} className="text-primary" />
-                        </span>
-                      )}
-                    </div>
-                    {m.userRankTier && <RankBadge rank={m.userRankTier} size="sm" className="mt-0.5" />}
-                  </div>
-                  <div className="text-xs text-muted-foreground font-bold tabular-nums shrink-0">{(m.weeklyPointsContributed ?? 0).toLocaleString()} pts</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </PremiumCard>
-
-        {/* War History */}
-        {guildWars.length > 0 && (
-          <PremiumCard interactive={false}>
-            <TechnicalLabel text="BATTLE HISTORY" className="text-muted-foreground text-[10px] mb-3" />
-            <div className="space-y-2.5">
-              {guildWars.slice(0, 5).map((w: any) => {
-                const won = w.winnerId === viewingGuild.id;
-                const isActive = w.status === "active";
-                return (
-                  <div key={w.id} className="flex items-center gap-3 text-xs min-h-[36px]">
-                    <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", isActive ? "bg-primary animate-pulse" : won ? "bg-emerald-500" : "bg-destructive/60")} />
-                    <span className="flex-1 font-bold text-foreground">
-                      {isActive ? "Active War" : won ? "Victory" : "Defeat"}
-                    </span>
-                    {w.completedAt && (
-                      <span className="text-muted-foreground">{formatDistanceToNow(new Date(w.completedAt), { addSuffix: true })}</span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </PremiumCard>
-        )}
-
-        {/* Application Modal (shared) */}
-        {applyingTo && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-            <div className="bg-white rounded-2xl border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-md p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black shrink-0"
-                    style={{ backgroundColor: RANK_COLORS[gpsTier(applyingTo.guildPerformanceScore)] ?? "#71717a" }}
-                  >
-                    {applyingTo.name[0]}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-black truncate">{applyingTo.name}</div>
-                    <div className="text-xs text-muted-foreground">{applyingTo.memberCount} members</div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setApplyingTo(null)}
-                  className="w-8 h-8 rounded-xl border-2 border-black/15 hover:border-black flex items-center justify-center text-muted-foreground hover:text-foreground transition-all duration-150 shrink-0"
-                >
-                  <X size={13} />
-                </button>
-              </div>
-
-              <div className="space-y-2">
-                <TechnicalLabel text="APPLICATION LETTER" className="text-muted-foreground text-[9px]" />
-                <Textarea
-                  value={coverLetter} onChange={e => setCoverLetter(e.target.value)} rows={5} maxLength={500}
-                  placeholder="Tell the Captain what you'll contribute and why you'd be a great team member."
-                  className="resize-none border-2 border-black/20 rounded-xl focus-visible:ring-0 focus-visible:border-primary"
-                  data-testid="input-cover-letter"
-                />
-                <div className={cn("text-[11px] text-right font-bold", coverLetter.length < 50 ? "text-destructive" : "text-muted-foreground")}>
-                  {coverLetter.length}/500 {coverLetter.length < 50 ? `(min 50, need ${50 - coverLetter.length} more)` : ""}
-                </div>
-              </div>
-              <div className="flex gap-2.5">
-                <Button variant="outline" className="flex-1" onClick={() => setApplyingTo(null)} data-testid="button-cancel-application">Cancel</Button>
-                <Button
-                  className="flex-1"
-                  disabled={coverLetter.trim().length < 50 || applyMutation.isPending}
-                  onClick={submitApplication}
-                  data-testid="button-submit-application"
-                >
-                  {applyMutation.isPending ? <><Loader2 size={14} className="animate-spin" /> Sending…</> : "Submit Application"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
+  // Esc closes whichever modal is open (application → creation → details)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (applyingTo) setApplyingTo(null);
+      else if (showCreationForm) setShowCreationForm(false);
+      else if (viewingGuild) setViewingGuild(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [applyingTo, showCreationForm, viewingGuild]);
 
   return (
-    <div className="space-y-5 md:space-y-6">
-      {/* Filters */}
-      <PremiumCard interactive={false} className="space-y-3 p-4 md:p-5">
-        {/* Row 1: Search + Sort */}
-        <div className="flex gap-2">
+    <div className="space-y-6 md:space-y-8">
+      {/* ═══ Toolbar plate — nav-plate signature `border-2 md:border-[3px] border-black` ═══ */}
+      <div className="bg-white rounded-2xl border-2 md:border-[3px] border-black p-4 md:p-6 space-y-4">
+        {/* Row 1: GiMagnifyingGlass + Sort */}
+        <div className="flex gap-2.5">
           <div className="relative flex-1">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <GiMagnifyingGlass size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-black/40 pointer-events-none" />
             <Input
               placeholder="Search guilds…"
-              className="pl-9 pr-8 h-10 border-2 border-black/20 rounded-xl text-sm font-medium focus-visible:border-primary focus-visible:ring-0 transition-colors placeholder:text-muted-foreground/60 bg-background"
+              className="pl-11 pr-10 h-12 border-2 border-black/15 rounded-lg text-sm font-medium focus-visible:border-primary focus-visible:ring-0 hover:border-black/40 transition-colors placeholder:text-black/40 bg-white"
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => setGiMagnifyingGlass(e.target.value)}
               data-testid="input-guild-search"
             />
             {search && (
               <button
-                onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md bg-black/10 hover:bg-black/20 flex items-center justify-center transition-colors"
+                onClick={() => setGiMagnifyingGlass("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-md bg-black/10 hover:bg-black/20 flex items-center justify-center transition-colors"
+                aria-label="Clear search"
               >
-                <X size={11} />
+                <GiCrossedAxes size={12} />
               </button>
             )}
           </div>
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
             <SelectTrigger
-              className="h-10 w-auto gap-2 px-3 border-2 border-black/20 rounded-xl text-[11px] font-black uppercase tracking-wider shrink-0 focus:ring-0 focus:border-primary hover:border-black transition-colors bg-background"
+              className="h-12 w-auto gap-2 px-4 border-2 border-black/15 rounded-lg text-[10px] font-black uppercase tracking-wider shrink-0 focus:ring-0 focus:border-primary hover:border-black transition-colors bg-white"
               data-testid="select-sort-by"
             >
-              <SlidersHorizontal size={12} />
+              <GiCog size={14} />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -486,14 +341,13 @@ export function GuildDiscoveryPanel() {
           </Select>
         </div>
 
-        {/* Divider */}
-        <div className="h-px bg-black/10" />
+        {/* Hairline divider — landing 3px black/10 */}
+        <div className="h-[3px] bg-black/10" />
 
         {/* Row 2: Rank chips + Toggle filters */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
-          {/* Rank chips — scrollable on mobile */}
-          <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-1 pb-0.5">
-            <TechnicalLabel text="RANK" className="text-muted-foreground text-[9px] mr-1 shrink-0" />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide flex-1 pb-0.5">
+            <TechnicalLabel text="RANK" className="text-black/40 text-[9px] mr-1 shrink-0" />
             {["All", ...RANK_ORDER].map(r => {
               const active = rankFilter === r;
               return (
@@ -502,10 +356,10 @@ export function GuildDiscoveryPanel() {
                   onClick={() => setRankFilter(r)}
                   data-testid={r === "All" ? "chip-rank-all" : `chip-rank-${r}`}
                   className={cn(
-                    "h-8 px-2.5 rounded-lg text-[10px] font-black uppercase tracking-wider border-2 transition-all duration-150 shrink-0 min-w-[40px]",
+                    "h-10 px-3.5 rounded-sm text-[10px] font-black uppercase tracking-wider border-2 transition-all duration-150 shrink-0 min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                     active
-                      ? "border-black bg-black text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)]"
-                      : "border-black/20 text-muted-foreground hover:border-black hover:text-foreground bg-transparent"
+                      ? "border-black bg-black text-white"
+                      : "border-black/15 text-black/55 hover:border-black hover:text-black bg-white"
                   )}
                 >
                   {r === "All" ? "All" : r.replace("-Rank", "")}
@@ -514,268 +368,234 @@ export function GuildDiscoveryPanel() {
             })}
           </div>
 
-          {/* Vertical divider — desktop only */}
-          <div className="w-px h-7 bg-black/15 hidden sm:block shrink-0" />
+          <div className="w-[3px] h-8 bg-black/10 hidden sm:block shrink-0" />
 
-          {/* Toggle filters */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {[
-              { id: "recruiting", active: recruitingOnly, set: () => setRecruitingOnly(v => !v), icon: CheckCircle2, label: "Recruiting", testId: "chip-recruiting" },
-              { id: "war",        active: warOnly,        set: () => setWarOnly(v => !v),         icon: Swords,       label: "In War",     testId: "chip-war" },
+              { id: "recruiting", active: recruitingOnly, set: () => setRecruitingOnly(v => !v), icon: GiShield, label: "Recruiting", testId: "chip-recruiting" },
+              { id: "war",        active: warOnly,        set: () => setWarOnly(v => !v),         icon: GiCrossedSwords,       label: "In War",     testId: "chip-war" },
             ].map(({ id, active, set, icon: Icon, label, testId }) => (
               <button
                 key={id}
                 onClick={set}
                 data-testid={testId}
                 className={cn(
-                  "h-8 px-2.5 rounded-lg text-[10px] font-black uppercase tracking-wider border-2 flex items-center gap-1.5 transition-all duration-150 min-w-[40px]",
+                  "h-10 px-3.5 rounded-sm text-[10px] font-black uppercase tracking-wider border-2 flex items-center gap-1.5 transition-all duration-150 min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   active
-                    ? "bg-primary border-primary text-primary-foreground shadow-[2px_2px_0px_0px_rgba(0,0,0,0.25)]"
-                    : "border-black/20 text-muted-foreground hover:border-black hover:text-foreground bg-transparent"
+                    ? "border-black bg-primary text-white"
+                    : "border-black/15 text-black/55 hover:border-black hover:text-black bg-white"
                 )}
               >
-                <Icon size={10} />
+                <Icon size={11} />
                 {label}
               </button>
             ))}
             {activeFilterCount > 0 && (
               <button
                 onClick={() => { setRankFilter("All"); setRecruitingOnly(false); setWarOnly(false); }}
-                className="h-8 px-2.5 rounded-lg text-[10px] font-black uppercase tracking-wider border-2 border-black/20 text-muted-foreground hover:border-black hover:text-foreground flex items-center gap-1 transition-all duration-150"
+                className="h-10 px-3.5 rounded-sm text-[10px] font-black uppercase tracking-wider border-2 border-black/15 text-black/55 hover:border-black hover:text-black flex items-center gap-1 transition-all duration-150 bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
-                <X size={10} /> Reset
+                <GiCrossedAxes size={11} /> Reset
               </button>
             )}
           </div>
         </div>
 
-        {/* Results count */}
         {(search || activeFilterCount > 0) && (
-          <div className="pt-1 border-t border-black/10">
-            <TechnicalLabel
-              text={`${filtered.length} GUILD${filtered.length !== 1 ? "S" : ""} FOUND`}
-              className="text-muted-foreground text-[9px]"
-            />
+          <div className="pt-1 border-t-[3px] border-black/10">
+            <TechnicalLabel text={`${filtered.length} GUILD${filtered.length !== 1 ? "S" : ""} FOUND`} className="text-black/45 text-[9px]" />
           </div>
         )}
-      </PremiumCard>
+      </div>
 
-      {/* Guild Grid */}
+      {/* ═══ States & Grid ═══ */}
       {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-3 bg-[#050505] border-2 border-black rounded-xl p-2.5 md:p-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-[#101010] rounded-[10px] border border-white/15 overflow-hidden">
-              <Skeleton className="aspect-square w-full rounded-none bg-white/10" />
-              <div className="p-2 space-y-2">
-                <Skeleton className="h-3 w-2/3 rounded bg-white/10" />
-                <Skeleton className="h-2 w-full rounded bg-white/10" />
-                <div className="grid grid-cols-2 gap-1.5 py-2 border-y border-white/10">
-                  <Skeleton className="h-6 w-full rounded bg-white/10" />
-                  <Skeleton className="h-6 w-full rounded bg-white/10" />
-                  <Skeleton className="h-6 w-full rounded bg-white/10" />
-                  <Skeleton className="h-6 w-full rounded bg-white/10" />
+            <div key={i} className="bg-white rounded-2xl border-2 border-black/10 overflow-hidden">
+              <Skeleton className="aspect-[4/3] sm:aspect-square w-full rounded-none bg-[#EAE5DD]" />
+              <div className="p-4 md:p-5 space-y-3">
+                <Skeleton className="h-5 w-2/3 rounded bg-black/15" />
+                <Skeleton className="h-3 w-3/4 rounded bg-black/10" />
+                <div className="pt-3 border-t-[3px] border-black/10 space-y-3">
+                  <Skeleton className="h-6 w-20 rounded bg-black/10" />
+                  <Skeleton className="h-1 w-full rounded bg-black/10" />
                 </div>
-                <Skeleton className="h-6 w-full rounded bg-white/10" />
+                <Skeleton className="h-11 w-full rounded-lg bg-black/10" />
               </div>
             </div>
           ))}
         </div>
       ) : isError ? (
-        <PremiumCard interactive={false} className="py-10 text-center">
-          <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl w-fit mx-auto mb-4">
-            <Shield className="w-7 h-7 text-muted-foreground" />
-          </div>
-          <TechnicalLabel text="FAILED TO LOAD GUILDS" className="text-muted-foreground text-xs mb-2" />
-          <p className="text-sm text-muted-foreground mb-4">Could not fetch the guild directory.</p>
-          <button
-            onClick={() => refetch()}
-            className="text-destructive text-sm font-bold uppercase tracking-wider hover:underline"
-          >
-            Retry
-          </button>
-        </PremiumCard>
+        <div className="bg-white rounded-2xl border-2 md:border-[3px] border-black p-10 md:p-14 text-center">
+          <div className="w-fit mx-auto mb-5"><GiShield className="w-7 h-7 text-black/40" /></div>
+          <TechnicalLabel text="FAILED TO LOAD GUILDS" className="text-black/45 text-xs mb-2" />
+          <p className="text-sm text-black/50 mb-5">Could not fetch the guild directory.</p>
+          <button onClick={() => refetch()} className="text-destructive text-sm font-black uppercase tracking-wider hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded">Retry</button>
+        </div>
       ) : guilds.length === 0 ? (
-        <PremiumCard interactive={false} className="py-12 md:py-16 text-center">
-          <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl w-fit mx-auto mb-4">
-            <Shield className="w-8 h-8 text-primary" />
-          </div>
-          <TechnicalLabel text="NO GUILDS YET" className="text-muted-foreground text-xs mb-2" />
-          <p className="text-sm text-muted-foreground mb-6">Be the first to found a guild on THORX.</p>
-          {!pendingRequest && (
+        <div className="bg-white rounded-2xl border-2 md:border-[3px] border-black p-10 md:p-16 text-center">
+          <div className="w-fit mx-auto mb-5"><GiShield className="w-8 h-8 text-primary" /></div>
+          <TechnicalLabel text="NO GUILDS YET" className="text-black/45 text-xs mb-2" />
+          <p className="text-sm text-black/50 mb-6">Be the first to found a guild on THORX.</p>
+          {!pendingRequest && !alreadyInGuild && (
             <Button
               onClick={() => setShowCreationForm(true)}
               data-testid="button-request-guild-creation-empty"
+              className={cn("h-12 px-7", CTA_CLASS, "text-[11px]")}
             >
-              <PlusCircle size={14} /> Request Guild Creation
+              <GiCrossedSwords size={14} /> Request Guild Creation
             </Button>
           )}
           {pendingRequest && (
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 border-2 border-amber-200 rounded-lg px-3 py-2">
-              <Hourglass size={12} /> Your guild creation request is pending admin review.
+            <div className="inline-flex items-center gap-2 text-xs font-black text-amber-700">
+              <GiHourglass size={13} /> Your guild creation request is pending admin review.
             </div>
           )}
-        </PremiumCard>
+        </div>
       ) : filtered.length === 0 ? (
-        <PremiumCard interactive={false} className="py-10 md:py-12 text-center">
-          <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl w-fit mx-auto mb-4">
-            <Search className="w-7 h-7 text-muted-foreground" />
-          </div>
-          <TechnicalLabel text="NO MATCHES" className="text-muted-foreground text-xs mb-2" />
-          <p className="text-sm text-muted-foreground">No guilds match your current filters.</p>
-        </PremiumCard>
+        <div className="bg-white rounded-2xl border-2 md:border-[3px] border-black p-10 md:p-12 text-center">
+          <div className="w-fit mx-auto mb-5"><GiMagnifyingGlass className="w-7 h-7 text-black/40" /></div>
+          <TechnicalLabel text="NO MATCHES" className="text-black/45 text-xs mb-2" />
+          <p className="text-sm text-black/50 mb-6">No guilds match your current filters.</p>
+          <button
+            onClick={() => { setGiMagnifyingGlass(""); setRankFilter("All"); setRecruitingOnly(false); setWarOnly(false); }}
+            className="inline-flex items-center gap-1.5 h-10 px-5 rounded-sm text-[10px] font-black uppercase tracking-wider border-2 border-black/15 text-black/55 hover:border-black hover:text-black transition-all duration-150 bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            <GiCrossedAxes size={11} /> Clear Filters
+          </button>
+        </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-3 bg-[#050505] border-2 border-black rounded-xl p-2.5 md:p-3">
-          {filtered.map((guild, idx) => {
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+          {filtered.map((guild) => {
             const minIdx = RANK_ORDER.indexOf(guild.minRankRequired || "E-Rank");
-            // Phase 3 redesign: dev preview mode never shows this as blocked so
-            // the Apply flow stays clickable for visual/functional review — the
-            // backend still independently enforces real rank eligibility.
             const rankBlocked = !DEV_UNLOCK_RANK_GATES && userTierIdx < minIdx;
             const applied = appliedIds.has(guild.id);
+            const inGuild = alreadyInGuild && !applied;
+            const tier = tierOf(guild);
+            const weeklyPct = guild.weeklyTarget > 0 ? Math.round(Math.min(100, (guild.currentWeeklyPoints / guild.weeklyTarget) * 100)) : 0;
+            const canJoin = canApply(guild);
+            const applyDisabled = applied || inGuild || rankBlocked || !guild.recruitmentOpen;
             return (
-              <div
+              <article
                 key={guild.id}
                 onClick={() => setViewingGuild(guild)}
                 data-testid={`card-guild-${guild.id}`}
-                className="group relative bg-[#111111] rounded-[10px] border border-white/15 overflow-hidden cursor-pointer flex flex-col transition-all duration-200 ease-out hover:-translate-y-1 hover:border-primary hover:shadow-[3px_3px_0px_0px_rgba(255,107,61,0.85)]"
+                className="group bg-white rounded-2xl border-2 border-black/10 cursor-pointer flex flex-col overflow-hidden transition-all duration-200 hover:border-black"
               >
-                {/* Compact square media block from the reference catalog layout. */}
-                <div
-                  className="relative aspect-square flex items-center justify-center shrink-0 overflow-hidden bg-[#252525]"
-                >
-                  {guild.avatarUrl ? (
-                    <img src={guild.avatarUrl} alt={guild.name} className="w-full h-full object-cover grayscale-[0.2] contrast-[1.05]" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-white/[0.06]">
-                      <span className="text-4xl md:text-5xl font-black text-primary select-none">{guild.name[0].toUpperCase()}</span>
-                    </div>
+                {/* Media — ivory like the landing value-proposition section */}
+                <div className="relative aspect-[4/3] sm:aspect-square bg-[#EAE5DD] overflow-hidden">
+                  {/* Letter monogram sits underneath as a graceful fallback */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-7xl md:text-8xl font-black text-black/[0.08] select-none leading-none">{guild.name[0].toUpperCase()}</span>
+                  </div>
+                  {guild.avatarUrl && (
+                    <img
+                      src={guild.avatarUrl}
+                      alt={guild.name}
+                      loading="lazy"
+                      onError={(e) => { e.currentTarget.style.display = "none"; }}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                    />
                   )}
-                  <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-black/70 to-transparent pointer-events-none" />
-                  <span className="absolute top-1.5 left-1.5 text-[8px] font-black text-white/85 tracking-wider bg-black/70 rounded px-1.5 py-0.5">#{idx + 1}</span>
-                  <span className="absolute top-1.5 left-1/2 -translate-x-1/2 rounded-full bg-primary px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-black shadow-[0_1px_0_rgba(255,255,255,0.45)]">
-                    {gpsTier(guild.guildPerformanceScore).replace("-Rank", "")}
+
+                  {/* Rank chip — black chip top-left (landing label chip) */}
+                  <span className="absolute top-3 left-3 bg-black text-white px-2.5 py-1 rounded-sm font-black uppercase tracking-[0.2em] text-[9px] md:text-[10px]">
+                    {tier.replace("-Rank", "")}-RANK
                   </span>
-                  {guild.inActiveWar && (
-                    <span className="absolute bottom-1.5 left-1.5 inline-flex items-center gap-1 text-[8px] font-black text-black uppercase tracking-wider bg-primary rounded px-1.5 py-0.5">
-                      <Swords size={10} /> War
-                    </span>
-                  )}
                 </div>
 
-                {/* Compact catalog body, matching the pinned image's dense cards. */}
-                <div className="p-2 md:p-2.5 flex flex-col flex-1 gap-1.5 text-white">
-                  {/* Name + description */}
-                  <div>
-                    <h3 className="font-black text-[10px] md:text-xs leading-tight truncate uppercase tracking-tight" data-testid={`text-guild-name-${guild.id}`}>{guild.name}</h3>
-                    <p className="text-[8px] md:text-[9px] text-white/55 mt-0.5 truncate">{guild.description || "No description provided."}</p>
+                {/* Body */}
+                <div className="p-4 md:p-5 flex flex-col flex-1">
+                  <h3 className="font-black text-lg md:text-xl tracking-tight truncate" data-testid={`text-guild-name-${guild.id}`}>
+                    {guild.name}
+                  </h3>
+                  <div className="mt-1.5 flex items-center gap-1.5 text-[9px] md:text-[10px] font-black uppercase tracking-wider text-black/40 min-h-[16px]">
+                    <span className="truncate">THORX · {guild.recruitmentOpen ? "Recruiting" : "Closed"}</span>
+                    <span className="text-primary">·</span>
+                    <span className="shrink-0">{guild.memberCount} MEMBERS</span>
+                    {guild.inActiveWar && (<><span className="text-primary">·</span><span className="text-destructive flex items-center gap-0.5 shrink-0"><GiCrossedSwords size={10} /> War</span></>)}
+                    {!!guild.successfulWeeks && guild.successfulWeeks > 0 && (<><span className="text-primary">·</span><span className="flex items-center gap-0.5 shrink-0"><GiFlame size={10} /> {guild.successfulWeeks}w</span></>)}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-x-2 gap-y-1 border-y border-white/15 py-1.5">
-                    <div>
-                      <span className="block text-[7px] uppercase tracking-wider text-white/45">GPS</span>
-                      <span className="block text-[9px] font-black tabular-nums text-primary truncate">{guild.guildPerformanceScore.toLocaleString()}</span>
+                  {/* Stats — 3px hairline separated */}
+                  <div className="mt-4 pt-4 border-t-[3px] border-black/10 space-y-3 flex-1">
+                    <div className="flex items-end justify-between gap-2">
+                      <TechnicalLabel text="GPS SCORE" className="text-black/40 text-[9px] pb-0.5" />
+                      <span className="font-black text-xl md:text-2xl tabular-nums text-primary tracking-tight leading-none">
+                        {guild.guildPerformanceScore.toLocaleString()}
+                      </span>
                     </div>
-                    <div>
-                      <span className="block text-[7px] uppercase tracking-wider text-white/45">Members</span>
-                      <span className="block text-[9px] font-black">{guild.memberCount}/{guild.memberCapacity}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <TechnicalLabel text="WEEKLY" className="text-black/40 text-[9px]" />
+                      <span className="text-[10px] md:text-xs font-black tabular-nums text-black/70">
+                        {guild.currentWeeklyPoints.toLocaleString()} / {guild.weeklyTarget.toLocaleString()} PS
+                      </span>
                     </div>
-                    <div>
-                      <span className="block text-[7px] uppercase tracking-wider text-white/45">Min rank</span>
-                      <span className="block text-[9px] font-black">{guild.minRankRequired.replace("-Rank", "")}</span>
-                    </div>
-                    <div>
-                      <span className="block text-[7px] uppercase tracking-wider text-white/45">Streak</span>
-                      <span className="block text-[9px] font-black">{guild.successfulWeeks ?? 0}w</span>
-                    </div>
+                    <Progress value={weeklyPct} className="h-1 bg-black/10 [&>div]:bg-primary" />
                   </div>
 
-                  {/* Weekly progress */}
-                  {guild.weeklyTarget > 0 && (
-                    <div className="space-y-0.5">
-                      <div className="flex justify-between text-[7px] text-white/55">
-                        <span>This week</span>
-                        <span className="font-bold tabular-nums">{guild.currentWeeklyPoints.toLocaleString()}/{guild.weeklyTarget.toLocaleString()}</span>
-                      </div>
-                      <Progress value={Math.min(100, (guild.currentWeeklyPoints / guild.weeklyTarget) * 100)} className="h-0.5 bg-white/15 [&>div]:bg-primary" />
-                    </div>
-                  )}
-
-                  {/* Footer: recruitment status + action */}
-                  <div className="flex items-center justify-between gap-1.5 mt-auto pt-0.5">
-                    <span className={cn("text-[8px] font-black truncate uppercase", guild.recruitmentOpen ? "text-primary" : "text-white/45")}>
-                      {guild.recruitmentOpen ? "Recruiting" : "Closed"}
-                    </span>
-                    {applied ? (
-                      <div className="inline-flex items-center gap-1 text-[8px] font-black text-primary bg-primary/15 border border-primary/30 rounded px-1.5 py-0.5">
-                        <CheckCircle2 size={10} /> Applied
-                      </div>
-                    ) : rankBlocked ? (
-                      <div className="flex items-center gap-1 text-[9px] font-bold text-white/60">
-                        <Lock size={11} />
-                        <span>{guild.minRankRequired.replace("-Rank", "")}</span>
-                      </div>
-                    ) : !guild.recruitmentOpen ? (
-                      <span className="text-[9px] font-bold text-white/60">Closed</span>
-                    ) : (
-                      <Button
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); handleApply(guild); }}
-                        className="h-6 px-2 text-[8px] font-black uppercase tracking-wider bg-primary text-black hover:bg-white hover:text-black"
-                        data-testid={`button-apply-guild-${guild.id}`}
-                      >
-                        Apply <ChevronRight size={12} />
-                      </Button>
+                  {/* Apply — landing CTA */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); if (canJoin && !applied) handleApply(guild); }}
+                    disabled={applyDisabled}
+                    data-testid={`button-apply-guild-${guild.id}`}
+                    className={cn(
+                      "mt-4 w-full h-11 rounded-lg border-2 text-[10px] md:text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                      applied
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                        : inGuild || rankBlocked || !guild.recruitmentOpen
+                          ? "bg-[#EAE5DD] text-black/45 border-black/15"
+                          : "bg-primary text-white border-black hover:bg-black hover:scale-[1.02]"
                     )}
-                  </div>
+                  >
+                    {applied ? <><GiRoundShield size={11} /> Applied</> : inGuild ? <><GiShield size={11} /> In a Guild</> : rankBlocked ? <><GiPadlock size={11} /> Unlock {guild.minRankRequired.replace("-Rank", "")}</> : !guild.recruitmentOpen ? <><GiSkullCrossedBones size={11} /> Closed</> : <>Apply Now <GiArrowhead size={12} /></>}
+                  </button>
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>
       )}
 
-      {/* Guild Creation Request CTA — open to any rank, admin-approved */}
-      {!pendingRequest && guilds.length > 0 && (
-        <PremiumCard className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg shrink-0 w-fit">
-            <PlusCircle size={18} className="text-primary" />
-          </div>
+      {/* Guild Creation Request CTA */}
+      {!pendingRequest && !alreadyInGuild && guilds.length > 0 && (
+        <div className="bg-white rounded-2xl border-2 md:border-[3px] border-black p-5 md:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-black">Want to start your own guild?</div>
-            <div className="text-xs text-muted-foreground mt-0.5">Any rank can request admin approval to create a new guild.</div>
+            <div className="text-base md:text-lg font-black uppercase tracking-tight">Want to start your own guild?</div>
+            <div className="text-xs md:text-sm text-black/50 mt-1.5">Any rank can request admin approval to create a new guild.</div>
           </div>
           <Button
             size="sm"
             variant="outline"
             onClick={() => setShowCreationForm(true)}
-            className="shrink-0 w-full sm:w-auto"
+            className={cn("shrink-0 w-full sm:w-auto h-11 px-6", OUTLINE_CLASS, "text-[10px]")}
             data-testid="button-request-guild-creation"
           >
             Request Creation
           </Button>
-        </PremiumCard>
+        </div>
       )}
 
       {/* Pending request status */}
       {pendingRequest && (
-        <PremiumCard
-          interactive={false}
+        <div
           className={cn(
-            "flex items-start gap-3",
-            pendingRequest.status === "pending" ? "border-amber-300 bg-amber-50" :
-            pendingRequest.status === "approved" ? "border-emerald-300 bg-emerald-50" :
-            "border-destructive/30 bg-destructive/5"
+            "bg-white rounded-2xl border-2 md:border-[3px] p-5 flex items-start gap-3",
+            pendingRequest.status === "pending" ? "border-amber-400" :
+            pendingRequest.status === "approved" ? "border-emerald-400" :
+            "border-destructive/40"
           )}
         >
           <div className={cn(
-            "p-2 rounded-lg border shrink-0",
-            pendingRequest.status === "pending" ? "bg-amber-100 border-amber-200 text-amber-700" :
-            pendingRequest.status === "approved" ? "bg-emerald-100 border-emerald-200 text-emerald-700" :
-            "bg-destructive/10 border-destructive/20 text-destructive"
+            "p-2 rounded-lg border-2 shrink-0",
+            pendingRequest.status === "pending" ? "bg-amber-50 border-amber-300 text-amber-700" :
+            pendingRequest.status === "approved" ? "bg-emerald-50 border-emerald-300 text-emerald-700" :
+            "bg-destructive/5 border-destructive/20 text-destructive"
           )}>
-            {pendingRequest.status === "pending" && <Hourglass size={14} />}
-            {pendingRequest.status === "approved" && <CheckCircle2 size={14} />}
-            {pendingRequest.status === "rejected" && <XCircle size={14} />}
+            {pendingRequest.status === "pending" && <GiHourglass size={14} />}
+            {pendingRequest.status === "approved" && <GiRoundShield size={14} />}
+            {pendingRequest.status === "rejected" && <GiSkullCrossedBones size={14} />}
           </div>
           <div>
             <div className={cn(
@@ -788,100 +608,328 @@ export function GuildDiscoveryPanel() {
               {pendingRequest.status === "approved" && `Guild "${pendingRequest.guildName}" approved! You are now its Captain.`}
               {pendingRequest.status === "rejected" && `Guild request "${pendingRequest.guildName}" was rejected.`}
             </div>
-            {pendingRequest.adminNote && (
-              <div className="text-xs text-muted-foreground mt-0.5">Note: {pendingRequest.adminNote}</div>
-            )}
+            {pendingRequest.adminNote && <div className="text-xs text-black/50 mt-0.5">Note: {pendingRequest.adminNote}</div>}
           </div>
-        </PremiumCard>
+        </div>
       )}
 
-      {/* Application Modal */}
+      {/* ══ Guild Details Modal ═══════════════════════════════════════ */}
+      {viewingGuild && (() => {
+        const detail = guildDetail?.guild ?? viewingGuild;
+        const tier = tierOf(viewingGuild);
+        const applied = appliedIds.has(viewingGuild.id);
+        const canApplyToViewing = canApply(viewingGuild);
+        const weeklyPct = viewingGuild.weeklyTarget > 0 ? Math.round(Math.min(100, (viewingGuild.currentWeeklyPoints / viewingGuild.weeklyTarget) * 100)) : 0;
+
+        const statItems = [
+          { label: "GPS SCORE", value: viewingGuild.guildPerformanceScore.toLocaleString(), accent: true },
+          { label: "MEMBERS", value: viewingGuild.memberCount.toLocaleString() },
+          { label: "MIN RANK", value: viewingGuild.minRankRequired },
+          { label: "SUCCESS WEEKS", value: viewingGuild.successfulWeeks?.toLocaleString() ?? "0" },
+        ];
+
+        return (
+          <div className="fixed inset-0 z-50 overflow-y-auto animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-label={`${viewingGuild.name} details`}>
+            {/* Backdrop */}
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-[2px]" onClick={() => setViewingGuild(null)} />
+
+            <div className="relative min-h-full flex items-end sm:items-center justify-center sm:p-6">
+              {/* Plate — nav-plate signature */}
+              <div className="relative w-full sm:max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl border-2 md:border-[3px] border-black max-h-[92vh] sm:max-h-[88vh] overflow-y-auto animate-in duration-300 ease-out slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95">
+                {/* Sticky identity header */}
+                <div className="sticky top-0 z-10 bg-white border-b-2 border-black px-5 md:px-7 py-4 md:py-5 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                    <div className="relative w-12 h-12 md:w-14 md:h-14 rounded-lg border-2 border-black bg-[#EAE5DD] text-black flex items-center justify-center font-black text-lg md:text-xl shrink-0 overflow-hidden">
+                      <span className="absolute inset-0 flex items-center justify-center">{viewingGuild.name[0].toUpperCase()}</span>
+                      {viewingGuild.avatarUrl && (
+                        <img
+                          src={viewingGuild.avatarUrl}
+                          alt={viewingGuild.name}
+                          onError={(e) => { e.currentTarget.style.display = "none"; }}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="font-black text-xl md:text-2xl tracking-tight truncate" data-testid="text-guild-detail-name">{viewingGuild.name}</h2>
+                        <BlackChip>{tier.replace("-Rank", "")}-RANK</BlackChip>
+                      </div>
+                      <div className="mt-1.5 flex items-center gap-1.5 text-[9px] md:text-[10px] font-black uppercase tracking-wider text-black/45">
+                        <span>THORX · {viewingGuild.recruitmentOpen ? "Recruiting" : "Closed"}</span>
+                        {viewingGuild.inActiveWar && (<><span className="text-primary">·</span><span className="text-destructive flex items-center gap-0.5"><GiCrossedSwords size={10} /> War</span></>)}
+                        {!!viewingGuild.successfulWeeks && viewingGuild.successfulWeeks > 0 && (<><span className="text-primary">·</span><span className="flex items-center gap-0.5"><GiFlame size={10} /> {viewingGuild.successfulWeeks}w</span></>)}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setViewingGuild(null)}
+                    className="w-9 h-9 md:w-10 md:h-10 rounded-lg border-2 border-black/15 hover:border-black flex items-center justify-center text-black/50 hover:text-black transition-all duration-150 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    data-testid="button-back-to-guilds"
+                    aria-label="Close guild details"
+                  >
+                    <GiCrossedAxes size={14} />
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="px-5 md:px-7 py-6 space-y-6">
+                  {viewingGuild.description && (
+                    <p className="text-sm md:text-[15px] text-black/70 leading-relaxed font-medium">{viewingGuild.description}</p>
+                  )}
+
+                  {/* Stats — refined grid with hairline separators */}
+                  <div className="pt-4 border-t-[3px] border-black/10">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-black/10 -mx-4 md:-mx-7">
+                      {statItems.map((s, i) => (
+                        <div key={s.label} className={cn("px-4 md:px-7 py-2", i >= 2 && "border-t lg:border-t-0 border-black/10", i % 2 === 1 && "max-lg:border-l-0")}>
+                          <TechnicalLabel text={s.label} className="text-black/40 text-[9px] mb-2" />
+                          {s.label === "MIN RANK" ? (
+                            <div className="pt-0.5"><RankBadge rank={s.value} size="sm" /></div>
+                          ) : (
+                            <div className={cn("font-black text-lg md:text-xl tracking-tight tabular-nums", s.accent ? "text-primary" : "text-black")}>
+                              {s.value}{s.label === "SUCCESS WEEKS" && (viewingGuild.successfulWeeks ?? 0) > 0 && <GiLaurelsTrophy size={13} className="inline text-primary ml-1.5 -mt-1" />}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Weekly target */}
+                  {viewingGuild.weeklyTarget > 0 && (
+                    <div className="pt-5 border-t-[3px] border-black/10">
+                      <div className="flex items-baseline justify-between mb-2.5">
+                        <TechnicalLabel text="WEEKLY TARGET" className="text-black/40 text-[9px]" />
+                        <span className="text-[10px] md:text-xs font-black tabular-nums text-black/60">
+                          {viewingGuild.currentWeeklyPoints.toLocaleString()} / {viewingGuild.weeklyTarget.toLocaleString()} PS · {weeklyPct}%
+                        </span>
+                      </div>
+                      <Progress value={weeklyPct} className="h-1.5 bg-black/10 [&>div]:bg-primary" />
+                    </div>
+                  )}
+
+                  {/* Roster */}
+                  <div className="pt-1">
+                    <BlackChip className="mb-4">ROSTER · {viewingGuild.memberCount}</BlackChip>
+                    {guildMembersLoading ? (
+                      <div className="space-y-2">
+                        {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
+                      </div>
+                    ) : guildMembers.length === 0 ? (
+                      <p className="text-sm text-black/50 py-2">No members data available.</p>
+                    ) : (
+                      <div className="max-h-64 overflow-y-auto divide-y divide-black/10">
+                        {guildMembers.map((m: any) => (
+                          <div key={m.userId} className="flex items-center gap-3 py-3 min-h-[52px]">
+                            <div className="relative w-10 h-10 rounded-lg border-2 border-black bg-[#EAE5DD] text-black flex items-center justify-center text-xs font-black shrink-0 overflow-hidden">
+                              <span className="absolute inset-0 flex items-center justify-center">{(m.firstName || m.identity || "M")[0].toUpperCase()}</span>
+                              {m.avatarUrl && (
+                                <img
+                                  src={m.avatarUrl}
+                                  alt=""
+                                  loading="lazy"
+                                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm font-black truncate">{m.firstName || m.identity || "Member"}</span>
+                                {m.userId === detail?.captainId && <GiSpartanHelmet size={12} className="text-primary shrink-0" />}
+                              </div>
+                              {m.userRankTier && <RankBadge rank={m.userRankTier} size="sm" className="mt-1" />}
+                            </div>
+                            <div className="text-xs text-black/50 font-black tabular-nums shrink-0">{(m.weeklyPointsContributed ?? 0).toLocaleString()} PS</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* War History */}
+                  {guildWars.length > 0 && (
+                    <div>
+                      <BlackChip className="mb-4">BATTLE HISTORY</BlackChip>
+                      <div className="divide-y divide-black/10">
+                        {guildWars.slice(0, 5).map((w: any) => {
+                          const won = w.winnerId === viewingGuild.id;
+                          const isActive = w.status === "active";
+                          return (
+                            <div key={w.id} className="flex items-center gap-3 py-3 text-xs min-h-[44px]">
+                              <span className={cn("w-2 h-2 rounded-full shrink-0", isActive ? "bg-primary animate-pulse" : won ? "bg-emerald-500" : "bg-destructive/60")} />
+                              <span className="flex-1 font-black uppercase tracking-wider text-[11px]">
+                                {isActive ? "Active War" : won ? "Victory" : "Defeat"}
+                              </span>
+                              {w.completedAt && <span className="text-black/50 text-[11px]">{formatDistanceToNow(new Date(w.completedAt), { addSuffix: true })}</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Sticky footer CTA */}
+                <div className="sticky bottom-0 z-10 bg-white border-t-2 border-black px-5 md:px-7 py-4">
+                  {applied ? (
+                    <div className="inline-flex items-center gap-2 text-xs font-black text-emerald-700">
+                      <GiShield size={14} /> Application Sent — the captain will review it soon.
+                    </div>
+                  ) : !viewingGuild.recruitmentOpen ? (
+                    <div className="inline-flex items-center gap-2 text-xs font-black text-black/50">
+                      <GiSkullCrossedBones size={14} /> Recruitment is closed.
+                    </div>
+                  ) : alreadyInGuild ? (
+                    <div className="inline-flex items-center gap-2 text-xs font-black text-black/50">
+                      <GiShield size={14} /> You are already in a guild.
+                    </div>
+                  ) : !canApplyToViewing ? (
+                    <div className="flex items-center gap-2 text-xs font-black text-black/50">
+                      <GiPadlock size={12} />
+                      <span>Requires <RankBadge rank={viewingGuild.minRankRequired} size="sm" /> or higher to apply</span>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={() => { setApplyingTo(viewingGuild); setCoverLetter(""); }}
+                      data-testid="button-apply-to-join"
+                      className={cn("w-full sm:w-auto h-12 px-7", CTA_CLASS, "text-[11px]")}
+                    >
+                      Apply to Join <GiArrowhead size={14} />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ══ Application Letter Modal ═══════════════════════════════════ */}
       {applyingTo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-white rounded-2xl border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-md p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black shrink-0"
-                  style={{ backgroundColor: RANK_COLORS[gpsTier(applyingTo.guildPerformanceScore)] ?? "#71717a" }}
+        <div
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-[2px] p-0 sm:p-4 animate-in fade-in duration-200"
+          onClick={e => { if (e.target === e.currentTarget) setApplyingTo(null); }}
+        >
+          <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-2 md:border-[3px] border-black max-h-[92vh] sm:max-h-[90vh] overflow-y-auto animate-in duration-300 ease-out slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95">
+            {/* Header */}
+            <div className="px-5 md:px-6 pt-5 pb-4 border-b-2 border-black">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="relative w-11 h-11 rounded-lg border-2 border-black bg-[#EAE5DD] text-black flex items-center justify-center font-black text-base shrink-0 overflow-hidden">
+                    <span className="absolute inset-0 flex items-center justify-center">{applyingTo.name[0]}</span>
+                    {applyingTo.avatarUrl && (
+                      <img
+                        src={applyingTo.avatarUrl}
+                        alt={applyingTo.name}
+                        onError={(e) => { e.currentTarget.style.display = "none"; }}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <div className="font-black text-base md:text-lg truncate">{applyingTo.name}</div>
+                      <BlackChip>{tierOf(applyingTo).replace("-Rank", "")}-RANK</BlackChip>
+                    </div>
+                    <div className="text-[11px] text-black/50 mt-1">{applyingTo.memberCount} members · weekly target {applyingTo.weeklyTarget.toLocaleString()} PS</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setApplyingTo(null)}
+                  className="w-9 h-9 rounded-lg border-2 border-black/15 hover:border-black flex items-center justify-center text-black/50 hover:text-black transition-all duration-150 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  aria-label="Close application"
                 >
-                  {applyingTo.name[0]}
-                </div>
-                <div className="min-w-0">
-                  <div className="font-black truncate">{applyingTo.name}</div>
-                  <div className="text-xs text-muted-foreground">{applyingTo.memberCount} members</div>
-                </div>
-              </div>
-              <button
-                onClick={() => setApplyingTo(null)}
-                className="w-8 h-8 rounded-xl border-2 border-black/15 hover:border-black flex items-center justify-center text-muted-foreground hover:text-foreground transition-all duration-150 shrink-0"
-              >
-                <X size={13} />
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <TechnicalLabel text="APPLICATION LETTER" className="text-muted-foreground text-[9px]" />
-              <Textarea
-                value={coverLetter}
-                onChange={e => setCoverLetter(e.target.value)}
-                rows={5}
-                maxLength={500}
-                placeholder="Tell the Captain what you'll contribute and why you'd be a great team member. Be specific about your availability and goals."
-                className="resize-none border-2 border-black/20 rounded-xl focus-visible:ring-0 focus-visible:border-primary"
-                data-testid="input-cover-letter"
-              />
-              <div className={cn("text-[11px] text-right font-bold", coverLetter.length < 50 ? "text-destructive" : "text-muted-foreground")}>
-                {coverLetter.length}/500 {coverLetter.length < 50 ? `(min 50, need ${50 - coverLetter.length} more)` : ""}
+                  <GiCrossedAxes size={13} />
+                </button>
               </div>
             </div>
 
-            <div className="flex gap-2.5">
-              <Button variant="outline" className="flex-1" onClick={() => setApplyingTo(null)} data-testid="button-cancel-application">Cancel</Button>
+            {/* Body */}
+            <div className="px-5 md:px-6 py-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <TechnicalLabel text="APPLICATION LETTER" className="text-black/40 text-[9px]" />
+                <TechnicalLabel text="MIN 50 CHARS" className="text-primary text-[9px]" />
+              </div>
+              <div className="relative">
+                <Textarea
+                  value={coverLetter}
+                  onChange={e => setCoverLetter(e.target.value)}
+                  rows={6}
+                  maxLength={500}
+                  placeholder=""
+                  className="resize-none border-2 border-black/15 rounded-lg bg-white font-medium text-sm focus-visible:ring-0 focus-visible:border-primary hover:border-black/40 transition-colors leading-relaxed"
+                  data-testid="input-cover-letter"
+                />
+                {!coverLetter && (
+                  <div className="absolute top-3.5 left-3.5 right-3.5 pointer-events-none text-sm leading-relaxed">
+                    <AnimatedPlaceholder examples={COVER_LETTER_SUGGESTIONS} />
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-1 bg-black/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-300"
+                    style={{ width: `${Math.min(100, (coverLetter.length / 50) * 100)}%` }}
+                  />
+                </div>
+                <span className={cn("text-[10px] font-black tabular-nums shrink-0", coverLetter.length < 50 ? "text-destructive" : "text-black/50")}>
+                  {coverLetter.length}/500 {coverLetter.length < 50 ? `· need ${50 - coverLetter.length} more` : ""}
+                </span>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 md:px-6 pb-6 pt-1 flex gap-2.5">
               <Button
-                className="flex-1"
+                variant="outline"
+                className={cn("flex-1 h-12", OUTLINE_CLASS, "text-[10px]")}
+                onClick={() => setApplyingTo(null)}
+                data-testid="button-cancel-application"
+              >
+                Cancel
+              </Button>
+              <Button
+                className={cn("flex-1 h-12", CTA_CLASS, "text-[10px]")}
                 disabled={coverLetter.trim().length < 50 || applyMutation.isPending}
                 onClick={submitApplication}
                 data-testid="button-submit-application"
               >
-                {applyMutation.isPending ? <><Loader2 size={14} className="animate-spin" /> Sending…</> : "Submit Application"}
+                {applyMutation.isPending ? <><GiSwordSpin size={14} className="animate-spin" /> Sending…</> : "Submit Application"}
               </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Guild Creation Request Modal */}
+      {/* ══ Guild Creation Request Modal ═══════════════════════════════════ */}
       {showCreationForm && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-0 sm:p-4"
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-[2px] p-0 sm:p-4 animate-in fade-in duration-200"
           onClick={e => { if (e.target === e.currentTarget) setShowCreationForm(false); }}
         >
-          {/* Sheet on mobile, centered card on desktop */}
-          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl border-2 border-black shadow-[0_-4px_0_0_rgba(0,0,0,1)] sm:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b-2 border-black/10">
+          <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-2 md:border-[3px] border-black overflow-hidden max-h-[92vh] sm:max-h-[90vh] overflow-y-auto animate-in duration-300 ease-out slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95">
+            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b-2 border-black">
               <div>
-                <div className="font-black text-sm tracking-tight">Request Guild Creation</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">Admin will review and approve your request.</div>
+                <BlackChip className="mb-2.5">ENGINE C · NEW GUILD</BlackChip>
+                <div className="font-black text-base md:text-lg tracking-tight">Request Guild Creation</div>
+                <div className="text-[11px] text-black/50 mt-1">Admin will review and approve your request.</div>
               </div>
               <button
                 onClick={() => setShowCreationForm(false)}
-                className="w-9 h-9 rounded-xl border-2 border-black/15 hover:border-black flex items-center justify-center text-muted-foreground hover:text-foreground transition-all duration-150 shrink-0"
+                className="w-9 h-9 rounded-lg border-2 border-black/15 hover:border-black flex items-center justify-center text-black/50 hover:text-black transition-all duration-150 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 data-testid="button-close-creation-modal"
               >
-                <X size={13} />
+                <GiCrossedAxes size={13} />
               </button>
             </div>
 
-            {/* Form */}
-            <div className="px-5 py-4 space-y-4">
-
-              {/* Guild Name */}
+            <div className="px-5 py-5 space-y-5">
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <TechnicalLabel text="GUILD NAME" className="text-foreground/70 text-[9px]" />
+                  <TechnicalLabel text="GUILD NAME" className="text-black/70 text-[9px]" />
                   <TechnicalLabel text="REQUIRED" className="text-primary text-[9px]" />
                 </div>
                 <div className="relative">
@@ -889,43 +937,41 @@ export function GuildDiscoveryPanel() {
                     value={creationForm.guildName}
                     onChange={e => setCreationForm(p => ({ ...p, guildName: e.target.value }))}
                     maxLength={60}
-                    className="h-11 border-2 border-black/20 rounded-xl bg-background font-medium text-sm focus-visible:ring-0 focus-visible:border-primary hover:border-black/40 transition-colors placeholder:text-transparent"
+                    className="h-12 border-2 border-black/15 rounded-lg bg-white font-medium text-sm focus-visible:ring-0 focus-visible:border-primary hover:border-black/40 transition-colors placeholder:text-transparent"
                     data-testid="input-guild-name"
                   />
                   {!creationForm.guildName && (
-                    <div className="absolute inset-0 flex items-center px-3 pointer-events-none text-sm text-muted-foreground/60">
-                      <AnimatedFieldPlaceholder examples={GUILD_NAME_SUGGESTIONS} />
+                    <div className="absolute inset-0 flex items-center px-3.5 pointer-events-none text-sm">
+                      <AnimatedPlaceholder examples={GUILD_NAME_SUGGESTIONS} />
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Description */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <TechnicalLabel text="SHORT DESCRIPTION" className="text-foreground/70 text-[9px]" />
-                  <TechnicalLabel text="OPTIONAL" className="text-muted-foreground text-[9px]" />
+                  <TechnicalLabel text="SHORT DESCRIPTION" className="text-black/70 text-[9px]" />
+                  <TechnicalLabel text="OPTIONAL" className="text-black/40 text-[9px]" />
                 </div>
                 <div className="relative">
                   <Input
                     value={creationForm.description}
                     onChange={e => setCreationForm(p => ({ ...p, description: e.target.value }))}
-                    maxLength={200}
-                    className="h-11 border-2 border-black/20 rounded-xl bg-background font-medium text-sm focus-visible:ring-0 focus-visible:border-primary hover:border-black/40 transition-colors placeholder:text-transparent"
+                    maxLength={500}
+                    className="h-12 border-2 border-black/15 rounded-lg bg-white font-medium text-sm focus-visible:ring-0 focus-visible:border-primary hover:border-black/40 transition-colors placeholder:text-transparent"
                     data-testid="input-guild-description"
                   />
                   {!creationForm.description && (
-                    <div className="absolute inset-0 flex items-center px-3 pointer-events-none text-sm text-muted-foreground/60">
-                      <AnimatedFieldPlaceholder examples={GUILD_DESCRIPTION_SUGGESTIONS} />
+                    <div className="absolute inset-0 flex items-center px-3.5 pointer-events-none text-sm">
+                      <AnimatedPlaceholder examples={GUILD_DESCRIPTION_SUGGESTIONS} />
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Reason */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <TechnicalLabel text="WHY CREATE A GUILD?" className="text-foreground/70 text-[9px]" />
+                  <TechnicalLabel text="WHY CREATE A GUILD?" className="text-black/70 text-[9px]" />
                   <TechnicalLabel text="REQUIRED" className="text-primary text-[9px]" />
                 </div>
                 <div className="relative">
@@ -934,12 +980,12 @@ export function GuildDiscoveryPanel() {
                     onChange={e => setCreationForm(p => ({ ...p, reason: e.target.value }))}
                     rows={4}
                     maxLength={1000}
-                    className="resize-none border-2 border-black/20 rounded-xl bg-background font-medium text-sm focus-visible:ring-0 focus-visible:border-primary hover:border-black/40 transition-colors placeholder:text-transparent leading-relaxed"
+                    className="resize-none border-2 border-black/15 rounded-lg bg-white font-medium text-sm focus-visible:ring-0 focus-visible:border-primary hover:border-black/40 transition-colors placeholder:text-transparent leading-relaxed"
                     data-testid="input-guild-reason"
                   />
                   {!creationForm.reason && (
-                    <div className="absolute top-3 left-3 right-3 pointer-events-none text-sm text-muted-foreground/60 leading-relaxed">
-                      <AnimatedFieldPlaceholder examples={GUILD_REASON_SUGGESTIONS} />
+                    <div className="absolute top-3 left-3.5 right-3.5 pointer-events-none text-sm leading-relaxed">
+                      <AnimatedPlaceholder examples={GUILD_REASON_SUGGESTIONS} />
                     </div>
                   )}
                 </div>
@@ -959,18 +1005,17 @@ export function GuildDiscoveryPanel() {
               </div>
             </div>
 
-            {/* Actions */}
             <div className="px-5 pb-6 pt-1 flex gap-2.5">
               <Button
                 variant="outline"
-                className="flex-1 h-11"
+                className={cn("flex-1 h-12", OUTLINE_CLASS, "text-[10px]")}
                 onClick={() => setShowCreationForm(false)}
                 data-testid="button-cancel-creation-request"
               >
                 Cancel
               </Button>
               <Button
-                className="flex-1 h-11"
+                className={cn("flex-1 h-12", CTA_CLASS, "text-[10px]")}
                 disabled={
                   creationForm.guildName.trim().length < 3 ||
                   creationForm.reason.trim().length < 50 ||
@@ -980,7 +1025,7 @@ export function GuildDiscoveryPanel() {
                 data-testid="button-submit-creation-request"
               >
                 {creationRequestMutation.isPending
-                  ? <><Loader2 size={13} className="animate-spin" /> Submitting…</>
+                  ? <><GiSwordSpin size={13} className="animate-spin" /> Submitting…</>
                   : "Submit Request"}
               </Button>
             </div>

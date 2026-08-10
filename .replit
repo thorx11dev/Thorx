@@ -1,29 +1,33 @@
 modules = ["nodejs-20", "web", "bash"]
-run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
+
+# Freebuff/Replit run configuration — explicit table form so the preview
+# runner reads the real command ("npm run dev") instead of the bare key name.
+[run]
+cmd = "npm run dev"
 
 [nix]
 channel = "stable-25_05"
 
-[deployment]
-deploymentTarget = "autoscale"
-build = ["npm", "run", "build"]
-run = ["node", "./dist/index.js"]
+# [deployment] — Replit autoscale deploy config removed from the active file
+# because the bare `run` key inside it was misread by the preview runner as the
+# dev command ("run: command not found"). Deployment now goes through
+# Freebuff hosting (freebuff-deploy) / Docker. Uncomment to restore Replit
+# autoscale deploys:
+# [deployment]
+# deploymentTarget = "autoscale"
+# build = ["npm", "run", "build"]
+# run = ["node", "./dist/index.js"]
 
 [env]
 PORT = "5000"
 
 [workflows]
-runButton = "Project"
-
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Start application"
+# Run button points straight at the real workflow (no wrapper). The removed
+# "Project" wrapper only contained a `workflow.run` task whose bare `run`
+# token the preview runner misread as the dev command ("run: command not
+# found").
+runButton = "Start application"
 
 [[workflows.workflow]]
 name = "Start application"

@@ -132,7 +132,7 @@ import { drawThorxCard, RANK_REWARD_MULTIPLIERS } from "./modules/thorx-card";
 import { awardTaskPS, processStreak } from "./modules/ps-engine";
 import { checkAndUpdateRankTier } from "./modules/ps-engine";
 import { awardMemberGPS, awardMVPGPS, checkAndUpdateGuildRankTier, computeGuildRankTier, fetchGpsConfig, GUILD_RANK_TIERS, type GuildRankTier } from "./modules/gps-engine";
-import { contributeWarPoints } from "./modules/guild-wars";
+import { contributeWarPoints, contributeToWarChest } from "./modules/guild-wars";
 import { emitFeedEvent } from "./modules/live-feed";
 import { db } from "./db";
 import { eq, desc, asc, and, or, sql, inArray, ilike, gte, lte, lt, ne, isNotNull, isNull } from "drizzle-orm";
@@ -664,8 +664,9 @@ export interface IStorage {
   decideGuildApplication(guildId: string, applicationId: string, captainId: string, action: 'accept' | 'reject', rejectionReason?: string): Promise<any>;
   getGuildWeeklyHistory(guildId: string): Promise<any[]>;
   getGuildRosterForCaptain(guildId: string): Promise<any[]>;
+  listPendingGuildApplications(guildId: string): Promise<any[]>;
   nudgeGuildMember(guildId: string, captainId: string, memberUserId: string): Promise<void>;
-  setGuildMemberMvp(guildId: string, captainId: string, memberUserId: string): Promise<void>;
+  setGuildMemberMvp(guildId: string, captainId: string, memberUserId: string): Promise<number>;
   getCaptainMessageThread(guildId: string, userId1: string, userId2: string): Promise<any[]>;
   sendCaptainMessage(guildId: string, fromUserId: string, toUserId: string, message: string): Promise<any>;
   prepareWeeklyTaskCompletion(userId: string, guildId: string, taskId: string): Promise<{ record: any; task: any }>;
@@ -811,6 +812,13 @@ export const SYSTEM_CONFIG_DEFAULTS = [
       { key: "GUILD_CAPTAIN_POOL_SHARE", value: 30, description: "% of the Sunday bonus pool paid to the captain" },
       { key: "GUILD_MEMBER_POOL_SHARE", value: 70, description: "% of the Sunday bonus pool split among members proportionally" },
       { key: "GUILD_TREASURY_BONUS_PCT", value: 20, description: "Treasury bonus added on top of the pool when guild hits 100% target (e.g. 20 = +20% bonus from THORX treasury)" },
+      // ── Guild Wars: war chest levy (halal prize model) ────────────────────
+      // Small per-engine % of GROSS routed from THORX's revenue cut into the
+      // guild's war chest while it is in an active war — never from member
+      // earnings. The winner takes both guilds' chests at resolution.
+      { key: "WAR_LEVY_ENGINE_A_PCT", value: 2, description: "War chest levy: % of Engine A gross routed from THORX's cut into the guild war chest during an active war (never from member earnings)" },
+      { key: "WAR_LEVY_ENGINE_B_PCT", value: 2, description: "War chest levy: % of Engine B gross routed from THORX's cut into the guild war chest during an active war (never from member earnings)" },
+      { key: "WAR_LEVY_ENGINE_C_PCT", value: 2, description: "War chest levy: % of Engine C gross routed from THORX's cut into the guild war chest during an active war (never from member earnings)" },
       // ── Referral Earn Commission ─────────────────────────────────────────
       { key: "REFERRAL_EARN_PCT", value: 1, description: "% of gross PKR credited to direct referrer on every earn event (Engine A/B/C). Separate from the withdrawal-based referral fee." },
       // ── Dynamic Economy Multiplier ────────────────────────────────────────
@@ -1230,29 +1238,28 @@ export class DatabaseStorage implements IStorage {
     guildId?: string; // required for Engine_C
     tx?: any; // optional outer transaction — when provided, no inner db.transaction() is opened
   }): Promise<{ success: boolean; pointsCredited: number; realPkrValue: string; earning?: Earning }> {
-    const [
-      engineAThorxCutPct,
-      engineBThorxCutPct,
-      engineCThorxCutPct,
-      engineCGuildPoolPct,
-      engineCBonusPct,
-      globalConversionRate,
-      engineAPlayersJson,
-      referralEarnPct,
-      economyEnabled,
-      economyOverrideRaw,
-    ] = await Promise.all([
-      this.getSystemConfigValue<number>("ENGINE_A_THORX_CUT_PCT", 40),
-      this.getSystemConfigValue<number>("ENGINE_B_THORX_CUT_PCT", 40),
-      this.getSystemConfigValue<number>("ENGINE_C_THORX_CUT_PCT", 15),  // 15% Thorx (was 20)
-      this.getSystemConfigValue<number>("ENGINE_C_GUILD_POOL_PCT", 80), // 80% main pool (was 35)
-      this.getSystemConfigValue<number>("ENGINE_C_BONUS_PCT", 5),       // 5% bonus pool (new)
-      this.getSystemConfigValue<number>("CONVERSION_RATE", DEFAULT_CONVERSION_RATE),
-      this.getSystemConfigValue<string>("ENGINE_A_PLAYERS_JSON", "[]"),
-      this.getSystemConfigValue<number>("REFERRAL_EARN_PCT", 1),
-      this.getSystemConfigValue<boolean>("ECONOMY_MULTIPLIER_ENABLED", true),
-      this.getSystemConfigValue<number | null>("ECONOMY_MULTIPLIER_OVERRIDE", null),
-    ]);
+    // Single batched read instead of 13+ concurrent getSystemConfigValue()
+    // calls: this runs inside a lock-holding transaction (completeWeeklyTaskAtomic
+    // → recordEarnEvent), and each global-pool SELECT held a pool connection. Under
+    // concurrent page polling the burst starved the pool, so the transaction's next
+    // read waited indefinitely while it held its FOR UPDATE row locks (found
+    // 2026-08-09 deep E2E — idle-in-transaction zombie + lock convoy).
+    const cfgRows = await this.getAllSystemConfigs();
+    const cfgMap = new Map(cfgRows.map((c) => [c.key, c.value]));
+    const cfgVal = <T>(key: string, fallback: T): T => (cfgMap.has(key) ? (cfgMap.get(key) as T) : fallback);
+    const engineAThorxCutPct = cfgVal<number>("ENGINE_A_THORX_CUT_PCT", 40);
+    const engineBThorxCutPct = cfgVal<number>("ENGINE_B_THORX_CUT_PCT", 40);
+    const engineCThorxCutPct = cfgVal<number>("ENGINE_C_THORX_CUT_PCT", 15);  // 15% Thorx (was 20)
+    const engineCGuildPoolPct = cfgVal<number>("ENGINE_C_GUILD_POOL_PCT", 80); // 80% main pool (was 35)
+    const engineCBonusPct = cfgVal<number>("ENGINE_C_BONUS_PCT", 5);           // 5% bonus pool (new)
+    const globalConversionRate = cfgVal<number>("CONVERSION_RATE", DEFAULT_CONVERSION_RATE);
+    const engineAPlayersJson = cfgVal<string>("ENGINE_A_PLAYERS_JSON", "[]");
+    const referralEarnPct = cfgVal<number>("REFERRAL_EARN_PCT", 1);
+    const economyEnabled = cfgVal<boolean>("ECONOMY_MULTIPLIER_ENABLED", true);
+    const economyOverrideRaw = cfgVal<number | null>("ECONOMY_MULTIPLIER_OVERRIDE", null);
+    const engineAWarLevyPct = cfgVal<number>("WAR_LEVY_ENGINE_A_PCT", 2);
+    const engineBWarLevyPct = cfgVal<number>("WAR_LEVY_ENGINE_B_PCT", 2);
+    const engineCWarLevyPct = cfgVal<number>("WAR_LEVY_ENGINE_C_PCT", 2);
 
     // Resolve per-engine ratio + variance (Spec §1.1 / §16.2).
     // Priority: per-ad-player override → per-engine key → global CONVERSION_RATE fallback.
@@ -1346,6 +1353,30 @@ export class DatabaseStorage implements IStorage {
     }
     // 'Indirect' — no PKR payout, only PS (userPkrShare/thorxProfitPkr stay 0).
 
+    // ── Guild Wars: war chest levy (halal prize model) ─────────────────────
+    // While the user's guild is in an ACTIVE war, a small per-engine % of
+    // gross is routed from THORX's revenue cut into the guild's war chest —
+    // never from member earnings. The deduction is applied only when the
+    // guild actually has an active war (contributeToWarChest returns true
+    // inside the earn transaction); otherwise THORX keeps the full cut. The
+    // reduced THORX profit is what gets recorded on user_transactions, so
+    // the levy is fully auditable per earn event.
+    const warLevyPct =
+      params.engineType === "Engine_A" ? engineAWarLevyPct
+      : params.engineType === "Engine_B" ? engineBWarLevyPct
+      : params.engineType === "Engine_C" ? engineCWarLevyPct
+      : 0;
+    const effectiveGuildId = params.guildId ?? user.guildId ?? null;
+    const warLevyPkrD = warLevyPct > 0
+      ? grossPkrD.times(warLevyPct).div(100).toDecimalPlaces(4, Decimal.ROUND_DOWN)
+      : new Decimal(0);
+
+    // The THORX profit actually recorded on the ledger — reduced by the war
+    // chest levy only when the guild is in an active war (see runEarnTx).
+    // Declared here (outer scope) so the Step 7 notification strings below
+    // show the same audited number as user_transactions.thorx_profit_pkr.
+    let thorxProfitRecorded = thorxProfitPkrD;
+
     // Step 2: Thorx Card draw.
     // For Engine A/B: base TX-Points on user's direct PKR share.
     // For Engine C: base TX-Points on the 80% pool contribution so members see
@@ -1387,6 +1418,17 @@ export class DatabaseStorage implements IStorage {
     let earning: Earning | undefined;
 
     const runEarnTx = async (tx: any) => {
+      // War chest levy — routed from THORX's cut, never member earnings. Only
+      // deducted while the guild is in an active war; the ledger records the
+      // reduced THORX profit so the levy stays fully auditable per event.
+      thorxProfitRecorded = thorxProfitPkrD;
+      if (effectiveGuildId && warLevyPkrD.gt(0)) {
+        const contributed = await contributeToWarChest(effectiveGuildId, warLevyPkrD, tx);
+        if (contributed) {
+          thorxProfitRecorded = thorxProfitPkrD.minus(warLevyPkrD);
+        }
+      }
+
       // Step 3: Persist user_transactions — the immutable source of truth for
       // withdrawal math (Appendix A #1/#2). real_pkr_value is write-once.
       // uniq_user_transactions_source (sourceId, sourceType) rejects a
@@ -1402,7 +1444,7 @@ export class DatabaseStorage implements IStorage {
         pointsCredited: rankedPointsCredited,
         realPkrValue: userPkrShareD.toFixed(4),
         grossPkr: grossPkrD.toFixed(4), // effective grossPkr after economy multiplier
-        thorxProfitPkr: thorxProfitPkrD.toFixed(4),
+        thorxProfitPkr: thorxProfitRecorded.toFixed(4),
         guildPoolPkr: guildPoolPkrD.toFixed(4),
         conversionRate: Math.round(conversionRate),
         cardVariance: cardResult.cardVariance.toFixed(4),
@@ -1520,16 +1562,32 @@ export class DatabaseStorage implements IStorage {
       throw err;
     }
 
-    // Step 7: Live feed event (after commit — see note above).
-    await emitFeedEvent({
-      type: "earn",
+    // Step 7: Live feed event. NOTE — when params.tx is set the caller's
+    // transaction is STILL OPEN here: awaiting emitFeedEvent would run its
+    // activity_feed INSERT (user_id/guild_id FKs) on the global pool while this
+    // transaction holds FOR UPDATE locks on those rows — the insert blocks on
+    // the transaction's own locks and Postgres cannot see the cycle, hanging
+    // the caller (found 2026-08-09 deep E2E: "canceling statement due to lock
+    // timeout" on Engine C task completion). Standalone calls (params.tx
+    // undefined) have already committed above, so awaiting is safe there.
+    const feedEvent = {
+      type: "earn" as const,
       userId: params.userId,
       guildId: params.guildId,
       displayMessage: params.engineType === "Engine_C"
-        ? `User '${user.identity}' – Engine C | Pool: Rs.${guildPoolPkrD.toFixed(2)} | Bonus: Rs.${bonusPoolPkrD.toFixed(2)} | Points: ${rankedPointsCredited} | Thorx: Rs.${thorxProfitPkrD.toFixed(2)}`
-        : `User '${user.identity}' – ${params.engineType} | Real: Rs.${userPkrShareD.toFixed(2)} | Points: ${rankedPointsCredited} | Thorx: Rs.${thorxProfitPkrD.toFixed(2)} | EconMult: ${economyMult.toFixed(2)} | RankMult: ${rankMult.toFixed(2)}`,
-      data: { engineType: params.engineType, grossPkr: grossPkrD.toFixed(4), baseGrossPkr: baseGrossPkrD.toFixed(4), economyMult: economyMult.toFixed(4), rankMult, rankedPointsCredited, cardResult, thorxProfitPkr: thorxProfitPkrD.toFixed(4), guildPoolPkr: guildPoolPkrD.toFixed(4), bonusPoolPkr: bonusPoolPkrD.toFixed(4) },
-    });
+        ? `User '${user.identity}' – Engine C | Pool: Rs.${guildPoolPkrD.toFixed(2)} | Bonus: Rs.${bonusPoolPkrD.toFixed(2)} | Points: ${rankedPointsCredited} | Thorx: Rs.${thorxProfitRecorded.toFixed(2)}`
+        : `User '${user.identity}' – ${params.engineType} | Real: Rs.${userPkrShareD.toFixed(2)} | Points: ${rankedPointsCredited} | Thorx: Rs.${thorxProfitRecorded.toFixed(2)} | EconMult: ${economyMult.toFixed(2)} | RankMult: ${rankMult.toFixed(2)}`,
+      data: { engineType: params.engineType, grossPkr: grossPkrD.toFixed(4), baseGrossPkr: baseGrossPkrD.toFixed(4), economyMult: economyMult.toFixed(4), rankMult, rankedPointsCredited, cardResult, thorxProfitPkr: thorxProfitRecorded.toFixed(4), guildPoolPkr: guildPoolPkrD.toFixed(4), bonusPoolPkr: bonusPoolPkrD.toFixed(4) },
+    };
+    if (params.tx) {
+      // Defer past the caller's commit so the insert never blocks on locks this
+      // transaction still holds. Feed events are non-critical telemetry.
+      setImmediate(() => {
+        emitFeedEvent(feedEvent).catch((e) => logger.error({ err: e }, "[recordEarnEvent] Deferred feed event failed"));
+      });
+    } else {
+      await emitFeedEvent(feedEvent);
+    }
 
     return { success: true, pointsCredited: rankedPointsCredited, realPkrValue: userPkrShareD.toFixed(4), earning };
   }
@@ -3013,7 +3071,8 @@ export class DatabaseStorage implements IStorage {
     return await db.transaction(async (tx) => {
       const [guild] = await tx.select().from(guilds).where(eq(guilds.id, guildId));
       if (!guild) throw new Error("Guild not found");
-      if (guild.captainId !== captainId) throw new Error("Only the guild captain can decide join requests.");
+      const assistantCanDecideJoin = guild.assistantCaptainId === captainId && (guild.assistantPermissions as string[] | null)?.includes("join_applications");
+      if (guild.captainId !== captainId && !assistantCanDecideJoin) throw new Error("Only the captain or an authorized assistant can decide join requests.");
 
       const [membership] = await tx
         .select()
@@ -3079,7 +3138,8 @@ export class DatabaseStorage implements IStorage {
     await db.transaction(async (tx) => {
       const [guild] = await tx.select().from(guilds).where(eq(guilds.id, guildId));
       if (!guild) throw new Error("Guild not found");
-      if (guild.captainId !== captainId) throw new Error("Only the guild captain can remove members.");
+      const assistantCanRemove = guild.assistantCaptainId === captainId && (guild.assistantPermissions as string[] | null)?.includes("member_remove");
+      if (guild.captainId !== captainId && !assistantCanRemove) throw new Error("Only the captain or an authorized assistant can remove members.");
       if (targetUserId === captainId) throw new Error("The captain cannot remove themselves.");
 
       const result = await tx
@@ -5430,8 +5490,14 @@ export class DatabaseStorage implements IStorage {
     recruitmentOpen?: boolean; isPublic?: boolean; pinnedMemberId?: string | null; avatarUrl?: string | null;
   }): Promise<any> {
     const membership = await this.getUserGuildMembership(captainId);
-    if (!membership || membership.guildId !== guildId || membership.role !== "captain") {
-      throw new Error("Only the guild captain can update guild settings.");
+    if (!membership || membership.guildId !== guildId) {
+      throw new Error("You must be an active member of this guild.");
+    }
+    const [guildRow] = await db.select().from(guilds).where(eq(guilds.id, guildId));
+    if (!guildRow) throw new Error("Guild not found");
+    const assistantCanEditSettings = guildRow.assistantCaptainId === captainId && (guildRow.assistantPermissions as string[] | null)?.includes("guild_settings");
+    if (guildRow.captainId !== captainId && !assistantCanEditSettings) {
+      throw new Error("Only the captain or an authorized assistant can update guild settings.");
     }
     const updates: any = {};
     if (settings.name !== undefined) updates.name = settings.name.trim();
@@ -5450,8 +5516,14 @@ export class DatabaseStorage implements IStorage {
   // Post or update the guild's pinned announcement (captain only).
   async postGuildAnnouncement(guildId: string, captainId: string, text: string): Promise<any> {
     const membership = await this.getUserGuildMembership(captainId);
-    if (!membership || membership.guildId !== guildId || membership.role !== "captain") {
-      throw new Error("Only the guild captain can post announcements.");
+    if (!membership || membership.guildId !== guildId) {
+      throw new Error("You must be an active member of this guild.");
+    }
+    const [guildRow] = await db.select().from(guilds).where(eq(guilds.id, guildId));
+    if (!guildRow) throw new Error("Guild not found");
+    const assistantCanAnnounce = guildRow.assistantCaptainId === captainId && (guildRow.assistantPermissions as string[] | null)?.includes("guild_announcements");
+    if (guildRow.captainId !== captainId && !assistantCanAnnounce) {
+      throw new Error("Only the captain or an authorized assistant can post announcements.");
     }
     const trimmed = text.trim();
     if (trimmed.length === 0) throw new Error("Announcement text cannot be empty.");
@@ -5467,8 +5539,14 @@ export class DatabaseStorage implements IStorage {
   // Clear (dismiss) the guild's current announcement (captain only).
   async clearGuildAnnouncement(guildId: string, captainId: string): Promise<any> {
     const membership = await this.getUserGuildMembership(captainId);
-    if (!membership || membership.guildId !== guildId || membership.role !== "captain") {
-      throw new Error("Only the guild captain can clear announcements.");
+    if (!membership || membership.guildId !== guildId) {
+      throw new Error("You must be an active member of this guild.");
+    }
+    const [guildRow] = await db.select().from(guilds).where(eq(guilds.id, guildId));
+    if (!guildRow) throw new Error("Guild not found");
+    const assistantCanAnnounce = guildRow.assistantCaptainId === captainId && (guildRow.assistantPermissions as string[] | null)?.includes("guild_announcements");
+    if (guildRow.captainId !== captainId && !assistantCanAnnounce) {
+      throw new Error("Only the captain or an authorized assistant can clear announcements.");
     }
     const [guild] = await db.update(guilds)
       .set({ latestAnnouncement: null, announcementPostedAt: null })
@@ -5571,7 +5649,8 @@ export class DatabaseStorage implements IStorage {
     return await db.transaction(async (tx) => {
       const [guild] = await tx.select().from(guilds).where(eq(guilds.id, guildId));
       if (!guild) throw new Error("Guild not found");
-      if (guild.captainId !== captainId) throw new Error("Only the guild captain can decide applications.");
+      const assistantCanDecide = guild.assistantCaptainId === captainId && (guild.assistantPermissions as string[] | null)?.includes("join_applications");
+      if (guild.captainId !== captainId && !assistantCanDecide) throw new Error("Only the captain or an authorized assistant can decide applications.");
 
       const [membership] = await tx
         .select()
@@ -5581,6 +5660,24 @@ export class DatabaseStorage implements IStorage {
       if (!membership) throw new Error("No pending application found.");
 
       if (action === "accept") {
+        // Accept-time gates (defense in depth): applications can stack beyond
+        // capacity while pending, but acceptance must never exceed the
+        // rank-derived memberCapacity — and minRankRequired may have changed
+        // since the application was submitted, so re-check it here too.
+        if (guild.memberCount >= guild.memberCapacity) {
+          throw new Error("Guild is at full capacity — no more members can be accepted.");
+        }
+        const RANK_ORDER = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
+        const [applicant] = await tx
+          .select({ userRankTier: users.userRankTier })
+          .from(users)
+          .where(eq(users.id, membership.userId))
+          .limit(1);
+        const minTierIdx = RANK_ORDER.indexOf(guild.minRankRequired || "E-Rank");
+        const userTierIdx = RANK_ORDER.indexOf(applicant?.userRankTier ?? "E-Rank");
+        if (userTierIdx < minTierIdx) {
+          throw new Error(`This guild now requires ${guild.minRankRequired} or higher.`);
+        }
         const [updated] = await tx.update(guildMembers).set({
           status: "active",
           joinedAt: new Date(),
@@ -5710,6 +5807,7 @@ export class DatabaseStorage implements IStorage {
         joinedAt: guildMembers.joinedAt,
         weeklyPointsContributed: guildMembers.weeklyPointsContributed,
         isMvp: guildMembers.isMvp,
+        lastNudgedAt: guildMembers.lastNudgedAt,
         name: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
         userRankTier: users.userRankTier,
         lastActiveAt: users.lastActiveAt,
@@ -5721,13 +5819,34 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(guildMembers.weeklyPointsContributed));
   }
 
+  async listPendingGuildApplications(guildId: string): Promise<any[]> {
+    return await db
+      .select({
+        id: guildMembers.id,
+        guildId: guildMembers.guildId,
+        userId: guildMembers.userId,
+        firstName: users.firstName,
+        identity: users.identity,
+        avatar: users.avatar,
+        userRankTier: users.userRankTier,
+        profilePicture: users.profilePicture,
+        coverLetter: guildMembers.coverLetter,
+        requestedAt: guildMembers.requestedAt,
+      })
+      .from(guildMembers)
+      .innerJoin(users, eq(users.id, guildMembers.userId))
+      .where(and(eq(guildMembers.guildId, guildId), eq(guildMembers.status, "pending")))
+      .orderBy(desc(guildMembers.requestedAt));
+  }
+
   // Rate-limited to once per member per 24h — spec E.9 "nudge" action.
   async nudgeGuildMember(guildId: string, captainId: string, memberUserId: string): Promise<void> {
     // Atomic: cooldown check + update + notification must all commit or all roll back.
     await db.transaction(async (tx) => {
       const [guild] = await tx.select().from(guilds).where(eq(guilds.id, guildId));
       if (!guild) throw new Error("Guild not found");
-      if (guild.captainId !== captainId) throw new Error("Only the guild captain can nudge members.");
+      const assistantCanNudge = guild.assistantCaptainId === captainId && (guild.assistantPermissions as string[] | null)?.includes("member_nudge");
+      if (guild.captainId !== captainId && !assistantCanNudge) throw new Error("Only the captain or an authorized assistant can nudge members.");
 
       const [membership] = await tx
         .select()
@@ -5750,11 +5869,12 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async setGuildMemberMvp(guildId: string, captainId: string, memberUserId: string): Promise<void> {
+  async setGuildMemberMvp(guildId: string, captainId: string, memberUserId: string): Promise<number> {
     await db.transaction(async (tx) => {
       const [guild] = await tx.select().from(guilds).where(eq(guilds.id, guildId));
       if (!guild) throw new Error("Guild not found");
-      if (guild.captainId !== captainId) throw new Error("Only the guild captain can set the MVP.");
+      const assistantCanSetMvp = guild.assistantCaptainId === captainId && (guild.assistantPermissions as string[] | null)?.includes("mvp_set");
+      if (guild.captainId !== captainId && !assistantCanSetMvp) throw new Error("Only the captain or an authorized assistant can set the MVP.");
 
       const [membership] = await tx
         .select()
@@ -5787,7 +5907,7 @@ export class DatabaseStorage implements IStorage {
       await tx.update(guildMembers).set({ isMvp: false, mvpSetWeek: null as any }).where(eq(guildMembers.guildId, guildId));
       await tx.update(guildMembers).set({ isMvp: true, mvpSetAt: new Date(), mvpSetWeek: currentWeek as any }).where(eq(guildMembers.id, membership.id));
     });
-    await awardMVPGPS(guildId);
+    return await awardMVPGPS(guildId);
   }
 
   // ── THORX v3 (spec E.9): Withdrawal preview & referral cash withdrawal ─────

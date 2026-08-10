@@ -19,6 +19,7 @@ import { processProfilePicture } from "./utils/local-profile-picture";
 import { authRateLimiter, withdrawalRateLimiter, profileRateLimiter, earnRateLimiter, guildInteractionRateLimiter, contactRateLimiter, contactEmailRateLimiter, chatbotRateLimiter, adminActionRateLimiter, adminBulkActionRateLimiter, bootstrapRateLimiter, publicApiRateLimiter } from "./middleware/auth-rate-limit";
 import { sanitizeUser, buildAuthUserPayload } from "./utils/sanitize-user";
 import { debugLog } from "./utils/debug-log";
+import { resolveCookiePolicy } from "./middleware/cookie-policy";
 import { simulateThorxCards } from "./modules/thorx-card";
 import { runWeeklyGuildReset } from "./modules/guild-reset";
 import bcrypt from "bcrypt";
@@ -355,6 +356,13 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     });
   }
 
+  // The cookie option is a per-request function (express-session supports it;
+  // it is re-evaluated on every session creation, including regenerate() on
+  // register/login). resolveCookiePolicy switches to SameSite=None + Secure +
+  // Partitioned for non-local / proxied-HTTPS requests so sessions round-trip
+  // inside cross-site preview iframes (Replit, Freebuff) — where SameSite=Lax
+  // cookies are never sent on fetch() calls, which previously caused
+  // "403 CSRF validation failed" and logins that never persisted.
   const sessionConfig = {
     store: new pgStore({
       pool: pool,
@@ -373,26 +381,33 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     resave: false,
     saveUninitialized: false,
     rolling: true,
-    cookie: {
-      httpOnly: true,
-      secure: cookieSecure,
-      maxAge: sessionTtl,
-      sameSite: sameSite as "lax" | "strict" | "none",
-      domain: runtimeConfig.sessionCookieDomain,
-      path: '/',
-      // CHIPS: browsers are phasing out third-party cookies even when
-      // SameSite=None; Secure is set (Replit's preview embeds the app in a
-      // cross-site iframe, making this a third-party cookie from the
-      // browser's point of view). "Partitioned" cookies are exempt from
-      // that blocking because they're scoped per top-level site, so they
-      // still round-trip correctly inside the preview iframe.
-      ...(sameSite === "none" ? { partitioned: true } : {}),
+    cookie: (req: Request) => {
+      const policy = resolveCookiePolicy(req);
+      return {
+        httpOnly: true,
+        secure: policy.secure,
+        maxAge: sessionTtl,
+        sameSite: policy.sameSite,
+        domain: runtimeConfig.sessionCookieDomain,
+        path: '/',
+        // CHIPS: browsers are phasing out third-party cookies even when
+        // SameSite=None; Secure is set (previews embed the app in a
+        // cross-site iframe, making this a third-party cookie from the
+        // browser's point of view). "Partitioned" cookies are exempt from
+        // that blocking because they're scoped per top-level site, so they
+        // still round-trip correctly inside the preview iframe.
+        ...(policy.partitioned ? { partitioned: true } : {}),
+      };
     },
     name: 'thorx.sid',
   };
 
   if (!isProd) {
-    debugLog("Session cookie config:", sessionConfig.cookie);
+    debugLog("Session cookie policy:", {
+      defaultSecure: cookieSecure,
+      defaultSameSite: sameSite,
+      resolvedPerRequest: true,
+    });
   }
 
   app.set('trust proxy', 1);
@@ -1360,8 +1375,17 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   // ── THORX v3 (spec E.9): Guild Discovery — must be defined BEFORE /api/guilds/:id ──
   app.get("/api/guilds/discovery", requireSessionAuth, async (req, res) => {
     try {
-      const guilds = await storage.getGuildDiscoveryList();
-      res.json({ guilds });
+      const { fetchGpsConfig, computeGuildRankTier } = await import("./modules/gps-engine");
+      const [guilds, config] = await Promise.all([
+        storage.getGuildDiscoveryList(),
+        fetchGpsConfig(),
+      ]);
+      res.json({
+        guilds: guilds.map((g: any) => ({
+          ...g,
+          rankTier: computeGuildRankTier(g.guildPerformanceScore, config.rankMins),
+        })),
+      });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch guild discovery list" });
     }
@@ -1462,7 +1486,16 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
       const before = req.query.before as string | undefined;
       const messages = await storage.getEngineCMessages(req.params.id, limit, before);
-      res.json({ messages });
+      // Surface a render-ready avatarUrl (universal avatar id → /avatars/*.png,
+      // custom upload passed through) so chat bubbles show real profile pics.
+      res.json({
+        messages: messages.map((m: any) => ({
+          ...m,
+          avatarUrl: m.avatar
+            ? (typeof m.avatar === "string" && m.avatar.startsWith("avatar-") ? `/avatars/${m.avatar}.png` : m.avatar)
+            : null,
+        })),
+      });
     } catch (error) {
       logger.error({ err: error }, "Get guild chat error:");
       res.status(500).json({ message: "Failed to fetch chat messages" });
@@ -1561,7 +1594,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           action: "GUILD_WEEKLY_TASK_COMPLETED",
           targetType: "guild",
           targetId: membership.guildId,
-          details: { taskId: req.params.taskId, taskName: (task as any)?.name, pointsCredited: earnResult?.pointsCredited ?? 0 },
+          details: { taskId: req.params.taskId, taskName: (task as any)?.title ?? (task as any)?.name, pointsCredited: earnResult?.pointsCredited ?? 0 },
         }, getRequestContext(req));
       } catch (auditErr) {
         logger.error({ err: auditErr }, "Audit log error (GUILD_WEEKLY_TASK_COMPLETED):");
@@ -5785,6 +5818,18 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  // Engine C: the current user's pending guild application — lets the
+  // Discovery panel keep its "Applied" state stable across page loads.
+  app.get("/api/guilds/my-application", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req) as string;
+      const application = await storage.getGuildApplicationStatus(userId);
+      res.json({ application: application ?? null });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch application status" });
+    }
+  });
+
   app.post("/api/guilds/:id/apply", requireSessionAuth, guildInteractionRateLimiter, async (req, res) => {
     try {
       const userId = getThorxPrincipalId(req) as string;
@@ -5853,6 +5898,35 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  // Pending join applications — captain or an assistant with the
+  // join_applications permission. (The roster endpoint only returns active
+  // members, so pending applications need their own listing.)
+  app.get("/api/guilds/:id/applications", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req) as string;
+      const guild = await storage.getGuildById(req.params.id);
+      if (!guild) return res.status(404).json({ message: "Guild not found" });
+      const role = req.userProfile?.role;
+      const isTeam = role === "team" || role === "founder" || role === "admin";
+      const assistantCanDecide = guild.assistantCaptainId === userId &&
+        (guild.assistantPermissions as string[] | null)?.includes("join_applications");
+      if (!isTeam && guild.captainId !== userId && !assistantCanDecide) {
+        return res.status(403).json({ message: "Only the captain or an authorized assistant can view applications." });
+      }
+      const applications = await storage.listPendingGuildApplications(req.params.id);
+      res.json({
+        applications: applications.map((a: any) => ({
+          ...a,
+          createdAt: a.requestedAt ?? null,
+          avatarUrl: a.profilePicture ??
+            (typeof a.avatar === "string" && a.avatar.startsWith("avatar-") ? `/avatars/${a.avatar}.png` : null),
+        })),
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch applications" });
+    }
+  });
+
   // Shared guard for player-facing guild-roster routes (captain/member portal +
   // weekly history). Visible to: team/founder/admin (moderation), the guild's
   // own active members (their own roster), and anyone previewing a *public*
@@ -5888,7 +5962,31 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const gate = await assertGuildRosterVisible(req, req.params.id);
       if (!gate.ok) return res.status(gate.status).json({ message: gate.message });
       const roster = await storage.getGuildRosterForCaptain(req.params.id);
-      res.json({ members: roster });
+      // Enrich roster with the members' real identity + avatar so Engine C shows
+      // the actual profile picture (universal avatar id or custom upload) instead
+      // of initials everywhere. The roster query returns combined `name` +
+      // `profilePicture`; a light follow-up pulls firstName/identity/avatar.
+      const rosterIds = roster.map((m: any) => m.userId);
+      const rosterUsers = rosterIds.length
+        ? await db
+            .select({ id: users.id, firstName: users.firstName, identity: users.identity, avatar: users.avatar })
+            .from(users)
+            .where(inArray(users.id, rosterIds))
+        : [];
+      const rosterUserById = new Map(rosterUsers.map((u: any) => [u.id, u]));
+      res.json({
+        members: roster.map((m: any) => {
+          const u = rosterUserById.get(m.userId) ?? {};
+          return {
+            ...m,
+            firstName: m.firstName ?? u.firstName ?? null,
+            identity: u.identity ?? null,
+            avatarUrl:
+              m.profilePicture ??
+              (typeof u.avatar === "string" && u.avatar.startsWith("avatar-") ? `/avatars/${u.avatar}.png` : null),
+          };
+        }),
+      });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch guild members" });
     }
@@ -5921,7 +6019,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   app.post("/api/guilds/:id/members/:userId/mvp", requireSessionAuth, async (req, res) => {
     try {
       const captainId = getThorxPrincipalId(req) as string;
-      await storage.setGuildMemberMvp(req.params.id, captainId, req.params.userId);
+      const mvpBonus = await storage.setGuildMemberMvp(req.params.id, captainId, req.params.userId);
       broadcastGuildEvent(req.params.id, 'guild.mvp_selected', { userId: req.params.userId, guildId: req.params.id });
       try {
         await storage.createAuditLog({
@@ -5935,7 +6033,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       } catch (auditErr) {
         logger.error({ err: auditErr }, "Audit log error (GUILD_MVP_ASSIGNED):");
       }
-      res.json({ success: true });
+      res.json({ success: true, bonus: mvpBonus });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to set MVP";
       res.status(400).json({ message: msg });
@@ -6617,16 +6715,27 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
       const approvals = await getWarWithApprovals(currentWar.id, guildId);
 
-      // Enrich with guild names
-      const [challengerGuild, challengedGuild] = await Promise.all([
+      // Enrich with guild names + live war chest balances (halal prize model)
+      const [challengerGuild, challengedGuild, myGuild] = await Promise.all([
         storage.getGuildById(currentWar.challengerGuildId),
         storage.getGuildById(currentWar.challengedGuildId),
+        storage.getGuildById(guildId),
+      ]);
+
+      // War chest funding config — per-engine % of gross routed from THORX's
+      // revenue cut into each guild's chest while the war is active.
+      const [warLevyEngineA, warLevyEngineB, warLevyEngineC] = await Promise.all([
+        storage.getSystemConfigValue<number>("WAR_LEVY_ENGINE_A_PCT", 2),
+        storage.getSystemConfigValue<number>("WAR_LEVY_ENGINE_B_PCT", 2),
+        storage.getSystemConfigValue<number>("WAR_LEVY_ENGINE_C_PCT", 2),
       ]);
 
       res.json({
         war: currentWar,
-        challengerGuild: challengerGuild ? { id: challengerGuild.id, name: challengerGuild.name, guildPerformanceScore: challengerGuild.guildPerformanceScore } : null,
-        challengedGuild: challengedGuild ? { id: challengedGuild.id, name: challengedGuild.name, guildPerformanceScore: challengedGuild.guildPerformanceScore } : null,
+        challengerGuild: challengerGuild ? { id: challengerGuild.id, name: challengerGuild.name, guildPerformanceScore: challengerGuild.guildPerformanceScore, avatarUrl: challengerGuild.avatarUrl ?? null, warChestPkr: challengerGuild.warChestPkr ?? "0.0000" } : null,
+        challengedGuild: challengedGuild ? { id: challengedGuild.id, name: challengedGuild.name, guildPerformanceScore: challengedGuild.guildPerformanceScore, avatarUrl: challengedGuild.avatarUrl ?? null, warChestPkr: challengedGuild.warChestPkr ?? "0.0000" } : null,
+        warChest: { myGuildChestPkr: myGuild?.warChestPkr ?? "0.0000" },
+        warLevyPcts: { engineA: warLevyEngineA, engineB: warLevyEngineB, engineC: warLevyEngineC },
         approvals: approvals.approvals,
         totalActiveMembers: approvals.totalActiveMembers,
         approvedCount: approvals.approvedCount,
@@ -6634,6 +6743,27 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch war status" });
+    }
+  });
+
+  // Battle history for the Discovery guild detail modal — readable for any
+  // public guild (and members of private guilds); completed wars only.
+  app.get("/api/guilds/:id/war/history", requireSessionAuth, async (req, res) => {
+    try {
+      const gate = await assertGuildRosterVisible(req, req.params.id);
+      if (!gate.ok) return res.status(gate.status).json({ message: gate.message });
+      const [asChallenger, asChallenged] = await Promise.all([
+        db.select().from(guildWars).where(eq(guildWars.challengerGuildId, req.params.id)).orderBy(desc(guildWars.completedAt)).limit(5),
+        db.select().from(guildWars).where(eq(guildWars.challengedGuildId, req.params.id)).orderBy(desc(guildWars.completedAt)).limit(5),
+      ]);
+      const byId = new Map<string, any>();
+      [...asChallenger, ...asChallenged].forEach(w => { if (w.completedAt) byId.set(w.id, w); });
+      const wars = [...byId.values()]
+        .sort((a, b) => (b.completedAt?.getTime() ?? 0) - (a.completedAt?.getTime() ?? 0))
+        .slice(0, 5);
+      res.json({ wars });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch war history" });
     }
   });
 
@@ -6855,7 +6985,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
       const guild = await storage.getGuildById(req.params.id);
       if (!guild) return res.status(404).json({ message: "Guild not found" });
-      if (guild.captainId !== captainId) return res.status(403).json({ message: "Only captain can update assistant permissions" });
+      const isTeamRole = ["team", "admin", "founder"].includes(req.userProfile?.role || "");
+      if (guild.captainId !== captainId && !isTeamRole) return res.status(403).json({ message: "Only the captain or team admins can update assistant permissions" });
 
       await db.update(guilds)
         .set({ assistantPermissions: parsed.data.permissions, updatedAt: new Date() })

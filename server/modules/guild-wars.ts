@@ -32,8 +32,7 @@ import {
   type GuildHallOfFame,
   type GuildBadge,
 } from "@shared/schema";
-import { eq, and, desc, sql, or, ne, gte, lte } from "drizzle-orm";
-import { storage } from "../storage";
+import { eq, and, desc, sql, or, ne, gte, lte } from "drizzle-orm";import { storage } from "../storage";
 import { logger } from "../lib/logger";
 
 // ─── Season Management ────────────────────────────────────────────────────────
@@ -321,15 +320,17 @@ export async function cancelWar(warId: string, captainId: string): Promise<Guild
  * Get the current active or pending war for a guild.
  */
 export async function getGuildCurrentWar(guildId: string): Promise<GuildWar | null> {
-  const [war] = await db
+  const guildMatch = or(
+    eq(guildWars.challengerGuildId, guildId),
+    eq(guildWars.challengedGuildId, guildId),
+  );
+  // A live war (pending/active) always takes precedence.
+  const [live] = await db
     .select()
     .from(guildWars)
     .where(
       and(
-        or(
-          eq(guildWars.challengerGuildId, guildId),
-          eq(guildWars.challengedGuildId, guildId),
-        ),
+        guildMatch,
         or(
           eq(guildWars.status, "pending_challenger_approval"),
           eq(guildWars.status, "pending_challenged_approval"),
@@ -339,7 +340,17 @@ export async function getGuildCurrentWar(guildId: string): Promise<GuildWar | nu
     )
     .orderBy(desc(guildWars.createdAt))
     .limit(1);
-  return war ?? null;
+  if (live) return live;
+  // Otherwise surface the most recently completed war so the panel can render
+  // the result (COMPLETED chip + winner banner) after a war resolves —
+  // previously completed wars were filtered out, making that UI unreachable.
+  const [completed] = await db
+    .select()
+    .from(guildWars)
+    .where(and(guildMatch, eq(guildWars.status, "completed")))
+    .orderBy(desc(guildWars.completedAt))
+    .limit(1);
+  return completed ?? null;
 }
 
 /**
@@ -422,16 +433,61 @@ export async function contributeWarPoints(
   }
 }
 
+// ─── War Chest Funding ────────────────────────────────────────────────────────
+
+/**
+ * Fund a guild's war chest while it is in an ACTIVE war. Called from
+ * recordEarnEvent with a small per-engine % of gross routed from THORX's
+ * revenue cut — never from member earnings. No-ops (returns false) when the
+ * guild is not currently in an active war, so the chest only ever grows during
+ * a real war and THORX keeps the full cut otherwise.
+ */
+export async function contributeToWarChest(
+  guildId: string,
+  amountPkr: Decimal,
+  tx?: any,
+): Promise<boolean> {
+  const dbc = tx ?? db;
+  if (!amountPkr.gt(0)) return false;
+  const [activeWar] = await dbc
+    .select()
+    .from(guildWars)
+    .where(
+      and(
+        eq(guildWars.status, "active"),
+        or(
+          eq(guildWars.challengerGuildId, guildId),
+          eq(guildWars.challengedGuildId, guildId),
+        ),
+      ),
+    )
+    .limit(1);
+  if (!activeWar) return false;
+  await dbc
+    .update(guilds)
+    .set({ warChestPkr: sql`${guilds.warChestPkr} + ${amountPkr.toFixed(4)}` })
+    .where(eq(guilds.id, guildId));
+  return true;
+}
+
 // ─── War Resolution ───────────────────────────────────────────────────────────
 
 /**
- * Resolve a completed war — determine winner based on who first completed their
- * weekly target. If neither completed, the higher score wins. If tied, it's a draw.
+ * Resolve a war — the higher score wins (called at the Sunday week boundary,
+ * and from the admin resolve endpoint). If tied, it's a draw.
+ *
+ * Halal prize model (migration 0008): while a war is active each guild's war
+ * chest is funded from a small per-engine % of gross routed from THORX's
+ * revenue cut — never from member earnings. At resolution the winner takes
+ * BOTH guilds' chests as the prize (credited to the winner's weekly bonus pool
+ * for Sunday distribution) and earns the war_winner badge; on a draw each
+ * guild gets its own chest back. Chests are zeroed and the moved amount is
+ * snapshotted on guild_wars.prize_pkr for the UI.
  */
 export async function resolveWar(warId: string): Promise<{
   winnerId: string | null;
   isDraw: boolean;
-  poolTransferred?: string;
+  prizePkr?: string;
 }> {
   return await db.transaction(async (tx) => {
     const [war] = await tx.select().from(guildWars).where(eq(guildWars.id, warId)).limit(1);
@@ -444,63 +500,86 @@ export async function resolveWar(warId: string): Promise<{
       : war.challengerScore > war.challengedScore
       ? war.challengerGuildId
       : war.challengedGuildId;
-    const loserId = isDraw
-      ? null
-      : winnerId === war.challengerGuildId
-      ? war.challengedGuildId
-      : war.challengerGuildId;
 
-    await tx
-      .update(guildWars)
-      .set({ status: "completed", winnerId, completedAt: new Date() })
-      .where(eq(guildWars.id, warId));
+    // Read both guilds' war chests — guilds.warChestPkr is the live running
+    // chest (see storage.ts recordEarnEvent + contributeToWarChest), so there
+    // is no dependency on reset-job timing. Both are handled in this same tx
+    // as the war status update so a mid-resolve failure can't leave scores /
+    // chests / prize / badge in an inconsistent state.
+    const [challengerGuild] = await tx.select().from(guilds).where(eq(guilds.id, war.challengerGuildId)).limit(1);
+    const [challengedGuild] = await tx.select().from(guilds).where(eq(guilds.id, war.challengedGuildId)).limit(1);
+    const challengerChest = new Decimal(challengerGuild?.warChestPkr ?? "0");
+    const challengedChest = new Decimal(challengedGuild?.warChestPkr ?? "0");
 
-    let poolTransferred = "0.00";
+    // Zero both chests at resolution — the pot is fully disposed either way.
+    await tx.update(guilds)
+      .set({ warChestPkr: "0.0000" })
+      .where(eq(guilds.id, war.challengerGuildId));
+    await tx.update(guilds)
+      .set({ warChestPkr: "0.0000" })
+      .where(eq(guilds.id, war.challengedGuildId));
 
-    if (winnerId && loserId) {
-      // Winner captures the loser's currently-accruing weekly bonus pool.
-      // Fixed bug: this used to look up a guildWeeklyCycles row for the CURRENT
-      // week, but that row is only ever created retroactively by the Sunday
-      // reset job for the week that just ended — so during a live war (the
-      // normal case) it never existed and the transfer silently no-opped.
-      // guilds.weeklyBonusPool is the live running pool (see storage.ts
-      // recordEarnEvent), so read/zero/credit it directly — always available,
-      // no dependency on reset-job timing. All in the same tx as the war
-      // status update so a mid-resolve failure can't leave scores/pool/badge
-      // in an inconsistent state.
-      const [loserGuild] = await tx.select().from(guilds).where(eq(guilds.id, loserId)).limit(1);
-      const loserPool = new Decimal(loserGuild?.weeklyBonusPool ?? "0");
+    let prizePkr = "0.00";
 
-      if (loserPool.gt(0)) {
+    if (winnerId && !isDraw) {
+      // Winner takes BOTH chests as the prize → credited to the winner's
+      // weekly bonus pool for the upcoming Sunday distribution.
+      const totalChest = challengerChest.plus(challengedChest);
+      if (totalChest.gt(0)) {
         await tx.update(guilds)
-          .set({ weeklyBonusPool: "0.0000" })
-          .where(eq(guilds.id, loserId));
-
-        await tx.update(guilds)
-          .set({ weeklyBonusPool: sql`${guilds.weeklyBonusPool} + ${loserPool.toFixed(4)}` })
+          .set({ weeklyBonusPool: sql`${guilds.weeklyBonusPool} + ${totalChest.toFixed(4)}` })
           .where(eq(guilds.id, winnerId));
 
-        poolTransferred = loserPool.toFixed(2);
-        logger.info({ warId, winnerId, loserId, poolTransferred }, "[GuildWars] Pool transferred from loser to winner.");
+        prizePkr = totalChest.toFixed(2);
+        logger.info({ warId, winnerId, prizePkr }, "[GuildWars] War prize credited to winner's bonus pool.");
 
-        // Notify guild members of the pool capture
+        // Notify guild members of the prize capture
         try {
           const { broadcastGuildEvent } = await import("../realtime");
           broadcastGuildEvent(winnerId, "guild.war_pool_captured", {
             warId,
-            poolPkr: poolTransferred,
-            message: `⚔️ War won! Rs.${poolTransferred} captured from the opposing guild's pool — will be distributed this Sunday!`,
+            prizePkr,
+            message: `🏆 War won! Rs.${prizePkr} prize captured from both war chests — will be distributed this Sunday!`,
           });
         } catch (_) { /* non-critical */ }
       }
 
       await awardBadge(winnerId, "war_winner", "⚔️ War Victor", war.seasonId ?? undefined, tx);
-      logger.info({ warId, winnerId, poolTransferred }, "[GuildWars] War resolved — winner");
+      logger.info({ warId, winnerId, prizePkr }, "[GuildWars] War resolved — winner");
     } else {
-      logger.info({ warId }, "[GuildWars] War resolved — draw");
+      // Draw — each guild gets its own chest back into its own bonus pool.
+      // Chests are zeroed here too (found 2026-08-09 deep E2E): the draw path
+      // moved the chest amounts into the pools but left war_chest_pkr stale,
+      // so the UI/ledger kept showing an unclaimed chest after resolution.
+      await tx.update(guilds)
+        .set({
+          weeklyBonusPool: sql`${guilds.weeklyBonusPool} + ${challengerChest.toFixed(4)}`,
+          warChestPkr: "0.0000",
+        })
+        .where(eq(guilds.id, war.challengerGuildId));
+      await tx.update(guilds)
+        .set({
+          weeklyBonusPool: sql`${guilds.weeklyBonusPool} + ${challengedChest.toFixed(4)}`,
+          warChestPkr: "0.0000",
+        })
+        .where(eq(guilds.id, war.challengedGuildId));
+      logger.info(
+        { warId, returnedChest: challengerChest.plus(challengedChest).toFixed(2) },
+        "[GuildWars] War resolved — draw, chests returned to own pools",
+      );
     }
 
-    return { winnerId, isDraw, poolTransferred };
+    await tx
+      .update(guildWars)
+      .set({
+        status: "completed",
+        winnerId,
+        completedAt: new Date(),
+        prizePkr: prizePkr === "0.00" ? "0.0000" : prizePkr,
+      })
+      .where(eq(guildWars.id, warId));
+
+    return { winnerId, isDraw, prizePkr };
   });
 }
 

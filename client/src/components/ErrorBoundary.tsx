@@ -12,6 +12,8 @@ interface Props {
 interface State {
   hasError: boolean;
   error?: Error;
+  /** True once the one-shot auto-reload has been scheduled for module-fetch errors. */
+  autoReloadScheduled: boolean;
 }
 
 /**
@@ -28,11 +30,11 @@ interface State {
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, autoReloadScheduled: false };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, autoReloadScheduled: false };
   }
 
   componentDidCatch(error: Error, info: { componentStack: string }) {
@@ -46,9 +48,32 @@ export class ErrorBoundary extends Component<Props, State> {
         componentStack: info.componentStack,
       });
     }
+
+    // A failed dynamic import (dev-proxy hiccup) leaves React.lazy permanently
+    // in its rejected state — a state reset can never recover it because the
+    // loader promise is cached. Reload the document once to get a fresh module
+    // map; the portal pre-fetches every lazy chunk at boot, so the reloaded
+    // page navigates without further network fetches.
+    if (this.isModuleFetchError(error) && !this.state.autoReloadScheduled) {
+      this.setState({ autoReloadScheduled: true });
+      window.setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+    }
+  }
+
+  private isModuleFetchError(error?: Error): boolean {
+    return !!error && error.message.includes("Failed to fetch dynamically imported module");
   }
 
   private handleReset = () => {
+    // React.lazy caches a rejected loader, so re-rendering the children just
+    // re-throws the identical error — only a fresh document (new module map)
+    // can retry the fetch. "Try Again" therefore reloads for module errors.
+    if (this.isModuleFetchError(this.state.error)) {
+      window.location.reload();
+      return;
+    }
     this.setState({ hasError: false, error: undefined });
   };
 
@@ -88,6 +113,11 @@ export class ErrorBoundary extends Component<Props, State> {
                 Full Refresh
               </button>
             </div>
+            {this.state.autoReloadScheduled && (
+              <p className="mt-3 text-xs font-semibold text-primary">
+                Reconnecting automatically… if this persists, press Full Refresh.
+              </p>
+            )}
             {process.env.NODE_ENV !== "production" && this.state.error && (
               <details className="mt-4 text-left">
                 <summary className="text-xs font-bold text-zinc-400 cursor-pointer">

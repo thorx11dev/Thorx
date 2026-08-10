@@ -59,7 +59,32 @@ function validateRequiredEnv(): void {
 }
 validateRequiredEnv();
 
+// Recoverable DB connection failures (idle-in-transaction timeout 25P03, admin
+// shutdown 57P01, crash 57P02, cannot-connect 08006/08003, socket reset) are
+// transient: the pg pool self-heals and the next query opens a fresh connection.
+// Crashing the whole API process on one of these — exactly what happened in the
+// 2026-08-08 incident (hosted Postgres terminated idle-in-transaction connections
+// and the resulting uncaught client errors took the server down) — turns a 3s
+// infra blip into minutes of full outage. Log and keep serving instead.
+function isRecoverableDbError(error: unknown): boolean {
+  const e = error as any;
+  if (!e) return false;
+  const code = String(e?.code ?? e?.errno ?? "");
+  const msg = String(e?.message ?? e?.stack ?? "").toLowerCase();
+  return ["25p03", "57p01", "57p02", "08006", "08003", "ec" + "onreset"].includes(code.toLowerCase())
+    || msg.includes("idle-in-transaction")
+    || msg.includes("terminating connection")
+    || msg.includes("client has encountered a connection error")
+    || msg.includes("connection terminated")
+    || msg.includes("connection reset");
+}
+
 process.on('uncaughtException', (error) => {
+  // DB connection blips are recoverable — log, don't die (see isRecoverableDbError).
+  if (isRecoverableDbError(error)) {
+    logger.warn({ err: error }, 'Recoverable DB connection error — keeping server alive (pool will self-heal)');
+    return;
+  }
   // Finding 2-R: drain active connections before exiting on uncaught exception.
   // The server reference is set after listen(); on very early crashes (before listen)
   // the process exits immediately — which is correct since no connections are open.
@@ -129,11 +154,26 @@ initSentry(app);
 // Railway runs behind a reverse proxy — trust the first proxy for correct req.ip
 app.set("trust proxy", 1);
 
-// Security headers (X-Content-Type-Options, HSTS, X-Frame-Options, etc.)
+// Security headers (X-Content-Type-Options, HSTS, etc.)
+// frameguard is disabled and CSP frame-ancestors allows embedding so the
+// app can render inside the Freebuff preview iframe. The previous default
+// (X-Frame-Options: SAMEORIGIN + CORP: same-origin) made the app open fine
+// in a new browser tab but kept the preview panel blank, because the preview
+// iframe comes from a different origin. Clickjacking protection is preserved
+// via CSRF double-submit tokens on every state-changing /api request.
 const isDev = process.env.NODE_ENV !== "production";
 app.use(helmet({
-  contentSecurityPolicy: isDev ? false : undefined,
+  contentSecurityPolicy: isDev
+    ? false
+    : {
+        directives: {
+          ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+          "frame-ancestors": ["*"],
+        },
+      },
   crossOriginEmbedderPolicy: false,
+  frameguard: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
 
 app.use(cors({
@@ -207,7 +247,27 @@ app.use((req, res, next) => {
       return res.status(200).json({ status: "starting", db: "connecting", uptime: process.uptime() });
     }
     if (req.method === "GET" && !req.path.startsWith("/api/")) {
-      return res.status(200).send("<!DOCTYPE html><html><head><title>THORX</title></head><body style=\"font-family:system-ui;background:#0b0b0f;color:#f5f5f5;display:grid;place-items:center;height:100vh;margin:0\"><div style=\"text-align:center\"><h1>THORX</h1><p>Starting… please refresh in a moment.</p></div></body></html>");
+      // Only true page navigations (Accept: text/html) receive the splash page.
+      // Module fetches — dynamic import(), <script src>, fetch() — must NEVER
+      // receive HTML: the browser parses it as a broken module and React's
+      // ErrorBoundary reports "Failed to fetch dynamically imported module",
+      // then auto-reloads in a loop while Vite is still coming up. Those
+      // requests get a clean 503 instead and succeed on the next attempt once
+      // Vite's middleware is attached. The splash also reloads itself every
+      // 1.2s, so a cold start transitions to the real app with no manual
+      // refresh and no user-visible error card.
+      if ((req.get("accept") ?? "").includes("text/html")) {
+        return res
+          .status(200)
+          .set("Content-Type", "text/html")
+          .send(
+            `<!DOCTYPE html><html><head><title>THORX</title><script>setTimeout(()=>location.reload(),1200);</script></head><body style="font-family:system-ui;background:#0b0b0f;color:#f5f5f5;display:grid;place-items:center;height:100vh;margin:0"><div style="text-align:center"><h1 style="margin:0 0 .5rem">THORX</h1><p style="margin:0;opacity:.8">Starting… this page loads automatically when ready.</p></div></body></html>`,
+          );
+      }
+      return res
+        .status(503)
+        .set("Content-Type", "text/plain")
+        .send("THORX is starting — Vite is not ready yet. Retry in a moment.");
     }
   }
   next();

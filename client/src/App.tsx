@@ -1,4 +1,5 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { retryLazy } from "@/lib/retryLazy";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -11,17 +12,17 @@ import { ProtectedRoute, PublicOnlyRoute, TeamProtectedRoute } from "@/component
 import ThorxLoadingScreen from "@/components/ui/thorx-loading-screen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-const Home = lazy(() => import("@/pages/home"));
-const Auth = lazy(() => import("@/features/auth/AuthPage"));
-const UserPortal = lazy(() => import("@/features/user-portal/UserPortalPage"));
-const TeamPortal = lazy(() => import("@/features/team-portal/TeamPortalPage"));
-const HilltopAdsAdmin = lazy(() => import("@/pages/HilltopAdsAdmin"));
-const TermsAndConditions = lazy(() => import("@/features/legal/TermsPage"));
-const PrivacyPolicy = lazy(() => import("@/features/legal/PrivacyPage"));
-const AdLanding = lazy(() => import("@/pages/AdLanding"));
-const ResetPassword = lazy(() => import("@/pages/reset-password"));
-const NotFound = lazy(() => import("@/pages/not-found"));
-const DevReferralPreview = lazy(() => import("@/pages/_dev-referral-preview"));
+const Home = retryLazy(() => import("@/pages/home"));
+const Auth = retryLazy(() => import("@/features/auth/AuthPage"));
+const UserPortal = retryLazy(() => import("@/features/user-portal/UserPortalPage"));
+const TeamPortal = retryLazy(() => import("@/features/team-portal/TeamPortalPage"));
+const HilltopAdsAdmin = retryLazy(() => import("@/pages/HilltopAdsAdmin"));
+const TermsAndConditions = retryLazy(() => import("@/features/legal/TermsPage"));
+const PrivacyPolicy = retryLazy(() => import("@/features/legal/PrivacyPage"));
+const AdLanding = retryLazy(() => import("@/pages/AdLanding"));
+const ResetPassword = retryLazy(() => import("@/pages/reset-password"));
+const NotFound = retryLazy(() => import("@/pages/not-found"));
+const DevReferralPreview = retryLazy(() => import("@/pages/_dev-referral-preview"));
 
 function PageLoader() {
   return <ThorxLoadingScreen message="LOADING MODULE" duration={800} />;

@@ -75,6 +75,16 @@ export default defineConfig({
     cors: true,
   },
   optimizeDeps: {
+    // react-icons ships each icon-set as ONE giant barrel module — the `gi`
+    // set is a single ~8MB index.mjs with 2000+ icons inlined. Vite's
+    // dependency pre-bundler times out on it (HTTP 504 on
+    // /node_modules/.vite/deps/react-icons_gi.js), which broke the Guild
+    // tab's lazy chunk: the browser's import() got 504 and React's
+    // ErrorBoundary reported "Failed to fetch dynamically imported module"
+    // every time, because the pre-bundle never completed. Excluding
+    // react-icons makes Vite serve the barrels through its normal on-demand
+    // transform pipeline instead, which handles the large file fine.
+    exclude: ["react-icons/gi", "react-icons/si"],
     include: [
       "react",
       "react-dom",

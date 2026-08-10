@@ -1091,6 +1091,13 @@ export const guilds = pgTable("guilds", {
   announcementPostedAt: timestamp("announcement_posted_at"),
   // ── THORX v3: Weekly bonus pool — 80% main + 5% bonus tracked separately ─
   bonusPoolPkr: decimal("bonus_pool_pkr", { precision: 12, scale: 4 }).notNull().default("0.0000"),
+  // ── THORX v3: Guild Wars — self-funded war chest (halal prize model) ──────
+  // Funded ONLY while the guild is in an active war, from a small per-engine
+  // % of gross (WAR_LEVY_ENGINE_{A,B,C}_PCT) routed from THORX's revenue cut
+  // — never from member earnings. The war winner takes BOTH guilds' chests as
+  // the prize (added to the winner's weekly bonus pool at resolution); on a
+  // draw each guild gets its own chest back. Zeroed at resolution.
+  warChestPkr: decimal("war_chest_pkr", { precision: 12, scale: 4 }).notNull().default("0.0000"),
   // ── THORX v3: Governance ─────────────────────────────────────────────────
   assistantCaptainId: varchar("assistant_captain_id").references((): any => users.id, { onDelete: "set null" }),
   // ── THORX v3: Assistant captain feature permissions (jsonb list of enabled features) ──
@@ -1586,6 +1593,11 @@ export const guildWars = pgTable("guild_wars", {
   // Pool snapshots at completion time (for prize distribution)
   challengerPoolAtEnd: decimal("challenger_pool_at_end", { precision: 14, scale: 4 }),
   challengedPoolAtEnd: decimal("challenged_pool_at_end", { precision: 14, scale: 4 }),
+  // Prize locked at resolution (migration 0008): the winner takes BOTH guilds'
+  // war chests, credited to the winner's weekly bonus pool. "0.0000" until
+  // resolveWar writes the chest total at completion; on a draw it stays 0 and
+  // each guild gets its own chest back.
+  prizePkr: decimal("prize_pkr", { precision: 14, scale: 4 }).notNull().default("0.0000"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("idx_gw_status").on(table.status),
