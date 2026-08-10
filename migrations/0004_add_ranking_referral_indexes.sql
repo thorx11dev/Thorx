@@ -2,8 +2,10 @@
 -- Created: 2026-01-20
 -- Description: Adds performance indexes for rank and commission queries
 
--- Add index on users.rank for faster rank-based queries
-CREATE INDEX IF NOT EXISTS idx_users_rank ON users(rank);
+-- Add index on users.user_rank_tier for faster rank-based queries
+-- (the users table stores rank as user_rank_tier; the old users.rank
+--  column no longer exists in the schema).
+CREATE INDEX IF NOT EXISTS idx_users_rank ON users(user_rank_tier);
 
 -- Add index on commission_logs.level for faster level-based queries
 CREATE INDEX IF NOT EXISTS idx_commission_logs_level ON commission_logs(level);

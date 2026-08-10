@@ -15,6 +15,20 @@
       "when": 1751017200000,
       "tag": "0005_add_missing_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785940000000,
+      "tag": "0008_guild_war_chest",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786356000000,
+      "tag": "0009_restore_missing_runtime_tables",
+      "breakpoints": true
     }
   ]
 }

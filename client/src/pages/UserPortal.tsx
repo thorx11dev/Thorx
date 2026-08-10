@@ -368,17 +368,6 @@ export default function UserPortal() {
   // Convert to TX-Points for display to honour the Points-Only Mandate.
   const CONVERSION_RATE = parseFloat(sysConfig?.["CONVERSION_RATE"] ?? "100");
 
-
-  const { data: payoutRules } = useQuery({
-    queryKey: ['/api/system-config/rank_payout_requirements'],
-    queryFn: async () => {
-      const res = await apiRequest("GET", "/api/system-config/rank_payout_requirements");
-      return res.json();
-    },
-    enabled: !!user,
-  });
-
-
   const commissions = commissionsData?.commissions || [];
 
   const { data: notificationsData, isLoading: isLoadingNotifications } = useQuery({
