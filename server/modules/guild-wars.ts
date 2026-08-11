@@ -490,7 +490,13 @@ export async function resolveWar(warId: string): Promise<{
   prizePkr?: string;
 }> {
   return await db.transaction(async (tx) => {
-    const [war] = await tx.select().from(guildWars).where(eq(guildWars.id, warId)).limit(1);
+    // FOR UPDATE on the war row: two concurrent resolve calls (admin double-click,
+    // admin + Sunday cron racing) must serialize. Without the lock both would read
+    // the war as active, both would credit the full chest sum to the winner's bonus
+    // pool and zero the chests — the prize would be paid out TWICE (found 2026-08-10
+    // ultra-advanced concurrency E2E). The second caller blocks on the row lock,
+    // re-reads after commit, sees status=completed and returns the idempotent result.
+    const [war] = await tx.select().from(guildWars).where(eq(guildWars.id, warId)).limit(1).for("update");
     if (!war) throw new Error("War not found");
     if (war.status === "completed") return { winnerId: war.winnerId, isDraw: !war.winnerId };
 

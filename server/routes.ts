@@ -1331,7 +1331,10 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     try {
       const userId = getThorxPrincipalId(req) as string;
       const membership = await storage.getUserGuildMembership(userId);
-      res.json({ membership: membership ?? null });
+      // getUserGuildMembership already embeds the joined guild row — expose it at
+      // the top level as well (`guild`) for callers that want the guild directly
+      // without unwrapping `membership.guild`.
+      res.json({ membership: membership ?? null, guild: membership?.guild ?? null });
     } catch (error) {
       logger.error({ err: error }, "Get my guild membership error:");
       res.status(500).json({ message: "Failed to fetch guild membership" });
@@ -1388,6 +1391,52 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch guild discovery list" });
+    }
+  });
+
+  // ── Engine C: Weekly Tasks ────────────────────────────────────────────────────
+  // IMPORTANT: registered BEFORE /api/guilds/:id — Express matches the literal
+  // "weekly-tasks" segment first, otherwise it is captured as `:id` and the
+  // route 404s as "Guild not found".
+  app.get("/api/guilds/weekly-tasks", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req) as string;
+      const membership = await storage.getUserGuildMembership(userId);
+      if (!membership || membership.status !== "active") {
+        return res.status(403).json({ message: "Weekly tasks are only available to active guild members." });
+      }
+      const tasks = await storage.getActiveWeeklyTasks(userId, membership.guildId);
+
+      // Strip `grossPkrPerCompletion` (raw PKR value) from the user-facing response —
+      // it breaks the TX-Points-only illusion (audit finding B). Replace with a
+      // pre-computed `txPointsReward` / `txPointsRewardMax` range so the frontend
+      // never does PKR math client-side.
+      // TX-Points for Engine C are based on the 80% pool contribution (not user cut,
+      // which is now 0% — pool unlocks Sunday). This keeps gamification visible.
+      const [conversionRate, poolPct] = await Promise.all([
+        storage.getSystemConfigValue<number>("CONVERSION_RATE", 100),
+        storage.getSystemConfigValue<number>("ENGINE_C_GUILD_POOL_PCT", 80),
+      ]);
+      const poolPctD = new Decimal(poolPct);
+
+      const safeTasks = (tasks as any[]).map((task) => {
+        const { grossPkrPerCompletion, ...rest } = task;
+        const grossPkrD = new Decimal(grossPkrPerCompletion ?? "0");
+        const isIndirect = task.taskCategory === "indirect" || grossPkrD.isZero();
+        const txPointsReward = isIndirect
+          ? 0
+          : grossPkrD.times(poolPctD).div(100).times(conversionRate)
+              .toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber();
+        const txPointsRewardMax = txPointsReward
+          ? new Decimal(txPointsReward).times(1.2).toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber()
+          : 0;
+        return { ...rest, txPointsReward, txPointsRewardMax };
+      });
+
+      res.json({ tasks: safeTasks });
+    } catch (error) {
+      logger.error({ err: error }, "Get weekly tasks error:");
+      res.status(500).json({ message: "Failed to fetch weekly tasks" });
     }
   });
 
@@ -1519,49 +1568,6 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     } catch (error) {
       logger.error({ err: error }, "Send guild chat error:");
       res.status(500).json({ message: "Failed to send message" });
-    }
-  });
-
-  // ── Engine C: Weekly Tasks ────────────────────────────────────────────────────
-  app.get("/api/guilds/weekly-tasks", requireSessionAuth, async (req, res) => {
-    try {
-      const userId = getThorxPrincipalId(req) as string;
-      const membership = await storage.getUserGuildMembership(userId);
-      if (!membership || membership.status !== "active") {
-        return res.status(403).json({ message: "Weekly tasks are only available to active guild members." });
-      }
-      const tasks = await storage.getActiveWeeklyTasks(userId, membership.guildId);
-
-      // Strip `grossPkrPerCompletion` (raw PKR value) from the user-facing response —
-      // it breaks the TX-Points-only illusion (audit finding B). Replace with a
-      // pre-computed `txPointsReward` / `txPointsRewardMax` range so the frontend
-      // never does PKR math client-side.
-      // TX-Points for Engine C are based on the 80% pool contribution (not user cut,
-      // which is now 0% — pool unlocks Sunday). This keeps gamification visible.
-      const [conversionRate, poolPct] = await Promise.all([
-        storage.getSystemConfigValue<number>("CONVERSION_RATE", 100),
-        storage.getSystemConfigValue<number>("ENGINE_C_GUILD_POOL_PCT", 80),
-      ]);
-      const poolPctD = new Decimal(poolPct);
-
-      const safeTasks = (tasks as any[]).map((task) => {
-        const { grossPkrPerCompletion, ...rest } = task;
-        const grossPkrD = new Decimal(grossPkrPerCompletion ?? "0");
-        const isIndirect = task.taskCategory === "indirect" || grossPkrD.isZero();
-        const txPointsReward = isIndirect
-          ? 0
-          : grossPkrD.times(poolPctD).div(100).times(conversionRate)
-              .toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber();
-        const txPointsRewardMax = txPointsReward
-          ? new Decimal(txPointsReward).times(1.2).toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber()
-          : 0;
-        return { ...rest, txPointsReward, txPointsRewardMax };
-      });
-
-      res.json({ tasks: safeTasks });
-    } catch (error) {
-      logger.error({ err: error }, "Get weekly tasks error:");
-      res.status(500).json({ message: "Failed to fetch weekly tasks" });
     }
   });
 
@@ -4945,16 +4951,27 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         return res.status(403).json({ error: "RANK_GATE", requiredRank: "C-Rank", message: "Engine B CPA tasks require C-Rank or higher." });
       }
 
-      // Atomic: complete record + earn event in one transaction
+      // Atomic: complete record + earn event in one transaction.
+      // The UPDATE is guarded by WHERE status = "pending": if a concurrent verify
+      // already completed this record between our read and our write (double-click,
+      // client retry race), the guarded UPDATE affects 0 rows and we return the
+      // idempotent "already completed" response instead of double-crediting or
+      // surfacing a 500 (uniq_user_transactions_source stays as the DB backstop).
       let updatedRecord: any;
       let thorxCard: { pointsCredited: number; engineType: string } | null = null;
+      let alreadyCompleted = false;
       try {
         await db.transaction(async (tx) => {
           [updatedRecord] = await tx
             .update(engineBRecords)
             .set({ status: "completed", completedAt: new Date() })
-            .where(eq(engineBRecords.id, record.id))
+            .where(and(eq(engineBRecords.id, record.id), eq(engineBRecords.status, "pending")))
             .returning();
+
+          if (!updatedRecord) {
+            alreadyCompleted = true;
+            return;
+          }
 
           const earnResult = await storage.recordEarnEvent({
             userId,
@@ -4973,6 +4990,9 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         return res.status(500).json({ message: "Verification failed" });
       }
 
+      if (alreadyCompleted) {
+        return res.json({ message: "Task already completed", record });
+      }
       res.json({ success: true, record: updatedRecord, thorxCard });
     } catch (error) {
       res.status(500).json({ message: "Verification failed" });

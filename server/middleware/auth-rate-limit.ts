@@ -5,7 +5,6 @@ import type { Request } from "express";
 const skipLocalhost = (req: Request) => {
   if (process.env.NODE_ENV !== 'production') {
     const ip = req.ip || req.socket?.remoteAddress || '';
-    console.log('[TEMP-DEBUG skipLocalhost]', { NODE_ENV: process.env.NODE_ENV, ip, xff: req.headers['x-forwarded-for'], path: req.path });
     if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') return true;
   }
   return false;

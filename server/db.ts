@@ -27,7 +27,11 @@ export const pool = new Pool({
   ssl: requiresSsl ? { rejectUnauthorized: false } : undefined,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  // Neon autosuspend wakes a paused compute on the first connection, which can
+  // take 5-20s+ — a 5s timeout made the very first request after idle fail with
+  // "Connection terminated due to connection timeout". 20s covers cold starts
+  // while still surfacing genuinely dead endpoints quickly.
+  connectionTimeoutMillis: 20000,
   // Lock-convoy / hang hardening (found 2026-08-09 deep E2E): an in-transaction
   // activity_feed insert self-blocked on its own guild row lock, hanging task
   // completions indefinitely. Bounded timeouts turn any residual lock wait or

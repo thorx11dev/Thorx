@@ -130,7 +130,9 @@ async function bootstrapDatabase() {
   // forever (the preview runner would otherwise stall before the port opens).
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    connectionTimeoutMillis: 8000,
+    // Neon autosuspend cold starts can exceed 8s; 20s keeps bootstrap from
+    // aborting on the first connection after the compute was paused.
+    connectionTimeoutMillis: 20000,
     query_timeout: 15000,
     statement_timeout: 15000,
   });
