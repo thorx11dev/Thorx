@@ -63,5 +63,8 @@ EXPOSE 5000
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 --ingroup nodejs thorx
 USER thorx
 
-# Start the server with strict memory limits to prevent Railway 500MB OOM crashes
-CMD ["node", "--max-old-space-size=256", "dist/index.js"]
+# Start the server with strict memory limits so the app fits free-tier
+# 256MB containers (Adaptable) without OOM. sharp is lazy-loaded, so the
+# V8 heap is the main variable; 192MB leaves headroom for native modules
+# (pg, bcrypt) + code within a 256MB budget.
+CMD ["node", "--max-old-space-size=192", "dist/index.js"]

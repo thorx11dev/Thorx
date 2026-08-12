@@ -25,7 +25,11 @@ const requiresSsl =
 export const pool = new Pool({
   connectionString,
   ssl: requiresSsl ? { rejectUnauthorized: false } : undefined,
-  max: 20,
+  // max: 8 keeps idle connections + client-side buffers small enough to fit
+  // free-tier 256MB containers (Adaptable) — the app idles ~267MB RSS with
+  // max:20 + sharp resident. 8 concurrent queries is plenty at MVP scale;
+  // connect-pg-simple sessions share this pool.
+  max: 8,
   idleTimeoutMillis: 30000,
   // Neon autosuspend wakes a paused compute on the first connection, which can
   // take 5-20s+ — a 5s timeout made the very first request after idle fail with
