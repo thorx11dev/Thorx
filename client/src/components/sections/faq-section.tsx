@@ -124,7 +124,7 @@ const allFaqData = [
     id: "009",
     protocol: "RANKING-SYSTEM",
     question: "What are the user ranks and how do they work?",
-    answer: "THORX has six personal ranks, driven entirely by your Performance Score (PS): E-Rank → D-Rank → C-Rank → B-Rank → A-Rank → S-Rank. Higher ranks unlock Engine B access (C-Rank+), guild creation (B-Rank+), wider Thorx Card variance bonuses (A-Rank, S-Rank), and instant-approved withdrawals (S-Rank). Guild Ranks (E through S) are separate — they track your Guild's collective weekly performance."
+    answer: "THORX has six personal ranks, driven entirely by your Performance Score (PS): E-Rank → D-Rank → C-Rank → B-Rank → A-Rank → S-Rank. Higher ranks unlock harder Engine B tasks (Elite at A-Rank), all CPA offers (C-Rank+), wider Thorx Card variance bonuses (A-Rank, S-Rank), instant-approved withdrawals (S-Rank), and entry to guilds that require a higher rank. Guild creation itself is open at any rank — admin approval is the gate. Guild Ranks (E through S) are separate — they track your Guild's collective weekly performance."
   },
   {
     id: "010",

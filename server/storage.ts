@@ -1901,6 +1901,7 @@ export class DatabaseStorage implements IStorage {
         txPointsBalance: users.txPointsBalance,
         performanceScore: users.performanceScore,
         userRankTier: users.userRankTier,
+        rankLocked: users.rankLocked,
         guildRole: users.guildRole,
         guildId: users.guildId,
         lastActiveAt: users.lastActiveAt,
@@ -3821,6 +3822,7 @@ export class DatabaseStorage implements IStorage {
         createdAt: users.createdAt,
         lastLoginDate: users.lastLoginDate,
         userRankTier: users.userRankTier,
+        rankLocked: users.rankLocked,
         guildRole: users.guildRole,
       })
       .from(users)

@@ -30,7 +30,8 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname, "client"),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    // Static frontend build: output lands directly in dist/ for static hosting.
+    outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
     target: "esnext",
     minify: "esbuild",

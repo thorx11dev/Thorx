@@ -12,6 +12,7 @@ interface TabData {
   earnings?: string;
   isActive?: boolean;
   productUrl?: string;
+  adId?: string;
 }
 
 interface IndustrialTabsProps {
@@ -138,6 +139,7 @@ export default IndustrialTabs;
 export const WORK_TABS: TabData[] = [
   {
     id: "player1",
+    adId: "video_standard",
     title: "PLAYER 1",
     icon: PlayCircle,
     description: "Watch video ads and visit the product page for 30s to convert attention into TX-Points.",
@@ -145,6 +147,7 @@ export const WORK_TABS: TabData[] = [
   },
   {
     id: "player2",
+    adId: "video_premium",
     title: "PLAYER 2",
     icon: PlayCircle,
     description: "Secondary ad network. Ensure genuine engagement to qualify for rewards.",
@@ -152,6 +155,7 @@ export const WORK_TABS: TabData[] = [
   },
   {
     id: "player3",
+    adId: "banner_standard",
     title: "PLAYER 3",
     icon: PlayCircle,
     description: "Diversified ad content. Earnings credited after manual review of attentiveness.",
@@ -159,6 +163,7 @@ export const WORK_TABS: TabData[] = [
   },
   {
     id: "player4",
+    adId: "ad_004",
     title: "PLAYER 4",
     icon: PlayCircle,
     description: "Maximum earning potential. Turn your attention into real currency here.",

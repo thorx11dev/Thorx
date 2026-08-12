@@ -7,7 +7,7 @@ import connectPg from "connect-pg-simple";
 import { storage, KNOWN_SYSTEM_CONFIG_KEYS } from "./storage";
 import { pool, db } from "./db";
 import { initRealtime, broadcastUserUpdated, broadcastTeamRefresh, broadcastGuildMessage, broadcastGuildEvent, broadcastToUser, closeUserSockets, isUserOnline } from "./realtime";
-import { insertRegistrationSchema, insertUserSchema, insertWithdrawalSchema, users, teamKeys, adViews, systemConfig, weeklyTasks, auditLogs, insertHilltopAdsConfigSchema, insertHilltopAdsZoneSchema, passwordResetTokens, insertEngineBTaskSchema, engineBRecords, guildCreationRequests, guildMembers, guildProfiles, guildWars, guilds, captainMessages } from "@shared/schema";
+import { insertRegistrationSchema, insertUserSchema, insertWithdrawalSchema, users, teamKeys, adViews, systemConfig, weeklyTasks, auditLogs, rankLogs, insertHilltopAdsConfigSchema, insertHilltopAdsZoneSchema, passwordResetTokens, insertEngineBTaskSchema, engineBRecords, guildCreationRequests, guildMembers, guildProfiles, guildWars, guilds, captainMessages } from "@shared/schema";
 import { TRUST_STATUSES } from "@shared/constants";
 import { eq, sql, and, desc, or, inArray } from "drizzle-orm";
 import { z } from "zod";
@@ -49,7 +49,7 @@ setInterval(() => {
 interface AdItem { reward: string; duration: number; type: string }
 let _adInventoryCache: Record<string, AdItem> | null = null;
 let _adInventoryCacheExpiry = 0;
-const AD_INVENTORY_TTL_MS = 60_000;
+const AD_INVENTORY_TTL_MS = 60_000; // single-quote 'ok'
 
 async function getAdInventory(): Promise<Record<string, AdItem>> {
   if (_adInventoryCache && Date.now() < _adInventoryCacheExpiry) return _adInventoryCache;
@@ -2475,12 +2475,28 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       // (AD_INVENTORY_JSON key). getAdInventory() uses a 60-second TTL cache
       // so admins can update rewards/durations without a code deployment.
       const inventory = await getAdInventory();
+      // Audit fix (Engine A hardening): MAX_ADS_PER_DAY existed but was only
+      // used by the UI daily-goal display — the server never enforced it. The
+      // cap is now checked inside the locked transaction (below).
+      const dailyCap = await storage.getSystemConfigValue<number>("MAX_ADS_PER_DAY", 20);
       const { adId } = req.body;
       const adConfig = inventory[adId] || inventory["hilltop_fallback"];
+
+      // Audit fix (Engine A hardening): an ad that does not exist in the
+      // configured inventory is never credited. Previously any unknown adId
+      // silently fell back to hilltop_fallback and paid the user from
+      // THORX's own pocket — a loss a client could trigger with any id.
+      if (!inventory[adId]) {
+        return res.status(400).json({
+          message: "This ad is not available right now.",
+          error: "INVALID_AD",
+        });
+      }
 
       let adViewRow: any;
       let thorxCard: { pointsCredited: number; engineType: string } | null = null;
       let timingFailed = false;
+      let dailyCapExceeded = false;
 
       try {
         await db.transaction(async (tx) => {
@@ -2503,6 +2519,23 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
               timingFailed = true;
               throw new Error("TIMING_FAIL");
             }
+          }
+
+          // Daily earning cap (MAX_ADS_PER_DAY) — enforced INSIDE the locked
+          // transaction so concurrent submissions cannot both pass the count.
+          const todayStart = new Date();
+          todayStart.setHours(0, 0, 0, 0);
+          const [viewsToday] = await tx
+            .select({ n: sql<number>`COUNT(*)` })
+            .from(adViews)
+            .where(and(
+              eq(adViews.userId, thorxPid),
+              eq(adViews.completed, true),
+              sql`${adViews.createdAt} >= ${todayStart}`,
+            ));
+          if (Number(viewsToday?.n ?? 0) >= dailyCap) {
+            dailyCapExceeded = true;
+            throw new Error("DAILY_CAP");
           }
 
           // Insert the ad_view row within the locked transaction
@@ -2535,6 +2568,12 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           }
         });
       } catch (err: any) {
+        if (dailyCapExceeded) {
+          return res.status(429).json({
+            message: "Daily ad limit reached. Come back tomorrow to earn more.",
+            error: "DAILY_LIMIT",
+          });
+        }
         if (timingFailed) {
           return res.status(429).json({
             message: "Protocol Interruption: Ad watch duration insufficient.",
@@ -5168,6 +5207,16 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   });
 
   // HilltopAds Ad Completion Tracking (Authenticated users)
+  //
+  // Engine A hardening (2026-08): this endpoint is now a NO-CREDIT reporting
+  // stub. It previously called storage.createAdView with completed:true +
+  // earnedAmount, which auto-credits via recordEarnEvent — an unratelimited,
+  // unchecked path a logged-in user could POST in a loop to mint unlimited
+  // points/PKR (the ad-completion money faucet). All Engine A credit now
+  // flows exclusively through POST /api/ad-view (session auth +
+  // earnRateLimiter + timing gap + daily cap + advisory lock). The stub logs
+  // a completed:false row for analytics; real network-completion reporting
+  // returns with the Phase 2 network-adapter layer.
   app.post("/api/hilltopads/ad-completion", requireSessionAuth, async (req, res) => {
     try {
       const { zoneId, adType, duration } = req.body;
@@ -5194,8 +5243,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         adType,
         adNetwork: "hilltopads",
         duration: duration || 0,
-        completed: true,
-        earnedAmount: rewardAmount
+        completed: false,
+        earnedAmount: "0"
       });
 
       res.json({
@@ -5449,9 +5498,29 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
       const [updatedUser] = await db
         .update(users)
-        .set({ userRankTier: rank, updatedAt: new Date() })
+        .set({
+          userRankTier: rank,
+          // The `locked` flag was accepted by the schema but never applied — a
+          // locked rank save returned success while rankLocked stayed false, so
+          // the user's very next earn event silently reverted the manual rank.
+          // Only write it when provided so locked:false (explicit unlock) and an
+          // omitted field behave differently.
+          ...(locked !== undefined ? { rankLocked: locked } : {}),
+          updatedAt: new Date(),
+        })
         .where(eq(users.id, id))
         .returning();
+
+      // Audit parity with the PS engine: automatic rank changes write a
+      // rank_logs row (triggerSource 'ps_engine'); manual overrides must be
+      // traceable the same way instead of appearing out of nowhere.
+      await db.insert(rankLogs).values({
+        userId: id,
+        oldRank: oldTier,
+        newRank: rank,
+        triggerSource: "admin",
+        targetType: "user",
+      });
 
       await storage.createAuditLog({
         adminId: req.userProfile.id,

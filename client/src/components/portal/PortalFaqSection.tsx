@@ -44,7 +44,7 @@ const faqItems: FaqItem[] = [
     category: "Ranks",
     question: "What are the user ranks?",
     answer:
-      "Your rank is driven entirely by your Performance Score (PS), earned from completing tasks and maintaining a daily streak. Ranks: E-Rank → D-Rank → C-Rank (unlocks Engine B) → B-Rank (unlocks guild creation) → A-Rank (wider Thorx Card variance) → S-Rank (instant-approved withdrawals). Totals earned or referred don't affect your rank directly — only PS does.",
+      "Your rank is driven entirely by your Performance Score (PS), earned from completing tasks and maintaining a daily streak. Ranks: E-Rank → D-Rank → C-Rank (unlocks Engine B CPA offers) → B-Rank → A-Rank (wider Thorx Card variance) → S-Rank (instant-approved withdrawals). Guild creation is open at every rank — admin approval is the gate. Totals earned or referred don't affect your rank directly — only PS does.",
   },
   {
     id: "006",

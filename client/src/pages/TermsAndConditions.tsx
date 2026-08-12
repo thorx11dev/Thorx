@@ -158,27 +158,36 @@ export default function TermsAndConditions() {
                                         <tr>
                                             <th className="p-4 font-black">Rank</th>
                                             <th className="p-4 font-black">PS Required</th>
+                                            <th className="p-4 font-black">TX-Points Multiplier</th>
                                             <th className="p-4 font-black">Key Unlocks</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-black/10">
                                         {[
-                                            { r: "E-Rank", ps: "0",      unlock: "Engine A access"                    },
-                                            { r: "D-Rank", ps: "1,000",  unlock: "Referral tracking begins"           },
-                                            { r: "C-Rank", ps: "3,000",  unlock: "Engine B (CPA tasks)"               },
-                                            { r: "B-Rank", ps: "6,000",  unlock: "Guild creation"                     },
-                                            { r: "A-Rank", ps: "10,000", unlock: "Wider Thorx Card variance bonus"    },
-                                            { r: "S-Rank", ps: "20,000", unlock: "Instant withdrawal approval"        },
+                                            { r: "E-Rank", ps: "0",      mult: "1.00×", unlock: "Engine A access · Engine B Easy tasks"                                },
+                                            { r: "D-Rank", ps: "1,000",  mult: "1.10×", unlock: "Engine B Medium tasks"                                                    },
+                                            { r: "C-Rank", ps: "3,000",  mult: "1.20×", unlock: "Engine B Hard tasks · all CPA offers"                                    },
+                                            { r: "B-Rank", ps: "6,000",  mult: "1.35×", unlock: "Join guilds that require B-Rank or higher"                                 },
+                                            { r: "A-Rank", ps: "10,000", mult: "1.50×", unlock: "Engine B Elite tasks · wider Thorx Card variance (±5%)"                     },
+                                            { r: "S-Rank", ps: "20,000", mult: "1.75×", unlock: "Instant withdrawal approval · widest Thorx Card variance (±10%)"            },
                                         ].map((row) => (
                                             <tr key={row.r} className="hover:bg-muted/60 transition-colors">
                                                 <td className="p-4 font-bold">{row.r}</td>
                                                 <td className="p-4">{row.ps}</td>
+                                                <td className="p-4">{row.mult}</td>
                                                 <td className="p-4">{row.unlock}</td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
+
+                            <p className="text-sm">
+                                <strong className="text-black">How ranks affect earnings:</strong> the multiplier applies to the
+                                TX-Points (display points) you earn per task — it never changes the real PKR value your earnings
+                                convert to at withdrawal. Guild creation is open to members of every rank; each request is
+                                reviewed and approved by an admin. Referral tracking is available from day one at any rank.
+                            </p>
 
                             <p className="italic text-sm">
                                 Referral Commission: THORX operates a single-tier referral system. When a user you referred

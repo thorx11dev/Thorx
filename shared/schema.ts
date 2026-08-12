@@ -63,6 +63,14 @@ export const users = pgTable("users", {
   performanceScore: integer("performance_score").notNull().default(0),
   userRankTier: text("user_rank_tier").notNull().default("E-Rank"),
   // Valid: 'E-Rank' | 'D-Rank' | 'C-Rank' | 'B-Rank' | 'A-Rank' | 'S-Rank'
+  // rankLocked=true freezes ALL automatic rank changes (ps-engine
+  // checkAndUpdateRankTier bails early), so an admin-set rank survives the
+  // user's next earn event. The DB column was originally added ad-hoc by
+  // scripts/migrate-v3.ts while this definition was never updated — schema
+  // drift that made the lock dead code (the column was never SELECTed, so
+  // ps-engine's guard always saw undefined and manual ranks were silently
+  // reverted on the next earn).
+  rankLocked: boolean("rank_locked").notNull().default(false),
   // ── THORX v3: Guild membership (replaces implicit lookup via guild_members) ─
   guildRole: text("guild_role").notNull().default("simple"), // simple | member | captain
   guildId: varchar("guild_id").references((): any => guilds.id, { onDelete: "set null" }),

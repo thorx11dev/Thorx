@@ -80,7 +80,10 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "public");
+  // Built client + server bundle both live in dist/ (vite outDir = dist, esbuild
+  // bundle = dist/index.js). Resolve from cwd so the bundled server
+  // (dist/index.js, run from the project root) finds the static assets.
+  const distPath = path.resolve(process.cwd(), "dist");
 
   if (!fs.existsSync(distPath)) {
     throw new Error(

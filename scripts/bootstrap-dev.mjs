@@ -158,6 +158,12 @@ async function bootstrapDatabase() {
         CREATE UNIQUE INDEX IF NOT EXISTS uniq_user_transactions_source
           ON user_transactions (user_id, source_type, source_id)
           WHERE source_id IS NOT NULL;
+        -- Schema-drift repair: users.rank_locked was added ad-hoc by
+        -- scripts/migrate-v3.ts but never made it into shared/schema.ts, so
+        -- drizzle-kit push never created it and ps-engine's rank-lock guard
+        -- was dead code. shared/schema.ts now defines it; this idempotent
+        -- ALTER brings already-initialized databases in line without a push.
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS rank_locked boolean NOT NULL DEFAULT false;
       `);
       return;
     }

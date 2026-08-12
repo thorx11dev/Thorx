@@ -51,7 +51,7 @@ export function WorkSection(props: WorkSectionProps) {
 
       setWebPanelData({
         productUrl: activeTabData?.productUrl || "https://www.google.com", // Fallback if undefined
-        adId: tabId,
+        adId: activeTabData?.adId || tabId,
         reward: earnings
       });
 

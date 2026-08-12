@@ -77,7 +77,11 @@ export function drawThorxCard(params: CardDrawParams): CardResult {
   // Keep Decimal through the full chain — only convert to number at the
   // final integer step to avoid float-multiply precision drift.
   const targetPointsD = pkrDecimal.div(10).times(conversionRate);
-  const cardVariance = min + Math.random() * (max - min); // Math.random() variance is intentionally float (display-only)
+  // Round the draw to 6dp: Math.random() variance is intentionally float
+  // (display-only), but without rounding, float arithmetic leaks artifacts
+  // like 1.1500000000000001 into the audit trail and makes exact assertions
+  // on the variance band impossible.
+  const cardVariance = Math.round((min + Math.random() * (max - min)) * 1e6) / 1e6;
   const pointsCredited = Math.max(
     0,
     targetPointsD.times(cardVariance).toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber(),
