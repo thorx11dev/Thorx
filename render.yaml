@@ -1,0 +1,45 @@
+# Render Blueprint — one-click free-tier deployment for THORX.
+#
+# The full application (Express API + built React frontend + WebSockets +
+# background jobs) runs from the existing Dockerfile. Render's free tier
+# sleeps after ~15 min of inactivity and wakes automatically on the next
+# request (first request after sleep can take ~30-60s).
+#
+# Deploy:
+#   1. dashboard.render.com → New → Blueprint → connect thorx11dev/Thorx
+#   2. When prompted, fill in DATABASE_URL, SESSION_SECRET,
+#      CREDENTIAL_ENCRYPTION_KEY, and BOOTSTRAP_SECRET (sync:false vars)
+#   3. Apply → Render builds the Docker image and starts the service
+#
+# Environment notes:
+#   - NODE_ENV/SESSION_COOKIE_* /FRONTEND_ORIGINS are already production-safe
+#     defaults in server/config/runtime.ts; they are pinned here so the
+#     blueprint is explicit.
+#   - thorx.freebuff.app is whitelisted for CORS + SameSite=None cookies, so
+#     the static frontend there can log in against this API too.
+services:
+  - type: web
+    name: thorx-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+      - key: SESSION_COOKIE_SAME_SITE
+        value: none
+      - key: FRONTEND_ORIGINS
+        value: https://thorx.freebuff.app
+      # Secrets — fill in the Render dashboard during blueprint setup
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: CREDENTIAL_ENCRYPTION_KEY
+        sync: false
+      - key: BOOTSTRAP_SECRET
+        sync: false

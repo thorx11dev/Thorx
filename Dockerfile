@@ -23,8 +23,13 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build both frontend and backend
-RUN npm run build
+# Build frontend (static -> dist/) then bundle the Express server (dist/index.js).
+# VITE_API_URL is forced EMPTY so the bundled frontend calls the API on its own
+# origin (Express serves dist/ + /api together). Without this, client/.env.production
+# would bake an external API hostname into the image. The split topology (static
+# frontend on thorx.freebuff.app + API here) is unaffected: that build runs
+# separately with its own VITE_API_URL.
+RUN VITE_API_URL= npm run build && npm run build:server
 
 # --- Production Image ---
 FROM node:20-slim
