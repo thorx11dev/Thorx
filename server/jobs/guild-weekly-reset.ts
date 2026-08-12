@@ -9,6 +9,7 @@
  */
 import { runWeeklyGuildReset } from "../modules/guild-reset";
 import { logger } from "../lib/logger";
+import { trackInterval, trackTimeout } from "./registry";
 
 export function startGuildWeeklyResetJob(): void {
   const THIRTY_MINUTES = 30 * 60 * 1000;
@@ -32,7 +33,7 @@ export function startGuildWeeklyResetJob(): void {
     }
   };
 
-  setTimeout(run, 20_000); // stagger after guild-vault-resolution's 15s startup delay
-  setInterval(run, THIRTY_MINUTES);
+  trackTimeout(setTimeout(run, 20_000)); // stagger after guild-vault-resolution's 15s startup delay
+  trackInterval(setInterval(run, THIRTY_MINUTES));
   logger.info("[GuildReset] Sunday guild reset job started.");
 }

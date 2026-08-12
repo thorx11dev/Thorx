@@ -10,6 +10,7 @@ import { applyInactivityPenalties } from "../modules/ps-engine";
 import { logger } from "../lib/logger";
 import { storage } from "../storage";
 import { db } from "../db";
+import { trackInterval, trackTimeout } from "./registry";
 import { systemConfig } from "@shared/schema";
 
 const LAST_RUN_CONFIG_KEY = "LAST_INACTIVITY_PENALTY_RUN_AT";
@@ -52,7 +53,7 @@ export function startInactivityPenaltyJob(): void {
     }
   };
 
-  setTimeout(run, 25_000);
-  setInterval(run, ONE_HOUR);
+  trackTimeout(setTimeout(run, 25_000));
+  trackInterval(setInterval(run, ONE_HOUR));
   logger.info("[InactivityPenalty] Daily inactivity penalty job started.");
 }

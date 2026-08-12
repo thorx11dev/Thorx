@@ -1,5 +1,6 @@
 import { db } from "../db";
 import { leaderboardCache } from "@shared/schema";
+import { trackInterval, trackTimeout } from "./registry";
 import { sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
@@ -25,6 +26,6 @@ export function startLeaderboardCleanup(): void {
   };
 
   // Run immediately on startup, then every 6 hours
-  setTimeout(cleanup, 10_000); // 10s after startup to avoid boot contention
-  setInterval(cleanup, SIX_HOURS);
+  trackTimeout(setTimeout(cleanup, 10_000)); // 10s after startup to avoid boot contention
+  trackInterval(setInterval(cleanup, SIX_HOURS));
 }

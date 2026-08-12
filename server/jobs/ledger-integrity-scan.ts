@@ -10,6 +10,7 @@
  */
 import { storage } from "../storage";
 import { logger } from "../lib/logger";
+import { trackInterval } from "./registry";
 
 const SCAN_PAGE_SIZE = 2000;
 
@@ -72,6 +73,6 @@ export function startLedgerIntegrityScanJob(): void {
 
   // Run once on boot (dev visibility, same convention as HealthEngine), then daily.
   run();
-  setInterval(run, 24 * 60 * 60 * 1000);
+  trackInterval(setInterval(run, 24 * 60 * 60 * 1000));
   logger.info("[LedgerIntegrity] Daily ledger integrity scan job started.");
 }

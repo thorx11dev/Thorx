@@ -10,6 +10,7 @@
 
 import { getTodaySnapshot, invalidateEconomyCache } from "../modules/economy-engine";
 import { logger } from "../lib/logger";
+import { trackInterval, trackTimeout } from "./registry";
 
 let _timeoutId: ReturnType<typeof setTimeout> | null = null;
 let _intervalId: ReturnType<typeof setInterval> | null = null;
@@ -38,19 +39,19 @@ export function startEconomySnapshotJob(): void {
   );
 
   // Fire at the next PKT midnight, then every 24 h after that
-  _timeoutId = setTimeout(() => {
+  _timeoutId = trackTimeout(setTimeout(() => {
     _timeoutId = null;
     invalidateEconomyCache();
     runSnapshot();
 
-    _intervalId = setInterval(
+    _intervalId = trackInterval(setInterval(
       () => {
         invalidateEconomyCache();
         runSnapshot();
       },
       24 * 60 * 60 * 1000,
-    );
-  }, msToMidnight);
+    ));
+  }, msToMidnight));
 }
 
 export function stopEconomySnapshotJob(): void {

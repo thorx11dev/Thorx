@@ -6,15 +6,16 @@ import { db } from "../db";
 import { logger } from "../lib/logger";
 import { lt } from "drizzle-orm";
 import { scoreHistory, auditLogs } from "@shared/schema";
+import { trackInterval, trackTimeout } from "./registry";
 
 let isRunning = false;
 
 export function startRetentionCleanupJob(): void {
   // Delay first run 10 min after startup to avoid cold-start DB spike
-  setTimeout(() => {
+  trackTimeout(setTimeout(() => {
     runCleanup();
-    setInterval(runCleanup, 24 * 60 * 60 * 1000);
-  }, 10 * 60 * 1000);
+    trackInterval(setInterval(runCleanup, 24 * 60 * 60 * 1000));
+  }, 10 * 60 * 1000));
   logger.info("[RetentionCleanup] Nightly cleanup job scheduled (score_history: 90d, audit_logs: 2yr).");
 }
 

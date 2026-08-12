@@ -5,6 +5,7 @@
  */
 import { computeAndSaveHealthSnapshot } from "../modules/health-engine";
 import { logger } from "../lib/logger";
+import { trackInterval } from "./registry";
 
 export function startHealthSnapshotJob(): void {
   let isRunning = false;
@@ -24,6 +25,6 @@ export function startHealthSnapshotJob(): void {
 
   // Run immediately on start, then every 60 minutes
   run();
-  setInterval(run, 60 * 60 * 1000);
+  trackInterval(setInterval(run, 60 * 60 * 1000));
   logger.info("[HealthEngine] Hourly snapshot job started.");
 }

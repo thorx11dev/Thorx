@@ -13,6 +13,7 @@
  */
 import { storage } from "../storage";
 import { logger } from "../lib/logger";
+import { trackInterval } from "./registry";
 
 const INTERVAL_MS = 15 * 60 * 1000; // 15 minutes (Q6 decision: 66% DB load reduction + admin force-refresh)
 
@@ -21,7 +22,7 @@ let isRunning = false;
 export function startLeaderboardRefreshJob(): void {
   // Run immediately on startup to populate cache from cold start, then on interval.
   runRefresh();
-  setInterval(runRefresh, INTERVAL_MS);
+  trackInterval(setInterval(runRefresh, INTERVAL_MS));
   logger.info("[LeaderboardRefresh] 15-minute cache refresh job started.");
 }
 

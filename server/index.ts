@@ -127,6 +127,17 @@ function gracefulShutdown(signal: string): void {
     } catch (e) {
       logger.warn({ err: e }, 'HilltopAds scheduler stop skipped during shutdown');
     }
+    // Stop ALL background job timers (inactivity sweep, leaderboard refresh,
+    // economy snapshot, etc.) BEFORE pool.end() — otherwise a job firing during
+    // the drain window hits the closed pool and floods logs with "Cannot use a
+    // pool after calling end on the pool" (observed on every SnapDeploy
+    // free-tier sleep, 2026-08-12).
+    try {
+      const { stopBackgroundJobs } = await import("./jobs/registry");
+      stopBackgroundJobs();
+    } catch (e) {
+      logger.warn({ err: e }, 'Background job stop skipped during shutdown');
+    }
     const { pool } = await import("./db");
     if (typeof (global as any).__thorxServer?.close === "function") {
       (global as any).__thorxServer.close(async () => {
