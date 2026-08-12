@@ -445,8 +445,27 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   });
 
   app.get("/api/health", async (_req, res) => {
+    // Hosting-platform health checks (SnapDeploy/Render/Koyeb) expect a 200
+    // within a few seconds of the container starting. A cold Neon compute can
+    // take 5-20s for its first connection (autosuspend), and the pg pool's
+    // connectionTimeoutMillis is 20s — a 503 during that window made platforms
+    // mark the deploy FAILED even though the app is healthy (observed on
+    // SnapDeploy 2026-08-12: container running at 52.5% memory, deploy FAILED).
+    // Race the ping against a short deadline; never fail liveness on cold-start
+    // latency. Real DB outages still surface as "connecting" + error logs.
+    const dbOk = await Promise.race([
+      db.execute(sql`SELECT 1`).then(() => true).catch(() => false),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 4000)),
+    ]);
+    if (!dbOk) {
+      return res.status(200).json({
+        status: "starting",
+        db: "connecting",
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+      });
+    }
     try {
-      await db.execute(sql`SELECT 1`);
       // 4.4 — Job liveness: include last-run timestamps so monitoring can
       // detect stalled background jobs without digging through logs.
       const { leaderboardRefreshLastRunMs } = await import("./jobs/leaderboard-refresh");
