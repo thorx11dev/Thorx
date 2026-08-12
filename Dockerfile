@@ -53,6 +53,12 @@ COPY --from=builder /app/dist ./dist
 # Set production environment
 ENV NODE_ENV=production
 
+# Declare the app's listen port so hosting platforms (SnapDeploy, Render, Koyeb)
+# can auto-detect it for routing/health checks. The Express server binds
+# process.env.PORT || 5000; without EXPOSE some platforms default to a
+# different upstream port and return 502 even though the app is healthy.
+EXPOSE 5000
+
 # Run as non-root user for container security (Finding 2-O)
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 --ingroup nodejs thorx
 USER thorx
