@@ -1373,6 +1373,17 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  // ── Guild creation requires B-Rank minimum (beta policy) ─────────────────
+  // Engines A (ads), B (surveys) and C (guilds/wars) are open to every rank
+  // during beta; only CREATING a guild demands B-Rank.
+  const GUILD_CREATION_MIN_RANK = "B-Rank";
+  const RANK_ORDER_FOR_GUILD = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
+  const meetsGuildCreationRank = async (userId: string): Promise<boolean> => {
+    const u = await storage.getUserById(userId);
+    const ui = RANK_ORDER_FOR_GUILD.indexOf(u?.userRankTier || "E-Rank");
+    return ui >= RANK_ORDER_FOR_GUILD.indexOf(GUILD_CREATION_MIN_RANK);
+  };
+
   app.post("/api/guilds", requireSessionAuth, guildInteractionRateLimiter, async (req, res) => {
     try {
       const userId = getThorxPrincipalId(req) as string;
@@ -1383,9 +1394,11 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const parsed = createGuildSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid guild data" });
       const { name, description } = parsed.data;
-      // Any rank may create a guild directly through this legacy path — the
-      // primary flow (POST /api/guilds/creation-request) is admin-approved
-      // and is likewise open to any rank; see that handler for context.
+      // Beta policy: guild creation requires B-Rank on BOTH paths (legacy direct
+      // and the admin-approved creation-request flow below).
+      if (!(await meetsGuildCreationRank(userId))) {
+        return res.status(403).json({ error: "RANK_GATE", requiredRank: GUILD_CREATION_MIN_RANK, message: `Creating a guild requires ${GUILD_CREATION_MIN_RANK} or higher.` });
+      }
       const guild = await storage.createGuild({ name, description, captainId: userId });
       try {
         await storage.createAuditLog({
@@ -6834,7 +6847,12 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input" });
 
-      // Any rank may request guild creation — admin approval is the gate, not rank.
+      // Beta policy: B-Rank minimum to request guild creation (engines themselves
+      // stay open to every rank; only CREATION is gated). Admin approval remains
+      // the second gate.
+      if (!(await meetsGuildCreationRank(userId))) {
+        return res.status(403).json({ error: "RANK_GATE", requiredRank: GUILD_CREATION_MIN_RANK, message: `Requesting guild creation requires ${GUILD_CREATION_MIN_RANK} or higher.` });
+      }
       const user = await storage.getUserById(userId);
 
       // Check if user already has a pending request

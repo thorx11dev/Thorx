@@ -4,8 +4,6 @@ import { InteractiveDivider } from "@/features/user-portal/shared";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import EnhancedVideoPlayer from "@/components/ui/enhanced-video-player";
 import { WORK_TABS } from "@/components/ui/industrial-tabs";
-import { DEV_UNLOCK_RANK_GATES } from "@/lib/previewAccess";
-import { Lock } from "lucide-react";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -199,36 +197,9 @@ export function WorkSection(props: WorkSectionProps) {
                   </Tabs>
                 </motion.div>
               </motion.div>
-            ) : !DEV_UNLOCK_RANK_GATES && (engineBUserRankTier === "E-Rank" || engineBUserRankTier === "D-Rank") ? (
-              // THORX v3: Engine B locked-state UI for below C-Rank.
-              <motion.div
-                key="engine-2-locked"
-                initial={{ opacity: 0, x: 60 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 60 }}
-                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="mt-8 max-w-xl mx-auto rounded-2xl border-2 border-dashed border-black/15 dark:border-white/15 bg-card/50 py-12 px-6 md:py-16 md:px-10 text-center"
-                data-testid="panel-engine-b-locked"
-              >
-                <div className="w-14 h-14 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center mx-auto mb-5">
-                  <Lock className="w-6 h-6 text-muted-foreground" />
-                </div>
-                <TechnicalLabel text="ENGINE B — UNLOCKS AT C-RANK" className="text-muted-foreground text-[10px] md:text-xs mb-3" />
-                <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
-                  Paid surveys with higher payouts, straight from partner networks.
-                  You are {engineBUserRankTier} ({engineBPerformanceScore.toLocaleString()} PS).
-                  Need {engineBPsToUnlock.toLocaleString()} more PS to unlock.
-                </p>
-                <Progress value={engineBUnlockPct} className="h-1.5 mb-6" />
-                <Button
-                  onClick={() => setActiveWorkEngine(1)}
-                  className="bg-primary text-black hover:bg-primary/90 font-black uppercase tracking-tighter rounded-lg"
-                  data-testid="button-engine-b-locked-cta"
-                >
-                  Keep earning with Engine A to reach C-Rank
-                </Button>
-              </motion.div>
             ) : (
+              /* Beta policy: no rank gate on Engine B — every rank earns from
+                 surveys. Only guild CREATION requires B-Rank (server-enforced). */
               /* ── Engine B — Surveys ─────────────────────────────────────── */
               /* Automated paid-survey waterfall (CPX Research / BitLabs).
                  Credit arrives via signed network callbacks into the same
