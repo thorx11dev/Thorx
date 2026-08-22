@@ -157,7 +157,9 @@ export async function buildSurveyWallEntry(
       logger.debug({ networkId: network.id }, "[Surveys] CPX Research not configured — hidden from wall");
       return { networkId: network.id, networkName: network.name, wallUrl: "", available: false };
     }
-    const url = new URL("https://walls.cpx-research.com/index.php");
+    // CPX's documented SurveyWall entry point (IFRAME doc): offers.cpx-research.com.
+    // (walls.cpx-research.com does not resolve — NXDOMAIN.)
+    const url = new URL("https://offers.cpx-research.com/index.php");
     url.searchParams.set("app_id", creds.apiId);
     // NOTE: set the __UID__ sentinel directly — URLSearchParams percent-encodes
     // braces, so a "{THORX_USER_ID}" placeholder would survive serialization as
