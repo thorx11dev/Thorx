@@ -140,21 +140,35 @@ export interface SurveyWallEntry {
 /**
  * Build the signed entry URL for one network, or mark it unavailable when its
  * credentials are not configured yet.
+ *
+ * When `userId` is provided, CPX's wall-link Security Check parameter is
+ * included: &secure_hash = MD5(ext_user_id + "-" + app_secure_hash) —
+ * per CPX docs (IFRAME doc, {SECURE_HASH} row): md5({unique_user_id}-{app_secure_hash}).
+ * The secret never leaves the server; only the digest is embedded in the link,
+ * so user-id tampering on the wall link is rejected by CPX itself.
  */
-export async function buildSurveyWallEntry(network: SurveyNetworkConfig): Promise<SurveyWallEntry> {
+export async function buildSurveyWallEntry(
+  network: SurveyNetworkConfig,
+  userId?: string,
+): Promise<SurveyWallEntry> {
   if (network.id === "cpx-research") {
     const creds = await getCpxCredentials();
     if (!creds.apiId) {
       logger.debug({ networkId: network.id }, "[Surveys] CPX Research not configured — hidden from wall");
       return { networkId: network.id, networkName: network.name, wallUrl: "", available: false };
     }
-    // Open-wall format (standard during integration testing). User-id tampering
-    // on this link can only misroute credit to another THORX account — never
-    // mint extra credit (the postback is validated + capped server-side).
-    // TODO(activation): add CPX's signed-wall MD5 once confirmed in dashboard docs.
     const url = new URL("https://walls.cpx-research.com/index.php");
     url.searchParams.set("app_id", creds.apiId);
     url.searchParams.set("ext_user_id", "{THORX_USER_ID}");
+    // Signed-wall digest (CPX "Security Check") — harmless even when the
+    // feature is toggled off in the publisher dashboard; mandatory when on.
+    if (userId && creds.hash) {
+      const secureHash = crypto
+        .createHash("md5")
+        .update(`${userId}-${creds.hash}`, "utf8")
+        .digest("hex");
+      url.searchParams.set("secure_hash", secureHash);
+    }
     return {
       networkId: network.id,
       networkName: network.name,
@@ -218,27 +232,43 @@ function verifyBitLabsHash(params: URLSearchParams, originalPath: string, secret
 }
 
 /**
- * CPX Research: hash = MD5(trans_id + user_id + currency_amount + api_hash).
- * ⚠ Single source of truth for the concatenation — confirm against the
- * publisher dashboard at account activation and adjust ONLY here.
+ * CPX Research postback hash verification.
+ *
+ * The CPX publisher dashboard documents the formula as:
+ *   md5((trans_id)-yourappsecurehash)
+ *
+ * which resolves to:
+ *   MD5(trans_id_value + app_secure_hash_value)
+ *
+ * Source: CPX Dashboard → Edit App → POSTBACK SETTINGS → INFORMATION panel
+ * (the `secure_hash` row).  Only two fields are used — NOT user_id or
+ * currency_amount.  ⚠ Single source of truth — adjust ONLY here.
  */
 function verifyCpxHash(params: URLSearchParams, creds: CpxResearchCredentials): CallbackVerification {
   const received = params.get("hash") ?? "";
   if (!received) return { ok: false, reason: "Missing hash parameter" };
-  if (!creds.hash) return { ok: false, reason: "CPX Research api hash not configured" };
+  if (!creds.hash) return { ok: false, reason: "CPX Research app secure hash not configured" };
 
   const transId = params.get("trans_id") ?? "";
-  const userId = params.get("user_id") ?? "";
-  const currencyAmount = params.get("currency_amount") ?? "";
 
+  // Primary formula per CPX dashboard documentation:
+  //   MD5(trans_id + app_secure_hash)
   const expected = crypto
     .createHash("md5")
-    .update(`${transId}${userId}${currencyAmount}${creds.hash}`, "utf8")
+    .update(`${transId}${creds.hash}`, "utf8")
     .digest("hex");
-  if (!safeHexEqual(expected, received)) {
-    return { ok: false, reason: "Invalid CPX Research hash" };
-  }
-  return { ok: true };
+
+  if (safeHexEqual(expected, received)) return { ok: true };
+
+  // Fallback: some older CPX integrations used a dash separator between
+  // trans_id and the hash.  Try that if the primary formula didn't match.
+  const expectedDash = crypto
+    .createHash("md5")
+    .update(`${transId}-${creds.hash}`, "utf8")
+    .digest("hex");
+  if (safeHexEqual(expectedDash, received)) return { ok: true };
+
+  return { ok: false, reason: "Invalid CPX Research hash" };
 }
 
 /** Route-level dispatch: verifies the callback came from the named network. */

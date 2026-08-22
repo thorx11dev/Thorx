@@ -10,7 +10,7 @@
  *      idempotent no-credit duplicate.
  *   3. A wrong signature is rejected (401) and credits nothing.
  *   4. An unknown network id is rejected (401) — stubs can never mint credit.
- *   5. A CPX Research callback (MD5 of trans_id+user_id+currency_amount+hash)
+ *   5. A CPX Research callback (MD5 of trans_id+app_secure_hash per CPX dashboard docs)
  *      also credits exactly once, on a second user, proving both adapters.
  *
  * Run: npx vitest run server/__tests__/survey-callback.test.ts
@@ -102,9 +102,9 @@ function signBitLabs(pathWithQuery: string, secret = BITLABS_SECRET): string {
   return crypto.createHmac("sha1", secret).update(pathWithQuery, "utf8").digest("hex");
 }
 
-/** CPX-style signature: MD5(trans_id + user_id + currency_amount + api_hash). */
-function signCpx(transId: string, userId: string, amount: string, hashKey = CPX_HASH): string {
-  return crypto.createHash("md5").update(`${transId}${userId}${amount}${hashKey}`, "utf8").digest("hex");
+/** CPX-style signature: MD5(trans_id + app_secure_hash) per CPX dashboard docs. */
+function signCpx(transId: string, _userId: string, _amount: string, hashKey = CPX_HASH): string {
+  return crypto.createHash("md5").update(`${transId}${hashKey}`, "utf8").digest("hex");
 }
 
 async function getWall(h: any) {
