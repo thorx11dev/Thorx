@@ -159,7 +159,10 @@ export async function buildSurveyWallEntry(
     }
     const url = new URL("https://walls.cpx-research.com/index.php");
     url.searchParams.set("app_id", creds.apiId);
-    url.searchParams.set("ext_user_id", "{THORX_USER_ID}");
+    // NOTE: set the __UID__ sentinel directly — URLSearchParams percent-encodes
+    // braces, so a "{THORX_USER_ID}" placeholder would survive serialization as
+    // %7B...%7D and the route's __UID__ replacement would silently no-op.
+    url.searchParams.set("ext_user_id", "__UID__");
     // Signed-wall digest (CPX "Security Check") — harmless even when the
     // feature is toggled off in the publisher dashboard; mandatory when on.
     if (userId && creds.hash) {
@@ -172,7 +175,7 @@ export async function buildSurveyWallEntry(
     return {
       networkId: network.id,
       networkName: network.name,
-      wallUrl: url.toString().replace("{THORX_USER_ID}", "__UID__"),
+      wallUrl: url.toString(),
       available: true,
     };
   }
