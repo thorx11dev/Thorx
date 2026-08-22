@@ -64,6 +64,7 @@ playwright-report/
 attached_assets/
 .agent/
 .agents/
+.claude/
 AGENTS.md
 AUDIT_REPORT*.md
 THORX_*AUDIT*.md

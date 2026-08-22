@@ -190,9 +190,13 @@ beforeAll(async () => {
   }
   await harnesses.founder.post("/api/login", { email: founder.email, password: PASSWORD });
 
-  await registerRealUser("captainA", { firstName: "Captain", userRankTier: "C-Rank" });
+  // Beta policy: guild CREATION requires B-Rank minimum, so captains are seeded
+  // at B-Rank. Members stay below it — they join guilds, they don't create them.
+  await registerRealUser("captainA", { firstName: "Captain", userRankTier: "B-Rank" });
   await registerRealUser("memberA", { firstName: "Member", userRankTier: "C-Rank" });
-  await registerRealUser("captainB", { firstName: "CaptainB" });
+  // Beta policy: guild CREATION requires B-Rank minimum — captainB also creates
+  // its own guild later in the war flow, so it is seeded at B-Rank as well.
+  await registerRealUser("captainB", { firstName: "CaptainB", userRankTier: "B-Rank" });
   await registerRealUser("memberB", { firstName: "MemberB" });
   await registerRealUser("lowRank", { firstName: "Low" }); // stays E-Rank
 }, 90_000);
@@ -386,6 +390,16 @@ describe("Engine C — guilds & weekly tasks (HTTP)", () => {
       reason: "too short",
     });
     expect(res.status).toBe(400);
+  });
+
+  it("below-B-Rank user cannot request guild creation (RANK_GATE)", async () => {
+    const res = await harnesses.lowRank.post("/api/guilds/creation-request", {
+      guildName: `LowGuild ${TS}`,
+      reason: "I would like a guild but my rank does not meet the minimum yet.",
+    });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe("RANK_GATE");
+    expect(res.body.requiredRank).toBe("B-Rank");
   });
 
   it("captainA submits a guild creation request", async () => {

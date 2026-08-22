@@ -236,9 +236,10 @@ beforeAll(async () => {
   }
   await harnesses.founder.post("/api/login", { email: founder.email, password: PASSWORD });
 
-  await registerRealUser("captainA", { firstName: "CapA", userRankTier: "C-Rank" });
+  // Captains seeded at B-Rank — guild creation now requires it (beta policy).
+  await registerRealUser("captainA", { firstName: "CapA", userRankTier: "B-Rank" });
   await registerRealUser("memberA", { firstName: "MemA", userRankTier: "C-Rank" });
-  await registerRealUser("captainB", { firstName: "CapB", userRankTier: "C-Rank" });
+  await registerRealUser("captainB", { firstName: "CapB", userRankTier: "B-Rank" });
   await registerRealUser("memberB", { firstName: "MemB", userRankTier: "C-Rank" });
   await registerRealUser("racer", { firstName: "Racer", userRankTier: "C-Rank" });
   await registerRealUser("wallet", { firstName: "Wallet", userRankTier: "C-Rank" });
