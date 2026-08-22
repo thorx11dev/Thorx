@@ -24,6 +24,7 @@ const ShareModal = retryLazy(() =>
 );
 import Decimal from "decimal.js";
 import { z } from "zod";
+import BetaTrustLayer from "@/components/beta/BetaTrustLayer";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import { useAuth, type User as AuthUser } from "@/hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
@@ -261,13 +262,6 @@ export default function UserPortal() {
   const [completedVideos, setCompletedVideos] = useState<Set<string>>(new Set());
   const [isMobile, setIsMobile] = useState(false);
 
-  // Engine B state
-  const [engineBActiveTask, setEngineBActiveTask] = useState<any | null>(null);
-  const [engineBPhase, setEngineBPhase] = useState<"idle" | "details" | "timer" | "verify" | "done">("idle");
-  const [engineBTimer, setEngineBTimer] = useState(10);
-  const [engineBCode, setEngineBCode] = useState("");
-  const [engineBCodeError, setEngineBCodeError] = useState("");
-
   // Mobile detection
   useEffect(() => {
     const checkIsMobile = () => {
@@ -290,18 +284,55 @@ export default function UserPortal() {
     reward: "0.00"
   });
 
+  // Phase 2 (real rewarded ads): a server-issued session binds this ad watch
+  // to a pending ad_view row, so completion cannot mint arbitrary rewards.
+  // The WaterfallAdPlayer inside the panel renders the REAL network ad; the
+  // session token is what /api/ad-view verifies before crediting.
+  const [adSession, setAdSession] = useState<{ token: string; reward: string; duration: number } | null>(null);
+
+  useEffect(() => {
+    if (!isWebPanelOpen || !user) {
+      setAdSession(null);
+      return;
+    }
+    let cancelled = false;
+    setAdSession(null);
+    apiRequest("POST", "/api/ads/session", { adId: webPanelData.adId })
+      .then(async (res) => {
+        if (cancelled || !res.ok) return;
+        const data = await res.json();
+        if (data?.token) {
+          setAdSession({ token: data.token, reward: data.reward, duration: data.duration });
+        }
+      })
+      .catch(() => { /* fall back to the legacy adId path */ });
+    return () => { cancelled = true; };
+  }, [isWebPanelOpen, webPanelData.adId, user]);
+
   const handleWebPanelComplete = () => {
     // Finalize the ad completion
     setCompletedVideos(prev => new Set(Array.from(prev).concat(webPanelData.adId)));
 
-    // Record ad view if needed (User might want this connected to backend)
-    recordAdViewMutation.mutate({
-      adId: webPanelData.adId,
-      adType: 'video_panel',
-      duration: 30, // 30s video + 30s panel
-      completed: true,
-      earnedAmount: webPanelData.reward
-    });
+    if (adSession?.token) {
+      // Phase 2: complete the server-issued session (one-time, idempotent).
+      recordAdViewMutation.mutate({
+        sessionToken: adSession.token,
+        adId: webPanelData.adId,
+        adType: 'video_panel',
+        duration: adSession.duration,
+        completed: true,
+        earnedAmount: adSession.reward
+      });
+    } else {
+      // Legacy fallback when the session endpoint is unavailable.
+      recordAdViewMutation.mutate({
+        adId: webPanelData.adId,
+        adType: 'video_panel',
+        duration: 30, // 30s video + 30s panel
+        completed: true,
+        earnedAmount: webPanelData.reward
+      });
+    }
 
     setIsWebPanelOpen(false);
   };
@@ -457,22 +488,10 @@ export default function UserPortal() {
     [referralLeaderboard]
   );
 
-  const { data: tasksWithRecordsRaw } = useQuery<any[]>({
-    queryKey: QUERY_KEYS.tasks,
-    enabled: !!user && user.id !== 'guest',
-  });
-
-  // API returns each row as { task: EngineBTask, record: EngineBRecord | null } — flatten
-  // the task fields to the top level so the rest of the UI can read task.id/title/etc directly.
-  const tasksWithRecords = tasksWithRecordsRaw
-    ? tasksWithRecordsRaw.map((t: any) => ({ ...(t.task || t), record: t.record ?? null }))
-    : tasksWithRecordsRaw;
-
   const userRank = (user?.userRankTier || "E-Rank").toLowerCase();
 
   // Payout is always open — no task gate (Blueprint v2026)
   const adsWatchedTodayCount = todayAdViews?.count || 0;
-  const cpaCompletedCount = (tasksWithRecords || []).filter((t: any) => t.record?.status === 'completed').length;
 
   const { data: withdrawalsHistory, error: withdrawalsError } = useQuery<any>({
     queryKey: ["/api/withdrawals"],
@@ -510,6 +529,7 @@ export default function UserPortal() {
       duration: number;
       completed: boolean;
       earnedAmount: string;
+      sessionToken?: string;
     }) => {
       const response = await apiRequest("POST", "/api/ad-view", data);
       return await response.json();
@@ -536,63 +556,6 @@ export default function UserPortal() {
         description: err?.message || "Could not record your ad completion. Please try again.",
         variant: "destructive",
       });
-    },
-  });
-
-  // Engine B mutations
-  const engineBClickMutation = useMutation({
-    mutationFn: async (taskId: string) => {
-      const res = await apiRequest("POST", `/api/engine-b/tasks/${taskId}/click`);
-      return await res.json();
-    },
-    onSuccess: (_, taskId) => {
-      setEngineBPhase("timer");
-      setEngineBTimer(10);
-      setEngineBCode("");
-      setEngineBCodeError("");
-      const interval = setInterval(() => {
-        setEngineBTimer(prev => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            setEngineBPhase("verify");
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    },
-    onError: (err: any) => {
-      toast({ title: "Error", description: err?.message || "Could not start task.", variant: "destructive" });
-    },
-  });
-
-  const engineBVerifyMutation = useMutation({
-    mutationFn: async ({ taskId, code }: { taskId: string; code: string }) => {
-      const res = await apiRequest("POST", `/api/engine-b/tasks/${taskId}/verify`, { code });
-      if (!res.ok) {
-        const err = await res.json();
-        throw err;
-      }
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      setEngineBPhase("done");
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.tasks });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.sessionAuth });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earnings });
-      toast({
-        title: "Task Completed!",
-        description: "Your reward has been added to your account.",
-      });
-    },
-    onError: (err: any) => {
-      if (err?.message === "VERIFICATION_FAILED_CODE") {
-        setEngineBCodeError("Incorrect secret code. Please check and try again.");
-      } else if (err?.message === "VERIFICATION_FAILED_TIME") {
-        setEngineBCodeError(err?.details || "Wait longer before verifying.");
-      } else {
-        setEngineBCodeError(err?.message || "Verification failed. Please try again.");
-      }
     },
   });
 
@@ -1116,7 +1079,7 @@ export default function UserPortal() {
       { name: 'Engine A Tasks', amount: engineAEarnings, color: chartColors.primary },
       { name: 'Referrals', amount: referralEarnings, color: chartColors.secondary },
       { name: 'Guild Pool', amount: guildPoolEarnings, color: chartColors.tertiary },
-      { name: 'Engine B Tasks', amount: engineBEarnings, color: chartColors.quaternary },
+      { name: 'Engine B Surveys', amount: engineBEarnings, color: chartColors.quaternary },
     ];
 
     // No real earnings yet — show an honest empty state instead of a
@@ -1277,7 +1240,7 @@ export default function UserPortal() {
               className="cinematic-section active"
               data-testid="section-work"
             >
-              <Suspense fallback={null}><WorkSection isWorkHeroToggled={isWorkHeroToggled} setIsWorkHeroToggled={setIsWorkHeroToggled} handleHeroToggle={handleHeroToggle} activeWorkTab={activeWorkTab} setActiveWorkTab={setActiveWorkTab} activeWorkEngine={activeWorkEngine} setActiveWorkEngine={setActiveWorkEngine} isMobile={isMobile} engineBUserRankTier={engineBUserRankTier} engineBPerformanceScore={engineBPerformanceScore} engineBPsToUnlock={engineBPsToUnlock} engineBUnlockPct={engineBUnlockPct} cpaCompletedCount={cpaCompletedCount} engineBActiveTask={engineBActiveTask} setEngineBActiveTask={setEngineBActiveTask} engineBPhase={engineBPhase} setEngineBPhase={setEngineBPhase} engineBTimer={engineBTimer} engineBCode={engineBCode} setEngineBCode={setEngineBCode} engineBCodeError={engineBCodeError} setEngineBCodeError={setEngineBCodeError} engineBClickMutation={engineBClickMutation} engineBVerifyMutation={engineBVerifyMutation} tasksWithRecords={tasksWithRecords} setWebPanelData={setWebPanelData} setIsWebPanelOpen={setIsWebPanelOpen} /></Suspense>
+              <Suspense fallback={null}><WorkSection isWorkHeroToggled={isWorkHeroToggled} setIsWorkHeroToggled={setIsWorkHeroToggled} handleHeroToggle={handleHeroToggle} activeWorkTab={activeWorkTab} setActiveWorkTab={setActiveWorkTab} activeWorkEngine={activeWorkEngine} setActiveWorkEngine={setActiveWorkEngine} isMobile={isMobile} engineBUserRankTier={engineBUserRankTier} engineBPerformanceScore={engineBPerformanceScore} engineBPsToUnlock={engineBPsToUnlock} engineBUnlockPct={engineBUnlockPct} setWebPanelData={setWebPanelData} setIsWebPanelOpen={setIsWebPanelOpen} /></Suspense>
             </motion.section>
           )}
           {currentSection === 2 && (
@@ -1374,6 +1337,9 @@ export default function UserPortal() {
         onClose={() => setIsWebPanelOpen(false)}
       />
       </Suspense>
+
+      {/* Beta trust layer: mandatory honesty-rules acknowledgment + floating feedback */}
+      <BetaTrustLayer user={displayUser as any} />
 
       <Suspense fallback={null}>
       <ScratchCardModal

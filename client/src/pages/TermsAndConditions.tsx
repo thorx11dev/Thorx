@@ -164,11 +164,11 @@ export default function TermsAndConditions() {
                                     </thead>
                                     <tbody className="divide-y divide-black/10">
                                         {[
-                                            { r: "E-Rank", ps: "0",      mult: "1.00×", unlock: "Engine A access · Engine B Easy tasks"                                },
-                                            { r: "D-Rank", ps: "1,000",  mult: "1.10×", unlock: "Engine B Medium tasks"                                                    },
-                                            { r: "C-Rank", ps: "3,000",  mult: "1.20×", unlock: "Engine B Hard tasks · all CPA offers"                                    },
+                                            { r: "E-Rank", ps: "0",      mult: "1.00×", unlock: "Engine A access · daily streak bonus"                                   },
+                                            { r: "D-Rank", ps: "1,000",  mult: "1.10×", unlock: "Higher TX-Points multiplier"                                              },
+                                            { r: "C-Rank", ps: "3,000",  mult: "1.20×", unlock: "Engine B paid surveys"                                              },
                                             { r: "B-Rank", ps: "6,000",  mult: "1.35×", unlock: "Join guilds that require B-Rank or higher"                                 },
-                                            { r: "A-Rank", ps: "10,000", mult: "1.50×", unlock: "Engine B Elite tasks · wider Thorx Card variance (±5%)"                     },
+                                            { r: "A-Rank", ps: "10,000", mult: "1.50×", unlock: "Wider Thorx Card variance (±5%)"                                         },
                                             { r: "S-Rank", ps: "20,000", mult: "1.75×", unlock: "Instant withdrawal approval · widest Thorx Card variance (±10%)"            },
                                         ].map((row) => (
                                             <tr key={row.r} className="hover:bg-muted/60 transition-colors">

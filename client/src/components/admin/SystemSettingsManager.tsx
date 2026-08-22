@@ -16,6 +16,18 @@ interface AdNetwork {
   isActive: boolean;
 }
 
+/** system_config JSON values arrive as strings or objects — normalize for the
+ *  credential editors so partial saves merge instead of clobbering. */
+function parseJsonCfg(raw: unknown): Record<string, string> {
+  if (raw && typeof raw === "object") return raw as Record<string, string>;
+  if (typeof raw !== "string" || !raw.trim()) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
 export function SystemSettingsManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -131,7 +143,7 @@ export function SystemSettingsManager() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             { label: "Engine A — Video Ads", cutKey: "ENGINE_A_THORX_CUT_PCT", min: 20, max: 70, color: "#f97316", isEngineC: false },
-            { label: "Engine B — CPA Offers", cutKey: "ENGINE_B_THORX_CUT_PCT", min: 20, max: 70, color: "#7c3aed", isEngineC: false },
+            { label: "Engine B — Surveys", cutKey: "ENGINE_B_THORX_CUT_PCT", min: 20, max: 70, color: "#7c3aed", isEngineC: false },
             { label: "Engine C — Guild Tasks", cutKey: "ENGINE_C_THORX_CUT_PCT", min: 10, max: 40, color: "#16a34a", isEngineC: true },
           ].map(({ label, cutKey, min, max, color, isEngineC }) => {
             const cut = Number(localConfigs[cutKey] ?? (isEngineC ? 15 : 40));
@@ -233,7 +245,7 @@ export function SystemSettingsManager() {
             <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Per-Engine Variance (±%)</div>
             {[
               { label: "Engine A — Video Ads", key: "ENGINE_A_ILLUSION_VARIANCE_PCT", def: 10 },
-              { label: "Engine B — CPA Offers", key: "ENGINE_B_ILLUSION_VARIANCE_PCT", def: 10 },
+              { label: "Engine B — Surveys", key: "ENGINE_B_ILLUSION_VARIANCE_PCT", def: 10 },
               { label: "Engine C — Guild Tasks", key: "ENGINE_C_ILLUSION_VARIANCE_PCT", def: 10 },
             ].map(({ label, key, def }) => {
               const val = Number(localConfigs[key] ?? def);
@@ -388,6 +400,139 @@ export function SystemSettingsManager() {
           </div>
         </div>
 
+        {/* ─── Survey Economy (Engine B) ─────────────────────────────── */}
+        <div className="lg:col-span-2 bg-background border-[1.5px] border-[#111] rounded-[2rem] p-8 shadow-sm">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-10 h-10 bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center rounded-full shadow-sm">
+              <Activity className="w-5 h-5 text-zinc-500" />
+            </div>
+            <div>
+              <h3 className="font-black text-xl uppercase text-[#111] tracking-tight">Survey Economy</h3>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">Engine B payout rate, daily limits & rank gate</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-5 border-[1.5px] border-[#111]/10 bg-white/50 rounded-3xl space-y-3">
+              <TechnicalLabel text="USD → PKR RATE" className="text-[#111]/50 font-black text-[9px] uppercase tracking-widest" />
+              <Input
+                type="number"
+                value={localConfigs["SURVEY_USD_TO_PKR_RATE"] ?? "278"}
+                onChange={(e) => updateValue("SURVEY_USD_TO_PKR_RATE", Number(e.target.value))}
+                className="h-10 bg-white border-[1.5px] border-[#111]/20 font-bold text-sm rounded-full text-[#111]"
+              />
+              <Button
+                onClick={() => handleSave("SURVEY_USD_TO_PKR_RATE")}
+                disabled={saveMutation.isPending && saveMutation.variables?.key === "SURVEY_USD_TO_PKR_RATE"}
+                className="w-full h-9 bg-[#111] text-white hover:bg-primary hover:text-black rounded-full text-[10px] font-black uppercase tracking-widest"
+              >
+                <Save className="w-3 h-3 mr-1.5" /> Save Rate
+              </Button>
+              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">PKR credited per $1 publisher payout</p>
+            </div>
+            <div className="p-5 border-[1.5px] border-[#111]/10 bg-white/50 rounded-3xl space-y-3">
+              <TechnicalLabel text="MAX SURVEYS / USER / DAY" className="text-[#111]/50 font-black text-[9px] uppercase tracking-widest" />
+              <Input
+                type="number"
+                value={localConfigs["SURVEY_MAX_PER_DAY"] ?? "20"}
+                onChange={(e) => updateValue("SURVEY_MAX_PER_DAY", Number(e.target.value))}
+                className="h-10 bg-white border-[1.5px] border-[#111]/20 font-bold text-sm rounded-full text-[#111]"
+              />
+              <Button
+                onClick={() => handleSave("SURVEY_MAX_PER_DAY")}
+                disabled={saveMutation.isPending && saveMutation.variables?.key === "SURVEY_MAX_PER_DAY"}
+                className="w-full h-9 bg-[#111] text-white hover:bg-primary hover:text-black rounded-full text-[10px] font-black uppercase tracking-widest"
+              >
+                <Save className="w-3 h-3 mr-1.5" /> Save Limit
+              </Button>
+              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Quality guard — keeps approval rates high</p>
+            </div>
+            <div className="p-5 border-[1.5px] border-[#111]/10 bg-white/50 rounded-3xl space-y-3">
+              <TechnicalLabel text="MINIMUM RANK FOR SURVEYS" className="text-[#111]/50 font-black text-[9px] uppercase tracking-widest" />
+              <select
+                value={localConfigs["SURVEY_MIN_RANK"] ?? "E-Rank"}
+                onChange={(e) => updateValue("SURVEY_MIN_RANK", e.target.value)}
+                className="h-10 w-full bg-white border-[1.5px] border-[#111]/20 rounded-full px-4 font-bold text-sm text-[#111] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                {["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"].map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+              <Button
+                onClick={() => handleSave("SURVEY_MIN_RANK")}
+                disabled={saveMutation.isPending && saveMutation.variables?.key === "SURVEY_MIN_RANK"}
+                className="w-full h-9 bg-[#111] text-white hover:bg-primary hover:text-black rounded-full text-[10px] font-black uppercase tracking-widest"
+              >
+                <Save className="w-3 h-3 mr-1.5" /> Save Gate
+              </Button>
+              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">E-Rank = open to everyone during beta</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ─── Survey Network Credentials (Engine B activation) ────────── */}
+        <div className="lg:col-span-2 bg-background border-[1.5px] border-[#111] rounded-[2rem] p-8 shadow-sm">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-10 h-10 bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center rounded-full shadow-sm">
+              <ShieldAlert className="w-5 h-5 text-zinc-500" />
+            </div>
+            <div>
+              <h3 className="font-black text-xl uppercase text-[#111] tracking-tight">Survey Networks</h3>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">Paste publisher credentials — empty network stays hidden from the wall</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-5 border-[1.5px] border-[#111]/10 bg-white/50 rounded-3xl space-y-3">
+              <TechnicalLabel text="CPX RESEARCH" className="text-[#111]/70 font-black text-[10px] uppercase tracking-widest" />
+              <Input
+                placeholder="API ID (app_id)"
+                value={parseJsonCfg(localConfigs["CPX_RESEARCH_CONFIG_JSON"]).apiId ?? ""}
+                onChange={(e) => updateValue("CPX_RESEARCH_CONFIG_JSON", JSON.stringify({ ...parseJsonCfg(localConfigs["CPX_RESEARCH_CONFIG_JSON"]), apiId: e.target.value.trim() }))}
+                className="h-10 bg-white border-[1.5px] border-[#111]/20 font-mono text-sm rounded-full text-[#111]"
+              />
+              <Input
+                type="password"
+                placeholder="Secret hash (postback validation)"
+                value={parseJsonCfg(localConfigs["CPX_RESEARCH_CONFIG_JSON"]).hash ?? ""}
+                onChange={(e) => updateValue("CPX_RESEARCH_CONFIG_JSON", JSON.stringify({ ...parseJsonCfg(localConfigs["CPX_RESEARCH_CONFIG_JSON"]), hash: e.target.value.trim() }))}
+                className="h-10 bg-white border-[1.5px] border-[#111]/20 font-mono text-sm rounded-full text-[#111]"
+              />
+              <Button
+                onClick={() => handleSave("CPX_RESEARCH_CONFIG_JSON")}
+                disabled={saveMutation.isPending && saveMutation.variables?.key === "CPX_RESEARCH_CONFIG_JSON"}
+                className="w-full h-9 bg-[#111] text-white hover:bg-primary hover:text-black rounded-full text-[10px] font-black uppercase tracking-widest"
+              >
+                <Save className="w-3 h-3 mr-1.5" /> Save CPX
+              </Button>
+            </div>
+            <div className="p-5 border-[1.5px] border-[#111]/10 bg-white/50 rounded-3xl space-y-3">
+              <TechnicalLabel text="BITLABS" className="text-[#111]/70 font-black text-[10px] uppercase tracking-widest" />
+              <Input
+                placeholder="App token (wall URL)"
+                value={parseJsonCfg(localConfigs["BITLABS_CONFIG_JSON"]).appToken ?? ""}
+                onChange={(e) => updateValue("BITLABS_CONFIG_JSON", JSON.stringify({ ...parseJsonCfg(localConfigs["BITLABS_CONFIG_JSON"]), appToken: e.target.value.trim() }))}
+                className="h-10 bg-white border-[1.5px] border-[#111]/20 font-mono text-sm rounded-full text-[#111]"
+              />
+              <Input
+                type="password"
+                placeholder="Secret (callback HMAC)"
+                value={parseJsonCfg(localConfigs["BITLABS_CONFIG_JSON"]).secret ?? ""}
+                onChange={(e) => updateValue("BITLABS_CONFIG_JSON", JSON.stringify({ ...parseJsonCfg(localConfigs["BITLABS_CONFIG_JSON"]), secret: e.target.value.trim() }))}
+                className="h-10 bg-white border-[1.5px] border-[#111]/20 font-mono text-sm rounded-full text-[#111]"
+              />
+              <Button
+                onClick={() => handleSave("BITLABS_CONFIG_JSON")}
+                disabled={saveMutation.isPending && saveMutation.variables?.key === "BITLABS_CONFIG_JSON"}
+                className="w-full h-9 bg-[#111] text-white hover:bg-primary hover:text-black rounded-full text-[10px] font-black uppercase tracking-widest"
+              >
+                <Save className="w-3 h-3 mr-1.5" /> Save BitLabs
+              </Button>
+            </div>
+          </div>
+          <p className="text-[9px] font-bold text-zinc-400 mt-4 uppercase tracking-widest">
+            Postback URLs: /api/webhooks/survey/cpx-research · /api/webhooks/survey/bitlabs — set these in each dashboard.
+          </p>
+        </div>
+
         {/* ─── Per-Engine TX-Points Ratio Config (Spec §11.1 / §1.1) ─── */}
         <div className="lg:col-span-2 bg-background border-[1.5px] border-[#111] rounded-[2rem] p-8 shadow-sm">
           <div className="flex items-center gap-4 mb-6">
@@ -402,7 +547,7 @@ export function SystemSettingsManager() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {([
               { engine: "A", label: "Engine A — Video Ads", ratioKey: "ENGINE_A_PKR_TO_POINTS_RATIO", varKey: "ENGINE_A_ILLUSION_VARIANCE_PCT", color: "#f97316" },
-              { engine: "B", label: "Engine B — CPA Tasks", ratioKey: "ENGINE_B_PKR_TO_POINTS_RATIO", varKey: "ENGINE_B_ILLUSION_VARIANCE_PCT", color: "#7c3aed" },
+              { engine: "B", label: "Engine B — Surveys", ratioKey: "ENGINE_B_PKR_TO_POINTS_RATIO", varKey: "ENGINE_B_ILLUSION_VARIANCE_PCT", color: "#7c3aed" },
               { engine: "C", label: "Engine C — Guild",    ratioKey: "ENGINE_C_PKR_TO_POINTS_RATIO", varKey: "ENGINE_C_ILLUSION_VARIANCE_PCT", color: "#16a34a" },
             ] as const).map(({ engine, label, ratioKey, varKey, color }) => {
               const ratio = Number(localConfigs[ratioKey] ?? 1000);
@@ -456,20 +601,6 @@ export function SystemSettingsManager() {
             onUpdate={(networks: AdNetwork[]) => updateValue("AD_NETWORKS", networks)}
             onSave={() => handleSave("AD_NETWORKS")}
             isLoading={saveMutation.isPending && saveMutation.variables?.key === "AD_NETWORKS"}
-            icon={<Network className="w-5 h-5 text-zinc-500 group-hover:text-primary transition-colors" />}
-          />
-        </div>
-
-        <div className="lg:col-span-2">
-          <div className="mb-3 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[10px] font-bold text-amber-700 uppercase tracking-widest">
-            ⚠ Not yet wired — Engine B (CPA/Tasks) does not currently read this list for routing. Changes here are stored but have no live effect until a CPA routing engine is built.
-          </div>
-          <WaterfallSection 
-            title="CPA Network Waterfall" 
-            networks={localConfigs["CPA_NETWORKS"] || []}
-            onUpdate={(networks: AdNetwork[]) => updateValue("CPA_NETWORKS", networks)}
-            onSave={() => handleSave("CPA_NETWORKS")}
-            isLoading={saveMutation.isPending && saveMutation.variables?.key === "CPA_NETWORKS"}
             icon={<Network className="w-5 h-5 text-zinc-500 group-hover:text-primary transition-colors" />}
           />
         </div>

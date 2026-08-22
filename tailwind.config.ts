@@ -110,6 +110,10 @@ export default {
       // Daily goal modal z-goal        600
       // Ad panel         z-ad          500
       // Dropdowns        z-dropdown    200
+      // Beta trust gate  z-gate        8200 ← mandatory honesty-rules screen;
+      //                                   above profile/toast layers so nothing can
+      //                                   be interacted with before acknowledging,
+      //                                   below cursor FX (9000) + loading (9999).
       zIndex: {
         loading: "9999",
         cursor: "9000",
@@ -119,6 +123,7 @@ export default {
         goal: "600",
         ad: "500",
         dropdown: "200",
+        gate: "8200",
       },
     },
   },

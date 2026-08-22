@@ -1,7 +1,7 @@
 /**
  * Temporary, dev-only rank-gate bypass used while the User Portal redesign is
  * being reviewed. `DEV_UNLOCK_RANK_GATES` makes the handful of rank-requirement
- * UI locks (Engine B's CPA C-Rank gate and per-difficulty task rank gates,
+ * UI locks (Engine B's survey C-Rank gate,
  * guild apply min-rank locks) render as unlocked so every screen can be
  * inspected without needing
  * an account that actually holds the required rank.

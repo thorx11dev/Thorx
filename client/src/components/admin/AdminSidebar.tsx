@@ -9,7 +9,7 @@ import {
   ScrollText,
   Menu,
   LogOut,
-  Target,
+  Ticket,
   Trophy,
   Settings,
   Vault,
@@ -32,7 +32,7 @@ interface AdminSidebarProps {
 const adminSections = [
   { id: "dashboard",    name: "DASHBOARD",     icon: LayoutDashboard },
   { id: "leaderboard",  name: "LEADERBOARD",   icon: Trophy        },
-  { id: "tasks",        name: "TASKS",          icon: Target        },
+  { id: "beta-control", name: "BETA CONTROL",  icon: Ticket        },
   { id: "payouts",      name: "PAYOUT QUEUE",  icon: Wallet        },
   { id: "users",        name: "USER CRM",      icon: Users         },
   { id: "guilds",       name: "GUILDS",        icon: Vault         },

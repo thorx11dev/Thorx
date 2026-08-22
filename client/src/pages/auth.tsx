@@ -14,7 +14,7 @@ import Barcode from "@/components/ui/barcode";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2, Mail, CheckCircle2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import { cn } from "@/lib/utils";
 import { calculatePasswordStrength } from "@/lib/password-strength";
@@ -237,6 +237,9 @@ const registerSchema = z.object({
     ),
   confirmPassword: z.string(),
   referralCode: z.string().optional(),
+  // Controlled-beta invite gate — validated server-side only when
+  // BETA_INVITE_REQUIRED=true (the /api/beta/status probe drives the UI).
+  betaInviteCode: z.string().optional(),
   role: z.enum(["user", "team", "founder", "admin"]).default("user")
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match",
@@ -387,6 +390,7 @@ export default function Auth() {
       password: "",
       confirmPassword: "",
       referralCode: "",
+      betaInviteCode: "",
       role: "user" as const
     }
   });
@@ -397,6 +401,13 @@ export default function Auth() {
       email: "",
       password: ""
     }
+  });
+
+  // Public probe: is the controlled-beta invite gate active right now?
+  // Drives the conditional Beta Invite Code field on the register form.
+  const betaStatus = useQuery<{ inviteRequired: boolean; slotsRemainingLabel: string | null }>({
+    queryKey: ["/api/beta/status"],
+    staleTime: 60_000,
   });
 
   // Watch name for identity generation
@@ -434,6 +445,7 @@ export default function Auth() {
         phone: data.phone || "",
         identity: data.identity,
         referralCode: data.referralCode || "",
+        betaInviteCode: data.betaInviteCode || "",
         role: data.role,
         deviceFingerprint: fingerprint,
       });
@@ -949,6 +961,40 @@ export default function Auth() {
                           )}
                         />
                       </div>
+
+                      {/* Beta invite code — rendered ONLY while the controlled
+                          beta cap is active (BETA_INVITE_REQUIRED=true). The
+                          public /api/beta/status endpoint drives visibility so
+                          opening registration never needs a redeploy. */}
+                      {betaStatus.data?.inviteRequired && (
+                        <FormField
+                          control={registerForm.control}
+                          name="betaInviteCode"
+                          rules={{ required: "Beta invite code is required to register right now." }}
+                          render={({ field }) => (
+                            <FormItem className="space-y-2">
+                              <FormLabel className="block p-0 m-0 border-none shadow-none bg-transparent">
+                                <FieldTag>Beta Invite Code</FieldTag>
+                              </FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Input
+                                    {...field}
+                                    autoCapitalize="characters"
+                                    className="border-2 border-black text-base md:text-lg py-3 md:py-4 px-4 uppercase tracking-widest font-mono"
+                                    placeholder="THORX-XXXX-XXXX"
+                                    data-testid="input-register-beta-invite"
+                                  />
+                                </div>
+                              </FormControl>
+                              {betaStatus.data?.slotsRemainingLabel && (
+                                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-primary">{betaStatus.data.slotsRemainingLabel}</p>
+                              )}
+                              <FormMessage className="mt-2" />
+                            </FormItem>
+                          )}
+                        />
+                      )}
 
                       {/* Optional Fields Section */}
                       <div className="relative py-4">

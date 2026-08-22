@@ -10,10 +10,10 @@ import { cn } from "@/lib/utils";
 export interface PSThreshold { min: number; max: number | null; next: string | null; unlocks: string }
 
 export const PS_THRESHOLDS: Record<string, PSThreshold> = {
-  "E-Rank": { min: 0,     max: 999,   next: "D-Rank", unlocks: "Engine B Medium tasks (D-Rank)" },
-  "D-Rank": { min: 1000,  max: 2999,  next: "C-Rank", unlocks: "Engine B Hard tasks + all CPA offers (C-Rank)" },
+  "E-Rank": { min: 0,     max: 999,   next: "D-Rank", unlocks: "Engine B Surveys (C-Rank)" },
+  "D-Rank": { min: 1000,  max: 2999,  next: "C-Rank", unlocks: "Engine B Surveys (C-Rank)" },
   "C-Rank": { min: 3000,  max: 5999,  next: "B-Rank", unlocks: "Join guilds that require B-Rank or higher (B-Rank)" },
-  "B-Rank": { min: 6000,  max: 9999,  next: "A-Rank", unlocks: "Engine B Elite tasks + wider Card variance ±5% (A-Rank)" },
+  "B-Rank": { min: 6000,  max: 9999,  next: "A-Rank", unlocks: "Wider Card variance ±5% (A-Rank)" },
   "A-Rank": { min: 10000, max: 19999, next: "S-Rank", unlocks: "Auto-approved withdrawals + widest Card variance ±10% (S-Rank)" },
   "S-Rank": { min: 20000, max: null,  next: null,      unlocks: "All features unlocked!" },
 };

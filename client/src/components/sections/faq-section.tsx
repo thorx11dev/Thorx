@@ -76,13 +76,13 @@ const allFaqData = [
     id: "001",
     protocol: "PLATFORM-OVERVIEW",
     question: "What is THORX?",
-    answer: "THORX is an AI-powered digital engagement platform that connects businesses with verified human attention while enabling users to earn TX-Points through meaningful online activities. Our three-engine architecture: Engine A (Attention Marketplace), Engine B (AI-Driven CPA Offers), and Engine C (Guild Social Hub) — all backed by multi-layer AI fraud prevention."
+    answer: "THORX is an AI-powered digital engagement platform that connects businesses with verified human attention while enabling users to earn TX-Points through meaningful online activities. Our three-engine architecture: Engine A (Attention Marketplace), Engine B (Paid Surveys), and Engine C (Guild Social Hub) — all backed by multi-layer AI fraud prevention."
   },
   {
     id: "002",
     protocol: "EARNING-MODEL",
     question: "How do I earn TX-Points on THORX?",
-    answer: "Three earning streams: 1) Engine A — Watch 15–25 second video ads then actively explore the advertiser's page for 15 seconds inside our AI sandbox. 2) Engine B — Complete curated CPA tasks (app downloads, reviews, registrations) with AI-verified proof submission. 3) Engine C — Join a Guild to earn bonus TX-Points from weekly tasks and a share of your Guild's Weekly Bonus Pool, plus earn direct referral commissions."
+    answer: "Three earning streams: 1) Engine A — Watch 15–25 second video ads then actively explore the advertiser's page for 15 seconds inside our AI sandbox. 2) Engine B — Complete paid surveys from trusted partner networks and earn on every approved completion. 3) Engine C — Join a Guild to earn bonus TX-Points from weekly tasks and a share of your Guild's Weekly Bonus Pool, plus earn direct referral commissions."
   },
   {
     id: "003",
@@ -124,7 +124,7 @@ const allFaqData = [
     id: "009",
     protocol: "RANKING-SYSTEM",
     question: "What are the user ranks and how do they work?",
-    answer: "THORX has six personal ranks, driven entirely by your Performance Score (PS): E-Rank → D-Rank → C-Rank → B-Rank → A-Rank → S-Rank. Higher ranks unlock harder Engine B tasks (Elite at A-Rank), all CPA offers (C-Rank+), wider Thorx Card variance bonuses (A-Rank, S-Rank), instant-approved withdrawals (S-Rank), and entry to guilds that require a higher rank. Guild creation itself is open at any rank — admin approval is the gate. Guild Ranks (E through S) are separate — they track your Guild's collective weekly performance."
+    answer: "THORX has six personal ranks, driven entirely by your Performance Score (PS): E-Rank → D-Rank → C-Rank → B-Rank → A-Rank → S-Rank. Higher ranks unlock Engine B paid surveys (C-Rank+), wider Thorx Card variance bonuses (A-Rank, S-Rank), instant-approved withdrawals (S-Rank), and entry to guilds that require a higher rank. Guild creation itself is open at any rank — admin approval is the gate. Guild Ranks (E through S) are separate — they track your Guild's collective weekly performance."
   },
   {
     id: "010",
@@ -142,7 +142,7 @@ const allFaqData = [
     id: "012",
     protocol: "HALAL-ECOSYSTEM",
     question: "Is THORX earning Halal?",
-    answer: "Yes. THORX operates within a strict halal-based earning model. All video advertisements and CPA offers undergo content filtering — no haram or inappropriate material is promoted. Earnings are based on genuine work (verified human attention and engagement), not passive income, interest, or gambling. TX-Points are earned, not speculated."
+    answer: "Yes. THORX operates within a strict halal-based earning model. All video advertisements and survey partners undergo content filtering — no haram or inappropriate material is promoted. Earnings are based on genuine work (verified human attention and engagement), not passive income, interest, or gambling. TX-Points are earned, not speculated."
   },
   {
     id: "013",
@@ -153,8 +153,8 @@ const allFaqData = [
   {
     id: "014",
     protocol: "ENGINE-B",
-    question: "What is Engine B — AI-Driven CPA Offers?",
-    answer: "Engine B is the high-yield task system. The THORX team curates reliable offers from top CPA networks (app downloads, reviews, registrations). You complete the task and upload proof. Our AI Agent runs a multi-tier fraud check: metadata/hash duplicate detection, OCR + LLM screenshot verification, and escrow release — ensuring fair, fast TX-Points for real work."
+    question: "What is Engine B — Paid Surveys?",
+    answer: "Engine B is the high-yield survey system. Trusted partner networks (CPX Research, BitLabs) serve surveys matched to your profile from the Survey Wall. Complete a survey honestly and the partner confirms it via a secure server-to-server signal — your reward is credited automatically, with daily limits keeping quality high. No proof uploads, no waiting on manual approvals."
   },
   {
     id: "015",

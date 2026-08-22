@@ -54,11 +54,11 @@ export function TeamKeysManager() {
   const [linkCopied, setLinkCopied] = useState(false);
 
   const ADMIN_SECTIONS = [
-    { id: "tasks", name: "Task Manager" },
     { id: "payouts", name: "Payout Queue" },
     { id: "users", name: "User CRM" },
     { id: "inbox", name: "Inbox" },
     { id: "audit", name: "Audit Logs" },
+    { id: "beta-control", name: "Beta Control" },
     { id: "team", name: "Team Keys" },
   ];
 

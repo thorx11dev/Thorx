@@ -504,7 +504,7 @@ export function AdminDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {([
             { key: "Engine_A" as const, label: "Engine A · Video Ads",   color: "#f97316", sub: "User earnings via ad views" },
-            { key: "Engine_B" as const, label: "Engine B · CPA Offers",  color: "#7c3aed", sub: "C-Rank+ CPA completions" },
+            { key: "Engine_B" as const, label: "Engine B · Surveys",     color: "#7c3aed", sub: "C-Rank+ survey completions" },
             { key: "Engine_C" as const, label: "Engine C · Guild Tasks", color: "#16a34a", sub: "Guild weekly task pool" },
           ]).map(({ key, label, color, sub }) => {
             // H-04/H-05: engineRevenue values are Decimal-fixed strings — sum

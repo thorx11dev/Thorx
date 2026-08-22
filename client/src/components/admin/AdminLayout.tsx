@@ -12,9 +12,9 @@ import {
   Home,
   LogOut,
   Shield,
-  Target,
   Settings,
-  BarChart2
+  BarChart2,
+  Ticket
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
@@ -44,11 +44,11 @@ export function AdminLayout({ children, activeSection, onSectionChange, title }:
   const adminNavItems = [
     { id: "dashboard", icon: LayoutDashboard, label: "Stats" },
     { id: "leaderboard", icon: Shield, label: "Leaderboard" },
-    { id: "tasks", icon: Target, label: "Tasks" },
     { id: "payouts", icon: CreditCard, label: "Payouts" },
     { id: "users", icon: Users, label: "Users" },
     { id: "inbox", icon: Mail, label: "Inbox" },
     { id: "audit", icon: FileText, label: "Audit" },
+    { id: "beta-control", icon: Ticket, label: "Beta Control" },
     ...(user?.role === "founder" || user?.role === "admin" ? [{ id: "finance", icon: BarChart2, label: "Finance" }] : []),
     { id: "settings", icon: Settings, label: "Settings" },
   ];

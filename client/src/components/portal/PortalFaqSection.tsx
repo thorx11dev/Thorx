@@ -16,14 +16,14 @@ const faqItems: FaqItem[] = [
     category: "Getting Started",
     question: "What is THORX?",
     answer:
-      "THORX is an AI-powered digital engagement platform that connects businesses with verified human attention while enabling users to earn real money through meaningful online activities. We operate Engine A (Attention Marketplace), Engine B (AI-Driven CPA Offers), and Engine C (Guild System & Referral Commissions) — all backed by multi-layer AI fraud prevention.",
+      "THORX is an AI-powered digital engagement platform that connects businesses with verified human attention while enabling users to earn real money through meaningful online activities. We operate Engine A (Attention Marketplace), Engine B (Paid Surveys), and Engine C (Guild System & Referral Commissions) — all backed by multi-layer AI fraud prevention.",
   },
   {
     id: "002",
     category: "Getting Started",
     question: "How do I earn on THORX?",
     answer:
-      "Three earning streams: 1) Engine A — Watch 15–25 second video ads, then actively explore the advertiser's page for 15 seconds inside our secure AI sandbox. 2) Engine B — Complete curated CPA tasks (app downloads, reviews, registrations) and submit proof for AI-verified payout. 3) Engine C — Join a Guild to earn weekly bonus TX-Points plus a share of your Guild's Weekly Bonus Pool, plus earn a passive referral commission whenever your direct referral withdraws their earnings.",
+      "Three earning streams: 1) Engine A — Watch 15–25 second video ads, then actively explore the advertiser's page for 15 seconds inside our secure AI sandbox. 2) Engine B — Complete paid surveys from trusted partner networks and earn real PKR on every approved completion. 3) Engine C — Join a Guild to earn weekly bonus TX-Points plus a share of your Guild's Weekly Bonus Pool, plus earn a passive referral commission whenever your direct referral withdraws their earnings.",
   },
   {
     id: "003",
@@ -44,7 +44,7 @@ const faqItems: FaqItem[] = [
     category: "Ranks",
     question: "What are the user ranks?",
     answer:
-      "Your rank is driven entirely by your Performance Score (PS), earned from completing tasks and maintaining a daily streak. Ranks: E-Rank → D-Rank → C-Rank (unlocks Engine B CPA offers) → B-Rank → A-Rank (wider Thorx Card variance) → S-Rank (instant-approved withdrawals). Guild creation is open at every rank — admin approval is the gate. Totals earned or referred don't affect your rank directly — only PS does.",
+      "Your rank is driven entirely by your Performance Score (PS), earned from completing activities and maintaining a daily streak. Ranks: E-Rank → D-Rank → C-Rank (unlocks Engine B paid surveys) → B-Rank → A-Rank (wider Thorx Card variance) → S-Rank (instant-approved withdrawals). Guild creation is open at every rank — admin approval is the gate. Totals earned or referred don't affect your rank directly — only PS does.",
   },
   {
     id: "006",
@@ -63,9 +63,9 @@ const faqItems: FaqItem[] = [
   {
     id: "008",
     category: "How It Works",
-    question: "How does Engine B offer verification work?",
+    question: "How does Engine B survey crediting work?",
     answer:
-      "After completing a CPA task, upload your screenshot or video proof. Our AI Agent runs a 3-tier check: Tier 1 — Metadata & hash extraction to catch duplicate or recycled proofs. Tier 2 — Advanced OCR + LLM analysis to verify target handles, comment text, and UI structures from your screenshot. Tier 3 — Approved tasks enter 'Pending' escrow before the admin panel releases to your wallet.",
+      "Open a survey from the Survey Wall and complete it honestly on the partner's site. The partner network confirms your completion through a secure server-to-server signal, and your reward is credited automatically — usually within minutes. There is no proof to upload and no manual approval wait. Answer truthfully at a normal pace: quality checks protect every user's payout rate.",
   },
 ];
 

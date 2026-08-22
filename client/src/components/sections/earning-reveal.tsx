@@ -22,13 +22,13 @@ const cardContents = [
         icon: <Clock className="size-6 text-black dark:text-white" />,
     },
     {
-        title: "AI-Driven CPA Offers",
-        description: "Complete curated tasks from top CPA networks. Submit proof and our AI Agent runs a multi-tier fraud check — metadata analysis, OCR verification, and escrow release — ensuring fair, fast payouts for real work.",
+        title: "Paid Surveys",
+        description: "Answer matched surveys from trusted partner networks inside the Survey Wall. Completions are confirmed via secure server-to-server signals — fair, fast payouts for real work, no proof uploads.",
         icon: <TrendingUp className="size-6 text-black dark:text-white" />,
     },
     {
         title: "AI Fraud Prevention",
-        description: "Every interaction is protected by multi-layer verification: the Super AI Attention Detector on ads, automated proof vetting on tasks, and the LeadX intelligence system — guaranteeing a trusted ecosystem for earners and advertisers alike.",
+        description: "Every interaction is protected by multi-layer verification: the Super AI Attention Detector on ads, server-verified survey completions, and the LeadX intelligence system — guaranteeing a trusted ecosystem for earners and advertisers alike.",
         icon: <ShieldCheck className="size-6 text-black dark:text-white" />,
     },
 ];

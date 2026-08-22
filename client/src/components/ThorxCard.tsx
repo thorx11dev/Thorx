@@ -29,7 +29,7 @@ const ENGINE_COLORS: Record<string, string> = {
 
 const ENGINE_LABELS: Record<string, string> = {
   Engine_A: "Engine A — Video",
-  Engine_B: "Engine B — CPA Offer",
+  Engine_B: "Engine B — Survey",
   Engine_C: "Engine C — Guild Task",
   Indirect:  "Indirect Task",
 };

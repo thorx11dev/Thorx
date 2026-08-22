@@ -8,7 +8,6 @@ import { UserManager } from "@/components/admin/UserManager";
 import { AdminInbox } from "@/components/admin/AdminInbox";
 import { AuditLogViewer } from "@/components/admin/AuditLogViewer";
 import { TeamKeysManager } from "@/components/admin/TeamKeysManager";
-import { TaskManager } from "@/components/admin/TaskManager";
 import { SystemSettingsManager } from "@/components/admin/SystemSettingsManager";
 import { LeaderboardInsights } from "@/components/admin/LeaderboardInsights";
 import { ReconciliationPanel } from "@/components/admin/ReconciliationPanel";
@@ -19,6 +18,7 @@ import { ThorxCardSandbox } from "@/components/admin/ThorxCardSandbox";
 import { LedgerValidator } from "@/components/admin/LedgerValidator";
 import { RanksCustomizer } from "@/components/admin/RanksCustomizer";
 import { ReferralAnalytics } from "@/components/admin/ReferralAnalytics";
+import { BetaControlPanel } from "@/components/admin/BetaControlPanel";
 import { Shield, Lock } from "lucide-react";
 
 export default function TeamPortal() {
@@ -109,8 +109,6 @@ export default function TeamPortal() {
         return <AdminDashboard />;
       case "leaderboard":
         return <LeaderboardInsights onViewUserInCRM={handleViewUserInCRM} />;
-      case "tasks":
-        return <TaskManager />;
       case "payouts":
         return <PayoutControl />;
       case "users":
@@ -139,6 +137,8 @@ export default function TeamPortal() {
         return <RanksCustomizer />;
       case "referrals":
         return <ReferralAnalytics />;
+      case "beta-control":
+        return <BetaControlPanel />;
       default:
         return <AdminDashboard />;
     }
@@ -148,7 +148,6 @@ export default function TeamPortal() {
     switch (activeSection) {
       case "dashboard": return "Command Center";
       case "leaderboard": return "Leaderboard & Risk Insights";
-      case "tasks": return "Task & Ad Management";
       case "payouts": return "Payout Operations";
       case "users": return "User Registry";
       case "inbox": return "Communications";
@@ -161,6 +160,7 @@ export default function TeamPortal() {
       case "ledger":       return "Ledger Validator";
       case "ranks":        return "Ranks & Engine Config";
       case "referrals":    return "Referral Analytics";
+      case "beta-control": return "Beta Control";
       case "settings":     return "Financial Control Center";
       case "finance":      return "Financial Reconciliation";
       default: return "Command Center";

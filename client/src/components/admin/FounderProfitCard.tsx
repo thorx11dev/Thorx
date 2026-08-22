@@ -184,7 +184,7 @@ export function FounderProfitCard() {
             <div className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Engine Cut Breakdown</div>
             {[
               { label: "Engine A (Video Ads)", val: profitLedger.engineCuts?.A },
-              { label: "Engine B (CPA Tasks)", val: profitLedger.engineCuts?.B },
+              { label: "Engine B (Surveys)", val: profitLedger.engineCuts?.B },
               { label: "Engine C (Guild)", val: profitLedger.engineCuts?.C },
             ].map(({ label, val }) => (
               <div key={label} className="flex justify-between text-[10px]">
