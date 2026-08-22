@@ -463,6 +463,11 @@ app.use((req, res, next) => {
   }
 
   async function serve(): Promise<void> {
+    // Idempotent DDL (beta trust + survey infra) must exist before any route
+    // can query it — production images ship no migrations folder, so the DDL
+    // is bundled into the server and applied at boot (no-op when current).
+    const { runBootMigrations } = await import("./boot-migrate");
+    await runBootMigrations();
     await bindAndBoot();
     if (mode !== "serving") return; // duplicate start — standing by instead
     await loadApp();
