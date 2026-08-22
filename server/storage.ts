@@ -1,6 +1,7 @@
 import Decimal from "decimal.js";
 import { logger } from "./lib/logger";
 import { Sentry } from "./lib/sentry";
+import { betaInvites, feedbackMessages } from "@shared/beta-schema";
 import {
   users,
   earnings,
@@ -728,7 +729,7 @@ export const SYSTEM_CONFIG_DEFAULTS = [
       // ── Per-Engine TX-Points illusion ratios (Spec §1.1) ─────────────────
       { key: "ENGINE_A_PKR_TO_POINTS_RATIO", value: 1000, description: "Engine A (Ad Slots): TX-Points credited per 1.00 PKR of user share" },
       { key: "ENGINE_A_ILLUSION_VARIANCE_PCT", value: 10, description: "Engine A: ±variance % applied to Thorx Card draw (10 = ±10%)" },
-      { key: "ENGINE_B_PKR_TO_POINTS_RATIO", value: 1000, description: "Engine B (CPA/Tasks): TX-Points per 1.00 PKR" },
+      { key: "ENGINE_B_PKR_TO_POINTS_RATIO", value: 1000, description: "Engine B (Surveys): TX-Points per 1.00 PKR" },
       { key: "ENGINE_B_ILLUSION_VARIANCE_PCT", value: 10, description: "Engine B: ±variance %" },
       { key: "ENGINE_C_PKR_TO_POINTS_RATIO", value: 1000, description: "Engine C (Guild): TX-Points per 1.00 PKR" },
       { key: "ENGINE_C_ILLUSION_VARIANCE_PCT", value: 10, description: "Engine C: ±variance %" },
@@ -742,14 +743,7 @@ export const SYSTEM_CONFIG_DEFAULTS = [
         ], 
         description: "Waterfall priority list for Video Ad Providers" 
       },
-      { 
-        key: "CPA_NETWORKS", 
-        value: [
-          { id: "cpalead-1", name: "CPALead", apiKey: "default", type: "cpa", priority: 1, isActive: true }
-        ], 
-        description: "Waterfall priority list for CPA Task Providers" 
-      },
-      // ── THORX v3 — Engine Splits (Part J) ────────────────────────────────
+      // ── THORX v3 — Engine Splits (Part J) ────────────────────────────
       // Note: Engine C never pays the user an immediate PKR share (100% of the
       // gross is split between Thorx cut / guild pool / bonus pool below), so
       // there is no "ENGINE_C_USER_CUT_PCT" — deliberately omitted (Ranks &
@@ -757,7 +751,7 @@ export const SYSTEM_CONFIG_DEFAULTS = [
       // ENGINE_A/B_USER_CUT_PCT, were dead — never read by recordEarnEvent,
       // which derives the user cut as 100 - thorxCutPct instead).
       { key: "ENGINE_A_THORX_CUT_PCT", value: 40, description: "Engine A (video ads): Thorx profit cut % (user keeps 100 - this)" },
-      { key: "ENGINE_B_THORX_CUT_PCT", value: 40, description: "Engine B (CPA offers): Thorx profit cut % (user keeps 100 - this)" },
+      { key: "ENGINE_B_THORX_CUT_PCT", value: 40, description: "Engine B (surveys): Thorx profit cut % (user keeps 100 - this)" },
       { key: "ENGINE_C_THORX_CUT_PCT", value: 15, description: "Engine C (guild tasks): Thorx direct profit cut %" },
       { key: "ENGINE_C_GUILD_POOL_PCT", value: 80, description: "Engine C: % locked in the guild weekly bonus pool (distributed Sunday)" },
       { key: "ENGINE_C_BONUS_PCT", value: 5, description: "Engine C: % added to bonus pool — paid to guild on target hit, otherwise goes to treasury" },
@@ -864,6 +858,37 @@ export const SYSTEM_CONFIG_DEFAULTS = [
         ]),
         description: "JSON array of ad inventory items {id,reward,duration,type,label}; admin-editable at runtime",
       },
+      // ── Engine B Surveys (CPX Research / BitLabs waterfall) ────────────────
+      // Read by server/modules/survey-engine.ts. Networks activate only when
+      // their config JSON carries real credentials; an unconfigured network is
+      // filtered out of the wall AND its callbacks are rejected (no secret =
+      // no verification = no reward).
+      {
+        key: "SURVEY_NETWORKS_JSON",
+        value: JSON.stringify([
+          { id: "cpx-research", name: "CPX Research", priority: 1, isActive: true },
+          { id: "bitlabs", name: "BitLabs", priority: 2, isActive: true },
+        ]),
+        description: "JSON array of survey networks {id,name,priority,isActive} in waterfall order (Engine B)",
+      },
+      {
+        key: "CPX_RESEARCH_CONFIG_JSON",
+        value: "{}",
+        description: 'CPX Research credentials {apiId, hash} — wall signing + postback MD5 validation. Empty = network disabled.',
+      },
+      {
+        key: "BITLABS_CONFIG_JSON",
+        value: "{}",
+        description: 'BitLabs credentials {appToken, secret} — wall URL + callback SHA-1 HMAC validation. Empty = network disabled.',
+      },
+      { key: "SURVEY_USD_TO_PKR_RATE", value: 278, description: "PKR credited per USD 1.00 of publisher payout reported by a survey network" },
+      { key: "SURVEY_MAX_PER_DAY", value: 20, description: "Maximum completed surveys a user can be credited for per PKT day" },
+      { key: "SURVEY_MIN_RANK", value: "E-Rank", description: "Minimum PS rank tier required to open the survey wall (E-Rank during beta so every user can earn; tighten post-beta)" },
+      // ── Beta trust (invite gate + feedback inbox) ────────────────────────
+      // Flip BETA_INVITE_REQUIRED to true to close registration behind invite
+      // codes minted from Team Portal → Beta Control. The register route and
+      // the public GET /api/beta/status both read this key.
+      { key: "BETA_INVITE_REQUIRED", value: false, description: "Controlled beta gate: when true, registration requires a valid THORX-XXXX-XXXX invite code minted from Beta Control" },
     ] as const;
 
 /** Fast lookup set built once from {@link SYSTEM_CONFIG_DEFAULTS} — used by the
@@ -1234,7 +1259,7 @@ export class DatabaseStorage implements IStorage {
     engineType: "Engine_A" | "Engine_B" | "Engine_C" | "Indirect";
     grossPkr: string | number; // from network/task config — string preferred (Decimal-safe)
     sourceId: string; // ad_view.id or task_record.id
-    sourceType: "ad_view" | "weekly_task" | "daily_task" | "engine_b_task";
+    sourceType: "ad_view" | "weekly_task" | "daily_task" | "engine_b_task" | "survey";
     guildId?: string; // required for Engine_C
     tx?: any; // optional outer transaction — when provided, no inner db.transaction() is opened
   }): Promise<{ success: boolean; pointsCredited: number; realPkrValue: string; earning?: Earning }> {
@@ -1909,6 +1934,7 @@ export class DatabaseStorage implements IStorage {
         lastStreakDate: users.lastStreakDate,
         inactivityPenaltyAt: users.inactivityPenaltyAt,
         balanceCashPkr: users.balanceCashPkr,
+        rulesAcknowledgedAt: users.rulesAcknowledgedAt,
         teamKey: teamKeys,
       })
       .from(users)

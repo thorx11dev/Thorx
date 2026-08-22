@@ -94,13 +94,21 @@ async function verifySignature(
   rawBody: string,
   received: string | undefined,
 ): Promise<SigResult> {
-  // Fetch per-network HMAC secret from system_config
-  const secretsJson = await storage.getSystemConfigValue<string>(
+  // Fetch per-network HMAC secret from system_config. The jsonb column comes
+  // back ALREADY parsed as an object (drizzle jsonb), so handle both forms —
+  // parsing a string again or using the object directly. Previously the
+  // JSON.parse() of an object silently failed, leaving secrets empty and the
+  // signature check permanently skipped ("no secret configured").
+  const rawSecrets = await storage.getSystemConfigValue<unknown>(
     "WEBHOOK_SECRETS_JSON",
     "{}",
   );
   let secrets: Record<string, string> = {};
-  try { secrets = JSON.parse(secretsJson); } catch { /* malformed */ }
+  if (typeof rawSecrets === "string") {
+    try { secrets = JSON.parse(rawSecrets); } catch { /* malformed */ }
+  } else if (rawSecrets && typeof rawSecrets === "object") {
+    secrets = rawSecrets as Record<string, string>;
+  }
 
   const secret = secrets[networkId];
   if (!secret) {

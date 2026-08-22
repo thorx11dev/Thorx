@@ -16,6 +16,16 @@ import { resolveCookiePolicy } from "./cookie-policy";
 export function csrfProtection(req: Request, res: Response, next: NextFunction) {
   const SAFE_METHODS = ["GET", "HEAD", "OPTIONS"];
 
+  // Ad-network webhooks (POST /api/webhooks/*) carry no browser cookies and
+  // are verified by their own HMAC + replay pipeline
+  // (modules/webhook-verifier.ts), so the CSRF double-submit check does not
+  // apply to them.
+  // req.path is mount-relative here (csrfProtection is mounted at "/api"),
+  // so match against the original URL.
+  if (req.originalUrl.startsWith("/api/webhooks/")) {
+    return next();
+  }
+
   // Mirror the session cookie's SameSite/Secure policy so the CSRF
   // double-submit cookie round-trips in the same contexts the session
   // cookie does (resolveCookiePolicy switches to None+Secure+Partitioned

@@ -114,8 +114,14 @@ class MonetagAdapter implements AdNetworkAdapter {
   }
 
   async verifyCompletion(): Promise<boolean> {
-    // Stub: always true until API key + webhook configured
-    return true;
+    // HARD GATE (beta security audit): until Monetag's real postback + HMAC
+    // verification is implemented there is NO way to prove a completion, so
+    // the network must never be eligible for rewards. The previous stub
+    // returned true unconditionally — activating the network would have let
+    // any client claim fake completions for free credit (Golden Rule: no
+    // verification = no reward).
+    logger.warn("[Monetag] verifyCompletion called but integration not implemented — refusing reward");
+    return false;
   }
 }
 
@@ -137,7 +143,11 @@ class AdsterraAdapter implements AdNetworkAdapter {
   }
 
   async reportCompletion(): Promise<void> {}
-  async verifyCompletion(): Promise<boolean> { return true; }
+  async verifyCompletion(): Promise<boolean> {
+    // HARD GATE: see Monetag adapter — stubs must never verify rewards.
+    logger.warn("[Adsterra] verifyCompletion called but integration not implemented — refusing reward");
+    return false;
+  }
 }
 
 // ─── PropellerAds Adapter (Stub) ─────────────────────────────────────────────
@@ -158,7 +168,11 @@ class PropellerAdsAdapter implements AdNetworkAdapter {
   }
 
   async reportCompletion(): Promise<void> {}
-  async verifyCompletion(): Promise<boolean> { return true; }
+  async verifyCompletion(): Promise<boolean> {
+    // HARD GATE: see Monetag adapter — stubs must never verify rewards.
+    logger.warn("[PropellerAds] verifyCompletion called but integration not implemented — refusing reward");
+    return false;
+  }
 }
 
 // ─── AdMaven Adapter (Stub) ───────────────────────────────────────────────────
@@ -179,7 +193,11 @@ class AdMavenAdapter implements AdNetworkAdapter {
   }
 
   async reportCompletion(): Promise<void> {}
-  async verifyCompletion(): Promise<boolean> { return true; }
+  async verifyCompletion(): Promise<boolean> {
+    // HARD GATE: see Monetag adapter — stubs must never verify rewards.
+    logger.warn("[AdMaven] verifyCompletion called but integration not implemented — refusing reward");
+    return false;
+  }
 }
 
 // ─── Registry ─────────────────────────────────────────────────────────────────

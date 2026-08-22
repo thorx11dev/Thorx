@@ -8,11 +8,17 @@ import { storage, KNOWN_SYSTEM_CONFIG_KEYS } from "./storage";
 import { pool, db } from "./db";
 import { initRealtime, broadcastUserUpdated, broadcastTeamRefresh, broadcastGuildMessage, broadcastGuildEvent, broadcastToUser, closeUserSockets, isUserOnline } from "./realtime";
 import { insertRegistrationSchema, insertUserSchema, insertWithdrawalSchema, users, teamKeys, adViews, systemConfig, weeklyTasks, auditLogs, rankLogs, insertHilltopAdsConfigSchema, insertHilltopAdsZoneSchema, passwordResetTokens, insertEngineBTaskSchema, engineBRecords, guildCreationRequests, guildMembers, guildProfiles, guildWars, guilds, captainMessages } from "@shared/schema";
+import { enforceGeoPolicy } from "./middleware/geo-guard";
+import { acknowledgeRules, getRulesAcknowledgedAt, validateBetaInvite, finalizeBetaInviteUse, getBetaStatus, submitFeedback, listMyFeedback, listFeedbackForTeam, changeFeedbackStatus, createBetaInvite, listBetaInvites, deactivateBetaInvite } from "./modules/beta-trust";
 import { TRUST_STATUSES } from "@shared/constants";
-import { eq, sql, and, desc, or, inArray } from "drizzle-orm";
+import { eq, sql, and, desc, or, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 import { validateEmailServer, validatePhoneServer, normalizePhoneNumber } from "./validation";
 import { hilltopAdsService } from "./hilltopads-service";
+import { createAdSessionToken, verifyAdSessionToken } from "./modules/ad-session";
+import { verifyWebhook, markWebhookRewarded, type WebhookPayload } from "./modules/webhook-verifier";
+import { registerAdEngineRoutes } from "./modules/ad-engine-routes";
+import { registerSurveyRoutes } from "./modules/survey-routes";
 import { runtimeConfig } from "./config/runtime";
 import { handleProxyRequest } from "./modules/proxy/proxy-handler";
 import { processProfilePicture } from "./utils/local-profile-picture";
@@ -412,6 +418,13 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
   app.set('trust proxy', 1);
   app.use(session(sessionConfig));
+
+  // Phase 2 (real rewarded ads): session-aware ad endpoints + server-verified
+  // completion webhook. Registered here — before the legacy /api/ad-view
+  // handler below — so the session flow wins; the legacy adId path is
+  // preserved inside it for the simulated inventory.
+  registerAdEngineRoutes(app);
+  registerSurveyRoutes(app);
 
   
   // Custom session debugger middleware for development only.
@@ -4108,11 +4121,170 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  // ── Beta trust: honesty-rules acknowledgment ────────────────────────────
+  app.post("/api/user/acknowledge-rules", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req) as string;
+      const at = await acknowledgeRules(userId);
+      res.json({ success: true, rulesAcknowledgedAt: at });
+    } catch (error) {
+      logger.error({ err: error }, "acknowledge-rules error");
+      res.status(500).json({ message: "Failed to acknowledge rules" });
+    }
+  });
+
+  app.get("/api/user/rules-status", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req) as string;
+      res.json({ rulesAcknowledgedAt: await getRulesAcknowledgedAt(userId) });
+    } catch {
+      res.status(500).json({ message: "Failed to load rules status" });
+    }
+  });
+
+  // ── Beta trust: feedback inbox (user side) ──────────────────────────────
+  app.post("/api/feedback", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req) as string;
+      const schema = z.object({ category: z.string().optional(), message: z.string().min(5).max(2000) });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input" });
+      const row = await submitFeedback(userId, parsed.data.category ?? "general", parsed.data.message);
+      res.status(201).json({ success: true, feedback: row });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to submit feedback";
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  app.get("/api/feedback/mine", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req) as string;
+      res.json({ feedback: await listMyFeedback(userId) });
+    } catch {
+      res.status(500).json({ message: "Failed to load feedback" });
+    }
+  });
+
+  // Team portal: feedback triage inbox
+  app.get("/api/team/feedback", requireSessionAuth, async (req, res) => {
+    try {
+      const role = req.userProfile?.role || "";
+      if (!["team", "admin", "founder"].includes(role)) return res.status(403).json({ message: "Team access required" });
+      const status = typeof req.query.status === "string" ? req.query.status : undefined;
+      res.json({ feedback: await listFeedbackForTeam(status) });
+    } catch {
+      res.status(500).json({ message: "Failed to load feedback inbox" });
+    }
+  });
+
+  app.patch("/api/team/feedback/:id", requireSessionAuth, async (req, res) => {
+    try {
+      const adminId = getThorxPrincipalId(req) as string;
+      const role = req.userProfile?.role || "";
+      if (!["team", "admin", "founder"].includes(role)) return res.status(403).json({ message: "Team access required" });
+      const schema = z.object({
+        status: z.enum(["open", "triaged", "resolved"]),
+        adminResponse: z.string().max(500).optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input" });
+      const row = await changeFeedbackStatus(req.params.id, parsed.data.status, parsed.data.adminResponse, adminId);
+      res.json({ feedback: row });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to update feedback";
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  // ── Beta invites: founder/admin mint & manage codes ─────────────────────
+  app.post("/api/team/beta/invites", requireSessionAuth, async (req, res) => {
+    try {
+      const role = req.userProfile?.role || "";
+      if (!["admin", "founder"].includes(role)) return res.status(403).json({ message: "Admin access required" });
+      const schema = z.object({
+        maxUses: z.number().int().min(1).max(1000).optional(),
+        note: z.string().max(200).optional(),
+      });
+      const parsed = schema.safeParse(req.body ?? {});
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input" });
+      const invite = await createBetaInvite({
+        maxUses: parsed.data.maxUses ?? 1,
+        note: parsed.data.note,
+        createdByEmail: req.userProfile?.email,
+      });
+      try {
+        await storage.createAuditLog({
+          adminId: getThorxPrincipalId(req) as string,
+          actorRole: role,
+          action: "BETA_INVITE_CREATED",
+          targetType: "beta_invite",
+          targetId: invite.id,
+          details: { code: invite.code, maxUses: invite.maxUses, note: invite.note },
+        }, getRequestContext(req));
+      } catch { /* non-blocking */ }
+      res.status(201).json({ invite });
+    } catch (error) {
+      logger.error({ err: error }, "create beta invite error");
+      res.status(500).json({ message: "Failed to create invite" });
+    }
+  });
+
+  app.get("/api/team/beta/invites", requireSessionAuth, async (req, res) => {
+    try {
+      const role = req.userProfile?.role || "";
+      if (!["team", "admin", "founder"].includes(role)) return res.status(403).json({ message: "Team access required" });
+      res.json({ invites: await listBetaInvites(), ...(await getBetaStatus()) });
+    } catch {
+      res.status(500).json({ message: "Failed to list invites" });
+    }
+  });
+
+  app.patch("/api/team/beta/invites/:id", requireSessionAuth, async (req, res) => {
+    try {
+      const role = req.userProfile?.role || "";
+      if (!["admin", "founder"].includes(role)) return res.status(403).json({ message: "Admin access required" });
+      const invite = await deactivateBetaInvite(req.params.id);
+      res.json({ invite });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to update invite";
+      res.status(400).json({ message: msg });
+    }
+  });
+
+  // Public beta status — drives the invite-code field on the auth page
+  app.get("/api/beta/status", async (req, res) => {
+    try {
+      res.json(await getBetaStatus());
+    } catch {
+      res.json({ inviteRequired: false, slotsRemainingLabel: null });
+    }
+  });
+
   // Register new user
   app.post("/api/register", authRateLimiter, async (req, res) => {
     try {
       const { firstName, lastName, email, password, phone, identity, referralCode, role, deviceFingerprint } = req.body;
       debugLog(`[POST /api/register] Attempt for ${email}. Role: ${role}`);
+
+      // ── Geo / VPN guard (anti-fraud Layer 2) ────────────────────────────
+      const geoBlock = await enforceGeoPolicy(req as any, res, "register");
+      if (geoBlock) return geoBlock;
+
+      const { betaInviteCode } = req.body;
+
+      // ── Beta invite gate (controlled 1000-user beta cap) ────────────────
+      const inviteRequired = await storage.getSystemConfigValue<boolean>("BETA_INVITE_REQUIRED", false);
+      if (inviteRequired && !["team", "founder", "admin"].includes(role || "user")) {
+        try {
+          await validateBetaInvite(String(betaInviteCode ?? ""));
+        } catch (inviteErr) {
+          return res.status(403).json({
+            message: inviteErr instanceof Error ? inviteErr.message : "Invalid invite code.",
+            error: "BETA_INVITE_REQUIRED",
+          });
+        }
+      }
 
       // R-22: Single canonical validator — manual pre-check removed to avoid drift.
       // Validate using registerSchema
@@ -4195,6 +4367,11 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         } catch (fpErr) {
           logger.error({ err: fpErr }, "Device fingerprint storage failed (non-blocking):");
         }
+      }
+
+      // Consume one use of the beta invite (only after the account exists).
+      if (typeof betaInviteCode === "string" && betaInviteCode.trim()) {
+        await finalizeBetaInviteUse(betaInviteCode, newUser.id);
       }
 
       // Mark email as verified immediately (no OTP required)
@@ -4380,6 +4557,10 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     try {
       const { email, password, deviceFingerprint } = req.body;
       debugLog(`[POST /api/login] Attempt for ${email ?? "(no email)"}`);
+
+      // ── Geo / VPN guard (anti-fraud Layer 2) ────────────────────────────
+      const geoBlock = await enforceGeoPolicy(req as any, res, "login");
+      if (geoBlock) return geoBlock;
 
       if (!email || !password) {
         return res.status(400).json({

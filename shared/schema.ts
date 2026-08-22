@@ -81,6 +81,11 @@ export const users = pgTable("users", {
   inactivityPenaltyAt: timestamp("inactivity_penalty_at"),
   // ── THORX v3: Referral cash wallet — separate from txPointsBalance ──────
   balanceCashPkr: decimal("balance_cash_pkr", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  // ── Beta trust infra: honesty-rules acknowledgment (anti-fraud Layer 1) ──
+  // Set when the user accepts the survey-honesty / one-account / no-VPN rules
+  // screen after registration. Null = not yet acknowledged → portal shows the
+  // mandatory modal before any earning section is reachable.
+  rulesAcknowledgedAt: timestamp("rules_acknowledged_at"),
 }, (table) => [
   index("users_email_idx").on(table.email),
   index("users_referral_code_idx").on(table.referralCode),
@@ -391,6 +396,30 @@ export const engineBRecords = pgTable("engine_b_records", {
 ]);
 export type EngineBRecord = typeof engineBRecords.$inferSelect;
 export type InsertEngineBRecord = typeof engineBRecords.$inferInsert;
+
+// ── Engine B: Survey network completion records (CPX Research / BitLabs) ─────
+// One row per user survey interaction with an external survey network.
+// Credit path: network S2S callback → verify signature → guarded status flip
+// (started→completed inside the advisory-locked transaction) → recordEarnEvent
+// (Engine_B). The partial unique index uniq_survey_network_tx (migration 0011)
+// makes a per-network transaction id impossible to credit twice even under a
+// concurrent retry storm from the vendor's callback system.
+export const surveyRecords = pgTable("survey_records", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  networkId: text("network_id").notNull(),   // 'cpx-research' | 'bitlabs' — see SURVEY_NETWORKS_JSON
+  transactionId: text("transaction_id"),     // vendor TX id — dedup key per network (null while started)
+  status: text("status").notNull().default("started"), // 'started' | 'completed'
+  rewardUsd: decimal("reward_usd", { precision: 10, scale: 4 }), // publisher payout reported by the network
+  grossPkr: decimal("gross_pkr", { precision: 10, scale: 4 }),   // PKR credited as the earn-event gross
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("survey_records_user_idx").on(table.userId),
+  index("survey_records_user_created_idx").on(table.userId, table.createdAt),
+]);
+export type SurveyRecord = typeof surveyRecords.$inferSelect;
+export type InsertSurveyRecord = typeof surveyRecords.$inferInsert;
 
 export type LeaderboardCache = typeof leaderboardCache.$inferSelect;
 export type InsertLeaderboardCache = typeof leaderboardCache.$inferInsert;

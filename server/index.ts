@@ -203,7 +203,15 @@ app.use(cors({
   exposedHeaders: ['Set-Cookie'],
 }));
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  // Capture the raw request body for HMAC verification of ad-network
+  // webhooks (modules/webhook-verifier.ts). Cheap for every request; only
+  // read by POST /api/webhooks/* routes.
+  verify: (req: any, _res, buf) => {
+    req.rawBody = buf.toString('utf8');
+  },
+}));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
