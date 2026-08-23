@@ -268,4 +268,182 @@ describe("Engine B — survey callbacks (BitLabs + CPX Research)", () => {
     expect(res.body.credited).toBe(true);
     expect(await countSurveyCredits(user.id)).toBe(1);
   });
+
+  // ── Deep integration: CPX Research end-to-end ─────────────────────────────
+  describe("CPX Research — deep integration", () => {
+    it("wall link uses offers.cpx-research.com (not walls.cpx-research.com)", async () => {
+      const { h, user } = await registerUser("cpx_wall");
+      const res = await getWall(h);
+      const cpx = res.body.networks.find((n: any) => n.networkId === "cpx-research");
+      expect(cpx?.available).toBe(true);
+      expect(cpx.wallUrl).toContain("offers.cpx-research.com");
+      expect(cpx.wallUrl).not.toContain("walls.cpx-research.com");
+    });
+
+    it("wall link embeds app_id, real user UUID (not a placeholder), and secure_hash", async () => {
+      const { h, user } = await registerUser("cpx_hash");
+      const res = await getWall(h);
+      const cpx = res.body.networks.find((n: any) => n.networkId === "cpx-research");
+      const url = new URL(cpx.wallUrl);
+      expect(url.searchParams.get("app_id")).toBe(CPX_API_ID);
+      // Must be the real user UUID, not a placeholder like {THORX_USER_ID} or __UID__
+      const extUid = url.searchParams.get("ext_user_id");
+      expect(extUid).toBe(user.id);
+      expect(extUid).not.toContain("__UID__");
+      expect(extUid).not.toContain("{");
+      // secure_hash = md5(userId + "-" + hash)
+      const secureHash = url.searchParams.get("secure_hash");
+      expect(secureHash).toBeTruthy();
+      const expectedHash = crypto.createHash("md5").update(`${user.id}-${CPX_HASH}`, "utf8").digest("hex");
+      expect(secureHash).toBe(expectedHash);
+    });
+
+    it("CPX credit updates user balance, total_earnings, and TX points", async () => {
+      const { user } = await registerUser("cpx_bal");
+
+      // Snapshot balances before credit
+      const [before] = await db
+        .select({ balance: users.availableBalance, earnings: users.totalEarnings })
+        .from(users).where(eq(users.id, user.id)).limit(1);
+      const balBefore = Number(before.balance ?? 0);
+      const earnBefore = Number(before.earnings ?? 0);
+
+      const transId = `cpx_bal_${TS}`;
+      const amount = "2.00"; // 2.00 USD × 278 = 556.00 PKR gross; 60% user = 333.60 PKR
+      const sig = signCpx(transId, user.id, amount);
+      const res = await request(app).get(
+        `/api/webhooks/survey/cpx-research?user_id=${user.id}&trans_id=${transId}&currency_amount=${amount}&hash=${sig}`,
+      );
+      expect(res.status).toBe(200);
+      expect(res.body.credited).toBe(true);
+
+      // Verify balances updated
+      const [after] = await db
+        .select({ balance: users.availableBalance, earnings: users.totalEarnings, points: users.txPointsBalance })
+        .from(users).where(eq(users.id, user.id)).limit(1);
+      expect(Number(after.balance)).toBeGreaterThan(balBefore);
+      expect(Number(after.earnings)).toBeGreaterThan(earnBefore);
+      expect(Number(after.points)).toBeGreaterThan(0);
+
+      // Verify survey record exists with correct PKR calculation
+      const [record] = await db
+        .select({ grossPkr: surveyRecords.grossPkr, rewardUsd: surveyRecords.rewardUsd })
+        .from(surveyRecords).where(eq(surveyRecords.transactionId, transId)).limit(1);
+      expect(Number(record?.rewardUsd)).toBeCloseTo(2.00, 2);
+      expect(Number(record?.grossPkr)).toBeCloseTo(556.0, 0); // 2 × 278
+    });
+
+    it("daily cap enforcement — 21st survey in a day is rejected", async () => {
+      const { user } = await registerUser("cpx_cap");
+
+      // Seed 20 completed survey records today (at the cap)
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      for (let i = 0; i < 20; i++) {
+        await db.insert(surveyRecords).values({
+          userId: user.id,
+          networkId: "cpx-research",
+          transactionId: `cap_seed_${TS}_${i}`,
+          status: "completed",
+          rewardUsd: "1.00",
+          grossPkr: "278.0000",
+          completedAt: todayStart,
+        });
+      }
+
+      // 21st survey should be rejected as daily_cap
+      const transId = `cpx_cap_21st_${TS}`;
+      const sig = signCpx(transId, user.id, "0.50");
+      const res = await request(app).get(
+        `/api/webhooks/survey/cpx-research?user_id=${user.id}&trans_id=${transId}&currency_amount=0.50&hash=${sig}`,
+      );
+      expect(res.status).toBe(200);
+      expect(res.body.credited).toBe(false);
+      expect(res.body.reason).toBe("DAILY_CAP");
+    });
+
+    it("CPX callback via POST body (not just GET query)", async () => {
+      const { user } = await registerUser("cpx_post");
+
+      const transId = `cpx_post_${TS}`;
+      const amount = "0.75";
+      const sig = signCpx(transId, user.id, amount);
+
+      const res = await request(app)
+        .post("/api/webhooks/survey/cpx-research")
+        .send({
+          user_id: user.id,
+          trans_id: transId,
+          currency_amount: amount,
+          hash: sig,
+        });
+      expect(res.status).toBe(200);
+      expect(res.body.credited).toBe(true);
+      expect(await countSurveyCredits(user.id)).toBe(1);
+    });
+
+    it("wall shows 0/N progress when cap already exhausted", async () => {
+      const { h, user } = await registerUser("cpx_wall_cap");
+
+      // Exhaust cap
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      for (let i = 0; i < 20; i++) {
+        await db.insert(surveyRecords).values({
+          userId: user.id,
+          networkId: "bitlabs",
+          transactionId: `wall_cap_${TS}_${i}`,
+          status: "completed",
+          rewardUsd: "1.00",
+          grossPkr: "278.0000",
+          completedAt: todayStart,
+        });
+      }
+
+      const res = await getWall(h);
+      expect(res.body.completedToday).toBe(20);
+      expect(res.body.dailyCap).toBe(20);
+      // When cap is hit, network list should be empty (client hides buttons)
+      expect(res.body.networks).toHaveLength(0);
+    });
+
+    it("CPX dash-separated hash also accepted (fallback formula)", async () => {
+      const { user } = await registerUser("cpx_dash");
+
+      const transId = `cpx_dash_${TS}`;
+      const amount = "0.50";
+      // Try dash-separated formula: MD5(trans_id + "-" + hash)
+      const dashSig = crypto.createHash("md5").update(`${transId}-${CPX_HASH}`, "utf8").digest("hex");
+
+      const res = await request(app).get(
+        `/api/webhooks/survey/cpx-research?user_id=${user.id}&trans_id=${transId}&currency_amount=${amount}&hash=${dashSig}`,
+      );
+      expect(res.status).toBe(200);
+      expect(res.body.credited).toBe(true);
+      expect(await countSurveyCredits(user.id)).toBe(1);
+    });
+
+    it("CPX missing hash param is rejected (401)", async () => {
+      const { user } = await registerUser("cpx_nohash");
+
+      const res = await request(app).get(
+        `/api/webhooks/survey/cpx-research?user_id=${user.id}&trans_id=tx_no_hash&currency_amount=1.00`,
+      );
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe("CALLBACK_REJECTED");
+      expect(await countSurveyCredits(user.id)).toBe(0);
+    });
+
+    it("CPX unknown user id is rejected (400)", async () => {
+      const transId = `cpx_unknown_${TS}`;
+      const fakeUserId = "00000000-0000-0000-0000-000000000000";
+      const sig = signCpx(transId, fakeUserId, "1.00");
+
+      const res = await request(app).get(
+        `/api/webhooks/survey/cpx-research?user_id=${fakeUserId}&trans_id=${transId}&currency_amount=1.00&hash=${sig}`,
+      );
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe("UNKNOWN_USER");
+    });
+  });
 });
