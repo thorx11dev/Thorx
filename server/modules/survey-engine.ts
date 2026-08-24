@@ -175,6 +175,12 @@ export interface SurveyWallEntry {
   available: boolean; // false when credentials missing — client hides it
 }
 
+/** Optional profile hints vendors use for duplicate-matching and targeting. */
+export interface SurveyUserProfile {
+  email?: string | null;
+  username?: string | null;
+}
+
 /**
  * Build the signed entry URL for one network, or mark it unavailable when its
  * credentials are not configured yet.
