@@ -77,7 +77,15 @@ export function registerSurveyRoutes(app: Express): void {
         const active = await getActiveSurveyNetworks();
         // userId is passed so CPX's signed-wall digest (secure_hash) can be
         // computed server-side per user — the secret never leaves the server.
-        networks = await Promise.all(active.map((n) => buildSurveyWallEntry(n, userId)));
+        // Profile hints (email/username) boost vendor-side survey matching.
+        networks = await Promise.all(
+          active.map((n) =>
+            buildSurveyWallEntry(n, userId, {
+              email: user.email,
+              username: user.identity,
+            }),
+          ),
+        );
         networks = networks.map((n) => ({
           ...n,
           wallUrl: n.available ? n.wallUrl.replace("__UID__", encodeURIComponent(userId)) : "",
