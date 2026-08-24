@@ -19,6 +19,7 @@ import { createAdSessionToken, verifyAdSessionToken } from "./modules/ad-session
 import { verifyWebhook, markWebhookRewarded, type WebhookPayload } from "./modules/webhook-verifier";
 import { registerAdEngineRoutes } from "./modules/ad-engine-routes";
 import { registerSurveyRoutes } from "./modules/survey-routes";
+import { registerLeaderboardRoutes } from "./modules/leaderboard-routes";
 import { runtimeConfig } from "./config/runtime";
 import { handleProxyRequest } from "./modules/proxy/proxy-handler";
 import { processProfilePicture } from "./utils/local-profile-picture";
@@ -425,6 +426,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   // preserved inside it for the simulated inventory.
   registerAdEngineRoutes(app);
   registerSurveyRoutes(app);
+  registerLeaderboardRoutes(app);
 
   
   // Custom session debugger middleware for development only.

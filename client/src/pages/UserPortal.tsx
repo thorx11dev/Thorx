@@ -13,7 +13,10 @@ const DashboardSection = retryLazy(() =>
   import("@/features/user-portal/sections/DashboardSection").then((m) => ({ default: m.DashboardSection }))
 );
 const HelpSection = retryLazy(() =>
-  import("@/features/user-portal/sections/HelpSection").then((m) => ({ default: m.HelpSection }))
+import("@/features/user-portal/sections/HelpSection").then((m) => ({ default: m.HelpSection }))
+);
+const LeaderboardSection = retryLazy(() =>
+import("@/features/user-portal/sections/LeaderboardSection").then((m) => ({ default: m.default }))
 );
 const GuildSection = retryLazy(() =>
   import("@/features/user-portal/sections/GuildSection").then((m) => ({ default: m.GuildSection }))
@@ -107,7 +110,7 @@ const DEV_MOCK_PREVIEW = {
 };
 import { formatPoints } from "@/lib/formatPoints";
 import { useLocation } from "wouter";
-import { LogOut, ArrowRight, ArrowLeft, PieChart, Copy, Download, Home, Briefcase, User, Shield, Settings, Network, Landmark, Headphones, Bell } from "lucide-react";
+import { LogOut, ArrowRight, ArrowLeft, PieChart, Copy, Download, Home, Briefcase, User, Shield, Settings, Network, Landmark, Headphones, Bell, Trophy } from "lucide-react";
 
 
 const GUEST_USER: AuthUser = {
@@ -227,6 +230,7 @@ const sections = [
   { id: "guild", name: "Engine C", icon: Shield },
   { id: "payout", name: "Payout", icon: Landmark },
   { id: "help", name: "Help", icon: Headphones },
+  { id: "ranks", name: "Ranks", icon: Trophy },
 ];
 
 export default function UserPortal() {
@@ -1141,6 +1145,7 @@ export default function UserPortal() {
                 { title: sections[3].name, icon: sections[3].icon },
                 { title: sections[4].name, icon: sections[4].icon },
                 { title: sections[5].name, icon: sections[5].icon },
+                { title: sections[6].name, icon: sections[6].icon },
               ]}
             />
           </div>
@@ -1293,6 +1298,19 @@ export default function UserPortal() {
               data-testid="section-help"
             >
               <Suspense fallback={null}><HelpSection isHelpHeroToggled={isHelpHeroToggled} setIsHelpHeroToggled={setIsHelpHeroToggled} handleHeroToggle={handleHeroToggle} activeHelpTab={activeHelpTab} setActiveHelpTab={setActiveHelpTab} chatMessages={chatMessages} isChatHistoryLoading={isChatHistoryLoading} newMessage={newMessage} setNewMessage={setNewMessage} handleSendMessage={handleSendMessage} chatMutation={chatMutation} contactForm={contactForm} setContactForm={setContactForm} handleContactSubmit={handleContactSubmit} isContactSubmitting={isContactSubmitting} isMobile={isMobile} /></Suspense>
+            </motion.section>
+          )}
+          {currentSection === 6 && (
+            <motion.section
+              key="section-ranks"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="cinematic-section active"
+              data-testid="section-ranks"
+            >
+              <Suspense fallback={null}><LeaderboardSection /></Suspense>
             </motion.section>
           )}
         </AnimatePresence>
