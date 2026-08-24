@@ -307,7 +307,7 @@ function safeHexEqual(a: string, b: string): boolean {
  * BitLabs: hash = SHA-1 HMAC (hex) of the complete URI minus the hash param,
  * keyed with the App Secret.
  */
-function verifyBitLabsHash(params: URLSearchParams, originalPath: string, secret: string): CallbackVerification {
+export function verifyBitLabsHash(params: URLSearchParams, originalPath: string, secret: string): CallbackVerification {
   const received = params.get("hash") ?? "";
   if (!received) return { ok: false, reason: "Missing hash parameter" };
 
@@ -334,7 +334,7 @@ function verifyBitLabsHash(params: URLSearchParams, originalPath: string, secret
  * Formula: MD5(trans_id + app_secure_hash)
  * Source: CPX Dashboard → Edit App → POSTBACK SETTINGS
  */
-function verifyCpxHash(params: URLSearchParams, creds: CpxResearchCredentials): CallbackVerification {
+export function verifyCpxHash(params: URLSearchParams, creds: CpxResearchCredentials): CallbackVerification {
   const received = params.get("hash") ?? "";
   if (!received) return { ok: false, reason: "Missing hash parameter" };
   if (!creds.hash) return { ok: false, reason: "CPX Research app secure hash not configured" };
@@ -387,7 +387,7 @@ function verifyTimeWallHash(params: URLSearchParams, creds: TimeWallCredentials)
  * Formula: HMAC-SHA256(api_key, user_id + transaction_id + amount)
  * Similar pattern to TimeWall — industry standard for survey offerwalls.
  */
-function verifyPrimeSurveysHash(params: URLSearchParams, creds: PrimeSurveysCredentials): CallbackVerification {
+export function verifyPrimeSurveysHash(params: URLSearchParams, creds: PrimeSurveysCredentials): CallbackVerification {
   const received = params.get("hash") ?? "";
   if (!received) return { ok: false, reason: "Missing hash parameter" };
   if (!creds.apiKey) return { ok: false, reason: "PrimeSurveys API key not configured" };
@@ -415,7 +415,7 @@ function verifyPrimeSurveysHash(params: URLSearchParams, creds: PrimeSurveysCred
  *
  * For web redirects, the hash is computed over the full redirect URL.
  */
-function verifyTheoremReachHash(
+export function verifyTheoremReachHash(
   params: URLSearchParams,
   originalPath: string,
   creds: TheoremReachCredentials,
@@ -447,7 +447,7 @@ function verifyTheoremReachHash(
  * Docs: https://documentation.lootably.com/docs/postbacks
  * Formula: SHA256(userID + ip + revenue + currencyReward + postbackSecret)
  */
-function verifyLootablyHash(params: URLSearchParams, creds: LootablyCredentials): CallbackVerification {
+export function verifyLootablyHash(params: URLSearchParams, creds: LootablyCredentials): CallbackVerification {
   const received = params.get("hash") ?? "";
   if (!received) return { ok: false, reason: "Missing hash parameter" };
   if (!creds.postbackSecret) return { ok: false, reason: "Lootably postback secret not configured" };
