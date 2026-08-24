@@ -1235,6 +1235,26 @@ export default function Auth() {
                           )}
                         />
 
+                        {/* 2FA code — revealed when the server answers TOTP_REQUIRED */}
+                        {totpRequired && (
+                          <div className="space-y-2 border-2 border-black bg-[#FF6B35]/10 p-4 rounded-lg">
+                            <FieldTag>Authenticator Code</FieldTag>
+                            <Input
+                              value={totpCode}
+                              onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                              inputMode="numeric"
+                              autoComplete="one-time-code"
+                              placeholder="000000"
+                              autoFocus
+                              className="border-2 border-black rounded-lg text-lg font-black tracking-[0.5em] py-3 md:py-4 px-4 text-center"
+                              data-testid="input-login-totp"
+                            />
+                            <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                              Open your authenticator app and enter the current 6-digit code
+                            </p>
+                          </div>
+                        )}
+
                         {/* Forgot Password */}
                         <div className="text-right">
                           <button
