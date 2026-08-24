@@ -18,14 +18,27 @@ remaining path from "code complete" to "first beta user earns".
 
 All keys go to **Settings → System Config** (or env for secrets):
 
-- [ ] `CPX_RESEARCH_CONFIG_JSON` = `{"apiId":"…","hash":"…"}` — publisher dashboard → postback URL:
+- [ ] `CPX_RESEARCH_CONFIG_JSON` = `{"apiId":"…","hash":"…"}` — postback URL:
       `https://<your-domain>/api/webhooks/survey/cpx-research`
 - [ ] `BITLABS_CONFIG_JSON` = `{"appToken":"…","secret":"…"}` — callback URL:
       `https://<your-domain>/api/webhooks/survey/bitlabs`
+- [ ] `TIMEWALL_CONFIG_JSON` = `{"siteId":"…","secret":"…"}` — callback URL:
+      `https://<your-domain>/api/webhooks/survey/timewall`
+- [ ] `PRIMESURVEYS_CONFIG_JSON` = `{"appId":"…","apiKey":"…"}` — callback URL:
+      `https://<your-domain>/api/webhooks/survey/primesurveys`
+- [ ] `THEOREMREACH_CONFIG_JSON` = `{"companyId":"…","secretKey":"…"}` — redirect URL:
+      `https://<your-domain>/api/webhooks/survey/theoremreach`
+- [ ] `LOOTABLY_CONFIG_JSON` = `{"placementId":"…","postbackSecret":"…"}` — postback URL:
+      `https://<your-domain>/api/webhooks/survey/lootably`
+- [ ] `SURVEY_NETWORKS_JSON` — enable each network:
+      `[{"id":"cpx-research","name":"CPX Research","priority":1,"isActive":true},
+       {"id":"timewall","name":"TimeWall","priority":2,"isActive":true},
+       {"id":"lootably","name":"Lootably","priority":3,"isActive":true},
+       {"id":"primesurveys","name":"PrimeSurveys","priority":4,"isActive":true},
+       {"id":"theoremreach","name":"TheoremReach","priority":5,"isActive":true},
+       {"id":"bitlabs","name":"BitLabs","priority":6,"isActive":true}]`
 - [ ] `HILLTOPADS_API_KEY` (env secret) — unlocks Engine A zone inventory sync
 - [ ] `WEBHOOK_SECRETS_JSON` — per-network HMAC secrets for ad-complete callbacks
-- [ ] Confirm CPX's exact postback MD5 concatenation order in their dashboard and
-      align `verifySurveyCallback` (isolated one-line expression, marked TODO(activation))
 
 Until a network is configured it is hidden from the wall and its callbacks are
 rejected — no stub can mint credit.

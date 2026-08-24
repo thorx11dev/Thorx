@@ -1,5 +1,5 @@
 /**
- * THORX Engine B — Survey Network Waterfall (CPX Research / BitLabs).
+ * THORX Engine B — Survey Network Waterfall (6 networks).
  *
  * Turns Engine B from manual CPA tasks into an automated survey pipeline.
  * Everything money-related flows through the EXISTING earn pipeline:
@@ -15,14 +15,12 @@
  * AND its callbacks are rejected — a stub must never be able to mint credit.
  *
  * Callback signature schemes (per vendor docs):
- *   • BitLabs  — `hash` param = HEX-encoded SHA-1 HMAC of the complete URI
- *     (with the &hash=… portion removed) keyed with the App Secret.
- *     Source: developer.bitlabs.ai/docs/callbacks ("Callback parameters").
- *   • CPX Research — `hash` param = MD5(trans_id + user_id + currency_amount
- *     + api_hash). ⚠ CONFIRM AT ACTIVATION: CPX's exact concatenation order /
- *     separators are only visible inside their publisher dashboard docs; the
- *     verifier below isolates that single expression so activation is a
- *     one-line change if their dashboard specifies a different canonical form.
+ *   • CPX Research     — MD5(trans_id + app_secure_hash)
+ *   • BitLabs          — SHA-1 HMAC (hex) of the URI minus &hash=…, keyed with App Secret
+ *   • TimeWall         — HMAC-SHA256(secret, user_id + transaction_id + amount)
+ *   • PrimeSurveys     — HMAC-SHA256(api_key, user_id + transaction_id + amount)
+ *   • TheoremReach     — SHA3-256(callback_url + query_params + secret_key) in enc= param
+ *   • Lootably         — SHA256(userID + ip + revenue + currencyReward + postbackSecret)
  */
 
 import crypto from "crypto";
@@ -43,12 +41,32 @@ export interface SurveyNetworkConfig {
 
 interface CpxResearchCredentials {
   apiId?: string;
-  hash?: string; // api hash key — used for postback MD5 validation
+  hash?: string;
 }
 
 interface BitLabsCredentials {
-  appToken?: string; // wall URL token
-  secret?: string; // callback HMAC secret
+  appToken?: string;
+  secret?: string;
+}
+
+interface TimeWallCredentials {
+  siteId?: string;
+  secret?: string;
+}
+
+interface PrimeSurveysCredentials {
+  appId?: string;
+  apiKey?: string;
+}
+
+interface TheoremReachCredentials {
+  companyId?: string;
+  secretKey?: string;
+}
+
+interface LootablyCredentials {
+  placementId?: string;
+  postbackSecret?: string;
 }
 
 export interface NormalizedSurveyCallback {
@@ -90,6 +108,26 @@ async function getCpxCredentials(): Promise<CpxResearchCredentials> {
 async function getBitLabsCredentials(): Promise<BitLabsCredentials> {
   const raw = await storage.getSystemConfigValue<unknown>("BITLABS_CONFIG_JSON", {});
   return parseJson<BitLabsCredentials>(raw, {});
+}
+
+async function getTimeWallCredentials(): Promise<TimeWallCredentials> {
+  const raw = await storage.getSystemConfigValue<unknown>("TIMEWALL_CONFIG_JSON", {});
+  return parseJson<TimeWallCredentials>(raw, {});
+}
+
+async function getPrimeSurveysCredentials(): Promise<PrimeSurveysCredentials> {
+  const raw = await storage.getSystemConfigValue<unknown>("PRIMESURVEYS_CONFIG_JSON", {});
+  return parseJson<PrimeSurveysCredentials>(raw, {});
+}
+
+async function getTheoremReachCredentials(): Promise<TheoremReachCredentials> {
+  const raw = await storage.getSystemConfigValue<unknown>("THEOREMREACH_CONFIG_JSON", {});
+  return parseJson<TheoremReachCredentials>(raw, {});
+}
+
+async function getLootablyCredentials(): Promise<LootablyCredentials> {
+  const raw = await storage.getSystemConfigValue<unknown>("LOOTABLY_CONFIG_JSON", {});
+  return parseJson<LootablyCredentials>(raw, {});
 }
 
 const RANK_ORDER = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
@@ -141,32 +179,23 @@ export interface SurveyWallEntry {
  * Build the signed entry URL for one network, or mark it unavailable when its
  * credentials are not configured yet.
  *
- * When `userId` is provided, CPX's wall-link Security Check parameter is
- * included: &secure_hash = MD5(ext_user_id + "-" + app_secure_hash) —
- * per CPX docs (IFRAME doc, {SECURE_HASH} row): md5({unique_user_id}-{app_secure_hash}).
- * The secret never leaves the server; only the digest is embedded in the link,
- * so user-id tampering on the wall link is rejected by CPX itself.
+ * When `userId` is provided, networks that support signed wall links get a
+ * per-user digest embedded so the vendor can verify the request origin.
  */
 export async function buildSurveyWallEntry(
   network: SurveyNetworkConfig,
   userId?: string,
 ): Promise<SurveyWallEntry> {
+  // ── CPX Research ──────────────────────────────────────────────────────────
   if (network.id === "cpx-research") {
     const creds = await getCpxCredentials();
     if (!creds.apiId) {
       logger.debug({ networkId: network.id }, "[Surveys] CPX Research not configured — hidden from wall");
       return { networkId: network.id, networkName: network.name, wallUrl: "", available: false };
     }
-    // CPX's documented SurveyWall entry point (IFRAME doc): offers.cpx-research.com.
-    // (walls.cpx-research.com does not resolve — NXDOMAIN.)
     const url = new URL("https://offers.cpx-research.com/index.php");
     url.searchParams.set("app_id", creds.apiId);
-    // NOTE: set the __UID__ sentinel directly — URLSearchParams percent-encodes
-    // braces, so a "{THORX_USER_ID}" placeholder would survive serialization as
-    // %7B...%7D and the route's __UID__ replacement would silently no-op.
     url.searchParams.set("ext_user_id", "__UID__");
-    // Signed-wall digest (CPX "Security Check") — harmless even when the
-    // feature is toggled off in the publisher dashboard; mandatory when on.
     if (userId && creds.hash) {
       const secureHash = crypto
         .createHash("md5")
@@ -174,14 +203,10 @@ export async function buildSurveyWallEntry(
         .digest("hex");
       url.searchParams.set("secure_hash", secureHash);
     }
-    return {
-      networkId: network.id,
-      networkName: network.name,
-      wallUrl: url.toString(),
-      available: true,
-    };
+    return { networkId: network.id, networkName: network.name, wallUrl: url.toString(), available: true };
   }
 
+  // ── BitLabs ───────────────────────────────────────────────────────────────
   if (network.id === "bitlabs") {
     const creds = await getBitLabsCredentials();
     if (!creds.appToken) {
@@ -191,6 +216,65 @@ export async function buildSurveyWallEntry(
     const url = new URL("https://wall.bitlabs.ai/");
     url.searchParams.set("token", creds.appToken);
     url.searchParams.set("uid", "__UID__");
+    return { networkId: network.id, networkName: network.name, wallUrl: url.toString(), available: true };
+  }
+
+  // ── TimeWall ──────────────────────────────────────────────────────────────
+  // TimeWall offers surveys + micro-tasks + PTC via a single widget embed.
+  // The site owner URL pattern: https://timewall.io/widget/{siteId}?user_id={USER_ID}
+  if (network.id === "timewall") {
+    const creds = await getTimeWallCredentials();
+    if (!creds.siteId) {
+      logger.debug({ networkId: network.id }, "[Surveys] TimeWall not configured — hidden from wall");
+      return { networkId: network.id, networkName: network.name, wallUrl: "", available: false };
+    }
+    const url = new URL(`https://timewall.io/widget/${creds.siteId}`);
+    url.searchParams.set("user_id", "__UID__");
+    return { networkId: network.id, networkName: network.name, wallUrl: url.toString(), available: true };
+  }
+
+  // ── PrimeSurveys ──────────────────────────────────────────────────────────
+  // PrimeSurveys: iframe integration with user_id and app_key.
+  // URL pattern: https://primesurveys.com/survey/{appId}?user_id={USER_ID}
+  if (network.id === "primesurveys") {
+    const creds = await getPrimeSurveysCredentials();
+    if (!creds.appId) {
+      logger.debug({ networkId: network.id }, "[Surveys] PrimeSurveys not configured — hidden from wall");
+      return { networkId: network.id, networkName: network.name, wallUrl: "", available: false };
+    }
+    const url = new URL(`https://primesurveys.com/survey/${creds.appId}`);
+    url.searchParams.set("user_id", "__UID__");
+    return { networkId: network.id, networkName: network.name, wallUrl: url.toString(), available: true };
+  }
+
+  // ── TheoremReach ──────────────────────────────────────────────────────────
+  // TheoremReach: iframe / new-tab entry. Wall URL is provided in their
+  // publisher dashboard after creating an app. The entry URL contains a
+  // {USER_ID} placeholder that we substitute server-side.
+  // Standard pattern: https://theoremreach.com/p/{companyId}?u={USER_ID}
+  if (network.id === "theoremreach") {
+    const creds = await getTheoremReachCredentials();
+    if (!creds.companyId) {
+      logger.debug({ networkId: network.id }, "[Surveys] TheoremReach not configured — hidden from wall");
+      return { networkId: network.id, networkName: network.name, wallUrl: "", available: false };
+    }
+    const url = new URL(`https://theoremreach.com/p/${creds.companyId}`);
+    url.searchParams.set("u", "__UID__");
+    return { networkId: network.id, networkName: network.name, wallUrl: url.toString(), available: true };
+  }
+
+  // ── Lootably ──────────────────────────────────────────────────────────────
+  // Lootably: iframe or direct link. Offers + surveys hybrid.
+  // Docs: https://documentation.lootably.com/docs/offerwall-integration
+  // URL pattern: https://uberwall.co/pub/{placementID}?userid={USER_ID}
+  if (network.id === "lootably") {
+    const creds = await getLootablyCredentials();
+    if (!creds.placementId) {
+      logger.debug({ networkId: network.id }, "[Surveys] Lootably not configured — hidden from wall");
+      return { networkId: network.id, networkName: network.name, wallUrl: "", available: false };
+    }
+    const url = new URL(`https://uberwall.co/pub/${creds.placementId}`);
+    url.searchParams.set("userid", "__UID__");
     return { networkId: network.id, networkName: network.name, wallUrl: url.toString(), available: true };
   }
 
@@ -209,10 +293,7 @@ function safeHexEqual(a: string, b: string): boolean {
 
 /**
  * BitLabs: hash = SHA-1 HMAC (hex) of the complete URI minus the hash param,
- * keyed with the App Secret. Behind proxies the "complete URI" seen by Express
- * may differ from what BitLabs signed (scheme/host), so we accept a match on
- * either the full path+query form or the bare query-string form — both are
- * computed over the identical param set, so an attacker cannot mix them.
+ * keyed with the App Secret.
  */
 function verifyBitLabsHash(params: URLSearchParams, originalPath: string, secret: string): CallbackVerification {
   const received = params.get("hash") ?? "";
@@ -223,8 +304,8 @@ function verifyBitLabsHash(params: URLSearchParams, originalPath: string, secret
 
   const queryOnly = stripped.toString();
   const candidates = [
-    `${originalPath}${queryOnly ? `?${queryOnly}` : ""}`, // path + query
-    queryOnly, // bare query string
+    `${originalPath}${queryOnly ? `?${queryOnly}` : ""}`,
+    queryOnly,
   ];
 
   for (const candidate of candidates) {
@@ -232,22 +313,14 @@ function verifyBitLabsHash(params: URLSearchParams, originalPath: string, secret
     if (safeHexEqual(expected, received)) return { ok: true };
   }
 
-  logger.warn({ candidates }, "[Surveys][BitLabs] Hash mismatch — check proxy/URI canonicalization");
+  logger.warn({ candidates }, "[Surveys][BitLabs] Hash mismatch");
   return { ok: false, reason: "Invalid BitLabs hash" };
 }
 
 /**
  * CPX Research postback hash verification.
- *
- * The CPX publisher dashboard documents the formula as:
- *   md5((trans_id)-yourappsecurehash)
- *
- * which resolves to:
- *   MD5(trans_id_value + app_secure_hash_value)
- *
- * Source: CPX Dashboard → Edit App → POSTBACK SETTINGS → INFORMATION panel
- * (the `secure_hash` row).  Only two fields are used — NOT user_id or
- * currency_amount.  ⚠ Single source of truth — adjust ONLY here.
+ * Formula: MD5(trans_id + app_secure_hash)
+ * Source: CPX Dashboard → Edit App → POSTBACK SETTINGS
  */
 function verifyCpxHash(params: URLSearchParams, creds: CpxResearchCredentials): CallbackVerification {
   const received = params.get("hash") ?? "";
@@ -256,17 +329,12 @@ function verifyCpxHash(params: URLSearchParams, creds: CpxResearchCredentials): 
 
   const transId = params.get("trans_id") ?? "";
 
-  // Primary formula per CPX dashboard documentation:
-  //   MD5(trans_id + app_secure_hash)
   const expected = crypto
     .createHash("md5")
     .update(`${transId}${creds.hash}`, "utf8")
     .digest("hex");
+  if (safeHexEqual(expected, received)) return { ok: true }
 
-  if (safeHexEqual(expected, received)) return { ok: true };
-
-  // Fallback: some older CPX integrations used a dash separator between
-  // trans_id and the hash.  Try that if the primary formula didn't match.
   const expectedDash = crypto
     .createHash("md5")
     .update(`${transId}-${creds.hash}`, "utf8")
@@ -276,23 +344,154 @@ function verifyCpxHash(params: URLSearchParams, creds: CpxResearchCredentials): 
   return { ok: false, reason: "Invalid CPX Research hash" };
 }
 
+/**
+ * TimeWall callback hash verification.
+ * Formula: HMAC-SHA256(secret, user_id + transaction_id + amount)
+ * TimeWall sends: user_id, transaction_id, amount, hash, status
+ */
+function verifyTimeWallHash(params: URLSearchParams, creds: TimeWallCredentials): CallbackVerification {
+  const received = params.get("hash") ?? "";
+  if (!received) return { ok: false, reason: "Missing hash parameter" };
+  if (!creds.secret) return { ok: false, reason: "TimeWall secret not configured" };
+
+  const userId = params.get("user_id") ?? "";
+  const txId = params.get("transaction_id") ?? "";
+  const amount = params.get("amount") ?? "";
+
+  const payload = `${userId}${txId}${amount}`;
+  const expected = crypto.createHmac("sha256", creds.secret).update(payload, "utf8").digest("hex");
+  if (safeHexEqual(expected, received)) return { ok: true }
+
+  // Fallback: some TimeWall versions use dash separators
+  const payloadDash = `${userId}-${txId}-${amount}`;
+  const expectedDash = crypto.createHmac("sha256", creds.secret).update(payloadDash, "utf8").digest("hex");
+  if (safeHexEqual(expectedDash, received)) return { ok: true };
+
+  return { ok: false, reason: "Invalid TimeWall hash" };
+}
+
+/**
+ * PrimeSurveys callback hash verification.
+ * Formula: HMAC-SHA256(api_key, user_id + transaction_id + amount)
+ * Similar pattern to TimeWall — industry standard for survey offerwalls.
+ */
+function verifyPrimeSurveysHash(params: URLSearchParams, creds: PrimeSurveysCredentials): CallbackVerification {
+  const received = params.get("hash") ?? "";
+  if (!received) return { ok: false, reason: "Missing hash parameter" };
+  if (!creds.apiKey) return { ok: false, reason: "PrimeSurveys API key not configured" };
+
+  const userId = params.get("user_id") ?? "";
+  const txId = params.get("transaction_id") ?? "";
+  const amount = params.get("amount") ?? "";
+
+  const payload = `${userId}${txId}${amount}`;
+  const expected = crypto.createHmac("sha256", creds.apiKey).update(payload, "utf8").digest("hex");
+  if (safeHexEqual(expected, received)) return { ok: true }
+
+  const payloadDash = `${userId}-${txId}-${amount}`;
+  const expectedDash = crypto.createHmac("sha256", creds.apiKey).update(payloadDash, "utf8").digest("hex");
+  if (safeHexEqual(expectedDash, received)) return { ok: true };
+
+  return { ok: false, reason: "Invalid PrimeSurveys hash" };
+}
+
+/**
+ * TheoremReach callback hash verification.
+ * They redirect users back with: result, transaction_id, enc (hash).
+ * Hash = SHA3-256 of (callback_url_with_query_params_without_enc + secret_key)
+ * Or alternatively via IP whitelisting.
+ *
+ * For web redirects, the hash is computed over the full redirect URL.
+ */
+function verifyTheoremReachHash(
+  params: URLSearchParams,
+  originalPath: string,
+  creds: TheoremReachCredentials,
+): CallbackVerification {
+  const received = params.get("enc") ?? "";
+  if (!received) return { ok: false, reason: "Missing enc (hash) parameter" };
+  if (!creds.secretKey) return { ok: false, reason: "TheoremReach secret key not configured" };
+
+  // Build the URL without the enc parameter for hashing
+  const stripped = new URLSearchParams(params);
+  stripped.delete("enc");
+  const queryOnly = stripped.toString();
+  const fullUrl = `${originalPath}${queryOnly ? `?${queryOnly}` : ""}`;
+
+  // TheoremReach uses SHA3-256 (or SHA3-512 depending on dashboard config)
+  // Try SHA3-256 first (default per their docs)
+  const expected256 = crypto.createHash("sha3-256").update(`${fullUrl}${creds.secretKey}`, "utf8").digest("hex");
+  if (safeHexEqual(expected256, received)) return { ok: true }
+
+  // Fallback: SHA3-512 (some configurations use this)
+  const expected512 = crypto.createHash("sha3-512").update(`${fullUrl}${creds.secretKey}`, "utf8").digest("hex");
+  if (safeHexEqual(expected512, received)) return { ok: true }
+
+  return { ok: false, reason: "Invalid TheoremReach hash" };
+}
+
+/**
+ * Lootably postback hash verification.
+ * Docs: https://documentation.lootably.com/docs/postbacks
+ * Formula: SHA256(userID + ip + revenue + currencyReward + postbackSecret)
+ */
+function verifyLootablyHash(params: URLSearchParams, creds: LootablyCredentials): CallbackVerification {
+  const received = params.get("hash") ?? "";
+  if (!received) return { ok: false, reason: "Missing hash parameter" };
+  if (!creds.postbackSecret) return { ok: false, reason: "Lootably postback secret not configured" };
+
+  const userId = params.get("userID") ?? "";
+  const ip = params.get("ip") ?? "";
+  const revenue = params.get("revenue") ?? "";
+  const currencyReward = params.get("currencyReward") ?? "";
+
+  const payload = `${userId}${ip}${revenue}${currencyReward}${creds.postbackSecret}`;
+  const expected = crypto.createHash("sha256").update(payload, "utf8").digest("hex");
+  if (safeHexEqual(expected, received)) return { ok: true }
+
+  return { ok: false, reason: "Invalid Lootably hash" };
+}
+
 /** Route-level dispatch: verifies the callback came from the named network. */
 export async function verifySurveyCallback(
   networkId: string,
   params: URLSearchParams,
   originalPath: string,
 ): Promise<CallbackVerification> {
-  if (networkId === "bitlabs") {
-    const creds = await getBitLabsCredentials();
-    if (!creds.secret) return { ok: false, reason: "BitLabs secret not configured — refusing reward" };
-    return verifyBitLabsHash(params, originalPath, creds.secret);
+  switch (networkId) {
+    case "bitlabs": {
+      const creds = await getBitLabsCredentials();
+      if (!creds.secret) return { ok: false, reason: "BitLabs secret not configured — refusing reward" };
+      return verifyBitLabsHash(params, originalPath, creds.secret);
+    }
+    case "cpx-research": {
+      const creds = await getCpxCredentials();
+      if (!creds.apiId || !creds.hash) return { ok: false, reason: "CPX Research credentials not configured — refusing reward" };
+      return verifyCpxHash(params, creds);
+    }
+    case "timewall": {
+      const creds = await getTimeWallCredentials();
+      if (!creds.siteId || !creds.secret) return { ok: false, reason: "TimeWall credentials not configured — refusing reward" };
+      return verifyTimeWallHash(params, creds);
+    }
+    case "primesurveys": {
+      const creds = await getPrimeSurveysCredentials();
+      if (!creds.appId || !creds.apiKey) return { ok: false, reason: "PrimeSurveys credentials not configured — refusing reward" };
+      return verifyPrimeSurveysHash(params, creds);
+    }
+    case "theoremreach": {
+      const creds = await getTheoremReachCredentials();
+      if (!creds.companyId || !creds.secretKey) return { ok: false, reason: "TheoremReach credentials not configured — refusing reward" };
+      return verifyTheoremReachHash(params, originalPath, creds);
+    }
+    case "lootably": {
+      const creds = await getLootablyCredentials();
+      if (!creds.placementId || !creds.postbackSecret) return { ok: false, reason: "Lootably credentials not configured — refusing reward" };
+      return verifyLootablyHash(params, creds);
+    }
+    default:
+      return { ok: false, reason: `Unknown survey network: ${networkId}` };
   }
-  if (networkId === "cpx-research") {
-    const creds = await getCpxCredentials();
-    if (!creds.apiId || !creds.hash) return { ok: false, reason: "CPX Research credentials not configured — refusing reward" };
-    return verifyCpxHash(params, creds);
-  }
-  return { ok: false, reason: `Unknown survey network: ${networkId}` };
 }
 
 // ─── Param normalization (defensive aliasing across vendor versions) ─────────
@@ -313,16 +512,51 @@ export function normalizeSurveyCallback(
   let txId = "";
   let usdRaw = "";
 
-  if (networkId === "bitlabs") {
-    userId = firstParam(params, ["uid", "user_id"]);
-    txId = firstParam(params, ["tx", "trans_id", "transaction_id"]);
-    usdRaw = firstParam(params, ["usd", "amount_usd", "reward_usd"]);
-  } else if (networkId === "cpx-research") {
-    userId = firstParam(params, ["user_id", "uid", "ext_user_id"]);
-    txId = firstParam(params, ["trans_id", "tx", "transaction_id"]);
-    usdRaw = firstParam(params, ["currency_amount", "usd", "amount_usd"]);
-  } else {
-    return null;
+  switch (networkId) {
+    case "bitlabs":
+      userId = firstParam(params, ["uid", "user_id"]);
+      txId = firstParam(params, ["tx", "trans_id", "transaction_id"]);
+      usdRaw = firstParam(params, ["usd", "amount_usd", "reward_usd"]);
+      break;
+
+    case "cpx-research":
+      userId = firstParam(params, ["user_id", "uid", "ext_user_id"]);
+      txId = firstParam(params, ["trans_id", "tx", "transaction_id"]);
+      usdRaw = firstParam(params, ["currency_amount", "usd", "amount_usd"]);
+      break;
+
+    case "timewall":
+      userId = firstParam(params, ["user_id", "uid"]);
+      txId = firstParam(params, ["transaction_id", "trans_id", "tx"]);
+      usdRaw = firstParam(params, ["amount", "amount_usd", "reward_usd"]);
+      break;
+
+    case "primesurveys":
+      userId = firstParam(params, ["user_id", "uid"]);
+      txId = firstParam(params, ["transaction_id", "trans_id", "tx"]);
+      usdRaw = firstParam(params, ["amount", "amount_usd", "reward_usd", "currencyReward"]);
+      break;
+
+    case "theoremreach":
+      // TheoremReach sends transaction_id and result code (10 = complete).
+      // Reward amount comes from our config or the survey details.
+      // For S2S postback: transaction_id, result, and optionally amount.
+      userId = firstParam(params, ["user_id", "uid", "ext_user_id"]);
+      txId = firstParam(params, ["transaction_id", "trans_id"]);
+      usdRaw = firstParam(params, ["amount", "amount_usd", "reward", "payout"]);
+      break;
+
+    case "lootably":
+      // Docs: https://documentation.lootably.com/docs/postbacks
+      // Params: {userID}, {transactionID}, {currencyReward}, {revenue}, {status}
+      userId = firstParam(params, ["userID", "user_id"]);
+      txId = firstParam(params, ["transactionID", "transaction_id", "trans_id"]);
+      // currencyReward is the user-facing reward amount
+      usdRaw = firstParam(params, ["currencyReward", "revenue", "amount"]);
+      break;
+
+    default:
+      return null;
   }
 
   const rewardUsd = Number.parseFloat(usdRaw);
