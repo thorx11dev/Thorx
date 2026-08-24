@@ -465,6 +465,9 @@ export default function Auth() {
     }
   };
 
+  const [totpRequired, setTotpRequired] = useState(false);
+  const [totpCode, setTotpCode] = useState("");
+
   const onLoginSubmit = async (data: LoginForm) => {
     if (isSubmitting) return;
 
@@ -477,6 +480,7 @@ export default function Auth() {
         email: data.email,
         password: data.password,
         deviceFingerprint: fingerprint,
+        ...(totpCode ? { totpCode } : {}),
       });
 
       const result = await response.json();
@@ -490,7 +494,20 @@ export default function Auth() {
       const role = result.user?.role;
       setLocation(role === 'team' || role === 'founder' || role === 'admin' ? "/team-portal" : "/dashboard");
     } catch (error: any) {
-      toast({ title: "Login Failed", description: error.message || "Invalid email or password", variant: "destructive" });
+      const msg = error?.message || "";
+      // Server signals 2FA enrollment via these message fragments (apiRequest
+      // flattens the error body into "status: message").
+      if (msg.includes("authenticator code")) {
+        setTotpRequired(true);
+        toast({ title: "2FA Required", description: "Enter the 6-digit code from your authenticator app." });
+        return;
+      }
+      if (msg.includes("Invalid 2FA code")) {
+        setTotpCode("");
+        toast({ title: "Login Failed", description: "Invalid 2FA code. Wait for the next code and try again.", variant: "destructive" });
+        return;
+      }
+      toast({ title: "Login Failed", description: msg || "Invalid email or password", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
