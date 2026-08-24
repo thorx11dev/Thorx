@@ -451,6 +451,9 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
               </div>
             </div>
 
+            {/* Two-factor authentication */}
+            <TwoFactorCard />
+
             {/* Action buttons */}
             <div className="flex flex-col sm:flex-row gap-3 mt-auto">
               <Button
