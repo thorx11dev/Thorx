@@ -63,3 +63,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS "uniq_survey_network_tx"
   ON "survey_records" ("network_id", "transaction_id")
   WHERE "transaction_id" IS NOT NULL;
 `;
+
+export const M0012_TOTP_2FA = `
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "totp_secret" text;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "totp_pending_secret" text;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "totp_enabled" boolean NOT NULL DEFAULT false;
+`;

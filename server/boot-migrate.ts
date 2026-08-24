@@ -18,11 +18,13 @@ import { logger } from "./lib/logger";
 import {
   M0010_BETA_TRUST_INFRA,
   M0011_SURVEY_INFRA,
+  M0012_TOTP_2FA,
 } from "./migrations-inline";
 
 const BOOT_MIGRATIONS: Array<{ name: string; ddl: string }> = [
   { name: "0010_beta_trust_infra", ddl: M0010_BETA_TRUST_INFRA },
   { name: "0011_survey_infra", ddl: M0011_SURVEY_INFRA },
+  { name: "0012_totp_2fa", ddl: M0012_TOTP_2FA },
 ];
 
 let applied = false;

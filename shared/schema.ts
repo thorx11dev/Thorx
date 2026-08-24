@@ -58,6 +58,13 @@ export const users = pgTable("users", {
   // Cumulative "TX-Points" ever earned (display/illusion counter, monotonically
   // increasing — never decremented by withdrawals, which spend availableBalance).
   txPointsBalance: integer("tx_points_balance").default(0),
+  // ─── Security: TOTP two-factor auth ───────────────────────────────────────
+  // Secrets are AES-256-GCM encrypted at rest (server/utils/credential-crypto).
+  // totp_pending_secret holds an unconfirmed setup attempt; only after the user
+  // verifies one live code does it promote to totp_secret + totp_enabled.
+  totpSecret: text("totp_secret"),
+  totpPendingSecret: text("totp_pending_secret"),
+  totpEnabled: boolean("totp_enabled").default(false),
   // ── THORX v3: Performance Score (PS) rank system ────────────────────────
   // Sole input to checkAndUpdateRankTier(); totalEarnings does NOT affect rank.
   performanceScore: integer("performance_score").notNull().default(0),

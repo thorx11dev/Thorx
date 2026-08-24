@@ -20,6 +20,9 @@ import { verifyWebhook, markWebhookRewarded, type WebhookPayload } from "./modul
 import { registerAdEngineRoutes } from "./modules/ad-engine-routes";
 import { registerSurveyRoutes } from "./modules/survey-routes";
 import { registerLeaderboardRoutes } from "./modules/leaderboard-routes";
+import { registerSecurityRoutes } from "./modules/security-routes";
+import { decryptCredential } from "./utils/credential-crypto";
+import { verifyTotp } from "./lib/totp";
 import { runtimeConfig } from "./config/runtime";
 import { handleProxyRequest } from "./modules/proxy/proxy-handler";
 import { processProfilePicture } from "./utils/local-profile-picture";
@@ -427,6 +430,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   registerAdEngineRoutes(app);
   registerSurveyRoutes(app);
   registerLeaderboardRoutes(app);
+  registerSecurityRoutes(app);
 
   
   // Custom session debugger middleware for development only.
@@ -4595,6 +4599,42 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           message: "Invalid email or password",
           error: "UNAUTHORIZED"
         });
+      }
+
+      // ── TOTP 2FA gate: password OK, but a live authenticator code is
+      // required before any session is issued. Frontend reacts to the
+      // TOTP_REQUIRED error code by revealing the code input.
+      if (user.totpEnabled) {
+        const totpCode = typeof req.body?.totpCode === "string" ? req.body.totpCode.trim() : "";
+        if (!totpCode) {
+          return res.status(401).json({
+            message: "Enter your 6-digit authenticator code to continue.",
+            error: "TOTP_REQUIRED",
+          });
+        }
+        if (!user.totpSecret) {
+          logger.error({ email }, "[POST /api/login] 2FA enabled but secret missing");
+          return res.status(401).json({
+            message: "2FA configuration error. Contact support.",
+            error: "TOTP_CONFIG_ERROR",
+          });
+        }
+        try {
+          const totpSecret = decryptCredential(user.totpSecret);
+          if (!verifyTotp(totpSecret, totpCode)) {
+            storage.logAuthEvent(email, false, "invalid_totp", req.ip).catch(() => {});
+            return res.status(401).json({
+              message: "Invalid 2FA code",
+              error: "INVALID_TOTP",
+            });
+          }
+        } catch (totpErr) {
+          logger.error({ err: totpErr }, "[POST /api/login] 2FA verification error");
+          return res.status(401).json({
+            message: "2FA verification failed",
+            error: "INVALID_TOTP",
+          });
+        }
       }
 
       // Step 5: Email verification gate — only for regular users

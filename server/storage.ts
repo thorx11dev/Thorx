@@ -1935,6 +1935,9 @@ export class DatabaseStorage implements IStorage {
         inactivityPenaltyAt: users.inactivityPenaltyAt,
         balanceCashPkr: users.balanceCashPkr,
         rulesAcknowledgedAt: users.rulesAcknowledgedAt,
+        totpSecret: users.totpSecret,
+        totpPendingSecret: users.totpPendingSecret,
+        totpEnabled: users.totpEnabled,
         teamKey: teamKeys,
       })
       .from(users)
