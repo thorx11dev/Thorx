@@ -112,9 +112,11 @@ async function verifySignature(
 
   const secret = secrets[networkId];
   if (!secret) {
-    // No secret configured → skip signature check (log warning)
-    logger.warn({ networkId }, "[Webhook] No HMAC secret configured; skipping sig check");
-    return { ok: true };
+    // Fail-closed (matches Engine B's "no secret = no reward" golden rule):
+    // an unconfigured network MUST NOT be creditable, otherwise anyone could
+    // POST fake completions for it and mint balance.
+    logger.warn({ networkId }, "[Webhook] No HMAC secret configured; rejecting callback");
+    return { ok: false, reason: "Network not configured" };
   }
 
   if (!received) {
