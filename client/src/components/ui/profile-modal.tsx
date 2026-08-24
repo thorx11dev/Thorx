@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import { useLocation } from "wouter";
 import TechnicalLabel from "@/components/ui/technical-label";
+import TwoFactorCard from "@/components/ui/two-factor-card";
 import { Progress } from "@/components/ui/progress";
 import { PS_THRESHOLDS } from "@/components/PSProgressCard";
 import {
