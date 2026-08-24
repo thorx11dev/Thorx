@@ -358,8 +358,11 @@ export function verifyCpxHash(params: URLSearchParams, creds: CpxResearchCredent
 
 /**
  * TimeWall callback hash verification.
- * Formula: HMAC-SHA256(secret, user_id + transaction_id + amount)
- * TimeWall sends: user_id, transaction_id, amount, hash, status
+ * Documented formula (site-owner integration guide): SHA256(user_id + revenue + secretKey)
+ * where revenue is the USD amount macro we map into the `amount` param.
+ * Legacy dashboard variants use HMAC-SHA256 over concatenated (or dash-joined)
+ * user_id/transaction_id/amount — kept as fallbacks so either version verifies.
+ * TimeWall sends: user_id, transaction_id, amount, hash, type (credit|chargeback)
  */
 export function verifyTimeWallHash(params: URLSearchParams, creds: TimeWallCredentials): CallbackVerification {
   const received = params.get("hash") ?? "";
@@ -370,9 +373,17 @@ export function verifyTimeWallHash(params: URLSearchParams, creds: TimeWallCrede
   const txId = params.get("transaction_id") ?? "";
   const amount = params.get("amount") ?? "";
 
+  // Primary: TimeWall's documented SHA256(user_id + revenue + secretKey)
+  const expectedSha = crypto
+    .createHash("sha256")
+    .update(`${userId}${amount}${creds.secret}`, "utf8")
+    .digest("hex");
+  if (safeHexEqual(expectedSha, received)) return { ok: true };
+
+  // Fallback: HMAC-SHA256(secret, user_id + transaction_id + amount)
   const payload = `${userId}${txId}${amount}`;
   const expected = crypto.createHmac("sha256", creds.secret).update(payload, "utf8").digest("hex");
-  if (safeHexEqual(expected, received)) return { ok: true }
+  if (safeHexEqual(expected, received)) return { ok: true };
 
   // Fallback: some TimeWall versions use dash separators
   const payloadDash = `${userId}-${txId}-${amount}`;
