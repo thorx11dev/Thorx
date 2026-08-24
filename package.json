@@ -15,6 +15,7 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:backup": "node scripts/backup-db.mjs",
     "setup:founder": "node scripts/provision-founder.mjs",
     "verify:auth": "npm test -- server/__tests__/auth.test.ts",
     "setup": "node scripts/auto-setup.js",
