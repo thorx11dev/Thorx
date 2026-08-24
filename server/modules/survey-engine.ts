@@ -361,7 +361,7 @@ export function verifyCpxHash(params: URLSearchParams, creds: CpxResearchCredent
  * Formula: HMAC-SHA256(secret, user_id + transaction_id + amount)
  * TimeWall sends: user_id, transaction_id, amount, hash, status
  */
-function verifyTimeWallHash(params: URLSearchParams, creds: TimeWallCredentials): CallbackVerification {
+export function verifyTimeWallHash(params: URLSearchParams, creds: TimeWallCredentials): CallbackVerification {
   const received = params.get("hash") ?? "";
   if (!received) return { ok: false, reason: "Missing hash parameter" };
   if (!creds.secret) return { ok: false, reason: "TimeWall secret not configured" };
