@@ -185,6 +185,7 @@ export interface SurveyWallEntry {
 export async function buildSurveyWallEntry(
   network: SurveyNetworkConfig,
   userId?: string,
+  profile?: SurveyUserProfile,
 ): Promise<SurveyWallEntry> {
   // ── CPX Research ──────────────────────────────────────────────────────────
   if (network.id === "cpx-research") {
@@ -203,6 +204,11 @@ export async function buildSurveyWallEntry(
         .digest("hex");
       url.searchParams.set("secure_hash", secureHash);
     }
+    // CPX docs mark email/username as "Recommended": without email, CPX prompts
+    // the user mid-wall and duplicate-profile matching stays weak — both shrink
+    // matchable inventory ("no survey for your profile").
+    if (profile?.email) url.searchParams.set("email", profile.email);
+    if (profile?.username) url.searchParams.set("username", profile.username);
     return { networkId: network.id, networkName: network.name, wallUrl: url.toString(), available: true };
   }
 
