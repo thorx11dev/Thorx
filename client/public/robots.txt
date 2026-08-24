@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /user-portal
+Disallow: /team-portal
+Disallow: /reset-password
+Disallow: /_dev-referral-preview
+
+Sitemap: https://thorx.site/sitemap.xml
