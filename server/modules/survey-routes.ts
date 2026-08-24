@@ -59,6 +59,18 @@ function callbackPath(req: Request): string {
   return original.includes("?") ? original.slice(0, original.indexOf("?")) : original;
 }
 
+// Reversal events (chargebacks/refunds) must be acknowledged with 200 so the
+// vendor stops retrying, but they must NEVER credit a user.
+const REVERSAL_VALUES = new Set(["chargeback", "reversed", "rejected", "refund", "refunded", "denied", "deny"]);
+
+function firstReversalSignal(params: URLSearchParams): string | null {
+  for (const key of ["type", "status", "event"]) {
+    const value = (params.get(key) ?? "").trim().toLowerCase();
+    if (value && REVERSAL_VALUES.has(value)) return `${key}=${value}`;
+  }
+  return null;
+}
+
 export function registerSurveyRoutes(app: Express): void {
   // ── Survey wall (user-facing) ─────────────────────────────────────────────
   app.get("/api/surveys", requireSessionAuth, async (req, res) => {
@@ -117,6 +129,14 @@ export function registerSurveyRoutes(app: Express): void {
       if (!verification.ok) {
         logger.warn({ networkId, reason: verification.reason }, "[Surveys] Callback rejected");
         return res.status(401).json({ credited: false, error: "CALLBACK_REJECTED", reason: verification.reason });
+      }
+
+      // 1.5 — Reversal events (TimeWall `type=chargeback`, generic `status=rejected`,
+      // etc.): acknowledge with 200 so vendors stop retrying, but never credit.
+      const reversal = firstReversalSignal(params);
+      if (reversal) {
+        logger.warn({ networkId, reversal }, "[Surveys] Reversal callback acknowledged — no credit");
+        return res.status(200).json({ credited: false, ignored: "REVERSAL_EVENT", reason: reversal });
       }
 
       // 2 — Params → normalized payload.
