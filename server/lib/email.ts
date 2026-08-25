@@ -88,8 +88,8 @@ export async function sendPayoutStatusEmail(params: {
   status: "approved" | "completed" | "rejected";
   amount: string | number;
   netAmount: string | number;
-  fee?: string | number;
-  method?: string;
+  fee?: string | number | null;
+  method?: string | null;
   rejectionReason?: string | null;
 }): Promise<void> {
   const resend = getClient();
