@@ -51,7 +51,7 @@ try {
     JOIN information_schema.key_column_usage kcu
       ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
     JOIN information_schema.referential_constraints rc
-      ON tc.constraint_name = rc.constraint_name AND tc.table_schema = rc.table_schema
+      ON tc.constraint_name = rc.constraint_name AND tc.table_schema = rc.constraint_schema
     JOIN information_schema.constraint_column_usage ccu
       ON rc.unique_constraint_name = ccu.constraint_name AND rc.unique_constraint_schema = ccu.table_schema
     WHERE tc.constraint_type = 'FOREIGN KEY'
