@@ -239,6 +239,18 @@ export default function UserPortal() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Analytics: keep PostHog identity in sync with the session user
+  useEffect(() => {
+    if (user?.id) {
+      identifyUser(user.id, {
+        email: user.email,
+        name: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim(),
+        role: user.role,
+        rankTier: user.userRankTier,
+      });
+    }
+  }, [user?.id]);
+
   // Share Modal State
   const [showShareModal, setShowShareModal] = useState(false);
   const [showReferralLink, setShowReferralLink] = useState(false);
