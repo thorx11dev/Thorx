@@ -50,10 +50,15 @@ export default function DigitalClock({ className = "" }: DigitalClockProps) {
   };
 
   return (
-    <div className={`bg-white border-2 border-black rounded-lg px-2 py-1 text-center ${className}`} data-testid="digital-clock">
-      <div className="font-mono text-sm md:text-base font-black tracking-wider">
+    <div
+      className={`flex items-center gap-2 h-[30px] px-3 rounded-full border border-[var(--ed-hairline,#e6dfd8)] bg-[var(--ed-surface-white,#fffefb)] ${className}`}
+      data-testid="digital-clock"
+      aria-label="Session time"
+    >
+      <span className="thx-dot" aria-hidden="true" />
+      <span className="thx-mono text-xs font-semibold tracking-[0.12em] text-[var(--ed-ink,#141413)]">
         {formatTime(timeSpent)}
-      </div>
+      </span>
     </div>
   );
 }
