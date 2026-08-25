@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
 import HookSection from "@/components/sections/hook-section";
 import EarningReveal from "@/components/sections/earning-reveal";
 import ValueProposition from "@/components/sections/value-proposition";
@@ -9,7 +8,6 @@ import NavigationProgress from "@/components/ui/navigation-progress";
 import ArrowKeysGuide from "@/components/ui/arrow-keys-guide";
 import TechnicalLabel from "@/components/ui/technical-label";
 import DigitalClock from "@/components/ui/digital-clock";
-import Barcode from "@/components/ui/barcode";
 import TextBlockAnimation from "@/components/ui/text-block-animation";
 import { GetStartedButton } from "@/components/ui/get-started-button";
 
@@ -60,6 +58,15 @@ export default function Home() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isInteractive = target?.closest(
+        'button, a, input, textarea, select, [role="button"], [contenteditable="true"]',
+      );
+
+      // Let focused controls keep their native keyboard behavior. This is
+      // especially important for the FAQ reveal and the section-three ruler.
+      if (e.defaultPrevented || isInteractive) return;
+
       if (e.key === 'Enter') {
         e.preventDefault();
         // Navigate to Auth page on Enter
@@ -103,18 +110,18 @@ export default function Home() {
   };
 
   return (
-    <>
+    <div className="landing-page" data-testid="landing-page">
       {/* Navigation Header */}
-      <nav className="fixed top-0 w-full z-50 px-3 pt-3 md:px-4 md:pt-4" data-testid="navigation-header">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-3 items-center rounded-2xl border-2 md:border-[3px] border-black bg-white px-3 md:px-8 h-16 md:h-20">
+      <nav className="landing-header fixed top-0 w-full z-50" data-testid="navigation-header" aria-label="Primary navigation">
+        <div className="landing-header-frame">
+          <div className="landing-header-shell grid grid-cols-3 items-center">
             {/* Left Section - Transform to Enter button when not on first section */}
             <div className="flex items-center justify-self-start">
               {currentSection === 1 && !isMobile ? (
                 <button
                   type="button"
                   onClick={() => setLocation("/auth")}
-                  className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="landing-header-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   data-testid="button-navbar-get-started"
                 >
                   <GetStartedButton />
@@ -122,10 +129,10 @@ export default function Home() {
               ) : (
                 <button
                   onClick={() => setLocation("/auth")}
-                  className="bg-primary text-white px-3 py-3 md:px-4 md:py-2 border-2 border-black rounded-lg hover:bg-black transition-all duration-300 transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="landing-enter-button focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   data-testid="button-navbar-enter"
                 >
-                  <TechnicalLabel text="ENTER" className="text-white text-xs md:text-sm font-black" />
+                  <TechnicalLabel text="ENTER" className="text-white font-black" />
                 </button>
               )}
             </div>
@@ -133,7 +140,7 @@ export default function Home() {
             {/* Center Section - Wordmark */}
             <div className="justify-self-center">
               <TextBlockAnimation blockColor="#000" animateOnScroll={false} delay={0.1}>
-                <h1 className="text-xl md:text-3xl lg:text-4xl font-black tracking-tighter whitespace-nowrap" data-testid="main-logo">
+                <h1 className="landing-wordmark font-black whitespace-nowrap" data-testid="main-logo">
                   THORX.
                 </h1>
               </TextBlockAnimation>
@@ -147,12 +154,13 @@ export default function Home() {
                 </div>
               ) : (
                 <div
-                  className={`bg-white border-2 border-black rounded-lg px-2 py-1 md:px-4 md:py-2 transition-all duration-300 ${currentSection >= 3 ? 'blur-sm opacity-70' : ''
+                  className={`landing-status transition-all duration-300 ${currentSection >= 3 ? 'blur-sm opacity-70' : ''
                     }`}
+                  aria-label="THORX version 1.0, online"
                 >
-                  <div className="flex items-center gap-1.5 md:gap-3 text-xs md:text-sm">
+                  <div className="flex items-center">
                     <TechnicalLabel text="v1.0" className="font-mono tracking-[0.2em] opacity-40" />
-                    <div className="h-3 w-[1px] bg-black/10" />
+                    <div className="landing-status-divider hidden sm:block" />
                     <TechnicalLabel text="ONLINE" className="hidden sm:inline font-bold tracking-wider" />
                   </div>
                 </div>
@@ -163,28 +171,30 @@ export default function Home() {
       </nav>
 
       {/* Sections */}
-      <div data-section="1">
-        <HookSection
-          isActive={currentSection === 1}
-          onAdvance={handleSectionAdvance}
-        />
-      </div>
-      <div data-section="2">
-        <EarningReveal
-          isActive={currentSection === 2}
-          onAdvance={handleSectionAdvance}
-        />
-      </div>
-      <div data-section="3">
-        <ValueProposition
-          isActive={currentSection === 3}
-        />
-      </div>
-      <div data-section="4">
-        <FAQSection
-          isActive={currentSection === 4}
-        />
-      </div>
+      <main className="landing-stage">
+        <div data-section="1">
+          <HookSection
+            isActive={currentSection === 1}
+            onAdvance={handleSectionAdvance}
+          />
+        </div>
+        <div data-section="2">
+          <EarningReveal
+            isActive={currentSection === 2}
+            onAdvance={handleSectionAdvance}
+          />
+        </div>
+        <div data-section="3">
+          <ValueProposition
+            isActive={currentSection === 3}
+          />
+        </div>
+        <div data-section="4">
+          <FAQSection
+            isActive={currentSection === 4}
+          />
+        </div>
+      </main>
 
       {/* Navigation Elements */}
       <NavigationProgress
@@ -198,6 +208,6 @@ export default function Home() {
         onPrevious={handlePrevious}
         onNext={handleNext}
       />
-    </>
+    </div>
   );
 }

@@ -6,8 +6,8 @@ interface NavigationProgressProps {
 
 export default function NavigationProgress({ currentSection, totalSections, onSectionChange }: NavigationProgressProps) {
   return (
-    <div className="navigation-progress" data-testid="navigation-progress">
-      <div className="flex space-x-4">
+    <div className="navigation-progress" data-testid="navigation-progress" aria-label="Landing page sections">
+      <div className="landing-progress-list flex">
         {Array.from({ length: totalSections }, (_, index) => (
           <button
             key={index + 1}

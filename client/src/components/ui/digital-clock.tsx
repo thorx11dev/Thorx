@@ -50,8 +50,8 @@ export default function DigitalClock({ className = "" }: DigitalClockProps) {
   };
 
   return (
-    <div className={`bg-white border-2 border-black rounded-lg px-2 py-1 text-center ${className}`} data-testid="digital-clock">
-      <div className="font-mono text-sm md:text-base font-black tracking-wider">
+    <div className={`landing-digital-clock text-center ${className}`} data-testid="digital-clock" aria-label={`Session time ${formatTime(timeSpent)}`}>
+      <div className="font-mono font-black tracking-wider" aria-hidden="true">
         {formatTime(timeSpent)}
       </div>
     </div>
