@@ -11,6 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import { DEV_UNLOCK_PAYOUT } from "@/lib/previewAccess";
 import { z } from "zod";
+import { captureEvent } from "@/lib/posthog";
 
 interface PayoutSectionProps {
   isPayoutHeroToggled: boolean;
