@@ -39,8 +39,10 @@
     <!-- Only Inter is actually referenced by the app (--font-sans; serif/mono
          fall back to Georgia / Courier New). The previous link fetched 25 font
          families (~2MB+) and blocked first paint — the single variable Inter
-         below (weights 300-900, display=swap) covers every weight the UI uses. -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..900&display=swap" rel="stylesheet">
+         below (weights 300-900, display=swap) covers every weight the UI uses.
+         Cormorant Garamond is the editorial display serif used by the
+         .thx-editorial design system (design.md token layer). -->
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300..900&display=swap" rel="stylesheet">
   </head>
   <body>
     <div id="root"></div>
