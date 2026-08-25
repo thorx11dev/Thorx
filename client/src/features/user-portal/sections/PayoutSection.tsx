@@ -121,6 +121,12 @@ export function PayoutSection(props: PayoutSectionProps) {
         const response = await apiRequest("POST", "/api/withdrawals", payload, { "x-idempotency-key": withdrawalKey });
 
         if (response.ok) {
+          captureEvent("withdrawal_requested", {
+            points: withdrawAmount,
+            estNetPkr: withdrawalPreview?.userNetPkr ?? null,
+            method: selectedMethod,
+            timeframe: selectedTimeframe,
+          });
           toast({
             title: "Payout Request Submitted!",
             description: withdrawalPreview
