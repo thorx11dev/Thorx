@@ -122,6 +122,7 @@ export default function SurveyWallPanel() {
                     href={network.wallUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => captureEvent("survey_wall_opened", { network: network.networkId })}
                     variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }}
                     whileHover={{ y: -3 }}
                     className={cn(
