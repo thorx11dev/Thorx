@@ -213,35 +213,35 @@ export function RulerCarousel({
                 </div>
             </div>
 
-            <div className="flex items-center justify-center gap-5 md:gap-6 mt-8 md:mt-10 bg-white/85 px-5 py-2.5 rounded-full border border-black/10">
+            <div className="flex items-center justify-center gap-6 mt-10 bg-white dark:bg-white/5 px-5 py-2.5 rounded-full border border-black/15 dark:border-white/10">
                 <button
                     onClick={handlePrevious}
                     disabled={isAnimating}
-                    className="flex items-center justify-center cursor-pointer hover:scale-110 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    className="flex items-center justify-center cursor-pointer hover:scale-125 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     aria-label="Previous item"
                 >
-                    <Rewind className="w-4 h-4 text-black" />
+                    <Rewind className="w-5 h-5 text-black dark:text-white" />
                 </button>
 
-                <div className="flex items-center gap-2.5 font-mono tabular-nums">
-                    <span className="text-base font-semibold text-black min-w-[2ch] text-center">
-                        {String(currentPage).padStart(2, "0")}
+                <div className="flex items-center gap-3">
+                    <span className="text-xl font-black text-black dark:text-white min-w-[2ch] text-center">
+                        {currentPage}
                     </span>
-                    <span className="text-sm text-black/25 font-normal">
+                    <span className="text-lg text-black/30 dark:text-white/20 font-light">
                         /
                     </span>
-                    <span className="text-base font-medium text-black/35">
-                        {String(totalPages).padStart(2, "0")}
+                    <span className="text-xl font-black text-black/40 dark:text-white/40">
+                        {totalPages}
                     </span>
                 </div>
 
                 <button
                     onClick={handleNext}
                     disabled={isAnimating}
-                    className="flex items-center justify-center cursor-pointer hover:scale-110 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    className="flex items-center justify-center cursor-pointer hover:scale-125 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     aria-label="Next item"
                 >
-                    <FastForward className="w-4 h-4 text-black" />
+                    <FastForward className="w-5 h-5 text-black dark:text-white" />
                 </button>
             </div>
         </div>
