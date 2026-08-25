@@ -163,14 +163,14 @@ export function RulerCarousel({
     const totalPages = itemsPerSet;
 
     return (
-        <div className="w-full py-8 md:py-12 flex flex-col items-center justify-center">
-            <div className="w-full h-[160px] md:h-[200px] flex flex-col justify-center relative">
+        <div className="w-full py-20 flex flex-col items-center justify-center">
+            <div className="w-full h-[200px] flex flex-col justify-center relative">
                 <div className="flex items-center justify-center">
                     <RulerLines top />
                 </div>
                 <div className="flex items-center w-full h-full relative overflow-hidden">
                     {/* Central Indicator Mask */}
-                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-24 border-y border-black/15 pointer-events-none z-10" />
+                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-24 border-y-2 border-black/20 dark:border-white/20 pointer-events-none z-10" />
 
                     <motion.div
                         className="flex items-center absolute left-1/2 top-0 bottom-0"

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import TechnicalLabel from "@/components/ui/technical-label";
 
 interface DigitalClockProps {
   className?: string;
@@ -11,7 +12,7 @@ export default function DigitalClock({ className = "" }: DigitalClockProps) {
     // Get start time from sessionStorage for current session only
     const startTime = sessionStorage.getItem('thorx-start-time');
     const sessionStart = startTime ? parseInt(startTime) : Date.now();
-
+    
     if (!startTime) {
       sessionStorage.setItem('thorx-start-time', sessionStart.toString());
     }
@@ -24,14 +25,14 @@ export default function DigitalClock({ className = "" }: DigitalClockProps) {
     };
 
     updateTime(); // Initial call
-
+    
     // Use requestAnimationFrame for better performance and accuracy
     let rafId: number;
     const tick = () => {
       updateTime();
       rafId = requestAnimationFrame(tick);
     };
-
+    
     rafId = requestAnimationFrame(tick);
 
     return () => {
@@ -44,17 +45,15 @@ export default function DigitalClock({ className = "" }: DigitalClockProps) {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-
+    
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
-    <div className={`thx-chip tabular-nums ${className}`} data-testid="digital-clock">
-      <span className="hidden sm:inline text-black/40">SESSION</span>
-      <span className="h-3 w-px bg-black/10 hidden sm:block" />
-      <span className="font-mono text-[12px] md:text-[13px] font-semibold tracking-wider text-black">
+    <div className={`bg-white border-2 border-black rounded-lg px-2 py-1 text-center ${className}`} data-testid="digital-clock">
+      <div className="font-mono text-sm md:text-base font-black tracking-wider">
         {formatTime(timeSpent)}
-      </span>
+      </div>
     </div>
   );
 }
