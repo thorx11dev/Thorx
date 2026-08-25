@@ -1188,7 +1188,7 @@ export default function UserPortal() {
               <Settings className="w-5 h-5 stroke-[2px]" />
             </Button>
             <Button
-              onClick={() => logout()}
+              onClick={() => { resetPosthog(); logout(); }}
               variant="outline"
               size="sm"
               className="border-2 border-black rounded-lg text-black bg-white hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all duration-300 transform hover:scale-105"
