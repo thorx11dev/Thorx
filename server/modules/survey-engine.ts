@@ -373,14 +373,21 @@ export function verifyTimeWallHash(params: URLSearchParams, creds: TimeWallCrede
   const txId = params.get("transaction_id") ?? "";
   const amount = params.get("amount") ?? "";
 
-  // Primary: TimeWall's documented SHA256(user_id + revenue + secretKey)
+  // Primary: official integration guide — hash("sha256", $secret . $revenue)
   const expectedSha = crypto
     .createHash("sha256")
-    .update(`${userId}${amount}${creds.secret}`, "utf8")
+    .update(`${creds.secret}${amount}`, "utf8")
     .digest("hex");
   if (safeHexEqual(expectedSha, received)) return { ok: true };
 
-  // Fallback: HMAC-SHA256(secret, user_id + transaction_id + amount)
+  // Fallback: community-documented variant sha256(user_id + revenue + secret)
+  const expectedShaAlt = crypto
+    .createHash("sha256")
+    .update(`${userId}${amount}${creds.secret}`, "utf8")
+    .digest("hex");
+  if (safeHexEqual(expectedShaAlt, received)) return { ok: true };
+
+  // Fallback: legacy HMAC-SHA256(secret, user_id + transaction_id + amount)
   const payload = `${userId}${txId}${amount}`;
   const expected = crypto.createHmac("sha256", creds.secret).update(payload, "utf8").digest("hex");
   if (safeHexEqual(expected, received)) return { ok: true };
