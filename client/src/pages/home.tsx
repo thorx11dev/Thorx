@@ -91,7 +91,7 @@ export default function Home() {
       {/* Navigation Header */}
       <nav className="fixed top-0 inset-x-0 z-50 px-3 pt-3 md:px-5 md:pt-4" data-testid="navigation-header">
         <div className="mx-auto max-w-[1440px]">
-          <div className="flex h-14 md:h-16 items-center justify-between rounded-xl border border-black/10 bg-background/85 backdrop-blur-md pl-4 pr-2 md:pl-6 md:pr-2.5">
+          <div className="flex h-14 md:h-16 items-center justify-between rounded-xl border border-black/10 bg-[hsla(48,26%,88%,0.86)] backdrop-blur-md pl-4 pr-2 md:pl-6 md:pr-2.5">
             {/* Brand */}
             <div className="flex items-center gap-3 min-w-0">
               <h1 className="text-xl md:text-2xl font-black tracking-tighter whitespace-nowrap" data-testid="main-logo">
