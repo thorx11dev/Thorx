@@ -163,8 +163,8 @@ export function RulerCarousel({
     const totalPages = itemsPerSet;
 
     return (
-        <div className="w-full py-20 flex flex-col items-center justify-center">
-            <div className="w-full h-[200px] flex flex-col justify-center relative">
+        <div className="landing-ruler w-full flex flex-col items-center justify-center">
+            <div className="landing-ruler-stage w-full flex flex-col justify-center relative">
                 <div className="flex items-center justify-center">
                     <RulerLines top />
                 </div>
@@ -213,11 +213,11 @@ export function RulerCarousel({
                 </div>
             </div>
 
-            <div className="flex items-center justify-center gap-6 mt-10 bg-white dark:bg-white/5 px-5 py-2.5 rounded-full border border-black/15 dark:border-white/10">
+            <div className="landing-ruler-controls flex items-center justify-center gap-6 bg-white dark:bg-white/5 rounded-full border border-black/15 dark:border-white/10">
                 <button
                     onClick={handlePrevious}
                     disabled={isAnimating}
-                    className="flex items-center justify-center cursor-pointer hover:scale-125 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="landing-ruler-button flex items-center justify-center cursor-pointer hover:scale-110 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-40"
                     aria-label="Previous item"
                 >
                     <Rewind className="w-5 h-5 text-black dark:text-white" />
@@ -238,7 +238,7 @@ export function RulerCarousel({
                 <button
                     onClick={handleNext}
                     disabled={isAnimating}
-                    className="flex items-center justify-center cursor-pointer hover:scale-125 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="landing-ruler-button flex items-center justify-center cursor-pointer hover:scale-110 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-40"
                     aria-label="Next item"
                 >
                     <FastForward className="w-5 h-5 text-black dark:text-white" />

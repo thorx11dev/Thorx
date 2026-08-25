@@ -76,7 +76,7 @@ interface ContentBlockProps {
 }
 
 const ContentBlock = ({ label, description, isActive }: ContentBlockProps) => (
-    <div className="flex flex-col space-y-6 p-6 md:p-10 h-full">
+    <div className="landing-value-content flex flex-col h-full">
         <div className="w-fit">
             <div className="bg-black dark:bg-white px-4 py-1.5 rounded-sm">
                 <TechnicalLabel
@@ -86,7 +86,7 @@ const ContentBlock = ({ label, description, isActive }: ContentBlockProps) => (
             </div>
         </div>
         <TextBlockAnimation blockColor="#ff6b00" delay={0.2} duration={0.4} animateOnScroll={false} trigger={isActive}>
-            <p className="text-base md:text-xl text-black/80 dark:text-white/80 leading-relaxed font-bold">
+            <p className="text-[15px] md:text-lg xl:text-xl text-black/75 dark:text-white/80 leading-relaxed font-bold">
                 {description}
             </p>
         </TextBlockAnimation>
@@ -111,13 +111,14 @@ export default function ValueProposition({ isActive }: { isActive: boolean }) {
 
     return (
         <section
-            className={`cinematic-section ${isActive ? 'active' : ''} bg-[#EAE5DD] dark:bg-black pt-44 md:pt-[320px] pb-24 px-4 flex flex-col items-start justify-start overflow-y-auto`}
+            className={`cinematic-section landing-content-section landing-value-section ${isActive ? 'active' : ''} bg-[#EAE5DD] dark:bg-black flex flex-col items-start justify-start overflow-y-auto`}
             data-section="3"
             data-testid="value-proposition-section"
+            aria-hidden={!isActive}
         >
-            <div className="mx-auto container max-w-7xl">
+            <div className="landing-section-container mx-auto w-full">
                 {/* Section Header */}
-                <div className="text-left mb-16 md:mb-24">
+                <div className="landing-section-heading text-left">
                     <CinematicBlockReveal
                         trigger={isActive}
                         blockColor="#ff6b00"
@@ -125,7 +126,7 @@ export default function ValueProposition({ isActive }: { isActive: boolean }) {
                         <div className="py-2">
                             <VariableFontHoverByRandomLetter
                                 label="VALUE PROPOSITION"
-                                className="font-black uppercase tracking-tighter leading-tight text-black dark:text-white text-[clamp(1.35rem,7vw,2.25rem)] md:text-7xl lg:text-8xl"
+                                className="landing-display-heading font-black uppercase text-black dark:text-white"
                                 fromFontVariationSettings="'wght' 900, 'slnt' 0"
                                 toFontVariationSettings="'wght' 400, 'slnt' -10"
                             />
@@ -134,7 +135,7 @@ export default function ValueProposition({ isActive }: { isActive: boolean }) {
                 </div>
 
                 {/* Grid Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 rounded-2xl border-[3px] border-black/15 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5 mb-12">
+                <div className="landing-value-grid grid grid-cols-1 lg:grid-cols-3 gap-0 rounded-xl border border-black/15 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5">
                     {stakeholders.map((stakeholder, index) => (
                             <div key={stakeholder.label} className="relative flex flex-col h-full">
                                 <ContentBlock {...stakeholder} isActive={isActive} />
@@ -159,7 +160,7 @@ export default function ValueProposition({ isActive }: { isActive: boolean }) {
                 </div>
 
                 {/* Ruler Carousel */}
-                <div className="mt-8 md:mt-16 border-t-[3px] border-black/10 dark:border-white/10 pt-16">
+                <div className="landing-ruler-wrap border-t border-black/10 dark:border-white/10">
                     <RulerCarousel
                         originalItems={[
                             { id: 1, title: "EARN" },
