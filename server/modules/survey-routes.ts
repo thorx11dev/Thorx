@@ -59,9 +59,11 @@ function callbackPath(req: Request): string {
   return original.includes("?") ? original.slice(0, original.indexOf("?")) : original;
 }
 
-// Reversal events (chargebacks/refunds) must be acknowledged with 200 so the
-// vendor stops retrying, but they must NEVER credit a user.
-const REVERSAL_VALUES = new Set(["chargeback", "reversed", "rejected", "refund", "refunded", "denied", "deny"]);
+// Reversal/pending events (TimeWall type=chargeback|hold|rejected, generic
+// status=rejected, etc.) must be acknowledged with 200 so the vendor stops
+// retrying, but they must NEVER credit a user. "hold" is followed by a final
+// credit/rejected postback, so acknowledging it costs nothing.
+const REVERSAL_VALUES = new Set(["chargeback", "reversed", "rejected", "refund", "refunded", "denied", "deny", "hold"]);
 
 function firstReversalSignal(params: URLSearchParams): string | null {
   for (const key of ["type", "status", "event"]) {
