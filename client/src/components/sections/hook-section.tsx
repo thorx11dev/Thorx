@@ -14,31 +14,67 @@ export default function HookSection({ isActive, onAdvance }: HookSectionProps) {
       data-section="1"
       data-testid="hook-section"
     >
-      <div className="text-center w-full max-w-5xl mx-auto px-6 md:px-8 pt-24 md:pt-32">
-        {/* Technical Header */}
-        <div className="mb-8 md:mb-8">
-          <Barcode className="w-28 md:w-32 h-8 md:h-10 mx-auto mb-4" />
+      <div className="w-full max-w-[1080px] mx-auto px-6 md:px-10 pt-20 md:pt-24 text-center">
+        {/* Technical mark */}
+        <div className="flex flex-col items-center mb-7 md:mb-9">
+          <Barcode className="w-24 md:w-32 h-6 md:h-8" />
+          <p className="thx-kicker mt-5">
+            <span className="inline-block w-6 h-px bg-[var(--ed-coral,#cc785c)]" aria-hidden="true" />
+            The Attention Marketplace
+          </p>
         </div>
 
-        {/* Tagline */}
-        <div className="px-4 md:px-2">
-          <TextBlockAnimation blockColor="#ff6b00" animateOnScroll={false} trigger={isActive}>
-            <p className="text-[clamp(1rem,5vw,1.875rem)] md:text-4xl lg:text-5xl font-black mb-10 md:mb-12 text-secondary text-center leading-[1.05] tracking-tight whitespace-normal sm:whitespace-nowrap">Turn Attention into Currency</p>
+        {/* Display headline */}
+        <TextBlockAnimation blockColor="#181715" animateOnScroll={false} trigger={isActive} delay={0.1}>
+          <h1 className="thx-display thx-display-1 text-[var(--ed-ink,#141413)]">
+            Turn <em className="thx-accent">attention</em>
+            <br className="hidden sm:block" />
+            {' '}into currency.
+          </h1>
+        </TextBlockAnimation>
+
+        {/* Supporting line */}
+        <div className="max-w-xl mx-auto mt-6 md:mt-7">
+          <TextBlockAnimation blockColor="#181715" animateOnScroll={false} trigger={isActive} delay={0.35} duration={0.45}>
+            <p className="thx-body-lg">
+              THORX converts verified human attention into TX-Points. Watch, engage,
+              and withdraw real value to JazzCash or EasyPaisa.
+            </p>
           </TextBlockAnimation>
         </div>
 
-        {/* Action Prompt */}
+        {/* Primary action */}
         <button
           type="button"
           onClick={onAdvance}
-          className="w-full flex flex-col items-center space-y-6 md:space-y-4 py-3 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="group mt-8 md:mt-10 inline-flex flex-col items-center gap-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ed-coral,#cc785c)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ed-canvas,#faf9f5)] rounded-xl"
           data-testid="button-hook-advance"
           aria-label="Continue to sign up"
         >
-          <TechnicalLabel text="TAP TO START" className="md:hidden" />
-          <TechnicalLabel text="PRESS ENTER TO BEGIN" className="hidden md:block" />
-          <div className="w-16 md:w-12 h-1 bg-primary mx-auto pulse-glow"></div>
+          <span className="thx-btn thx-btn-primary min-h-[46px] px-8 text-[15px]">
+            GET STARTED
+          </span>
+          <TechnicalLabel
+            text="TAP TO START"
+            className="md:hidden text-[10px] text-[var(--ed-muted,#6c6a64)] font-semibold tracking-[0.22em]"
+          />
+          <TechnicalLabel
+            text="PRESS ENTER TO BEGIN"
+            className="hidden md:block text-[10px] text-[var(--ed-muted,#6c6a64)] font-semibold tracking-[0.22em]"
+          />
+          <span className="block w-10 h-[3px] rounded-full bg-[var(--ed-coral,#cc785c)] pulse-glow" aria-hidden="true" />
         </button>
+
+        {/* Bottom meta strip */}
+        <div className="mt-12 md:mt-16 flex items-center justify-center">
+          <div className="flex items-center gap-3 md:gap-5 text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--ed-muted-soft,#8e8b82)]">
+            <span>Engine A</span>
+            <span className="w-1 h-1 rounded-full bg-[var(--ed-hairline,#e6dfd8)]" aria-hidden="true" />
+            <span>Engine B</span>
+            <span className="w-1 h-1 rounded-full bg-[var(--ed-hairline,#e6dfd8)]" aria-hidden="true" />
+            <span>Guild Economy</span>
+          </div>
+        </div>
       </div>
     </section>
   );
