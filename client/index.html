@@ -36,10 +36,11 @@
     <link rel="preload" as="image" href="/avatars/avatar-4.png">
     <link rel="preload" as="image" href="/avatars/avatar-5.png">
     <link rel="preload" as="image" href="/avatars/avatar-6.png">
-    <!-- Inter (variable 300-900) is the UI workhorse; IBM Plex Mono carries all
-         technical labels; Instrument Serif italic is used sparingly as the
-         editorial accent inside display headlines. Single request, display=swap. -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..900&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+    <!-- Only Inter is actually referenced by the app (--font-sans; serif/mono
+         fall back to Georgia / Courier New). The previous link fetched 25 font
+         families (~2MB+) and blocked first paint — the single variable Inter
+         below (weights 300-900, display=swap) covers every weight the UI uses. -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..900&display=swap" rel="stylesheet">
   </head>
   <body>
     <div id="root"></div>

@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -47,7 +50,7 @@
   --sidebar-ring: hsl(16, 100%, 60%);
   --font-sans: 'Inter', sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+  --font-mono: 'Courier New', monospace;
   --radius: 0.5rem;
 }
 
