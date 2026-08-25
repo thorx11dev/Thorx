@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { motion, useMotionValue, animate } from "framer-motion";
 import { Rewind, FastForward } from "lucide-react";
 
@@ -127,23 +128,19 @@ export function RulerCarousel({
         performMove(activeIndex + 1);
     };
 
-    // Add keyboard navigation
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (isAnimating || event.defaultPrevented) return;
+    const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+        if (isAnimating) return;
 
-            if (event.key === "ArrowLeft") {
-                event.preventDefault();
-                handlePrevious();
-            } else if (event.key === "ArrowRight") {
-                event.preventDefault();
-                handleNext();
-            }
-        };
-
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [activeIndex, isAnimating]);
+        if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            event.stopPropagation();
+            handlePrevious();
+        } else if (event.key === "ArrowRight") {
+            event.preventDefault();
+            event.stopPropagation();
+            handleNext();
+        }
+    };
 
     useEffect(() => {
         const handleResize = () => {
@@ -163,7 +160,7 @@ export function RulerCarousel({
     const totalPages = itemsPerSet;
 
     return (
-        <div className="landing-ruler w-full flex flex-col items-center justify-center">
+        <div className="landing-ruler w-full flex flex-col items-center justify-center" onKeyDown={handleKeyDown}>
             <div className="landing-ruler-stage w-full flex flex-col justify-center relative">
                 <div className="flex items-center justify-center">
                     <RulerLines top />

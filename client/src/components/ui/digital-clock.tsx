@@ -10,7 +10,8 @@ export default function DigitalClock({ className = "" }: DigitalClockProps) {
   useEffect(() => {
     // Get start time from sessionStorage for current session only
     const startTime = sessionStorage.getItem('thorx-start-time');
-    const sessionStart = startTime ? parseInt(startTime) : Date.now();
+    const parsedStart = Number.parseInt(startTime ?? '', 10);
+    const sessionStart = Number.isFinite(parsedStart) ? parsedStart : Date.now();
     
     if (!startTime) {
       sessionStorage.setItem('thorx-start-time', sessionStart.toString());
@@ -25,19 +26,10 @@ export default function DigitalClock({ className = "" }: DigitalClockProps) {
 
     updateTime(); // Initial call
     
-    // Use requestAnimationFrame for better performance and accuracy
-    let rafId: number;
-    const tick = () => {
-      updateTime();
-      rafId = requestAnimationFrame(tick);
-    };
-    
-    rafId = requestAnimationFrame(tick);
+    const intervalId = window.setInterval(updateTime, 1000);
 
     return () => {
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-      }
+      window.clearInterval(intervalId);
     };
   }, []);
 

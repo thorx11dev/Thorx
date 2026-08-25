@@ -13,21 +13,9 @@ import { GetStartedButton } from "@/components/ui/get-started-button";
 
 export default function Home() {
   const [currentSection, setCurrentSection] = useState(1);
-  const [isMobile, setIsMobile] = useState(false);
   const [hasTransformedToClock, setHasTransformedToClock] = useState(false);
   const [, setLocation] = useLocation();
   const totalSections = 4;
-
-  useEffect(() => {
-    const checkIsMobile = () => {
-      setIsMobile(window.innerWidth < 640);
-    };
-
-    checkIsMobile();
-    window.addEventListener('resize', checkIsMobile);
-
-    return () => window.removeEventListener('resize', checkIsMobile);
-  }, []);
 
   // Add cinematic-mode class to body when component mounts
   useEffect(() => {
@@ -47,7 +35,13 @@ export default function Home() {
 
   // Scroll to top on section change
   useEffect(() => {
-    const activeSection = document.querySelector('.cinematic-section.active');
+    const sections = document.querySelectorAll<HTMLElement>('.landing-page .cinematic-section');
+    const activeSection = document.querySelector<HTMLElement>('.landing-page .cinematic-section.active');
+
+    sections.forEach((section) => {
+      section.toggleAttribute('inert', section !== activeSection);
+    });
+
     if (activeSection) {
       activeSection.scrollTo({
         top: 0,
@@ -62,11 +56,11 @@ export default function Home() {
       const isTextEntry = target?.closest('input, textarea, select, [contenteditable="true"]');
       const isActionControl = target?.closest('button, a, [role="button"]');
 
-      // Let focused controls keep their native keyboard behavior. This keeps
-      // the FAQ reveal and section-three ruler from also changing sections.
-      if (e.defaultPrevented || isTextEntry || isActionControl) return;
+      // Let text entry and controls with their own keyboard handling keep it.
+      if (e.defaultPrevented || isTextEntry) return;
 
       if (e.key === 'Enter') {
+        if (isActionControl) return;
         e.preventDefault();
         // Navigate to Auth page on Enter
         setLocation("/auth");
@@ -116,15 +110,25 @@ export default function Home() {
           <div className="landing-header-shell grid grid-cols-3 items-center">
             {/* Left Section - Transform to Enter button when not on first section */}
             <div className="flex items-center justify-self-start">
-              {currentSection === 1 && !isMobile ? (
-                <button
-                  type="button"
-                  onClick={() => setLocation("/auth")}
-                  className="landing-header-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  data-testid="button-navbar-get-started"
-                >
-                  <GetStartedButton />
-                </button>
+              {currentSection === 1 ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setLocation("/auth")}
+                    className="landing-header-action hidden sm:block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    data-testid="button-navbar-get-started"
+                  >
+                    <GetStartedButton />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLocation("/auth")}
+                    className="landing-enter-button sm:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    data-testid="button-navbar-enter-mobile"
+                  >
+                    <TechnicalLabel text="ENTER" className="text-white font-black" />
+                  </button>
+                </>
               ) : (
                 <button
                   onClick={() => setLocation("/auth")}
