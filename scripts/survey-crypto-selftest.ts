@@ -64,27 +64,33 @@ function record(name: string, ok: boolean, detail: string) {
   record("BitLabs      : forged hash rejected", !r2.ok, r2.ok ? "ACCEPTED FORGERY!" : r2.reason ?? "");
 }
 
-// ── TimeWall: SHA256(user_id + revenue + secret) — documented formula ────────
+// ── TimeWall: sha256(secret + revenue) — OFFICIAL guide formula ──────────────
 {
   const creds = { siteId: "site-9", secret: "timewall-secret" };
   const base = { user_id: "user-42", transaction_id: "tw-tx-3", amount: "1.25" };
-  // Primary: TimeWall's documented SHA256(user_id + revenue + secretKey)
-  const shaSig = crypto.createHash("sha256").update(`${base.user_id}${base.amount}${creds.secret}`).digest("hex");
+  // Primary: hash("sha256", $secret . $revenue) — per official integration guide
+  const shaSig = crypto.createHash("sha256").update(`${creds.secret}${base.amount}`).digest("hex");
   const p1 = new URLSearchParams({ ...base, hash: shaSig });
   const r1 = verifyTimeWallHash(p1, creds);
-  record("TimeWall     : valid SHA256 signature (documented)", r1.ok, r1.reason ?? "accepted");
+  record("TimeWall     : valid SHA256(secret+revenue) signature", r1.ok, r1.reason ?? "accepted");
+
+  // Fallback: community variant sha256(user_id + revenue + secret)
+  const altSig = crypto.createHash("sha256").update(`${base.user_id}${base.amount}${creds.secret}`).digest("hex");
+  const p2 = new URLSearchParams({ ...base, hash: altSig });
+  const r2 = verifyTimeWallHash(p2, creds);
+  record("TimeWall     : community SHA256 variant fallback", r2.ok, r2.reason ?? "accepted");
 
   // Fallback: legacy HMAC-SHA256(secret, user_id + transaction_id + amount)
   const hmacPayload = `${base.user_id}${base.transaction_id}${base.amount}`;
   const hmacSig = crypto.createHmac("sha256", creds.secret).update(hmacPayload).digest("hex");
-  const p2 = new URLSearchParams({ ...base, hash: hmacSig });
-  const r2 = verifyTimeWallHash(p2, creds);
-  record("TimeWall     : legacy HMAC fallback accepted", r2.ok, r2.reason ?? "accepted");
+  const p3 = new URLSearchParams({ ...base, hash: hmacSig });
+  const r3 = verifyTimeWallHash(p3, creds);
+  record("TimeWall     : legacy HMAC fallback accepted", r3.ok, r3.reason ?? "accepted");
 
-  // Tampered amount must fail both paths
+  // Tampered amount must fail every path
   const bad = new URLSearchParams({ ...base, amount: "9.99", hash: shaSig });
-  const r3 = verifyTimeWallHash(bad, creds);
-  record("TimeWall     : inflated amount rejected", !r3.ok, r3.ok ? "ACCEPTED INFLATED!" : r3.reason ?? "");
+  const r4 = verifyTimeWallHash(bad, creds);
+  record("TimeWall     : inflated amount rejected", !r4.ok, r4.ok ? "ACCEPTED INFLATED!" : r4.reason ?? "");
 }
 
 // ── PrimeSurveys: HMAC-SHA256(api_key, user_id + transaction_id + amount) ────
