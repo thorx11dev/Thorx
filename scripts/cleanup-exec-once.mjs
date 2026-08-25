@@ -79,11 +79,11 @@ async function main() {
     if (gids.length > 0) {
       await step("guild_wars(children-scope)", `
         DELETE FROM guild_war_approvals WHERE war_id IN (
-          SELECT id FROM guild_wars WHERE "challengerGuildId" = ANY($1) OR "challengedGuildId" = ANY($1))`, [gids]);
+          SELECT id FROM guild_wars WHERE "challenger_guild_id" = ANY($1) OR "challenged_guild_id" = ANY($1))`, [gids]);
       await step("guild_war_participants(war-scope)", `
         DELETE FROM guild_war_participants WHERE war_id IN (
-          SELECT id FROM guild_wars WHERE "challengerGuildId" = ANY($1) OR "challengedGuildId" = ANY($1))`, [gids]);
-      await step("guild_wars", `DELETE FROM guild_wars WHERE "challengerGuildId" = ANY($1) OR "challengedGuildId" = ANY($1)`, [gids]);
+          SELECT id FROM guild_wars WHERE "challenger_guild_id" = ANY($1) OR "challenged_guild_id" = ANY($1))`, [gids]);
+      await step("guild_wars", `DELETE FROM guild_wars WHERE "challenger_guild_id" = ANY($1) OR "challenged_guild_id" = ANY($1)`, [gids]);
       await step("guild_badges", `DELETE FROM guild_badges WHERE guild_id = ANY($1)`, [gids]);
       await step("guild_hall_of_fame", `DELETE FROM guild_hall_of_fame WHERE guild_id = ANY($1)`, [gids]);
       await step("guild_weekly_cycles", `DELETE FROM guild_weekly_cycles WHERE guild_id = ANY($1)`, [gids]);
