@@ -3125,25 +3125,28 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       // Fire-and-forget payout notifications for bulk status changes
       if ((status === "approved" || status === "completed" || status === "rejected") && result.succeeded.length > 0) {
         void (async () => {
-          for (const wid of result.succeeded) {
-            try {
-              const w = await storage.getWithdrawalById?.(wid) ?? null;
-              if (!w) continue;
-              const owner = await storage.getUserById(w.userId);
-              if (!owner) continue;
-              await sendPayoutStatusEmail({
-                to: owner.email,
-                firstName: owner.firstName,
-                status,
-                amount: w.amount,
-                netAmount: w.netAmount,
-                fee: w.fee,
-                method: w.method,
-                rejectionReason: w.rejectionReason ?? null,
-              });
-            } catch (err) {
-              logger.error({ err, withdrawalId: wid }, "[Email] Bulk payout notification failed");
+          try {
+            const { withdrawals: updatedRows } = await storage.getWithdrawalsPaginated({
+              page: 1, limit: 200, ids: result.succeeded,
+            });
+            for (const w of updatedRows) {
+              try {
+                await sendPayoutStatusEmail({
+                  to: w.user.email,
+                  firstName: w.user.firstName,
+                  status,
+                  amount: w.amount,
+                  netAmount: w.netAmount,
+                  fee: w.fee,
+                  method: w.method,
+                  rejectionReason: w.rejectionReason ?? null,
+                });
+              } catch (err) {
+                logger.error({ err, withdrawalId: w.id }, "[Email] Bulk payout notification failed");
+              }
             }
+          } catch (err) {
+            logger.error({ err }, "[Email] Bulk payout notification pass failed");
           }
         })();
       }
