@@ -35,7 +35,7 @@ import { runWeeklyGuildReset } from "./modules/guild-reset";
 import bcrypt from "bcrypt";
 import { logger } from "./lib/logger";
 import { Sentry } from "./lib/sentry";
-import { sendPasswordResetEmail, sendTeamInvitationEmail } from "./lib/email";
+import { sendPasswordResetEmail, sendPayoutStatusEmail, sendTeamInvitationEmail } from "./lib/email";
 import { getRequestContext, diffFields } from "./request-context";
 import { describeAuditLog } from "./audit-descriptions";
 
