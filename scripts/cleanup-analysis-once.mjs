@@ -10,7 +10,14 @@ const pool = new pg.Pool({
 });
 
 // Test-only email domains (koi real user in par nahi ho sakta)
-const TEST_PATTERNS = ["%@thorx-test.local", "%@thorx-e2e.local", "%@t.local"];
+const TEST_PATTERNS = [
+  "%@thorx-test.local",
+  "%@thorx-e2e.local",
+  "%@t.local",
+  "%@thorx.local",
+  "%@test.local",
+  "%@thorx.test",
+];
 
 try {
   // 1 — Test users
