@@ -495,6 +495,10 @@ export default function Auth() {
       // QUERY_KEYS.sessionAuth, so the stale/partial cached user never got
       // refreshed until an unrelated refocus refetch happened to fix it.
       await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.sessionAuth });
+      if (result.user?.id) {
+        identifyUser(result.user.id, { email: result.user.email, name: `${result.user.firstName ?? ""} ${result.user.lastName ?? ""}`.trim(), role: result.user.role });
+        captureEvent("user_login");
+      }
       toast({ title: "Login Successful!", description: "Welcome back!" });
       const role = result.user?.role;
       setLocation(role === 'team' || role === 'founder' || role === 'admin' ? "/team-portal" : "/dashboard");
