@@ -10,6 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import TechnicalLabel from "@/components/ui/technical-label";
+import { identifyUser, captureEvent } from "@/lib/posthog";
 import Barcode from "@/components/ui/barcode";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2, Mail, CheckCircle2 } from "lucide-react";
