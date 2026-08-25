@@ -76,6 +76,9 @@ const result = await send("Runtime.evaluate", {
       blockers,
       active: document.querySelector(".cinematic-section.active")?.getAttribute("data-section"),
       ready: document.readyState,
+      title: document.title,
+      bodyText: document.body.innerText.slice(0, 300),
+      rootHtml: document.getElementById("root")?.innerHTML.slice(0, 800),
     };
   })()`,
 });
