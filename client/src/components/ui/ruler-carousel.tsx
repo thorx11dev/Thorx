@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion, useMotionValue, animate } from "framer-motion";
 import { Rewind, FastForward } from "lucide-react";
 
@@ -130,7 +130,7 @@ export function RulerCarousel({
     // Add keyboard navigation
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (isAnimating) return;
+            if (isAnimating || event.defaultPrevented) return;
 
             if (event.key === "ArrowLeft") {
                 event.preventDefault();

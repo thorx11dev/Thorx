@@ -62,12 +62,11 @@ export default function Home() {
       const isTextEntry = target?.closest('input, textarea, select, [contenteditable="true"]');
       const isActionControl = target?.closest('button, a, [role="button"]');
 
-      // Let focused controls keep their native keyboard behavior. This is
-      // especially important for the FAQ reveal and the section-three ruler.
-      if (e.defaultPrevented || isTextEntry) return;
+      // Let focused controls keep their native keyboard behavior. This keeps
+      // the FAQ reveal and section-three ruler from also changing sections.
+      if (e.defaultPrevented || isTextEntry || isActionControl) return;
 
       if (e.key === 'Enter') {
-        if (isActionControl) return;
         e.preventDefault();
         // Navigate to Auth page on Enter
         setLocation("/auth");

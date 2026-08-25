@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import TechnicalLabel from "@/components/ui/technical-label";
 
 interface DigitalClockProps {
   className?: string;
