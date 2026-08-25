@@ -457,6 +457,10 @@ export default function Auth() {
       // the real key is QUERY_KEYS.sessionAuth — so it silently never refetched).
       queryClient.setQueryData(QUERY_KEYS.sessionAuth, result.user);
       await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.sessionAuth });
+      if (result.user?.id) {
+        identifyUser(result.user.id, { email: result.user.email, name: `${firstName} ${lastName}`.trim(), role: result.user.role });
+        captureEvent("user_registered", { role: result.user.role, hasReferral: Boolean(data.referralCode), hasInvite: Boolean(data.betaInviteCode) });
+      }
       toast({ title: "Registration Successful!", description: `Welcome to THORX, ${firstName}!` });
       setLocation(data.role === 'team' || data.role === 'founder' || data.role === 'admin' ? "/team-portal" : "/dashboard");
     } catch (error: any) {
