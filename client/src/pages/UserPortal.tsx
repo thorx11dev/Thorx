@@ -554,6 +554,7 @@ export default function UserPortal() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adViews });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.sessionAuth });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earnings });
+      captureEvent("earn_completed", { engine: "A", adType: data?.adView?.adType ?? data?.adType, points: data?.adView?.pointsBreakdown?.pointsCredited ?? null });
       const breakdown = data?.adView?.pointsBreakdown;
       if (breakdown) {
         setScratchCardBreakdown(breakdown);
