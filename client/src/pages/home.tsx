@@ -20,7 +20,7 @@ export default function Home() {
 
   useEffect(() => {
     const checkIsMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(window.innerWidth < 640);
     };
 
     checkIsMobile();
@@ -59,15 +59,15 @@ export default function Home() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
-      const isInteractive = target?.closest(
-        'button, a, input, textarea, select, [role="button"], [contenteditable="true"]',
-      );
+      const isTextEntry = target?.closest('input, textarea, select, [contenteditable="true"]');
+      const isActionControl = target?.closest('button, a, [role="button"]');
 
       // Let focused controls keep their native keyboard behavior. This is
       // especially important for the FAQ reveal and the section-three ruler.
-      if (e.defaultPrevented || isInteractive) return;
+      if (e.defaultPrevented || isTextEntry) return;
 
       if (e.key === 'Enter') {
+        if (isActionControl) return;
         e.preventDefault();
         // Navigate to Auth page on Enter
         setLocation("/auth");

@@ -25,7 +25,7 @@ const InteractiveDivider = ({ orientation = "horizontal", className = "" }: { or
             <div
                 onClick={handleClick}
                 className={cn(
-                    "w-[3px] self-stretch bg-black/10 dark:bg-white/10 cursor-pointer overflow-hidden relative",
+                    "w-px self-stretch bg-black/10 dark:bg-white/10 cursor-pointer overflow-hidden relative",
                     className
                 )}
             >
@@ -49,7 +49,7 @@ const InteractiveDivider = ({ orientation = "horizontal", className = "" }: { or
         <div
             onClick={handleClick}
             className={cn(
-                "w-full h-[3px] bg-black/10 dark:bg-white/10 cursor-pointer overflow-hidden relative",
+                "w-full h-px bg-black/10 dark:bg-white/10 cursor-pointer overflow-hidden relative",
                 className
             )}
         >
