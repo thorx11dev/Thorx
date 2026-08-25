@@ -115,7 +115,7 @@ export default function EarningReveal({ isActive, onAdvance }: { isActive: boole
                 />
 
                 {/* Precision hairline grid — cells separated by 1px rules */}
-                <div className="grid grid-cols-1 lg:grid-cols-6 auto-rows-auto gap-px rounded-2xl border border-black/10 bg-black/10 overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 auto-rows-auto gap-px rounded-2xl border border-black/10 bg-black/10 overflow-hidden">
                     <PlusCard {...cardContents[0]} index={0} className="lg:col-span-3 lg:row-span-2" isActive={isActive} />
                     <PlusCard {...cardContents[1]} index={1} className="lg:col-span-3 lg:row-span-2" isActive={isActive} />
 

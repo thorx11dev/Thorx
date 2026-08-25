@@ -2924,6 +2924,7 @@
     font-weight: 400;
     letter-spacing: -0.01em;
     line-height: inherit;
+    text-transform: none;
   }
 
   /* --- Buttons: one interaction system for every control --- */
