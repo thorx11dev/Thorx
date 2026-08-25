@@ -3,72 +3,14 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { ArrowRight } from "lucide-react";
+import Barcode from "@/components/ui/barcode";
 import TechnicalLabel from "@/components/ui/technical-label";
-import { VariableFontHoverByRandomLetter } from "@/components/ui/variable-font-hover";
-import { CinematicBlockReveal } from "@/components/ui/cinematic-block-reveal";
-
-// Interactive Divider Component
-const InteractiveDivider = ({ orientation = "horizontal", className = "" }: { orientation?: "horizontal" | "vertical", className?: string }) => {
-  const [isOrange, setIsOrange] = useState(false);
-
-  const handleClick = () => {
-    setIsOrange(true);
-    setTimeout(() => {
-      setIsOrange(false);
-    }, 3000);
-  };
-
-  if (orientation === "vertical") {
-    return (
-      <div
-        onClick={handleClick}
-        className={cn(
-          "w-[3px] self-stretch bg-black/10 dark:bg-white/10 cursor-pointer overflow-hidden relative",
-          className
-        )}
-      >
-        <AnimatePresence>
-          {isOrange && (
-            <motion.div
-              initial={{ scaleY: 0, opacity: 1 }}
-              animate={{ scaleY: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 3, ease: "linear" }}
-              style={{ transformOrigin: "top" }}
-              className="absolute inset-0 bg-primary"
-            />
-          )}
-        </AnimatePresence>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      onClick={handleClick}
-      className={cn(
-        "w-full h-[3px] bg-black/10 dark:bg-white/10 cursor-pointer overflow-hidden relative",
-        className
-      )}
-    >
-      <AnimatePresence>
-        {isOrange && (
-          <motion.div
-            initial={{ scaleX: 0, opacity: 1 }}
-            animate={{ scaleX: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 3, ease: "linear" }}
-            style={{ transformOrigin: "left" }}
-            className="absolute inset-0 bg-primary"
-          />
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
+import SectionHeader from "@/components/sections/section-header";
 
 interface FAQSectionProps {
   isActive: boolean;
+  onAdvance?: () => void;
 }
 
 const allFaqData = [
@@ -168,81 +110,53 @@ const INITIAL_COUNT = 4;
 
 interface FAQCellProps {
   faq: typeof allFaqData[0];
-  index: number;
 }
 
-const FAQCell = ({ faq, index }: FAQCellProps) => (
-  <div className="p-8 md:p-12 h-full flex flex-col space-y-6 relative group transition-colors duration-300 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
-    <div className="flex items-center">
-      <div className="bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-sm">
-        <TechnicalLabel
-          text={faq.protocol}
-          className="text-black/40 dark:text-white/40 text-[8px] md:text-[9px] font-black tracking-widest"
-        />
-      </div>
+const FAQCell = ({ faq }: FAQCellProps) => (
+  <div className="p-6 md:p-10 h-full flex flex-col gap-4 md:gap-5 relative group bg-white transition-colors duration-300 hover:bg-[#FFFCF6]">
+    <div className="flex items-center justify-between gap-3">
+      <span className="font-mono text-[9px] md:text-[10px] font-medium tracking-[0.16em] text-black/35 uppercase truncate">
+        {faq.id} / {faq.protocol}
+      </span>
+      <span className="size-1 rounded-[2px] bg-black/15 shrink-0 transition-colors duration-300 group-hover:bg-primary" />
     </div>
 
-    <div className="space-y-4">
-      <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter leading-none group-hover:text-primary transition-colors duration-300">
+    <div>
+      <h3 className="text-lg md:text-xl font-extrabold uppercase tracking-tight leading-snug text-black transition-colors duration-300 group-hover:text-primary">
         {faq.question}
       </h3>
-      <div className="w-12 h-0.5 bg-primary/30" />
-      <p className="text-sm md:text-base text-black/70 dark:text-white/70 font-bold leading-relaxed">
+      <p className="mt-3 md:mt-4 text-[13px] md:text-sm leading-relaxed font-medium text-black/55">
         {faq.answer}
       </p>
     </div>
   </div>
 );
 
-export default function FAQSection({ isActive }: FAQSectionProps) {
+export default function FAQSection({ isActive, onAdvance }: FAQSectionProps) {
   const [showAll, setShowAll] = useState(false);
+  const hiddenCount = allFaqData.length - INITIAL_COUNT;
 
   return (
     <section
-      className={`cinematic-section ${isActive ? 'active' : ''} bg-[#EAE5DD] dark:bg-black pt-44 md:pt-[320px] pb-24 px-4 overflow-y-auto`}
+      className={`cinematic-section ${isActive ? 'active' : ''}`}
       data-testid="faq-section"
+      data-section="4"
     >
-      <div className="container mx-auto max-w-7xl">
-        <div className="text-left mb-16 md:mb-24">
-          <CinematicBlockReveal
-            trigger={isActive}
-            blockColor="#ff6b00"
-          >
-            <div className="py-2">
-              <VariableFontHoverByRandomLetter
-                label="FAQ."
-                className="font-black uppercase tracking-tighter text-4xl md:text-7xl lg:text-8xl leading-tight text-black dark:text-white"
-                fromFontVariationSettings="'wght' 900, 'slnt' 0"
-                toFontVariationSettings="'wght' 400, 'slnt' -10"
-              />
-            </div>
-          </CinematicBlockReveal>
-        </div>
+      <div className="container mx-auto w-full max-w-[1440px] pt-4 md:pt-8 pb-16 md:pb-24">
+        <SectionHeader
+          index="04"
+          label="PROTOCOLS"
+          countLabel={`${String(allFaqData.length).padStart(2, "0")} ENTRIES`}
+          title="FAQ."
+          isActive={isActive}
+        />
 
-        <div className="rounded-2xl border-[3px] border-black/15 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5">
+        {/* Precision hairline panel */}
+        <div className="rounded-2xl border border-black/10 bg-black/10 overflow-hidden">
           {/* Main Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2">
-            {allFaqData.slice(0, INITIAL_COUNT).map((faq, index) => (
-              <div key={faq.id} className="relative flex flex-col h-full overflow-hidden">
-                <FAQCell faq={faq} index={index} />
-
-                {/* Vertical Divider (Desktop) */}
-                {index % 2 === 0 && (
-                  <InteractiveDivider
-                    orientation="vertical"
-                    className="hidden lg:block absolute right-0 top-0 bottom-0 opacity-30"
-                  />
-                )}
-
-                {/* Horizontal Divider (Mobile Always, Desktop only between rows) */}
-                <InteractiveDivider
-                  orientation="horizontal"
-                  className={cn(
-                    "opacity-30",
-                    index < 2 ? "lg:hidden" : "" // Hide horizontal divider on desktop's first row
-                  )}
-                />
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-px">
+            {allFaqData.slice(0, INITIAL_COUNT).map((faq) => (
+              <FAQCell key={faq.id} faq={faq} />
             ))}
           </div>
 
@@ -254,29 +168,11 @@ export default function FAQSection({ isActive }: FAQSectionProps) {
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-                className="overflow-hidden border-t-[3px] border-black/10 dark:border-white/10"
+                className="overflow-hidden"
               >
-                <div className="grid grid-cols-1 lg:grid-cols-2">
-                  {allFaqData.slice(INITIAL_COUNT).map((faq, index) => (
-                    <div key={faq.id} className="relative flex flex-col h-full overflow-hidden">
-                      <FAQCell faq={faq} index={index + INITIAL_COUNT} />
-
-                      {/* Vertical Divider (Desktop) */}
-                      {index % 2 === 0 && (
-                        <InteractiveDivider
-                          orientation="vertical"
-                          className="hidden lg:block absolute right-0 top-0 bottom-0 opacity-30"
-                        />
-                      )}
-
-                      {/* Horizontal Divider */}
-                      {index < allFaqData.length - INITIAL_COUNT - 1 && (
-                        <InteractiveDivider
-                          orientation="horizontal"
-                          className="opacity-30"
-                        />
-                      )}
-                    </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-px mt-px">
+                  {allFaqData.slice(INITIAL_COUNT).map((faq) => (
+                    <FAQCell key={faq.id} faq={faq} />
                   ))}
                 </div>
               </motion.div>
@@ -285,21 +181,49 @@ export default function FAQSection({ isActive }: FAQSectionProps) {
         </div>
 
         {!showAll && (
-          <div className="mt-16 flex flex-col items-center">
+          <div className="mt-8 md:mt-10 flex flex-col items-center">
             <button
               onClick={() => setShowAll(true)}
-              className="flex items-center gap-3 group p-6 transition-all duration-300 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="thx-btn thx-btn-md thx-btn-outline"
               aria-label="Show more questions"
+              data-testid="button-faq-show-all"
             >
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="size-4 md:size-6 bg-black dark:bg-white rounded-full transition-all duration-300 group-hover:bg-primary"
-                />
-              ))}
+              SHOW ALL PROTOCOLS
+              <span className="text-primary">(+{hiddenCount})</span>
             </button>
           </div>
         )}
+
+        {/* Closing CTA band */}
+        <div
+          className={cn(
+            "relative overflow-hidden rounded-2xl bg-black mt-12 md:mt-16",
+            "p-7 md:p-12 flex flex-col md:flex-row md:items-center md:justify-between gap-6 md:gap-10"
+          )}
+        >
+          <Barcode variant="bold" color="currentColor" className="absolute top-6 right-6 w-24 h-6 text-white/15 hidden md:block" />
+          <div className="min-w-0">
+            <TechnicalLabel text="[ FINAL CALL ]" className="text-white/40" />
+            <h2 className="thx-display uppercase text-white text-3xl sm:text-4xl md:text-5xl mt-2 md:mt-3">
+              Ready to turn{" "}
+              <em className="thx-accent text-primary">attention</em>
+              <br className="hidden md:block" /> into income?
+            </h2>
+            <div className="mt-3 md:mt-4 hidden sm:block">
+              <TechnicalLabel text="FREE ACCOUNT · PKR PAYOUTS · NO APP REQUIRED" className="text-white/35" />
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onAdvance}
+            className="thx-btn thx-btn-lg thx-btn-accent w-full md:w-auto shrink-0 focus-visible:ring-offset-black"
+            aria-label="Create free account"
+            data-testid="button-faq-cta"
+          >
+            CREATE FREE ACCOUNT
+            <ArrowRight className="size-4 opacity-80" />
+          </button>
+        </div>
       </div>
     </section>
   );
