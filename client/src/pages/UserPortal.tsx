@@ -29,6 +29,7 @@ import Decimal from "decimal.js";
 import { z } from "zod";
 import BetaTrustLayer from "@/components/beta/BetaTrustLayer";
 import { QUERY_KEYS } from "@/lib/queryKeys";
+import { identifyUser, captureEvent, resetPosthog } from "@/lib/posthog";
 import { useAuth, type User as AuthUser } from "@/hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
