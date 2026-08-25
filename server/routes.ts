@@ -3121,6 +3121,33 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       if (result.failed.length > 0) {
         logger.warn({ failed: result.failed }, "Bulk withdrawal update had partial failures");
       }
+
+      // Fire-and-forget payout notifications for bulk status changes
+      if ((status === "approved" || status === "completed" || status === "rejected") && result.succeeded.length > 0) {
+        void (async () => {
+          for (const wid of result.succeeded) {
+            try {
+              const w = await storage.getWithdrawalById?.(wid) ?? null;
+              if (!w) continue;
+              const owner = await storage.getUserById(w.userId);
+              if (!owner) continue;
+              await sendPayoutStatusEmail({
+                to: owner.email,
+                firstName: owner.firstName,
+                status,
+                amount: w.amount,
+                netAmount: w.netAmount,
+                fee: w.fee,
+                method: w.method,
+                rejectionReason: w.rejectionReason ?? null,
+              });
+            } catch (err) {
+              logger.error({ err, withdrawalId: wid }, "[Email] Bulk payout notification failed");
+            }
+          }
+        })();
+      }
+
       res.json({
         message: result.failed.length === 0
           ? `Successfully updated ${result.succeeded.length} withdrawals to ${status}`
