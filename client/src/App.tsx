@@ -11,8 +11,8 @@ import { WsStatusBanner } from "@/components/ui/WsStatusBanner";
 import { ProtectedRoute, PublicOnlyRoute, TeamProtectedRoute } from "@/components/auth/ProtectedRoute";
 import ThorxLoadingScreen from "@/components/ui/thorx-loading-screen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import Home from "@/pages/home";
 
-const Home = retryLazy(() => import("@/pages/home"));
 const Auth = retryLazy(() => import("@/features/auth/AuthPage"));
 const UserPortal = retryLazy(() => import("@/features/user-portal/UserPortalPage"));
 const TeamPortal = retryLazy(() => import("@/features/team-portal/TeamPortalPage"));

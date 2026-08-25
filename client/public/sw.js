@@ -9,7 +9,7 @@
  *     flaky mobile connection still opens the shell.
  *   • Bump CACHE_VERSION to invalidate everything on the next deploy.
  */
-const CACHE_VERSION = "thorx-static-v1";
+const CACHE_VERSION = "thorx-static-v2";
 const STATIC_CACHE = `${CACHE_VERSION}-assets`;
 
 self.addEventListener("install", (event) => {
