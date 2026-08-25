@@ -83,11 +83,6 @@ export async function sendPasswordResetEmail(params: {
 }
 
 export async function sendTeamInvitationEmail(params: {
-  to: string;
-  role: string;
-  inviteUrl: string;
-  invitedByName: string;
-}): Promise<void> {
   const resend = getClient();
   if (!resend) {
     logger.warn({ to: params.to }, "[Email] Team invitation email suppressed — no RESEND_API_KEY");
