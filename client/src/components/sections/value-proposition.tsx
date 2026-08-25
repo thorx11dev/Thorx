@@ -60,7 +60,7 @@ export default function ValueProposition({ isActive }: { isActive: boolean }) {
                 </div>
 
                 {/* Ruler Carousel */}
-                <div className="mt-6 md:mt-10 border-t border-[var(--ed-hairline,#e6dfd8)] pt-12 md:pt-16 -mx-4 px-0">
+                <div className="mt-6 md:mt-10 border-t border-[var(--ed-hairline,#e6dfd8)] pt-12 md:pt-16">
                     <RulerCarousel
                         originalItems={[
                             { id: 1, title: "EARN" },

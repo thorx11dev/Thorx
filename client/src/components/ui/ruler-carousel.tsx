@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, useMotionValue, animate } from "framer-motion";
-import { Rewind, FastForward } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface CarouselItem {
     id: number | string;
@@ -39,14 +40,14 @@ const RulerLines = ({
         const isCenter = i === Math.floor(totalLines / 2);
 
         let height = "h-3";
-        let color = "bg-black/10 dark:bg-white/10";
+        let color = "bg-[rgba(20,20,19,0.10)]";
 
         if (isCenter) {
             height = "h-8";
-            color = "bg-primary";
+            color = "bg-[var(--ed-coral,#cc785c)]";
         } else if (isFifth) {
             height = "h-4";
-            color = "bg-black/30 dark:bg-white/30";
+            color = "bg-[rgba(20,20,19,0.28)]";
         }
 
         const positionClass = top ? "top-0" : "bottom-0";
@@ -54,7 +55,7 @@ const RulerLines = ({
         lines.push(
             <div
                 key={i}
-                className={`absolute w-0.5 ${height} ${color} ${positionClass} transform -translate-x-1/2`}
+                className={`absolute w-px ${height} ${color} ${positionClass} transform -translate-x-1/2`}
                 style={{ left: `${i * lineSpacing}%` }}
             />
         );
@@ -163,14 +164,14 @@ export function RulerCarousel({
     const totalPages = itemsPerSet;
 
     return (
-        <div className="w-full py-20 flex flex-col items-center justify-center">
-            <div className="w-full h-[200px] flex flex-col justify-center relative">
+        <div className="w-full py-14 md:py-20 flex flex-col items-center justify-center">
+            <div className="w-full h-[190px] md:h-[220px] flex flex-col justify-center relative">
                 <div className="flex items-center justify-center">
                     <RulerLines top />
                 </div>
                 <div className="flex items-center w-full h-full relative overflow-hidden">
                     {/* Central Indicator Mask */}
-                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-24 border-y-2 border-black/20 dark:border-white/20 pointer-events-none z-10" />
+                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-24 border-y border-[rgba(20,20,19,0.15)] pointer-events-none z-10" />
 
                     <motion.div
                         className="flex items-center absolute left-1/2 top-0 bottom-0"
@@ -183,13 +184,15 @@ export function RulerCarousel({
                                 <motion.button
                                     key={item.id}
                                     onClick={() => handleItemClick(index)}
-                                    className={`text-6xl md:text-8xl font-black whitespace-nowrap cursor-pointer flex items-center justify-center uppercase tracking-tighter focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 ${isActive
-                                        ? "text-black dark:text-white"
-                                        : "text-black/20 dark:text-white/10 hover:text-black/50 dark:hover:text-white/30"
-                                        }`}
+                                    className={cn(
+                                        "thx-display thx-display-2 whitespace-nowrap flex items-center justify-center uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ed-coral,#cc785c)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--ed-canvas,#faf9f5)] rounded-lg",
+                                        isActive
+                                            ? "text-[var(--ed-ink,#141413)]"
+                                            : "text-[rgba(20,20,19,0.22)] hover:text-[rgba(20,20,19,0.5)]"
+                                    )}
                                     animate={{
-                                        scale: isActive ? 1.1 : 0.8,
-                                        opacity: isActive ? 1 : 0.3,
+                                        scale: isActive ? 1.08 : 0.82,
+                                        opacity: isActive ? 1 : 0.55,
                                     }}
                                     transition={{
                                         type: "spring",
@@ -213,24 +216,24 @@ export function RulerCarousel({
                 </div>
             </div>
 
-            <div className="flex items-center justify-center gap-6 mt-10 bg-white dark:bg-white/5 px-5 py-2.5 rounded-full border border-black/15 dark:border-white/10">
+            <div className="flex items-center justify-center gap-5 mt-8 bg-[var(--ed-surface-white,#fffefb)] px-4 py-2 rounded-full border border-[var(--ed-hairline,#e6dfd8)] shadow-[0_1px_2px_rgba(20,20,19,0.04)]">
                 <button
                     onClick={handlePrevious}
                     disabled={isAnimating}
-                    className="flex items-center justify-center cursor-pointer hover:scale-125 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="w-9 h-9 rounded-full border border-transparent hover:border-[var(--ed-hairline,#e6dfd8)] hover:bg-[var(--ed-surface-card,#efe9de)] flex items-center justify-center transition-all disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ed-coral,#cc785c)]"
                     aria-label="Previous item"
                 >
-                    <Rewind className="w-5 h-5 text-black dark:text-white" />
+                    <ArrowLeft className="w-4 h-4 text-[var(--ed-ink,#141413)]" />
                 </button>
 
-                <div className="flex items-center gap-3">
-                    <span className="text-xl font-black text-black dark:text-white min-w-[2ch] text-center">
+                <div className="flex items-baseline gap-2">
+                    <span className="thx-display text-xl text-[var(--ed-ink,#141413)] min-w-[2ch] text-center leading-none pt-[2px]">
                         {currentPage}
                     </span>
-                    <span className="text-lg text-black/30 dark:text-white/20 font-light">
+                    <span className="text-sm text-[var(--ed-muted-soft,#8e8b82)] font-light">
                         /
                     </span>
-                    <span className="text-xl font-black text-black/40 dark:text-white/40">
+                    <span className="text-sm text-[var(--ed-muted-soft,#8e8b82)] thx-mono">
                         {totalPages}
                     </span>
                 </div>
@@ -238,10 +241,10 @@ export function RulerCarousel({
                 <button
                     onClick={handleNext}
                     disabled={isAnimating}
-                    className="flex items-center justify-center cursor-pointer hover:scale-125 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="w-9 h-9 rounded-full border border-transparent hover:border-[var(--ed-hairline,#e6dfd8)] hover:bg-[var(--ed-surface-card,#efe9de)] flex items-center justify-center transition-all disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ed-coral,#cc785c)]"
                     aria-label="Next item"
                 >
-                    <FastForward className="w-5 h-5 text-black dark:text-white" />
+                    <ArrowRight className="w-4 h-4 text-[var(--ed-ink,#141413)]" />
                 </button>
             </div>
         </div>
