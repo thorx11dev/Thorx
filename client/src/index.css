@@ -495,7 +495,7 @@
   }
 
   .landing-page .cinematic-section.active {
-    transform: translateY(0) scale(1);
+    transform: none !important;
   }
 
   .landing-page .landing-hero-section {

@@ -58,6 +58,8 @@ const VariableFontHoverByRandomLetter = ({
         }),
     }
 
+    let characterOffset = 0
+
     return (
         <motion.span
             className={cn("inline-block", className)}
@@ -68,20 +70,31 @@ const VariableFontHoverByRandomLetter = ({
         >
             <span className="sr-only">{label}</span>
 
-            {label.split("").map((letter: string, i: number) => {
-                const index = shuffledIndices[i]
-                return (
-                    <motion.span
-                        key={i}
-                        className="inline-block whitespace-pre"
-                        aria-hidden="true"
-                        variants={letterVariants}
-                        custom={index}
-                    >
-                        {letter}
-                    </motion.span>
-                )
-            })}
+            <span aria-hidden="true">
+                {label.split(/(\s+)/).map((segment, segmentIndex) => {
+                    const startIndex = characterOffset
+                    characterOffset += segment.length
+
+                    if (/^\s+$/.test(segment)) {
+                        return <span key={segmentIndex}>{segment}</span>
+                    }
+
+                    return (
+                        <span key={segmentIndex} className="inline-block whitespace-nowrap">
+                            {segment.split("").map((letter: string, letterIndex: number) => (
+                                <motion.span
+                                    key={letterIndex}
+                                    className="inline-block"
+                                    variants={letterVariants}
+                                    custom={shuffledIndices[startIndex + letterIndex]}
+                                >
+                                    {letter}
+                                </motion.span>
+                            ))}
+                        </span>
+                    )
+                })}
+            </span>
         </motion.span>
     )
 }
