@@ -3672,6 +3672,26 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       broadcastUserUpdated(updated.userId, `withdrawal_${status}`);
       // Also broadcast specific event so frontend can show targeted toast (Phase 6.2)
       broadcastToUser(updated.userId, 'withdrawal_status_changed', { status, withdrawalId });
+
+      // Fire-and-forget branded payout notification — never blocks the admin action
+      if (status === "approved" || status === "completed" || status === "rejected") {
+        storage.getUserById(updated.userId).then((owner) => {
+          if (!owner) return;
+          return sendPayoutStatusEmail({
+            to: owner.email,
+            firstName: owner.firstName,
+            status,
+            amount: updated.amount,
+            netAmount: updated.netAmount,
+            fee: updated.fee,
+            method: updated.method,
+            rejectionReason,
+          });
+        }).catch((err) => {
+          logger.error({ err, withdrawalId }, "[Email] Payout notification failed");
+        });
+      }
+
       res.json({ success: true, withdrawal: updated });
     } catch (error) {
       // O-03: Explicitly capture financial failures in Sentry with domain context
