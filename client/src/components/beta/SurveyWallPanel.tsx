@@ -17,6 +17,7 @@ import { apiRequest } from "@/lib/queryClient";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { captureEvent } from "@/lib/posthog";
 
 interface SurveyNetwork {
   networkId: string;
