@@ -8,14 +8,14 @@ export function GetStartedButton() {
     return (
         <div
             className={cn(
-                "landing-get-started inline-flex items-center justify-center bg-primary text-white border-2 border-black",
-                "transition-[background-color,transform] duration-300"
+                "bg-primary text-white px-3 py-3 md:px-4 md:py-2 border-2 border-black rounded-lg",
+                "hover:bg-black transition-all duration-300 transform hover:scale-105 inline-block"
             )}
             data-testid="button-get-started"
         >
             <TechnicalLabel
                 text="GET STARTED"
-                className="text-white font-black"
+                className="text-white text-xs md:text-sm font-black"
             />
         </div>
     );

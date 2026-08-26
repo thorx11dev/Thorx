@@ -60,16 +60,16 @@ const PlusCard: React.FC<{
     return (
         <div
             className={cn(
-                "landing-feature-card relative rounded-xl border border-black/15 dark:border-zinc-700/50 p-6 md:p-8 bg-white dark:bg-zinc-950 min-h-[200px] md:min-h-[240px]",
+                "relative rounded-2xl border border-black/15 dark:border-zinc-700/50 p-6 md:p-8 bg-white dark:bg-zinc-950 min-h-[200px] md:min-h-[240px]",
                 "flex flex-col justify-between group transition-all duration-500 ease-out",
-                "hover:-translate-y-1 hover:border-black dark:hover:border-white",
-                "hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]",
+                "hover:-translate-y-2 hover:border-black dark:hover:border-white",
+                "hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.1)]",
                 className
             )}
         >
             <CornerPlusIcons />
             <div className="relative z-10 space-y-4">
-                <div className="landing-feature-icon bg-black/[0.045] dark:bg-white/10 w-fit p-3 border border-black/[0.06] dark:border-white/10">
+                <div className="bg-black/5 dark:bg-white/10 w-fit p-3">
                     {icon}
                 </div>
                 <div>
@@ -77,7 +77,7 @@ const PlusCard: React.FC<{
                         {title}
                     </h3>
                     <TextBlockAnimation blockColor="#ff6b00" duration={0.4} delay={0.2} animateOnScroll={false} trigger={isActive}>
-                        <p className="text-black/65 dark:text-gray-400 leading-relaxed text-[15px] md:text-base font-medium">
+                        <p className="text-gray-700 dark:text-gray-400 leading-relaxed text-sm md:text-base font-medium">
                             {description}
                         </p>
                     </TextBlockAnimation>
@@ -90,13 +90,12 @@ const PlusCard: React.FC<{
 export default function EarningReveal({ isActive, onAdvance }: { isActive: boolean; onAdvance: () => void }) {
     return (
         <section
-            className={`cinematic-section landing-content-section landing-features-section ${isActive ? 'active' : ''} bg-[#EAE5DD] dark:bg-black`}
+            className={`cinematic-section ${isActive ? 'active' : ''} bg-[#EAE5DD] dark:bg-black pt-44 md:pt-[320px] pb-24 px-4`}
             data-section="2"
             data-testid="earning-reveal-section"
-            aria-hidden={!isActive}
         >
-            <div className="landing-section-container mx-auto w-full">
-                <div className="landing-section-heading text-left">
+            <div className="mx-auto container max-w-7xl">
+                <div className="mb-12 md:mb-16 text-left">
                     <CinematicBlockReveal
                         trigger={isActive}
                         blockColor="#000"
@@ -104,7 +103,7 @@ export default function EarningReveal({ isActive, onAdvance }: { isActive: boole
                         <div className="py-2">
                             <VariableFontHoverByRandomLetter
                                 label="OUR FEATURES"
-                                className="landing-display-heading font-black uppercase text-black dark:text-white"
+                                className="font-black uppercase tracking-tighter text-4xl md:text-7xl lg:text-8xl leading-tight text-black dark:text-white"
                                 fromFontVariationSettings="'wght' 900, 'slnt' 0"
                                 toFontVariationSettings="'wght' 400, 'slnt' -10"
                             />
@@ -112,7 +111,7 @@ export default function EarningReveal({ isActive, onAdvance }: { isActive: boole
                     </CinematicBlockReveal>
                 </div>
 
-                <div className="landing-feature-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 auto-rows-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 auto-rows-auto gap-6 md:gap-8 mb-16 md:mb-24">
                     <PlusCard {...cardContents[0]} className="lg:col-span-3 lg:row-span-2" isActive={isActive} />
                     <PlusCard {...cardContents[1]} className="lg:col-span-3 lg:row-span-2" isActive={isActive} />
 

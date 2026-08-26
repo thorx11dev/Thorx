@@ -9,7 +9,7 @@ interface ArrowKeysGuideProps {
 
 export default function ArrowKeysGuide({ currentSection, totalSections, onPrevious, onNext }: ArrowKeysGuideProps) {
   return (
-    <div className="arrow-keys-guide" data-testid="arrow-keys-guide" aria-label="Section navigation">
+    <div className="arrow-keys-guide" data-testid="arrow-keys-guide">
       <button 
         onClick={onPrevious}
         disabled={currentSection === 1}

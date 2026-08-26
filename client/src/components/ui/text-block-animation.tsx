@@ -36,13 +36,6 @@ export default function TextBlockAnimation({
     useGSAP(() => {
         if (!containerRef.current) return;
 
-        // Inactive cinematic sections stay mounted for instant navigation, but
-        // their layout is not reliable until activated. Keep their text intact
-        // and initialize the reveal only when the section becomes active.
-        if (trigger === false) return;
-
-        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
         // 1. Setup SplitText
         const split = new SplitText(containerRef.current, {
             type: "lines",
@@ -88,12 +81,7 @@ export default function TextBlockAnimation({
                 start: "top 85%",
                 toggleActions: "play none none reverse",
             } : null,
-            delay: delay,
-            onComplete: () => {
-                // An interrupted reveal must never leave core copy hidden.
-                gsap.set(lines, { clearProps: "opacity" });
-                blocks.forEach((block) => block.remove());
-            },
+            delay: delay
         });
 
         // 4. Build the Animation Sequence
@@ -116,8 +104,6 @@ export default function TextBlockAnimation({
 
         // Cleanup: Important to revert SplitText to avoid nested spans on re-render
         return () => {
-            tl.kill();
-            gsap.set(lines, { clearProps: "opacity" });
             split.revert();
             // Remove the manually added wrappers and blocks
             blocks.forEach(b => b.remove());

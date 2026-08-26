@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import TechnicalLabel from "@/components/ui/technical-label";
 
 interface DigitalClockProps {
   className?: string;
@@ -10,8 +11,7 @@ export default function DigitalClock({ className = "" }: DigitalClockProps) {
   useEffect(() => {
     // Get start time from sessionStorage for current session only
     const startTime = sessionStorage.getItem('thorx-start-time');
-    const parsedStart = Number.parseInt(startTime ?? '', 10);
-    const sessionStart = Number.isFinite(parsedStart) ? parsedStart : Date.now();
+    const sessionStart = startTime ? parseInt(startTime) : Date.now();
     
     if (!startTime) {
       sessionStorage.setItem('thorx-start-time', sessionStart.toString());
@@ -26,10 +26,19 @@ export default function DigitalClock({ className = "" }: DigitalClockProps) {
 
     updateTime(); // Initial call
     
-    const intervalId = window.setInterval(updateTime, 1000);
+    // Use requestAnimationFrame for better performance and accuracy
+    let rafId: number;
+    const tick = () => {
+      updateTime();
+      rafId = requestAnimationFrame(tick);
+    };
+    
+    rafId = requestAnimationFrame(tick);
 
     return () => {
-      window.clearInterval(intervalId);
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
     };
   }, []);
 
@@ -41,8 +50,8 @@ export default function DigitalClock({ className = "" }: DigitalClockProps) {
   };
 
   return (
-    <div className={`landing-digital-clock text-center ${className}`} data-testid="digital-clock" aria-label={`Session time ${formatTime(timeSpent)}`}>
-      <div className="font-mono font-black tracking-wider" aria-hidden="true">
+    <div className={`bg-white border-2 border-black rounded-lg px-2 py-1 text-center ${className}`} data-testid="digital-clock">
+      <div className="font-mono text-sm md:text-base font-black tracking-wider">
         {formatTime(timeSpent)}
       </div>
     </div>

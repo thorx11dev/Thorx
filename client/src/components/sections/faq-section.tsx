@@ -23,7 +23,7 @@ const InteractiveDivider = ({ orientation = "horizontal", className = "" }: { or
       <div
         onClick={handleClick}
         className={cn(
-          "w-px self-stretch bg-black/10 dark:bg-white/10 cursor-pointer overflow-hidden relative",
+          "w-[3px] self-stretch bg-black/10 dark:bg-white/10 cursor-pointer overflow-hidden relative",
           className
         )}
       >
@@ -47,7 +47,7 @@ const InteractiveDivider = ({ orientation = "horizontal", className = "" }: { or
     <div
       onClick={handleClick}
       className={cn(
-        "w-full h-px bg-black/10 dark:bg-white/10 cursor-pointer overflow-hidden relative",
+        "w-full h-[3px] bg-black/10 dark:bg-white/10 cursor-pointer overflow-hidden relative",
         className
       )}
     >
@@ -172,7 +172,7 @@ interface FAQCellProps {
 }
 
 const FAQCell = ({ faq, index }: FAQCellProps) => (
-  <div className="landing-faq-cell h-full flex flex-col relative group transition-colors duration-300 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
+  <div className="p-8 md:p-12 h-full flex flex-col space-y-6 relative group transition-colors duration-300 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
     <div className="flex items-center">
       <div className="bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-sm">
         <TechnicalLabel
@@ -183,11 +183,11 @@ const FAQCell = ({ faq, index }: FAQCellProps) => (
     </div>
 
     <div className="space-y-4">
-      <h3 className="text-xl md:text-2xl font-black uppercase tracking-[-0.035em] leading-[1.04] group-hover:text-primary transition-colors duration-300">
+      <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter leading-none group-hover:text-primary transition-colors duration-300">
         {faq.question}
       </h3>
       <div className="w-12 h-0.5 bg-primary/30" />
-        <p className="text-sm md:text-base text-black/70 dark:text-white/70 font-bold leading-relaxed">
+      <p className="text-sm md:text-base text-black/70 dark:text-white/70 font-bold leading-relaxed">
         {faq.answer}
       </p>
     </div>
@@ -199,13 +199,11 @@ export default function FAQSection({ isActive }: FAQSectionProps) {
 
   return (
     <section
-      className={`cinematic-section landing-content-section landing-faq-section ${isActive ? 'active' : ''} bg-[#EAE5DD] dark:bg-black overflow-y-auto`}
-      data-section="4"
+      className={`cinematic-section ${isActive ? 'active' : ''} bg-[#EAE5DD] dark:bg-black pt-44 md:pt-[320px] pb-24 px-4 overflow-y-auto`}
       data-testid="faq-section"
-      aria-hidden={!isActive}
     >
-      <div className="landing-section-container mx-auto w-full">
-        <div className="landing-section-heading text-left">
+      <div className="container mx-auto max-w-7xl">
+        <div className="text-left mb-16 md:mb-24">
           <CinematicBlockReveal
             trigger={isActive}
             blockColor="#ff6b00"
@@ -213,7 +211,7 @@ export default function FAQSection({ isActive }: FAQSectionProps) {
             <div className="py-2">
               <VariableFontHoverByRandomLetter
                 label="FAQ."
-                className="landing-display-heading font-black uppercase text-black dark:text-white"
+                className="font-black uppercase tracking-tighter text-4xl md:text-7xl lg:text-8xl leading-tight text-black dark:text-white"
                 fromFontVariationSettings="'wght' 900, 'slnt' 0"
                 toFontVariationSettings="'wght' 400, 'slnt' -10"
               />
@@ -221,7 +219,7 @@ export default function FAQSection({ isActive }: FAQSectionProps) {
           </CinematicBlockReveal>
         </div>
 
-        <div className="landing-faq-grid rounded-xl border border-black/15 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5">
+        <div className="rounded-2xl border-[3px] border-black/15 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5">
           {/* Main Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2">
             {allFaqData.slice(0, INITIAL_COUNT).map((faq, index) => (
@@ -290,7 +288,7 @@ export default function FAQSection({ isActive }: FAQSectionProps) {
           <div className="mt-16 flex flex-col items-center">
             <button
               onClick={() => setShowAll(true)}
-              className="landing-faq-more flex items-center gap-3 group transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="flex items-center gap-3 group p-6 transition-all duration-300 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               aria-label="Show more questions"
             >
               {[0, 1, 2].map((i) => (
