@@ -23,6 +23,15 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Client-side (VITE_*) values must exist at BUILD time — Vite inlines them into
+# the JS bundle, so a runtime container env var arrives far too late. Hosting
+# platforms (Railway/Render) pass service variables as --build-arg, but Docker
+# only exposes the ones declared here. Empty defaults keep local builds working.
+ARG VITE_POSTHOG_KEY=""
+ARG VITE_POSTHOG_HOST=""
+ENV VITE_POSTHOG_KEY=$VITE_POSTHOG_KEY
+ENV VITE_POSTHOG_HOST=$VITE_POSTHOG_HOST
+
 # Build frontend (static -> dist/) then bundle the Express server (dist/index.js).
 # VITE_API_URL is forced EMPTY so the bundled frontend calls the API on its own
 # origin (Express serves dist/ + /api together). Without this, client/.env.production
