@@ -74,7 +74,7 @@ export interface NormalizedSurveyCallback {
   txId: string;
   rewardUsd: number;
   // BitLabs-specific survey metadata
-  surveyType?: "COMPLETE" | "SCREENOUT" | "RECONCILIATION" | "START_BONUS";
+  surveyType?: "COMPLETE" | "SCREENOUT" | "RECONCILIATION" | "START_BONUS" | undefined;
   surveyReason?: string | null;
   surveyRating?: number | null;
   surveyNetworkName?: string | null;

@@ -162,20 +162,23 @@ export function registerSurveyRoutes(app: Express): void {
           // For reconciliation, we need to reverse the previous credit
           const reconciliationAmount = Math.abs(payload.rewardUsd);
           if (reconciliationAmount > 0) {
-            // Reverse the previous credit by recording a negative earn event
-            await storage.recordEarnEvent({
-              userId: payload.userId,
-              engineType: "Engine_B",
-              grossPkr: `-${Math.abs(payload.rewardUsd).toFixed(4)}`,
-              sourceId: payload.txId,
-              sourceType: "survey_reconciliation",
-              tx,
+            // Use a separate transaction for reconciliation
+            await db.transaction(async (reconTx) => {
+              // Reverse the previous credit by recording a negative earn event
+              await storage.recordEarnEvent({
+                userId: payload.userId,
+                engineType: "Engine_B",
+                grossPkr: `-${Math.abs(payload.rewardUsd).toFixed(4)}`,
+                sourceId: payload.txId,
+                sourceType: "survey",
+                tx: reconTx,
+              });
+              // Also update the original survey record to mark as reconciled
+              await db
+                .update(surveyRecords)
+                .set({ status: "reconciled" })
+                .where(sql`${surveyRecords.transactionId} = ${payload.refTxId || payload.txId}`);
             });
-            // Also update the original survey record to mark as reconciled
-            await db
-              .update(surveyRecords)
-              .set({ status: "reconciled" })
-              .where(sql`${surveyRecords.transactionId} = ${payload.refTxId || payload.txId}`);
           }
           return res.status(200).json({ credited: false, ignored: "RECONCILIATION", refTxId: payload.refTxId });
         }
