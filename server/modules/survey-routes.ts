@@ -187,6 +187,7 @@ export function registerSurveyRoutes(app: Express): void {
         }
 
         // COMPLETE: normal credit flow (falls through to existing logic)
+      }
 
       // 3 — Credit path: one advisory-locked transaction; duplicate TX and
       // daily-cap races resolve to an idempotent 200 (vendors retry until 200).
