@@ -147,13 +147,46 @@ export function registerSurveyRoutes(app: Express): void {
         return res.status(400).json({ credited: false, error: "INVALID_PARAMS" });
       }
 
-      // Unknown/mismatched user id = vendor misconfiguration, not a transient
-      // fault — 400 stops the vendor retry loop immediately.
-      const callbackUser = await storage.getUserById(payload.userId);
-      if (!callbackUser) {
-        logger.warn({ networkId, txId: payload.txId }, "[Surveys] Callback for unknown THORX user id");
-        return res.status(400).json({ credited: false, error: "UNKNOWN_USER" });
-      }
+      // 2.5 — Handle BitLabs-specific callback types
+      if (networkId === "bitlabs" && payload.surveyType) {
+        // SCREENOUT: user was disqualified from survey — no credit, just acknowledge
+        if (payload.isScreenout) {
+          logger.info({ networkId, txId: payload.txId, userId: payload.userId, reason: payload.surveyReason }, "[Surveys][BitLabs] Screenout acknowledged — no credit");
+          return res.status(200).json({ credited: false, ignored: "SCREENOUT", reason: payload.surveyReason });
+        }
+
+        // RECONCILIATION: survey reward was revoked (fraud/quality) — negative amount, ref to original tx
+        if (payload.isReconciliation) {
+          logger.warn({ networkId, txId: payload.txId, refTxId: payload.refTxId, amount: payload.rewardUsd }, "[Surveys][BitLabs] Reconciliation callback — reversing previous credit");
+          
+          // For reconciliation, we need to reverse the previous credit
+          const reconciliationAmount = Math.abs(payload.rewardUsd);
+          if (reconciliationAmount > 0) {
+            // Reverse the previous credit by recording a negative earn event
+            await storage.recordEarnEvent({
+              userId: payload.userId,
+              engineType: "Engine_B",
+              grossPkr: `-${Math.abs(payload.rewardUsd).toFixed(4)}`,
+              sourceId: payload.txId,
+              sourceType: "survey_reconciliation",
+              tx,
+            });
+            // Also update the original survey record to mark as reconciled
+            await db
+              .update(surveyRecords)
+              .set({ status: "reconciled" })
+              .where(sql`${surveyRecords.transactionId} = ${payload.refTxId || payload.txId}`);
+          }
+          return res.status(200).json({ credited: false, ignored: "RECONCILIATION", refTxId: payload.refTxId });
+        }
+
+        // START_BONUS: treat like COMPLETE — credit the user
+        if (payload.isStartBonus) {
+          logger.info({ networkId, txId: payload.txId, userId: payload.userId }, "[Surveys][BitLabs] Start bonus callback — processing as COMPLETE");
+          // Fall through to normal credit flow
+        }
+
+        // COMPLETE: normal credit flow (falls through to existing logic)
 
       // 3 — Credit path: one advisory-locked transaction; duplicate TX and
       // daily-cap races resolve to an idempotent 200 (vendors retry until 200).
