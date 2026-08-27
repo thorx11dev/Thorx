@@ -73,6 +73,20 @@ export interface NormalizedSurveyCallback {
   userId: string;
   txId: string;
   rewardUsd: number;
+  // BitLabs-specific survey metadata
+  surveyType?: "COMPLETE" | "SCREENOUT" | "RECONCILIATION" | "START_BONUS";
+  surveyReason?: string | null;
+  surveyRating?: number | null;
+  surveyNetworkName?: string | null;
+  surveyLoi?: number | null;
+  country?: string | null;
+  surveyId?: string | null;
+  promisedUsd?: number | null;
+  promisedCurrency?: number | null;
+  refTxId?: string | null;
+  isReconciliation?: boolean;
+  isScreenout?: boolean;
+  isStartBonus?: boolean;
 }
 
 export type CallbackVerification =
