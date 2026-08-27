@@ -701,4 +701,3 @@ export function normalizeSurveyCallback(
     isStartBonus
   };
 }
-}
