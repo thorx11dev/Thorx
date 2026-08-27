@@ -1,0 +1,61 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "providers": {
+    "openrouter": {
+      "name": "OpenRouter",
+      "api": "openai",
+      "base_url": "https://openrouter.ai/api/v1",
+      "headers": {
+        "Authorization": "Bearer ${OPENROUTER_API_KEY}",
+        "HTTP-Referer": "https://opencode.ai",
+        "X-Title": "opencode"
+      },
+      "models": {
+        "free": {
+          "model": "openrouter/auto",
+          "options": {
+            "temperature": 0.7
+          }
+        },
+        "nemotron-3-ultra": {
+          "model": "nvidia/nemotron-3-ultra",
+          "options": {
+            "temperature": 0.7
+          }
+        },
+        "llama-3.1-405b": {
+          "model": "meta-llama/llama-3.1-405b-instruct",
+          "options": {
+            "temperature": 0.7
+          }
+        },
+        "llama-3.1-70b": {
+          "model": "meta-llama/llama-3.1-70b-instruct",
+          "options": {
+            "temperature": 0.7
+          }
+        },
+        "qwen-2.5-72b": {
+          "model": "qwen/qwen-2.5-72b-instruct",
+          "options": {
+            "temperature": 0.7
+          }
+        },
+        "deepseek-v3": {
+          "model": "deepseek/deepseek-chat",
+          "options": {
+            "temperature": 0.7
+          }
+        },
+        "gemini-2.0-flash": {
+          "model": "google/gemini-2.0-flash-exp:free",
+          "options": {
+            "temperature": 0.7
+          }
+        }
+      }
+    }
+  },
+  "default_provider": "openrouter",
+  "default_model": "free"
+}

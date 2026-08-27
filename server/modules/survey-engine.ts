@@ -542,12 +542,95 @@ export function normalizeSurveyCallback(
   let txId = "";
   let usdRaw = "";
 
+  export function normalizeSurveyCallback(
+  networkId: string,
+  params: URLSearchParams,
+): NormalizedSurveyCallback | null {
+  let userId = "";
+  let txId = "";
+  let usdRaw = "";
+  let surveyType: "COMPLETE" | "SCREENOUT" | "RECONCILIATION" | "START_BONUS" | null = null;
+  let surveyReason: string | null = null;
+  let surveyRating: number | null = null;
+  let surveyNetworkName: string | null = null;
+  let surveyLoi: number | null = null;
+  let country: string | null = null;
+  let surveyId: string | null = null;
+  let promisedUsd: number | null = null;
+  let promisedCurrency: number | null = null;
+  let refTxId: string | null = null;
+  let isReconciliation = false;
+  let isScreenout = false;
+  let isStartBonus = false;
+
   switch (networkId) {
-    case "bitlabs":
+    case "bitlabs": {
+      userId = firstParam(params, ["uid", "user_id"]);
+      txId = firstParam(params, ["tx", "trans_id", "transaction_id"]);
+      usdRaw = firstParam(params, ["usd", "amount_usd", "reward_usd"]);
+
+      // Handle BitLabs survey-specific parameters
+      const typeParam = params.get("type")?.toUpperCase();
+      switch (typeParam) {
+        case "COMPLETE":
+          surveyType = "COMPLETE";
+          break;
+        case "SCREENOUT":
+          surveyType = "SCREENOUT";
+          isScreenout = true;
+          break;
+        case "RECONCILIATION":
+          surveyType = "RECONCILIATION";
+          isReconciliation = true;
+          break;
+        case "START_BONUS":
+          surveyType = "START_BONUS";
+          isStartBonus = true;
+          break;
+      }
+
+      // Extract survey-specific parameters
+      surveyReason = params.get("reason") || params.get("SURVEY:REASON") || null;
+      const ratingRaw = params.get("rating") || params.get("SURVEY:RATING");
+      if (ratingRaw) {
+        const parsed = Number.parseInt(ratingRaw, 10);
+        if (Number.isFinite(parsed)) surveyRating = parsed;
+      }
+      surveyNetworkName = params.get("network_name") || params.get("SURVEY:NETWORK:NAME") || null;
+      const loiRaw = params.get("loi") || params.get("SURVEY:LOI");
+      if (loiRaw) {
+        const parsed = Number.parseInt(loiRaw, 10);
+        if (Number.isFinite(parsed)) surveyLoi = parsed;
+      }
+      country = params.get("country") || params.get("COUNTRY") || null;
+      surveyId = params.get("survey_id") || params.get("SURVEY:ID") || null;
+      const promisedUsdRaw = params.get("promised_usd") || params.get("VALUE:PROMISED_USD");
+      if (promisedUsdRaw) {
+        const parsed = Number.parseFloat(promisedUsdRaw);
+        if (Number.isFinite(parsed)) promisedUsd = parsed;
+      }
+      const promisedCurrencyRaw = params.get("promised_currency") || params.get("VALUE:PROMISED_CURRENCY");
+      if (promisedCurrencyRaw) {
+        const parsed = Number.parseFloat(promisedCurrencyRaw);
+        if (Number.isFinite(parsed)) promisedCurrency = parsed;
+      }
+      refTxId = params.get("ref") || params.get("REF") || null;
+
+      // For BitLabs, the survey type determines how we handle the callback
+      if (surveyType === "RECONCILIATION") {
+        isReconciliation = true;
+      } else if (surveyType === "SCREENOUT") {
+        isScreenout = true;
+      } else if (surveyType === "START_BONUS") {
+        isStartBonus = true;
+      }
+
+      // Standard parameters
       userId = firstParam(params, ["uid", "user_id"]);
       txId = firstParam(params, ["tx", "trans_id", "transaction_id"]);
       usdRaw = firstParam(params, ["usd", "amount_usd", "reward_usd"]);
       break;
+    }
 
     case "cpx-research":
       userId = firstParam(params, ["user_id", "uid", "ext_user_id"]);
