@@ -555,14 +555,6 @@ export function normalizeSurveyCallback(
   let userId = "";
   let txId = "";
   let usdRaw = "";
-
-  export function normalizeSurveyCallback(
-  networkId: string,
-  params: URLSearchParams,
-): NormalizedSurveyCallback | null {
-  let userId = "";
-  let txId = "";
-  let usdRaw = "";
   let surveyType: "COMPLETE" | "SCREENOUT" | "RECONCILIATION" | "START_BONUS" | null = null;
   let surveyReason: string | null = null;
   let surveyRating: number | null = null;
