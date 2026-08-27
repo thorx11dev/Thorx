@@ -690,5 +690,22 @@ export function normalizeSurveyCallback(
   if (!userId || !txId || !Number.isFinite(rewardUsd) || rewardUsd <= 0) {
     return null;
   }
-  return { userId, txId, rewardUsd };
+  return { 
+    userId, 
+    txId, 
+    rewardUsd,
+    surveyType,
+    surveyReason,
+    surveyRating,
+    surveyNetworkName,
+    surveyLoi,
+    country,
+    surveyId,
+    promisedUsd,
+    promisedCurrency,
+    refTxId,
+    isReconciliation,
+    isScreenout,
+    isStartBonus
+  };
 }
