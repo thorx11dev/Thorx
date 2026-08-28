@@ -179,7 +179,7 @@
     height: 100vh;
     height: 100dvh;
     height: 100svh;
-    padding-top: 110px;
+    padding-top: calc(110px + env(safe-area-inset-top, 0px));
     padding-bottom: 80px;
     padding-left: 20px;
     padding-right: 20px;
@@ -199,7 +199,7 @@
   /* Mobile cinematic sections */
   @media (max-width: 768px) {
     .cinematic-section {
-      padding-top: 6rem;
+      padding-top: calc(6rem + env(safe-area-inset-top, 0px));
       padding-bottom: 2rem;
       padding-left: 0.5rem;
       padding-right: 0.5rem;

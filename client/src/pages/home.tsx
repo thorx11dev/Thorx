@@ -105,7 +105,7 @@ export default function Home() {
   return (
     <>
       {/* Navigation Header */}
-      <nav className="fixed top-0 w-full z-50 px-3 pt-3 md:px-4 md:pt-4" data-testid="navigation-header">
+      <nav className="fixed top-0 w-full z-50 px-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] md:px-4 md:pt-[calc(1rem_+_env(safe-area-inset-top))]" data-testid="navigation-header">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-3 items-center rounded-2xl border-2 md:border-[3px] border-black bg-white px-3 md:px-8 h-16 md:h-20">
             {/* Left Section - Transform to Enter button when not on first section */}
