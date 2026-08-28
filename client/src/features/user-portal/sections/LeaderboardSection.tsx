@@ -44,24 +44,8 @@ const itemVariants: Variants = {
   animate: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } },
 };
 
-const CornerPlusIcons = () => (
-  <>
-    <div className="absolute -top-3.5 -left-3.5 transition-transform duration-500 group-hover:rotate-180 group-hover:scale-125">
-      <Plus className="size-6 text-black" strokeWidth={1.5} />
-    </div>
-    <div className="absolute -top-3.5 -right-3.5 transition-transform duration-500 group-hover:rotate-90 group-hover:scale-125">
-      <Plus className="size-6 text-black" strokeWidth={1.5} />
-    </div>
-    <div className="absolute -bottom-3.5 -left-3.5 transition-transform duration-500 group-hover:-rotate-90 group-hover:scale-125">
-      <Plus className="size-6 text-black" strokeWidth={1.5} />
-    </div>
-    <div className="absolute -bottom-3.5 -right-3.5 transition-transform duration-500 group-hover:-rotate-180 group-hover:scale-125">
-      <Plus className="size-6 text-black" strokeWidth={1.5} />
-    </div>
-  </>
-);
-
 export default function LeaderboardSection() {
+  const [isRanksHeroToggled, setIsRanksHeroToggled] = useState(false);
   const { data, isLoading, isError, refetch, isRefetching } = useQuery<LeaderboardResponse>({
     queryKey: QUERY_KEYS.leaderboard,
     refetchInterval: 60_000,
@@ -79,56 +63,72 @@ export default function LeaderboardSection() {
       className="max-w-3xl mx-auto px-4 pb-24 md:pb-10 pt-2"
       data-testid="section-leaderboard"
     >
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      {/* ── Hero — matches portal section headers (WORK / GUILD / REFERRALS / HELP) ── */}
       <motion.div
         variants={itemVariants}
-        className="relative rounded-2xl border-2 md:border-[3px] border-black bg-white p-6 md:p-10 group transition-all duration-500 ease-out hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+        onClick={() => setIsRanksHeroToggled((v) => !v)}
+        initial={false}
+        animate={{
+          backgroundColor: isRanksHeroToggled ? "#ffffff" : "#000000",
+          borderColor: isRanksHeroToggled ? "#000000" : "#ffffff",
+          boxShadow: isRanksHeroToggled
+            ? "0 4px 20px rgba(0,0,0,0.06)"
+            : "0 8px 30px rgba(0,0,0,0.12)"
+        }}
+        transition={{
+          backgroundColor: { duration: 0.4 },
+          borderColor: { duration: 0.4 }
+        }}
+        className={cn(
+          "rounded-2xl p-6 md:p-12 mb-0 relative overflow-hidden group border-2 cursor-pointer",
+          "h-[160px] md:h-[260px] flex items-center justify-center md:justify-start"
+        )}
       >
-        <CornerPlusIcons />
-
-        <div className="flex items-start justify-between gap-6">
-          <div className="relative z-10 min-w-0">
-            <Barcode className="w-20 md:w-24 h-6 md:h-7 mb-6 opacity-80" />
-
-            <div className="bg-black px-3 py-1.5 rounded-sm w-fit mb-5">
-              <TechnicalLabel
-                text="GLOBAL STANDINGS"
-                className="text-white font-black tracking-[0.25em] text-[10px]"
-              />
-            </div>
-
-            <VariableFontHoverByRandomLetter
-              label="RANKS."
-              className="font-black uppercase tracking-tighter leading-[0.9] text-6xl md:text-8xl text-black"
-              fromFontVariationSettings="'wght' 900, 'slnt' 0"
-              toFontVariationSettings="'wght' 400, 'slnt' -10"
-            />
-
-            <div className="w-14 h-1 bg-primary pulse-glow mt-6" />
-          </div>
-
-          <div className="bg-black/5 rounded-xl p-3 shrink-0 relative z-10">
-            <Trophy className="w-5 h-5 md:w-6 md:h-6 text-black" strokeWidth={2} />
-          </div>
-        </div>
-
-        <div className="relative z-10 mt-8 flex flex-wrap items-center gap-x-3 gap-y-2">
-          <TechnicalLabel
-            text={data?.totalRanked ? `${data.totalRanked} WARRIORS RANKED` : "PERFORMANCE SCORE"}
-            className="text-black/50"
-          />
-          <div className="h-3 w-px bg-black/15" />
-          <TechnicalLabel text="PS STANDINGS" className="font-mono tracking-[0.2em] text-black/40" />
+        <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-700" />
+        <div className="relative z-10 w-full text-center md:text-left">
+          <AnimatePresence mode="popLayout" initial={false}>
+            {isRanksHeroToggled ? (
+              <motion.h1
+                key="ranks-expanded"
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -30 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="font-black tracking-tighter uppercase leading-none text-[clamp(2.5rem,13vw,6rem)] md:text-9xl text-black"
+              >
+                RANKS
+              </motion.h1>
+            ) : (
+              <motion.h1
+                layout
+                key="ranks-collapsed"
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -30 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="font-black tracking-tighter uppercase leading-none text-[clamp(2.5rem,13vw,6rem)] md:text-9xl text-white"
+              >
+                RANKS
+              </motion.h1>
+            )}
+          </AnimatePresence>
         </div>
       </motion.div>
 
+      <InteractiveDivider className="my-12" />
+
       {/* ── Meta row ─────────────────────────────────────────────────────── */}
-      <motion.div variants={itemVariants} className="flex items-center justify-between mt-5 mb-4">
-        <div className="flex items-center gap-2.5">
-          <span className="w-2 h-2 rounded-full bg-primary pulse-glow" />
+      <motion.div variants={itemVariants} className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="w-2 h-2 rounded-full bg-primary pulse-glow shrink-0" />
           <TechnicalLabel
             text={updatedLabel ? `UPDATED ${updatedLabel}` : "LIVE STANDINGS"}
-            className="font-mono tracking-[0.2em] text-black/40"
+            className="font-mono tracking-[0.2em] text-black/40 truncate"
+          />
+          <div className="h-3 w-px bg-black/15 shrink-0 hidden sm:block" />
+          <TechnicalLabel
+            text={data?.totalRanked ? `${data.totalRanked} RANKED` : "GLOBAL"}
+            className="text-black/40 hidden sm:block"
           />
         </div>
         <button
