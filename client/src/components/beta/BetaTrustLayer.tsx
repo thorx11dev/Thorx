@@ -25,7 +25,6 @@ import { Megaphone, X, Send, Loader2, CheckCircle2, Eye } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import Barcode from "@/components/ui/barcode";
 
 interface BetaTrustUser {
   id?: string;
@@ -67,7 +66,6 @@ function statusBadgeClass(status: string): string {
 
 export default function BetaTrustLayer({ user }: { user?: BetaTrustUser | null }) {
   const isLoggedIn = Boolean(user?.id);
-  const serial = useMemo(() => (user?.id ? user.id.replace(/-/g, "").slice(-6).toUpperCase() : "PENDING"), [user?.id]);
 
   // ── Rules acknowledgment state ────────────────────────────────────────────
   const rulesStatus = useQuery<{ rulesAcknowledgedAt: string | null }>({
@@ -103,16 +101,16 @@ export default function BetaTrustLayer({ user }: { user?: BetaTrustUser | null }
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-gate bg-[#0A0A0A]/80 backdrop-blur-md p-3 md:p-6 overflow-y-auto"
+            className="fixed inset-0 z-gate bg-black/60 backdrop-blur-sm p-4 md:p-6 overflow-y-auto"
             role="dialog"
             aria-modal="true"
             aria-label="THORX honesty rules"
           >
             <motion.div
-              initial={{ scale: 0.92, y: 40, opacity: 0 }}
+              initial={{ scale: 0.96, y: 16, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.95, y: 24, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 220, damping: 24 }}
+              exit={{ scale: 0.97, y: 8, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
               className="min-h-full flex items-center justify-center"
             >
               <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden my-auto">
@@ -159,7 +157,7 @@ export default function BetaTrustLayer({ user }: { user?: BetaTrustUser | null }
                   <button
                     onClick={() => ackMutation.mutate()}
                     disabled={ackMutation.isPending}
-                    className="mt-7 w-full h-13 py-4 rounded-xl bg-black text-white font-bold uppercase tracking-[0.12em] text-xs flex items-center justify-center gap-2 hover:bg-primary transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
+                    className="mt-7 w-full h-12 rounded-xl bg-black text-white font-bold uppercase tracking-[0.12em] text-xs flex items-center justify-center gap-2 hover:bg-primary transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
                   >
                     {ackMutation.isPending && <Loader2 size={14} className="animate-spin" />}
                     I Understand — Play Fair
