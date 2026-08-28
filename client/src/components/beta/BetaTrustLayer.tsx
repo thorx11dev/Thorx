@@ -68,6 +68,9 @@ const GATE_EASE = [0.16, 1, 0.3, 1] as const;
 
 export default function BetaTrustLayer({ user }: { user?: BetaTrustUser | null }) {
   const isLoggedIn = Boolean(user?.id);
+  // Latch: once the card opens it stays for the full 5 seconds — the ack
+  // request completing early must NOT unmount it ahead of the timer.
+  const [gateOpened, setGateOpened] = useState(false);
   const [gateDismissed, setGateDismissed] = useState(false);
 
   // ── Rules acknowledgment state ────────────────────────────────────────────
@@ -77,7 +80,7 @@ export default function BetaTrustLayer({ user }: { user?: BetaTrustUser | null }
     staleTime: 60_000,
   });
   const needsAck = isLoggedIn && rulesStatus.data?.rulesAcknowledgedAt == null;
-  const showGate = needsAck && !gateDismissed;
+  const showGate = gateOpened && !gateDismissed;
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -100,11 +103,16 @@ export default function BetaTrustLayer({ user }: { user?: BetaTrustUser | null }
   // automatically when the card displays, then auto-dismiss after 5 seconds.
   useEffect(() => {
     if (!needsAck) return;
+    setGateOpened(true);
     ackMutation.mutate();
-    const timer = setTimeout(() => setGateDismissed(true), 5000);
-    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needsAck]);
+
+  useEffect(() => {
+    if (!gateOpened) return;
+    const timer = setTimeout(() => setGateDismissed(true), 5000);
+    return () => clearTimeout(timer);
+  }, [gateOpened]);
 
   // Lock body scroll while the gate owns the screen.
   useEffect(() => {
