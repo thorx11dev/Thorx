@@ -374,7 +374,8 @@ export default function LeaderboardSection() {
                 </div>
               ))}
             </div>
-          </motion.div>
+            </motion.div>
+          )}
 
           {/* ── Your rank card ─────────────────────────────────────────────── */}
           {data.me && (
