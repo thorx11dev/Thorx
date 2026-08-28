@@ -125,24 +125,14 @@ export function PortalMenuDrawer({
                   }}
                   data-testid={`menu-item-${section.id}`}
                   className={cn(
-                    "w-full flex items-center gap-4 py-4 border-b border-white/10 text-left group",
+                    "w-full flex items-center gap-4 py-4 border-b border-white/10 text-left",
                     index === 0 && "pt-5",
                   )}
                 >
                   <span
                     className={cn(
-                      "w-7 shrink-0 font-mono text-[10px] font-black tracking-[0.25em] transition-colors duration-300",
-                      isActive ? "text-primary" : "text-white/30"
-                    )}
-                  >
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <span
-                    className={cn(
                       "shrink-0 rounded-xl p-2.5 transition-colors duration-300",
-                      isActive
-                        ? "bg-primary text-white"
-                        : "bg-white/10 text-white group-hover:bg-white group-hover:text-black"
+                      isActive ? "bg-white text-black" : "bg-white/10 text-white"
                     )}
                   >
                     <Icon className="w-5 h-5" strokeWidth={2} />
@@ -150,12 +140,12 @@ export function PortalMenuDrawer({
                   <span
                     className={cn(
                       "flex-1 text-xl font-black uppercase tracking-tight transition-colors duration-300",
-                      isActive ? "text-primary" : "text-white group-hover:text-white/70"
+                      isActive ? "text-white" : "text-white/80"
                     )}
                   >
                     {section.name}
                   </span>
-                  {isActive && <span className="shrink-0 w-2 h-2 rounded-full bg-primary pulse-glow" />}
+                  {isActive && <span className="shrink-0 w-2 h-2 rounded-full bg-white" />}
                 </motion.button>
               );
             })}
