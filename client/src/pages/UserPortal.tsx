@@ -1180,23 +1180,35 @@ export default function UserPortal() {
                 </span>
               )}
             </Button>
+            <div className="hidden md:flex items-center space-x-3">
+              <Button
+                onClick={() => setShowProfileModal(true)}
+                variant="outline"
+                size="sm"
+                className="border-2 border-black rounded-lg text-black bg-white hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 transform hover:scale-105"
+                data-testid="button-profile"
+              >
+                <Settings className="w-5 h-5 stroke-[2px]" />
+              </Button>
+              <Button
+                onClick={() => { resetPosthog(); logout(); }}
+                variant="outline"
+                size="sm"
+                className="border-2 border-black rounded-lg text-black bg-white hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all duration-300 transform hover:scale-105"
+                data-testid="button-logout"
+              >
+                <LogOut className="w-5 h-5 stroke-[2px]" />
+              </Button>
+            </div>
             <Button
-              onClick={() => setShowProfileModal(true)}
+              onClick={() => setIsMenuOpen(true)}
               variant="outline"
               size="sm"
-              className="border-2 border-black rounded-lg text-black bg-white hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 transform hover:scale-105"
-              data-testid="button-profile"
+              className="md:hidden border-2 border-black rounded-lg text-black bg-white hover:bg-black hover:text-white hover:border-black transition-all duration-300 transform active:scale-95"
+              aria-label="Open menu"
+              data-testid="button-mobile-menu"
             >
-              <Settings className="w-5 h-5 stroke-[2px]" />
-            </Button>
-            <Button
-              onClick={() => { resetPosthog(); logout(); }}
-              variant="outline"
-              size="sm"
-              className="border-2 border-black rounded-lg text-black bg-white hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all duration-300 transform hover:scale-105"
-              data-testid="button-logout"
-            >
-              <LogOut className="w-5 h-5 stroke-[2px]" />
+              <Menu className="w-5 h-5" strokeWidth={2} />
             </Button>
           </div>
         </div>
