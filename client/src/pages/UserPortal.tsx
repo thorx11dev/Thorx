@@ -40,7 +40,7 @@ import { Button } from "@/components/ui/button";
 const ProfileModal = retryLazy(() =>
   import("@/components/ui/profile-modal").then((m) => ({ default: m.ProfileModal }))
 );
-import { MobileNavBar } from "@/components/ui/mobile-nav-bar";
+import { PortalMenuDrawer } from "@/components/ui/portal-menu-drawer";
 import { DesktopNavTabs } from "@/components/ui/desktop-nav-tabs";
 const AdWebPanel = retryLazy(() =>
   import("@/components/ui/ad-web-panel").then((m) => ({ default: m.AdWebPanel }))
@@ -111,7 +111,7 @@ const DEV_MOCK_PREVIEW = {
 };
 import { formatPoints } from "@/lib/formatPoints";
 import { useLocation } from "wouter";
-import { LogOut, ArrowRight, ArrowLeft, PieChart, Copy, Download, Home, Briefcase, User, Shield, Settings, Network, Landmark, Headphones, Bell, Trophy } from "lucide-react";
+import { LogOut, ArrowRight, ArrowLeft, PieChart, Copy, Download, Home, Briefcase, User, Shield, Settings, Network, Landmark, Headphones, Bell, Trophy, Menu } from "lucide-react";
 
 
 const GUEST_USER: AuthUser = {
@@ -256,6 +256,7 @@ export default function UserPortal() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showReferralLink, setShowReferralLink] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const getDefaultReferralZoom = () =>
     typeof window !== "undefined" && window.innerWidth < 768 ? 0.8 : 1;
