@@ -53,8 +53,12 @@ export function PortalMenuDrawer({
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    // Lets unrelated floating widgets (e.g. the feedback dock) hide
+    // themselves while the menu owns the screen.
+    document.body.classList.add("drawer-open");
     return () => {
       document.body.style.overflow = prev;
+      document.body.classList.remove("drawer-open");
     };
   }, [open]);
 
