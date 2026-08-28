@@ -188,13 +188,13 @@ export default function LeaderboardSection() {
       {/* ── Podium (top 3) ───────────────────────────────────────────────── */}
       {data && data.leaders.length > 0 && (
         <>
-          <div className="grid grid-cols-3 gap-2.5 md:gap-4 mb-3 md:mb-4">
+          <div className="grid grid-cols-3 gap-2.5 md:gap-8 mb-4 md:mb-8">
             {data.leaders.slice(0, 3).map((entry) => (
               <motion.div
                 key={entry.rank}
                 variants={itemVariants}
                 className={cn(
-                  "relative rounded-2xl border p-3.5 md:p-5 pt-5 md:pt-6 text-center transition-all duration-500 ease-out",
+                  "relative rounded-2xl border p-4 md:p-6 pt-6 md:pt-8 text-center transition-all duration-500 ease-out",
                   entry.rank === 1
                     ? "border-black bg-[#FFF7ED] hover:-translate-y-1.5 hover:shadow-[6px_6px_0px_0px_rgba(255,107,53,1)]"
                     : "border-black/15 bg-white hover:-translate-y-1.5 hover:border-black hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
@@ -202,7 +202,7 @@ export default function LeaderboardSection() {
               >
                 <div
                   className={cn(
-                    "absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-sm text-[10px] font-black uppercase tracking-[0.2em] text-white",
+                    "absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-sm text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-white",
                     entry.rank === 1 ? "bg-primary" : "bg-black"
                   )}
                 >
@@ -212,19 +212,19 @@ export default function LeaderboardSection() {
                 <img
                   src={getAvatarSrc(entry.avatar)}
                   alt=""
-                  className="w-11 h-11 md:w-12 md:h-12 mx-auto rounded-xl border-2 border-black object-cover"
+                  className="w-14 h-14 md:w-16 md:h-16 mx-auto rounded-xl md:rounded-2xl border-2 border-black object-cover"
                   onError={(e) => ((e.target as HTMLImageElement).src = "/avatars/avatar-1.png")}
                 />
-                <p className="mt-2.5 text-xs md:text-sm font-black uppercase tracking-tight truncate">
+                <p className="mt-3 md:mt-4 text-xs md:text-base font-black uppercase tracking-tight truncate">
                   {entry.name}
                 </p>
-                <div className="mt-1.5 flex justify-center">
-                  <RankBadge rank={entry.rankTier} size="sm" />
+                <div className="mt-2 flex justify-center">
+                  <RankBadge rank={entry.rankTier} size="md" />
                 </div>
-                <p className="mt-2 text-base md:text-lg font-black tracking-tighter tabular-nums">
+                <p className="mt-2 md:mt-3 text-xl md:text-3xl font-black tracking-tighter tabular-nums">
                   {formatScore(entry.score)}
                 </p>
-                <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-black/40">PS</p>
+                <p className="mt-0.5 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.25em] text-black/40">PS</p>
               </motion.div>
             ))}
           </div>
