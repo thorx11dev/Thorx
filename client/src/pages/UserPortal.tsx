@@ -1238,12 +1238,15 @@ export default function UserPortal() {
         </div >
       )}
 
-      {/* Mobile Bottom Tab Bar */}
-      {/* Mobile Bottom Tab Bar - REBUILT */}
-      <MobileNavBar
+      {/* Mobile Full-Screen Menu Drawer (replaces the floating FAB) */}
+      <PortalMenuDrawer
+        open={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
         sections={sections}
         currentSection={currentSection}
         onSectionChange={navigateToSection}
+        onProfile={() => setShowProfileModal(true)}
+        onLogout={() => { resetPosthog(); logout(); }}
       />
 
       {/* Section Content */}
