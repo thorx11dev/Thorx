@@ -234,14 +234,14 @@ export default function LeaderboardSection() {
             variants={itemVariants}
             className="rounded-2xl border border-black/15 bg-white overflow-hidden"
           >
-            <div className="hidden md:flex items-center gap-4 px-6 py-3 border-b border-black/10 bg-black/[0.03]">
-              <span className="w-7 text-center">
+            <div className="hidden md:flex items-center gap-6 px-8 py-4 border-b border-black/10 bg-black/[0.03]">
+              <span className="w-8 text-center">
                 <TechnicalLabel text="#" className="text-black/40" />
               </span>
               <span className="flex-1">
                 <TechnicalLabel text="WARRIOR" className="text-black/40" />
               </span>
-              <span className="w-16 md:w-20 text-right">
+              <span className="w-20 md:w-24 text-right">
                 <TechnicalLabel text="PS" className="text-black/40" />
               </span>
             </div>
@@ -251,17 +251,17 @@ export default function LeaderboardSection() {
                 <div
                   key={entry.rank}
                   className={cn(
-                    "relative flex items-center gap-3 md:gap-4 px-4 md:px-6 py-3.5 md:py-4 transition-colors duration-300",
+                    "relative flex items-center gap-3 md:gap-6 px-4 md:px-8 py-4 md:py-5 transition-colors duration-300",
                     entry.isMe ? "bg-primary/[0.07]" : "hover:bg-black/[0.03]"
                   )}
                 >
                   {entry.isMe && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 h-9 w-[3px] rounded-r-full bg-primary" />
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 h-10 md:h-12 w-1 rounded-r-full bg-primary" />
                   )}
 
                   <span
                     className={cn(
-                      "w-7 text-center text-sm font-black tracking-tighter tabular-nums",
+                      "w-8 text-center text-sm md:text-lg font-black tracking-tighter tabular-nums",
                       entry.rank <= 3 ? "text-primary" : "text-black"
                     )}
                   >
@@ -271,12 +271,12 @@ export default function LeaderboardSection() {
                   <img
                     src={getAvatarSrc(entry.avatar)}
                     alt=""
-                    className="w-9 h-9 rounded-lg border border-black/15 object-cover"
+                    className="w-9 h-9 md:w-11 md:h-11 rounded-lg md:rounded-xl border border-black/15 object-cover"
                     onError={(e) => ((e.target as HTMLImageElement).src = "/avatars/avatar-1.png")}
                   />
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-black uppercase tracking-tight truncate flex items-center gap-2">
+                    <p className="text-sm md:text-base font-black uppercase tracking-tight truncate flex items-center gap-2">
                       {entry.name}
                       {entry.isMe && (
                         <span className="shrink-0 bg-black text-white rounded-sm px-1.5 py-0.5 text-[9px] font-black tracking-widest">
@@ -289,11 +289,11 @@ export default function LeaderboardSection() {
                     </div>
                   </div>
 
-                  <div className="w-16 md:w-20 text-right">
-                    <p className="text-sm md:text-base font-black tracking-tight tabular-nums">
+                  <div className="w-14 md:w-24 text-right">
+                    <p className="text-sm md:text-xl font-black tracking-tight tabular-nums">
                       {formatScore(entry.score)}
                     </p>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-black/40">PS</p>
+                    <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.25em] text-black/40">PS</p>
                   </div>
                 </div>
               ))}
@@ -304,21 +304,21 @@ export default function LeaderboardSection() {
           {data.me && (
             <motion.div
               variants={itemVariants}
-              className="relative overflow-hidden rounded-2xl bg-black text-white p-6 md:p-8 mt-4 md:mt-6 shadow-[0_12px_40px_rgba(0,0,0,0.25)] flex items-center justify-between"
+              className="relative overflow-hidden rounded-2xl bg-black text-white p-6 md:p-10 mt-4 md:mt-8 shadow-[0_12px_40px_rgba(0,0,0,0.25)] flex items-center justify-between"
             >
-              <span className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
-              <div className="pl-2">
+              <span className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary" />
+              <div className="pl-2 md:pl-3">
                 <TechnicalLabel text="YOUR POSITION" className="text-white/50" />
-                <p className="font-black uppercase tracking-tighter text-4xl md:text-6xl leading-none mt-2 tabular-nums">
+                <p className="font-black uppercase tracking-tighter text-4xl md:text-7xl leading-none mt-2 md:mt-3 tabular-nums">
                   #{data.me.rank}
                 </p>
               </div>
               <div className="text-right">
                 <RankBadge rank={data.me.rankTier} size="md" />
-                <p className="text-base md:text-lg font-black tracking-tight mt-2 tabular-nums">
+                <p className="text-lg md:text-2xl font-black tracking-tight mt-2 md:mt-3 tabular-nums">
                   {formatScore(data.me.score)}
                 </p>
-                <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40">PS</p>
+                <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.25em] text-white/40">PS</p>
               </div>
             </motion.div>
           )}
