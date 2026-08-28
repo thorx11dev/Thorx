@@ -51,7 +51,6 @@ interface PlayerState {
 // Single area player component
 interface AreaPlayerProps {
   areaId: string;
-  areaLabel: string;
   tab: VideoTab;
   isActive: boolean;
   isFullscreen: boolean;
@@ -62,7 +61,6 @@ interface AreaPlayerProps {
 
 function AreaPlayer({
   areaId,
-  areaLabel,
   tab,
   isActive,
   isFullscreen,
@@ -210,7 +208,7 @@ function AreaPlayer({
           <div className="text-center text-white px-6">
             <div className={`mb-2 ${isFullscreen ? 'text-6xl mb-4' : 'text-4xl'}`}>{tab.icon}</div>
             <TechnicalLabel
-              text={`${areaLabel} - AD ${currentAdIndex + 1}/${adQueue.length}`}
+              text={`AD ${currentAdIndex + 1}/${adQueue.length}`}
               className={`text-white mb-1 ${isFullscreen ? 'text-2xl mb-2' : 'text-lg'}`}
             />
             <p className={`text-white/60 ${isFullscreen ? 'text-lg' : 'text-sm'}`}>{tab.description}</p>
