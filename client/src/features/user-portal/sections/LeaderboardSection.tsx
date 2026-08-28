@@ -304,11 +304,12 @@ export default function LeaderboardSection() {
             ))}
           </div>
 
-          {/* ── Full list ──────────────────────────────────────────────────── */}
-          <motion.div
-            variants={itemVariants}
-            className="rounded-2xl border border-black/15 bg-white overflow-hidden"
-          >
+          {/* ── Full list (rank 4+ — top 3 live only in the podium above) ──── */}
+          {data.leaders.length > 3 && (
+            <motion.div
+              variants={itemVariants}
+              className="rounded-2xl border border-black/15 bg-white overflow-hidden"
+            >
             <div className="hidden md:flex items-center gap-6 px-8 py-4 border-b border-black/10 bg-black/[0.03]">
               <span className="w-8 text-center">
                 <TechnicalLabel text="#" className="text-black/40" />
@@ -322,7 +323,7 @@ export default function LeaderboardSection() {
             </div>
 
             <div className="divide-y divide-black/[0.06]">
-              {data.leaders.map((entry) => (
+              {data.leaders.slice(3).map((entry) => (
                 <div
                   key={entry.rank}
                   className={cn(
@@ -337,7 +338,7 @@ export default function LeaderboardSection() {
                   <span
                     className={cn(
                       "w-8 text-center text-sm md:text-lg font-black tracking-tighter tabular-nums",
-                      entry.rank <= 3 ? "text-primary" : "text-black"
+                      entry.isMe ? "text-primary" : "text-black"
                     )}
                   >
                     {entry.rank}
