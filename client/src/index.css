@@ -160,6 +160,18 @@
   }
 
 
+  /* Floating docks hide while the menu drawer owns the screen
+     (body.drawer-open is toggled by PortalMenuDrawer). */
+  .feedback-dock {
+    transition: opacity 0.25s ease;
+  }
+
+  body.drawer-open .feedback-dock {
+    opacity: 0 !important;
+    pointer-events: none;
+  }
+
+
   .technical-label {
     font-family: var(--font-sans);
     font-size: 11px;

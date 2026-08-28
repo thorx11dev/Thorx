@@ -231,7 +231,7 @@ function FeedbackDock() {
         transition={{ delay: 1.2 }}
         onClick={() => setOpen(true)}
         aria-label="Send feedback to THORX team"
-        className="fixed bottom-5 right-5 z-profile h-12 pl-4 pr-5 rounded-full bg-black text-white border-2 border-black font-black uppercase tracking-wider text-[10px] flex items-center gap-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.25)] hover:bg-primary hover:border-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="feedback-dock fixed bottom-5 right-5 z-profile h-12 pl-4 pr-5 rounded-full bg-black text-white border-2 border-black font-black uppercase tracking-wider text-[10px] flex items-center gap-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.25)] hover:bg-primary hover:border-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         <Megaphone size={15} />
         <span className="hidden sm:inline">Feedback</span>
