@@ -14,6 +14,7 @@ interface LeaderEntry {
   rankTier: string;
   score: number;
   avatar: string | null;
+  profilePicture: string | null;
   isMe: boolean;
 }
 
@@ -24,7 +25,9 @@ interface LeaderboardResponse {
   lastUpdated: string | null;
 }
 
-const getAvatarSrc = (avatar: string | null) => {
+const getAvatarSrc = (entry: Pick<LeaderEntry, "avatar" | "profilePicture">) => {
+  if (entry.profilePicture) return entry.profilePicture;
+  const avatar = entry.avatar;
   if (!avatar || avatar === "default") return "/avatars/avatar-1.png";
   if (/^\d$/.test(avatar)) return `/avatars/avatar-${avatar}.png`;
   if (avatar.startsWith("avatar")) return `/avatars/${avatar}.png`;
@@ -206,7 +209,7 @@ export default function LeaderboardSection() {
                   #1
                 </span>
                 <img
-                  src={getAvatarSrc(entry.avatar)}
+                  src={getAvatarSrc(entry)}
                   alt=""
                   className="h-14 w-14 shrink-0 rounded-xl border-2 border-black object-cover"
                   onError={(e) => ((e.target as HTMLImageElement).src = "/avatars/avatar-1.png")}
@@ -238,7 +241,7 @@ export default function LeaderboardSection() {
                       #{entry.rank}
                     </span>
                     <img
-                      src={getAvatarSrc(entry.avatar)}
+                      src={getAvatarSrc(entry)}
                       alt=""
                       className="mx-auto h-12 w-12 rounded-xl border-2 border-black object-cover"
                       onError={(e) => ((e.target as HTMLImageElement).src = "/avatars/avatar-1.png")}
@@ -282,7 +285,7 @@ export default function LeaderboardSection() {
                 </div>
 
                 <img
-                  src={getAvatarSrc(entry.avatar)}
+                  src={getAvatarSrc(entry)}
                   alt=""
                   className="w-14 h-14 md:w-16 md:h-16 mx-auto rounded-xl md:rounded-2xl border-2 border-black object-cover"
                   onError={(e) => ((e.target as HTMLImageElement).src = "/avatars/avatar-1.png")}
@@ -341,7 +344,7 @@ export default function LeaderboardSection() {
                   </span>
 
                   <img
-                    src={getAvatarSrc(entry.avatar)}
+                    src={getAvatarSrc(entry)}
                     alt=""
                     className="w-9 h-9 md:w-11 md:h-11 rounded-lg md:rounded-xl border border-black/15 object-cover"
                     onError={(e) => ((e.target as HTMLImageElement).src = "/avatars/avatar-1.png")}
