@@ -280,7 +280,6 @@ export default function EnhancedVideoPlayer({
 
   // Shared state across all players
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [activeAreaTab, setActiveAreaTab] = useState("001");
   const [autoplayEnabled, setAutoplayEnabled] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(80);
@@ -289,14 +288,6 @@ export default function EnhancedVideoPlayer({
 
   const handleAutoplayToggle = () => setAutoplayEnabled(!autoplayEnabled);
   const handleVolumeToggle = () => setIsMuted(!isMuted);
-
-  // Area tabs data matching wireframe
-  const areaTabs = [
-    { id: "001", label: "AREA 001", type: "video" },
-    { id: "002", label: "AREA 002", type: "survey" },
-    { id: "003", label: "AREA 003", type: "task" },
-    { id: "004", label: "AREA 004", type: "bonus" }
-  ];
 
   // Control icons for top right
   const controlIcons = [
@@ -485,42 +476,6 @@ export default function EnhancedVideoPlayer({
         maxHeight: '100vh'
       } : {}}
     >
-      {/* ── Premium Area Tab Row (outside the player frame) ── */}
-      {!isFullscreen && (
-        <div className={`flex items-center gap-2 ${isMobileDevice ? 'mb-3' : 'mb-5'}`}>
-          {areaTabs.map((areaTab) => {
-            const active = activeAreaTab === areaTab.id;
-            return (
-              <button
-                key={areaTab.id}
-                onClick={() => setActiveAreaTab(areaTab.id)}
-                data-testid={`area-tab-${areaTab.id}`}
-                className={`
-                  relative flex-1 rounded-xl border-2 transition-all duration-300 ease-out
-                  ${isMobileDevice ? 'py-2.5 px-2' : 'py-3 px-4'}
-                  ${active
-                    ? 'bg-black border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.15)]'
-                    : 'bg-card border-black/12 hover:border-black/40 hover:bg-black/4'
-                  }
-                `}
-              >
-                <span className={`
-                  block font-black uppercase leading-none whitespace-nowrap
-                  ${isMobileDevice ? 'text-[8px] tracking-tight' : 'text-[10px] tracking-widest'}
-                  ${active ? 'text-white' : 'text-black/40'}
-                  transition-colors duration-300
-                `}>
-                  {areaTab.label}
-                </span>
-                {active && (
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[1px] w-6 h-0.5 bg-primary rounded-full" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       {/* ── Player Frame ── */}
       <div className={`bg-black overflow-hidden transition-all duration-300 ${isFullscreen
           ? 'h-full w-full flex items-center justify-center'
@@ -530,19 +485,16 @@ export default function EnhancedVideoPlayer({
         }`}>
         {/* Main Video Content Area */}
         <div className={isFullscreen ? 'w-full h-full' : 'w-full'}>
-          {areaTabs.map((areaTab) => (
-            <AreaPlayer
-              key={areaTab.id}
-              areaId={areaTab.id}
-              areaLabel={areaTab.label}
-              tab={tab}
-              isActive={activeAreaTab === areaTab.id}
-              isFullscreen={isFullscreen}
-              isMobileDevice={isMobileDevice}
-              onComplete={onComplete}
-              onFullscreenToggle={handleFullscreenToggle}
-            />
-          ))}
+          <AreaPlayer
+            key="001"
+            areaId="001"
+            tab={tab}
+            isActive={true}
+            isFullscreen={isFullscreen}
+            isMobileDevice={isMobileDevice}
+            onComplete={onComplete}
+            onFullscreenToggle={handleFullscreenToggle}
+          />
         </div>
       </div>
     </div>
