@@ -1,11 +1,11 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { motion, type Variants } from "framer-motion";
-import { Trophy, RefreshCw, Plus } from "lucide-react";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
+import { Trophy, RefreshCw } from "lucide-react";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import TechnicalLabel from "@/components/ui/technical-label";
-import Barcode from "@/components/ui/barcode";
 import RankBadge from "@/components/RankBadge";
-import { VariableFontHoverByRandomLetter } from "@/components/ui/variable-font-hover";
+import { InteractiveDivider } from "@/features/user-portal/shared";
 import { cn } from "@/lib/utils";
 
 interface LeaderEntry {
@@ -314,7 +314,7 @@ export default function LeaderboardSection() {
                 </p>
               </div>
               <div className="text-right">
-                <RankBadge rank={data.me.rankTier} size="md" className="bg-transparent" />
+                <RankBadge rank={data.me.rankTier} size="md" />
                 <p className="text-base md:text-lg font-black tracking-tight mt-2 tabular-nums">
                   {formatScore(data.me.score)}
                 </p>
