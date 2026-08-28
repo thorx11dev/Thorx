@@ -41,6 +41,9 @@ temp
 tmp
 *.tmp
 
+# Session transcripts (may contain secrets — never commit)
+scripts/_session-*.txt
+
 # Database files (if any)
 *.db
 *.sqlite
