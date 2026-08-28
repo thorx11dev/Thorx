@@ -118,7 +118,7 @@ export default function LeaderboardSection() {
       <InteractiveDivider className="my-12" />
 
       {/* ── Meta row ─────────────────────────────────────────────────────── */}
-      <motion.div variants={itemVariants} className="flex items-center justify-between mb-4">
+      <motion.div variants={itemVariants} className="flex items-center justify-between mb-4 md:mb-6">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="w-2 h-2 rounded-full bg-primary pulse-glow shrink-0" />
           <TechnicalLabel
@@ -134,24 +134,24 @@ export default function LeaderboardSection() {
         <button
           onClick={() => refetch()}
           disabled={isRefetching}
-          className="flex items-center gap-1.5 rounded-lg border-2 border-black bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 hover:bg-black hover:text-white active:scale-95 disabled:opacity-50"
+          className="flex items-center gap-1.5 md:gap-2 rounded-lg border-2 border-black bg-white px-3 md:px-4 py-2 md:py-2.5 text-[10px] md:text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 hover:bg-black hover:text-white active:scale-95 disabled:opacity-50"
           aria-label="Refresh leaderboard"
           data-testid="leaderboard-refresh"
         >
-          <RefreshCw className={`w-3 h-3 ${isRefetching ? "animate-spin" : ""}`} strokeWidth={2.5} />
+          <RefreshCw className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isRefetching ? "animate-spin" : ""}`} strokeWidth={2.5} />
           SYNC
         </button>
       </motion.div>
 
       {/* ── States ───────────────────────────────────────────────────────── */}
       {isLoading && (
-        <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-3">
+        <div>
+          <div className="grid grid-cols-3 gap-2.5 md:gap-8 mb-4 md:mb-8">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-40 rounded-2xl border border-black/15 bg-white animate-pulse" />
+              <div key={i} className="h-44 md:h-56 rounded-2xl border border-black/15 bg-white animate-pulse" />
             ))}
           </div>
-          <div className="h-72 rounded-2xl border border-black/15 bg-white animate-pulse" />
+          <div className="h-80 md:h-96 rounded-2xl border border-black/15 bg-white animate-pulse" />
         </div>
       )}
 
@@ -160,11 +160,11 @@ export default function LeaderboardSection() {
           variants={itemVariants}
           className="rounded-2xl border border-black/15 bg-white p-8 md:p-12 text-center"
         >
-          <div className="bg-black/5 rounded-xl w-fit p-3 mx-auto mb-5">
-            <Trophy className="w-6 h-6 text-black" strokeWidth={2} />
+          <div className="bg-black/5 rounded-xl w-fit p-3 md:p-4 mx-auto mb-5">
+            <Trophy className="w-6 h-6 md:w-8 md:h-8 text-black" strokeWidth={2} />
           </div>
-          <p className="font-black uppercase tracking-tight text-lg">Standings unavailable</p>
-          <p className="text-sm mt-1.5 opacity-60 font-medium">
+          <p className="font-black uppercase tracking-tight text-lg md:text-2xl">Standings unavailable</p>
+          <p className="text-sm md:text-base mt-2 opacity-60 font-medium">
             System matrix is recalibrating. Try SYNC in a moment.
           </p>
         </motion.div>
@@ -175,11 +175,11 @@ export default function LeaderboardSection() {
           variants={itemVariants}
           className="rounded-2xl border border-black/15 bg-white p-8 md:p-12 text-center"
         >
-          <div className="bg-black/5 rounded-xl w-fit p-3 mx-auto mb-5">
-            <Trophy className="w-6 h-6 text-black" strokeWidth={2} />
+          <div className="bg-black/5 rounded-xl w-fit p-3 md:p-4 mx-auto mb-5">
+            <Trophy className="w-6 h-6 md:w-8 md:h-8 text-black" strokeWidth={2} />
           </div>
-          <p className="font-black uppercase tracking-tight text-lg">No warriors ranked yet</p>
-          <p className="text-sm mt-1.5 opacity-60 font-medium">
+          <p className="font-black uppercase tracking-tight text-lg md:text-2xl">No warriors ranked yet</p>
+          <p className="text-sm md:text-base mt-2 opacity-60 font-medium">
             Be the first. Complete surveys, climb the PS ladder.
           </p>
         </motion.div>
