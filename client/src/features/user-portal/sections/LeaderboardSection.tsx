@@ -60,7 +60,7 @@ export default function LeaderboardSection() {
       initial="initial"
       animate="animate"
       variants={containerVariants}
-      className="max-w-3xl mx-auto px-4 pb-24 md:pb-10 pt-2"
+      className="max-w-[1600px] mx-auto px-4 md:px-12 py-8 md:pt-4 md:pb-12 relative z-10 w-full"
       data-testid="section-leaderboard"
     >
       {/* ── Hero — matches portal section headers (WORK / GUILD / REFERRALS / HELP) ── */}
