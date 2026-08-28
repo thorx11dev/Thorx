@@ -25,6 +25,13 @@ export default function ThorxLoadingScreen({
   return (
     <div className="fixed inset-0 z-loading flex items-center justify-center bg-black cursor-orange">
       <div className="flex flex-col items-center justify-center gap-8 w-full cursor-orange">
+        {/* App Icon */}
+        <img
+          src="/icons/icon-512.png"
+          alt="THORX"
+          className="w-20 h-20 md:w-24 md:h-24 rounded-2xl"
+        />
+
         {/* THORX Title */}
         <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-white">
           THORX
