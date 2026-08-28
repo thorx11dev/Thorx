@@ -244,65 +244,87 @@ function FeedbackDock() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-profile bg-black/60 backdrop-blur-sm p-3 md:p-6 overflow-y-auto"
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-profile bg-black/70 backdrop-blur-md p-3 md:p-6 overflow-y-auto"
             onClick={() => setOpen(false)}
           >
             <motion.div
-              initial={{ y: 48, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 48, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 280, damping: 26 }}
+              initial={{ y: 56, opacity: 0, scale: 0.98 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 40, opacity: 0, scale: 0.98, transition: { duration: 0.22, ease: "easeIn" } }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
               className="min-h-full flex items-end sm:items-center justify-center"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="w-full max-w-md bg-white border-2 border-black rounded-t-2xl sm:rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
-                {/* Header */}
-                <div className="flex items-center justify-between bg-black px-5 py-4">
-                  <div className="flex items-center gap-2.5">
-                    <Megaphone size={16} className="text-primary" />
-                    <span className="font-black text-white text-sm tracking-tight uppercase">Send Feedback</span>
-                  </div>
-                  <button
-                    onClick={() => setOpen(false)}
-                    aria-label="Close feedback"
-                    className="p-1.5 rounded-lg border-2 border-white/20 text-white/70 hover:text-white hover:border-white/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
+              <div className="relative w-full max-w-md bg-white border border-black/15 rounded-t-2xl sm:rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.3)] overflow-hidden">
+                {/* Soft orange glow accent — matches the drawer / section heroes */}
+                <div className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 bg-primary/[0.07] rounded-full blur-3xl" />
 
-                <div className="px-5 py-4 space-y-4">
+                {/* Header */}
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  className="relative px-5 pt-5 pb-4 border-b border-black/10"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="font-mono text-[9px] font-bold tracking-[0.3em] text-black/35 uppercase">
+                        THORX · SUPPORT
+                      </div>
+                      <h2 className="mt-1 text-2xl font-black tracking-tighter text-black">Send Feedback</h2>
+                      <div className="w-9 h-1 bg-primary mt-2.5" />
+                    </div>
+                    <button
+                      onClick={() => setOpen(false)}
+                      aria-label="Close feedback"
+                      className="shrink-0 p-2 rounded-lg border border-black/10 text-black/50 hover:bg-black hover:text-white hover:border-black transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                </motion.div>
+
+                <div className="relative px-5 py-4 space-y-4">
                   {/* Category chips */}
-                  <div>
-                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40 mb-2">What is this about?</div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.14, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    <div className="font-mono text-[9px] font-bold tracking-[0.3em] text-black/35 uppercase mb-2">Category</div>
                     <div className="flex flex-wrap gap-1.5">
                       {FEEDBACK_CATEGORIES.map((c) => (
                         <button
                           key={c.key}
                           onClick={() => setCategory(c.key)}
                           className={cn(
-                            "px-3 py-1.5 rounded-full border-2 text-[10px] font-black uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+                            "px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
                             category === c.key
                               ? "border-black bg-black text-white"
-                              : "border-black/15 bg-white text-black/50 hover:border-black/40 hover:bg-black/[0.03]"
+                              : "border-black/10 bg-white text-black/45 hover:border-black/30 hover:text-black"
                           )}
                         >
                           {c.label}
                         </button>
                       ))}
                     </div>
-                  </div>
+                  </motion.div>
 
                   {/* Message */}
-                  <div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.18, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  >
                     <div className="flex items-center justify-between mb-1.5">
                       <span className={cn(
-                        "text-[10px] font-black uppercase tracking-[0.2em]",
-                        message.trim().length > 0 && message.trim().length < 5 ? "text-destructive" : "text-black/40"
+                        "font-mono text-[9px] font-bold tracking-[0.3em] uppercase",
+                        message.trim().length > 0 && message.trim().length < 5 ? "text-destructive" : "text-black/35"
                       )}>
                         Details · min 5 chars
                       </span>
-                      <span className={cn("text-[10px] font-black tabular-nums", message.length > 1900 ? "text-destructive" : "text-black/35")}>
+                      <span className={cn("text-[10px] font-black tabular-nums", message.length > 1900 ? "text-destructive" : "text-black/30")}>
                         {message.length}/2000
                       </span>
                     </div>
@@ -311,28 +333,36 @@ function FeedbackDock() {
                       onChange={(e) => setMessage(e.target.value.slice(0, 2000))}
                       rows={4}
                       placeholder="Tell the team what happened — ad not credited, survey problem, payout question…"
-                      className="w-full rounded-xl border-2 border-black/15 bg-[#FAF9F6] px-3 py-2.5 text-sm font-medium text-black placeholder:text-black/25 focus:border-black focus:outline-none focus:ring-0 resize-none"
+                      className="w-full rounded-xl border border-black/15 bg-[#FAF9F6] px-3 py-2.5 text-sm font-medium text-black placeholder:text-black/25 focus:border-black focus:outline-none focus:ring-0 resize-none transition-colors"
                     />
-                  </div>
+                  </motion.div>
 
-                  <button
+                  <motion.button
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.22, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                     onClick={() => submit.mutate()}
                     disabled={!canSubmit}
-                    className="w-full h-11 rounded-xl border-2 border-black bg-black text-white font-black uppercase tracking-[0.15em] text-xs flex items-center justify-center gap-2 hover:bg-primary hover:border-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none"
+                    className="w-full h-11 rounded-xl bg-black text-white font-black uppercase tracking-[0.15em] text-xs flex items-center justify-center gap-2 hover:bg-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-40 disabled:pointer-events-none"
                   >
                     {submit.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={13} />}
                     Send to Team
-                  </button>
+                  </motion.button>
 
                   {/* My recent reports */}
                   {recent.length > 0 && (
-                    <div className="border-t-2 border-black/10 pt-3.5">
-                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40 mb-2">Your Recent Reports</div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.26, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                      className="border-t border-black/10 pt-3.5"
+                    >
+                      <div className="font-mono text-[9px] font-bold tracking-[0.3em] text-black/35 uppercase mb-2">Your Recent Reports</div>
                       <div className="space-y-2 max-h-44 overflow-y-auto pr-1 custom-scrollbar">
                         {recent.map((row) => (
-                          <div key={row.id} className="rounded-xl border-2 border-black/10 bg-[#FAF9F6] p-2.5">
+                          <div key={row.id} className="rounded-xl border border-black/10 bg-[#FAF9F6] p-3">
                             <div className="flex items-center justify-between gap-2 mb-1">
-                              <span className="text-[10px] font-black uppercase tracking-wider text-black/45 truncate">
+                              <span className="font-mono text-[9px] font-bold tracking-[0.2em] uppercase text-black/40 truncate">
                                 {FEEDBACK_CATEGORIES.find((c) => c.key === row.category)?.label ?? row.category}
                               </span>
                               <span className={cn(
@@ -352,7 +382,7 @@ function FeedbackDock() {
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </motion.div>
                   )}
                 </div>
               </div>
