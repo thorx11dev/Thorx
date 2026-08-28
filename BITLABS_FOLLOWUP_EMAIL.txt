@@ -1,0 +1,21 @@
+Subject: Follow-up: THORX publisher application (App ID 35558)
+
+Hi BitLabs team,
+
+Following up on the publisher application we submitted a couple weeks back for THORX. We're an earning app for Pakistan with about 1,500 beta users already, and we've got the technical integration completely done — postback verification, survey wall rendering, callback handling for all the survey states (COMPLETE, SCREENOUT, RECONCILIATION, START_BONUS). Everything's tested and ready to go live.
+
+We're gearing up for our Pakistan beta launch and BitLabs is a key piece of our survey wall. We're looking at roughly 30,000 survey completions per day during beta, and significantly more once we fully launch. CPX Research is already live and performing well, so we know the market's there.
+
+A few quick things:
+
+1. Any update on our application status?
+2. Is there anything else you need from our side?
+3. If you're open to it, would love a quick voice call (15-20 mins) to walk through everything — rates, inventory expectations for Pakistan, and how we can make this work well for both sides. We're looking at roughly 30k survey completions daily at beta launch, scaling significantly after full launch.
+
+Happy to share more details or hop on a quick call whatever works for you. Just let me know what works on your end.
+
+Best,
+Aon Imran
+Founder, THORX
+thorx11dev@gmail.com
+thorx.site

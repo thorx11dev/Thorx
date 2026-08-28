@@ -14,15 +14,18 @@
 //
 // Styling follows the sitewide ivory/black/orange editorial system: white
 // plates, border-2 border-black hairlines, TechnicalLabel micro-copy,
-// black CTA → orange hover.
+// black CTA → orange hover. The gate itself is styled as an access
+// credential — barcode plates, corner plus marks, ruled technical rows —
+// to match the cinematic landing-page language.
 
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, Megaphone, X, Send, Loader2, CheckCircle2, Eye } from "lucide-react";
+import { Megaphone, X, Send, Loader2, CheckCircle2, Eye } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import Barcode from "@/components/ui/barcode";
 
 interface BetaTrustUser {
   id?: string;
