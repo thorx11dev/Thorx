@@ -111,7 +111,7 @@ const DEV_MOCK_PREVIEW = {
 };
 import { formatPoints } from "@/lib/formatPoints";
 import { useLocation } from "wouter";
-import { LogOut, ArrowRight, ArrowLeft, PieChart, Copy, Download, Home, Briefcase, User, Shield, Settings, Network, Landmark, Headphones, Bell, Trophy, Menu } from "lucide-react";
+import { LogOut, ArrowRight, ArrowLeft, PieChart, Copy, Download, Home, Briefcase, User, Castle, Settings, Network, Landmark, Headphones, Bell, Trophy, Menu } from "lucide-react";
 
 
 const GUEST_USER: AuthUser = {
@@ -225,13 +225,13 @@ const availableAds: AdItem[] = [
 ];
 
 const sections = [
-  { id: "dashboard", name: "Dashboard", icon: Home },
+  { id: "dashboard", name: "Home", icon: Home },
   { id: "work", name: "Work", icon: Briefcase },
-  { id: "referrals", name: "Referrals", icon: Network },
-  { id: "guild", name: "Engine C", icon: Shield },
+  { id: "referrals", name: "Team", icon: Network },
+  { id: "guild", name: "Guild", icon: Castle },
   { id: "payout", name: "Payout", icon: Landmark },
   { id: "help", name: "Help", icon: Headphones },
-  { id: "ranks", name: "Ranks", icon: Trophy },
+  { id: "ranks", name: "Chart", icon: Trophy },
 ];
 
 export default function UserPortal() {
