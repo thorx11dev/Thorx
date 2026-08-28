@@ -11,7 +11,9 @@ import { publicApiRateLimiter } from "../middleware/auth-rate-limit";
  * Backed by leaderboard_cache (refreshed by the 15-min cron) so reads stay
  * cheap and never expose financial data. Public surface per entry:
  * display name (first name + last initial), rank tier, performance score,
- * avatar slot. Emails, balances and trust flags stay server-side only.
+ * avatar slot + self-chosen profile picture (same exposure as the guild
+ * roster and referral tree). Emails, balances and trust flags stay
+ * server-side only.
  */
 export function registerLeaderboardRoutes(app: Express): void {
   app.get("/api/leaderboard", requireSessionAuth, publicApiRateLimiter, async (req: Request, res: Response) => {
@@ -28,6 +30,7 @@ export function registerLeaderboardRoutes(app: Express): void {
           firstName: users.firstName,
           lastName: users.lastName,
           avatar: users.avatar,
+          profilePicture: users.profilePicture,
         })
         .from(leaderboardCache)
         .innerJoin(users, eq(leaderboardCache.userId, users.id))
@@ -49,6 +52,7 @@ export function registerLeaderboardRoutes(app: Express): void {
           rankTier: row.userRankTier ?? "E-Rank",
           score: Number(row.performanceScore),
           avatar: row.avatar ?? null,
+          profilePicture: row.profilePicture ?? null,
           isMe: requesterId === row.userId,
         };
       });
