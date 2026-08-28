@@ -64,8 +64,11 @@ function statusBadgeClass(status: string): string {
   return "bg-black/5 text-black/50 border-black/15";
 }
 
+const GATE_EASE = [0.16, 1, 0.3, 1] as const;
+
 export default function BetaTrustLayer({ user }: { user?: BetaTrustUser | null }) {
   const isLoggedIn = Boolean(user?.id);
+  const [gateDismissed, setGateDismissed] = useState(false);
 
   // ── Rules acknowledgment state ────────────────────────────────────────────
   const rulesStatus = useQuery<{ rulesAcknowledgedAt: string | null }>({
@@ -74,6 +77,7 @@ export default function BetaTrustLayer({ user }: { user?: BetaTrustUser | null }
     staleTime: 60_000,
   });
   const needsAck = isLoggedIn && rulesStatus.data?.rulesAcknowledgedAt == null;
+  const showGate = needsAck && !gateDismissed;
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -92,53 +96,90 @@ export default function BetaTrustLayer({ user }: { user?: BetaTrustUser | null }
     },
   });
 
+  // Accounts accept the honesty rules at signup — record the acknowledgment
+  // automatically when the card displays, then auto-dismiss after 5 seconds.
+  useEffect(() => {
+    if (!needsAck) return;
+    ackMutation.mutate();
+    const timer = setTimeout(() => setGateDismissed(true), 5000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [needsAck]);
+
+  // Lock body scroll while the gate owns the screen.
+  useEffect(() => {
+    if (!showGate) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [showGate]);
+
   return (
     <>
-      {/* ── Mandatory honesty-rules gate ─────────────────────────────────── */}
+      {/* ── Honesty-rules card (informational, auto-dismisses) ─────────────── */}
       <AnimatePresence>
-        {needsAck && (
+        {showGate && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-gate bg-black/60 backdrop-blur-sm p-4 md:p-6 overflow-y-auto"
+            exit={{ opacity: 0, transition: { duration: 0.25 } }}
+            className="fixed inset-0 z-gate bg-black/70 backdrop-blur-md p-4 sm:p-6 overflow-y-auto"
             role="dialog"
             aria-modal="true"
             aria-label="THORX honesty rules"
           >
             <motion.div
-              initial={{ scale: 0.96, y: 16, opacity: 0 }}
+              initial={{ scale: 0.96, y: 32, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.97, y: 8, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+              exit={{ scale: 0.97, y: 24, opacity: 0, transition: { duration: 0.3, ease: "easeIn" } }}
+              transition={{ duration: 0.5, ease: GATE_EASE }}
               className="min-h-full flex items-center justify-center"
             >
-              <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden my-auto">
-                <div className="px-7 pt-8 pb-7 md:px-9">
+              <div className="relative w-full max-w-[420px] bg-white rounded-2xl sm:rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.3)] overflow-hidden my-auto">
+                {/* 5-second auto-dismiss progress */}
+                <motion.div
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ duration: 5, ease: "linear" }}
+                  className="absolute top-0 left-0 right-0 h-[3px] bg-primary origin-left z-10"
+                />
+                {/* Soft orange glow accent */}
+                <div className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 bg-primary/[0.07] rounded-full blur-3xl" />
+
+                <div className="relative px-6 py-6 sm:px-8 sm:py-8">
                   {/* Brand row */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-black tracking-tighter text-black" data-testid="gate-wordmark">THORX.</span>
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.08, duration: 0.4, ease: GATE_EASE }}
+                    className="flex items-center justify-between"
+                  >
+                    <span className="text-base font-black tracking-tighter text-black" data-testid="gate-wordmark">THORX.</span>
                     <span className="px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[9px] font-black uppercase tracking-[0.2em]">Beta</span>
-                  </div>
+                  </motion.div>
 
                   {/* Headline */}
-                  <h2 className="mt-7 text-3xl md:text-[2.1rem] font-black tracking-tighter text-black leading-[1.02]">
+                  <motion.h2
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.12, duration: 0.4, ease: GATE_EASE }}
+                    className="mt-6 text-[1.65rem] sm:text-3xl font-black tracking-tighter text-black leading-[1.05]"
+                  >
                     Before you<br />earn, agree.
-                  </h2>
-                  <p className="mt-3 text-sm font-medium text-black/50 leading-relaxed">
-                    THORX pays real money. These four rules keep your earnings — and everyone else's — protected.
-                  </p>
+                  </motion.h2>
 
                   {/* Rules */}
-                  <div className="mt-6">
+                  <div className="mt-5">
                     {RULES.map((rule, i) => (
                       <motion.div
                         key={i}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 + i * 0.06, duration: 0.3, ease: "easeOut" }}
+                        transition={{ delay: 0.16 + i * 0.07, duration: 0.35, ease: GATE_EASE }}
                         className={cn(
-                          "flex items-start gap-4 py-3.5",
+                          "flex items-start gap-3.5 sm:gap-4 py-3 sm:py-3.5",
                           i > 0 && "border-t border-black/[0.07]"
                         )}
                       >
@@ -146,25 +187,12 @@ export default function BetaTrustLayer({ user }: { user?: BetaTrustUser | null }
                           {String(i + 1).padStart(2, "0")}
                         </span>
                         <div>
-                          <p className="text-[13px] font-bold text-black leading-snug">{rule.title}</p>
+                          <p className="text-[13px] sm:text-sm font-bold text-black leading-snug">{rule.title}</p>
                           <p className="text-xs font-medium text-black/45 mt-1 leading-relaxed">{rule.body}</p>
                         </div>
                       </motion.div>
                     ))}
                   </div>
-
-                  {/* CTA */}
-                  <button
-                    onClick={() => ackMutation.mutate()}
-                    disabled={ackMutation.isPending}
-                    className="mt-7 w-full h-12 rounded-xl bg-black text-white font-bold uppercase tracking-[0.12em] text-xs flex items-center justify-center gap-2 hover:bg-primary transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
-                  >
-                    {ackMutation.isPending && <Loader2 size={14} className="animate-spin" />}
-                    I Understand — Play Fair
-                  </button>
-                  <p className="mt-3.5 text-center text-[10px] font-medium text-black/30">
-                    Your acknowledgment is recorded on your account.
-                  </p>
                 </div>
               </div>
             </motion.div>
@@ -173,7 +201,7 @@ export default function BetaTrustLayer({ user }: { user?: BetaTrustUser | null }
       </AnimatePresence>
 
       {/* ── Floating feedback dock ───────────────────────────────────────── */}
-      {isLoggedIn && !needsAck && <FeedbackDock />}
+      {isLoggedIn && !showGate && <FeedbackDock />}
     </>
   );
 }
