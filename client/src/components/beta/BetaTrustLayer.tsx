@@ -269,10 +269,7 @@ function FeedbackDock() {
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <div className="font-mono text-[9px] font-bold tracking-[0.3em] text-black/35 uppercase">
-                        THORX · SUPPORT
-                      </div>
-                      <h2 className="mt-1 text-2xl font-black tracking-tighter text-black">Send Feedback</h2>
+                      <h2 className="text-2xl font-black tracking-tighter text-black">Send Feedback</h2>
                       <div className="w-9 h-1 bg-primary mt-2.5" />
                     </div>
                     <button
@@ -292,7 +289,6 @@ function FeedbackDock() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.14, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    <div className="font-mono text-[9px] font-bold tracking-[0.3em] text-black/35 uppercase mb-2">Category</div>
                     <div className="flex flex-wrap gap-1.5">
                       {FEEDBACK_CATEGORIES.map((c) => (
                         <button
@@ -317,13 +313,7 @@ function FeedbackDock() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.18, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className={cn(
-                        "font-mono text-[9px] font-bold tracking-[0.3em] uppercase",
-                        message.trim().length > 0 && message.trim().length < 5 ? "text-destructive" : "text-black/35"
-                      )}>
-                        Details · min 5 chars
-                      </span>
+                    <div className="flex items-center justify-end mb-1.5">
                       <span className={cn("text-[10px] font-black tabular-nums", message.length > 1900 ? "text-destructive" : "text-black/30")}>
                         {message.length}/2000
                       </span>
