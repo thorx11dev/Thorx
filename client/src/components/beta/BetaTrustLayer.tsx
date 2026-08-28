@@ -67,6 +67,7 @@ function statusBadgeClass(status: string): string {
 
 export default function BetaTrustLayer({ user }: { user?: BetaTrustUser | null }) {
   const isLoggedIn = Boolean(user?.id);
+  const serial = useMemo(() => (user?.id ? user.id.replace(/-/g, "").slice(-6).toUpperCase() : "PENDING"), [user?.id]);
 
   // ── Rules acknowledgment state ────────────────────────────────────────────
   const rulesStatus = useQuery<{ rulesAcknowledgedAt: string | null }>({
@@ -102,64 +103,92 @@ export default function BetaTrustLayer({ user }: { user?: BetaTrustUser | null }
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-gate bg-black/70 backdrop-blur-sm p-3 md:p-6 overflow-y-auto"
+            className="fixed inset-0 z-gate bg-[#0A0A0A]/80 backdrop-blur-md p-3 md:p-6 overflow-y-auto"
             role="dialog"
             aria-modal="true"
             aria-label="THORX honesty rules"
           >
             <motion.div
-              initial={{ scale: 0.94, y: 24 }}
-              animate={{ scale: 1, y: 0 }}
-              transition={{ type: "spring", stiffness: 260, damping: 24 }}
+              initial={{ scale: 0.92, y: 40, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 24, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 220, damping: 24 }}
               className="min-h-full flex items-center justify-center"
             >
-              <div className="w-full max-w-lg bg-white border-2 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden my-auto">
-                {/* Header plate */}
-                <div className="bg-black px-6 py-5 flex items-center gap-3">
-                  <div className="p-2 bg-primary rounded-lg shrink-0">
-                    <ShieldCheck size={18} className="text-white" />
+              <div className="relative w-full max-w-xl bg-white border-2 md:border-[3px] border-black rounded-2xl shadow-[10px_10px_0px_0px_#ff6b00] overflow-hidden my-auto">
+                {/* Header plate — black credential bar */}
+                <div className="bg-black px-5 md:px-7 pt-5 pb-5">
+                  <div className="flex items-center justify-between mb-5">
+                    <span className="text-base md:text-lg font-black tracking-tighter text-white" data-testid="gate-wordmark">THORX.</span>
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                      <span className="text-[9px] md:text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-white/50">Beta · Invite Only</span>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-[10px] font-black uppercase tracking-[0.25em] text-white/40">Beta Access · Required</div>
-                    <h2 className="font-black text-white text-lg tracking-tight leading-tight">The THORX Honesty Code</h2>
+                  <Barcode variant="bold" color="#ffffff" className="w-full h-5 opacity-25 mb-5" />
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <div className="text-[10px] font-mono font-bold uppercase tracking-[0.3em] text-primary mb-1.5">Access · Required</div>
+                      <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-white leading-[0.95]">
+                        The Honesty<br />Code
+                      </h2>
+                    </div>
+                    <span className="hidden sm:block text-right shrink-0 text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-white/30 leading-relaxed">
+                      SR·2026<br />NO {serial}
+                    </span>
                   </div>
                 </div>
 
-                <div className="px-6 py-5">
-                  <p className="text-sm font-medium text-black/55 leading-relaxed">
-                    THORX pays real money, so trust is the product. Four rules keep every
-                    user's earnings — including yours — safe during beta:
+                {/* Body */}
+                <div className="px-5 md:px-7 py-6">
+                  <p className="text-sm font-medium text-black/60 leading-relaxed">
+                    THORX pays real money, so <span className="font-black text-black">trust is the product</span>.
+                    Four rules keep every user's earnings — including yours — safe during beta:
                   </p>
 
-                  <div className="mt-4 space-y-2.5">
+                  <div className="mt-5 border-t-2 border-black/10">
                     {RULES.map((rule, i) => (
-                      <div key={i} className="flex items-start gap-3 rounded-xl border-2 border-black/10 bg-[#FAF9F6] p-3">
-                        <span className="w-6 h-6 shrink-0 flex items-center justify-center rounded-sm border-2 border-black bg-black text-white font-black text-[10px]">
-                          {i + 1}
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 14 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.12 + i * 0.08, duration: 0.35, ease: "easeOut" }}
+                        className="flex items-start gap-4 border-b-2 border-black/10 py-3.5 group"
+                      >
+                        <span className="w-8 h-8 shrink-0 flex items-center justify-center bg-[#EAE5DD] border-2 border-black font-black text-xs group-hover:bg-primary group-hover:text-white group-hover:-translate-y-0.5 transition-all duration-300">
+                          {String(i + 1).padStart(2, "0")}
                         </span>
-                        <div>
-                          <p className="text-xs font-black uppercase tracking-wider text-black">{rule.title}</p>
-                          <p className="text-xs font-medium text-black/50 mt-0.5 leading-relaxed">{rule.body}</p>
+                        <div className="pt-0.5">
+                          <p className="text-[11px] md:text-xs font-black uppercase tracking-[0.12em] text-black">{rule.title}</p>
+                          <p className="text-xs font-medium text-black/50 mt-1 leading-relaxed">{rule.body}</p>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
 
                   <button
                     onClick={() => ackMutation.mutate()}
                     disabled={ackMutation.isPending}
-                    className="mt-5 w-full h-12 rounded-xl border-2 border-black bg-black text-white font-black uppercase tracking-[0.15em] text-xs flex items-center justify-center gap-2 hover:bg-primary hover:border-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
+                    className="group mt-6 w-full h-14 rounded-xl border-2 border-black bg-black text-white font-black uppercase tracking-[0.18em] text-xs md:text-sm flex items-center justify-center gap-2.5 hover:bg-primary hover:border-primary hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
                   >
                     {ackMutation.isPending ? (
-                      <Loader2 size={15} className="animate-spin" />
+                      <Loader2 size={16} className="animate-spin" />
                     ) : (
-                      <ShieldCheck size={15} />
+                      <span className="w-2 h-2 rounded-full bg-white group-hover:animate-ping" />
                     )}
                     I Understand — Play Fair
                   </button>
-                  <p className="mt-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-black/30">
-                    Recorded on your account · Cannot be undone
-                  </p>
+
+                  {/* Footer strip — credential micro-copy */}
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <span className="text-[8px] md:text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-black/30">
+                      Registry · No {serial}
+                    </span>
+                    <Barcode className="w-20 h-3 opacity-30" />
+                    <span className="text-[8px] md:text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-black/30 text-right">
+                      Recorded · Irreversible
+                    </span>
+                  </div>
                 </div>
               </div>
             </motion.div>
