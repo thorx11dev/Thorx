@@ -145,13 +145,19 @@ export default function LeaderboardSection() {
 
       {/* ── States ───────────────────────────────────────────────────────── */}
       {isLoading && (
-        <div>
-          <div className="grid grid-cols-3 gap-2.5 md:gap-8 mb-4 md:mb-8">
+        <div className="mb-4 md:mb-8">
+          <div className="sm:hidden">
+            <div className="h-[88px] rounded-2xl border border-black/15 bg-white animate-pulse" />
+            <div className="mt-5 grid grid-cols-2 gap-2.5">
+              <div className="h-44 rounded-2xl border border-black/15 bg-white animate-pulse" />
+              <div className="h-44 rounded-2xl border border-black/15 bg-white animate-pulse" />
+            </div>
+          </div>
+          <div className="hidden sm:grid grid-cols-3 gap-8">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-44 md:h-56 rounded-2xl border border-black/15 bg-white animate-pulse" />
+              <div key={i} className="h-56 rounded-2xl border border-black/15 bg-white animate-pulse" />
             ))}
           </div>
-          <div className="h-80 md:h-96 rounded-2xl border border-black/15 bg-white animate-pulse" />
         </div>
       )}
 
