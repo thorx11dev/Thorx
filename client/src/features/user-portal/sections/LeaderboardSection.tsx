@@ -194,7 +194,73 @@ export default function LeaderboardSection() {
       {/* ── Podium (top 3) ───────────────────────────────────────────────── */}
       {data && data.leaders.length > 0 && (
         <>
-          <div className="grid grid-cols-3 gap-2.5 md:gap-8 mb-4 md:mb-8">
+          {/* Mobile podium: #1 as full-width hero row, #2/#3 side-by-side */}
+          <div className="sm:hidden mb-4" data-testid="podium-mobile">
+            {data.leaders.slice(0, 1).map((entry) => (
+              <motion.div
+                key={entry.rank}
+                variants={itemVariants}
+                className="flex items-center gap-3.5 rounded-2xl border-2 border-black bg-[#FFF7ED] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+              >
+                <span className="shrink-0 self-start rounded-sm bg-primary px-2 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white">
+                  #1
+                </span>
+                <img
+                  src={getAvatarSrc(entry.avatar)}
+                  alt=""
+                  className="h-14 w-14 shrink-0 rounded-xl border-2 border-black object-cover"
+                  onError={(e) => ((e.target as HTMLImageElement).src = "/avatars/avatar-1.png")}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-black uppercase tracking-tight">{entry.name}</p>
+                  <div className="mt-1.5">
+                    <RankBadge rank={entry.rankTier} size="sm" />
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="whitespace-nowrap text-xl font-black leading-none tracking-tighter tabular-nums">
+                    {formatScore(entry.score)}
+                  </p>
+                  <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.25em] text-black/40">PS</p>
+                </div>
+              </motion.div>
+            ))}
+
+            {data.leaders.length > 1 && (
+              <div className="mt-5 grid grid-cols-2 gap-2.5">
+                {data.leaders.slice(1, 3).map((entry) => (
+                  <motion.div
+                    key={entry.rank}
+                    variants={itemVariants}
+                    className="relative rounded-2xl border border-black/15 bg-white p-3.5 pt-5 text-center transition-all duration-500 ease-out hover:border-black"
+                  >
+                    <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-sm bg-black px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] text-white">
+                      #{entry.rank}
+                    </span>
+                    <img
+                      src={getAvatarSrc(entry.avatar)}
+                      alt=""
+                      className="mx-auto h-12 w-12 rounded-xl border-2 border-black object-cover"
+                      onError={(e) => ((e.target as HTMLImageElement).src = "/avatars/avatar-1.png")}
+                    />
+                    <p className="mt-2 truncate text-[11px] font-black uppercase tracking-tight">
+                      {entry.name}
+                    </p>
+                    <div className="mt-1.5 flex justify-center">
+                      <RankBadge rank={entry.rankTier} size="sm" />
+                    </div>
+                    <p className="mt-2 whitespace-nowrap text-base font-black leading-none tracking-tighter tabular-nums">
+                      {formatScore(entry.score)}
+                    </p>
+                    <p className="mt-1 text-[8px] font-bold uppercase tracking-[0.25em] text-black/40">PS</p>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Tablet/desktop podium: 3 vertical cards */}
+          <div className="hidden sm:grid grid-cols-3 gap-8 mb-4 md:mb-8">
             {data.leaders.slice(0, 3).map((entry) => (
               <motion.div
                 key={entry.rank}
