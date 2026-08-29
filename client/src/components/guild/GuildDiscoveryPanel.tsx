@@ -1030,7 +1030,7 @@ export function GuildDiscoveryPanel() {
       })(), document.body)}
 
       {/* ══ Application Letter Modal ═════════════════════════════════════════ */}
-      {applyingTo && (
+      {applyingTo && createPortal(
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
