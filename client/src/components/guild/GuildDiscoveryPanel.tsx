@@ -803,7 +803,7 @@ export function GuildDiscoveryPanel() {
       )}
 
       {/* ══ Guild Details Modal — notification-panel language ═════════════ */}
-      {viewingGuild && (() => {
+      {viewingGuild && createPortal((() => {
         const detail = guildDetail?.guild ?? viewingGuild;
         const applied = appliedIds.has(viewingGuild.id);
         const canApplyToViewing = canApply(viewingGuild);
@@ -822,20 +822,21 @@ export function GuildDiscoveryPanel() {
           >
             <div className="fixed inset-0 bg-black/40" onClick={() => setViewingGuild(null)} />
 
-            <div className="relative min-h-full flex items-end sm:items-center justify-center sm:p-6">
+            <div className="relative min-h-full flex items-stretch sm:items-center justify-center sm:p-6">
               <motion.div
                 variants={modalIn}
                 initial="initial"
                 animate="animate"
                 className={cn(
-                  "relative w-full sm:max-w-xl bg-[#F2EDE4] flex flex-col max-h-[94vh] sm:max-h-[88vh] overflow-hidden",
-                  // Mobile: bottom sheet · Desktop: floating window with hard shadow
-                  "rounded-t-2xl border-t-2 border-x-2 border-black",
-                  "sm:rounded-2xl sm:border-2 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+                  "relative w-full sm:max-w-xl bg-[#F2EDE4] flex flex-col overflow-hidden",
+                  // Mobile: full screen — always completely visible
+                  "h-full rounded-none border-0",
+                  // Desktop: floating window with hard shadow
+                  "sm:h-auto sm:max-h-[88vh] sm:rounded-2xl sm:border-2 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
                 )}
               >
                 {/* ── Top bar (notification-panel twin) ── */}
-                <div className="flex items-center justify-between px-5 md:px-6 py-4 border-b-2 border-black bg-white flex-shrink-0 sm:rounded-t-2xl">
+                <div className="flex items-center justify-between px-5 md:px-6 pt-[max(1rem,env(safe-area-inset-top))] pb-4 border-b-2 border-black bg-white flex-shrink-0 sm:rounded-t-2xl">
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-primary" />
                     <span className="text-[10px] font-mono font-bold tracking-[0.3em] text-black/40 uppercase">Guild Profile</span>
