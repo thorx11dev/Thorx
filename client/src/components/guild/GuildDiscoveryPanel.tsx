@@ -1178,7 +1178,7 @@ export function GuildDiscoveryPanel() {
               </div>
             </div>
 
-            <div className="px-5 pb-6 pt-1 flex gap-2.5">
+            <div className="px-5 pt-1 pb-[max(1.5rem,env(safe-area-inset-bottom))] flex gap-2.5">
               <Button variant="outline" className={cn("flex-1 h-12", OUTLINE_CLASS, "text-[10px]")} onClick={() => setShowCreationForm(false)} data-testid="button-cancel-creation-request">
                 Cancel
               </Button>
@@ -1187,7 +1187,8 @@ export function GuildDiscoveryPanel() {
               </Button>
             </div>
           </motion.div>
-        </motion.div>
+        </motion.div>,
+        document.body
       )}
     </div>
   );
