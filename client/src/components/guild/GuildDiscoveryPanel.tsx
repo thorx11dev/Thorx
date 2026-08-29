@@ -836,11 +836,19 @@ export function GuildDiscoveryPanel() {
 
       {/* ══ Application Letter Modal ═══════════════════════════════════ */}
       {applyingTo && (
-        <div
-          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-[2px] p-0 sm:p-4 animate-in fade-in duration-200"
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-md p-0 sm:p-4"
           onClick={e => { if (e.target === e.currentTarget) setApplyingTo(null); }}
         >
-          <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-2 md:border-[3px] border-black max-h-[92vh] sm:max-h-[90vh] overflow-y-auto animate-in duration-300 ease-out slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95">
+          <motion.div
+            variants={modalIn}
+            initial="initial"
+            animate="animate"
+            className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-2 md:border-[3px] border-black max-h-[92vh] sm:max-h-[90vh] overflow-y-auto"
+          >
             {/* Header */}
             <div className="px-5 md:px-6 pt-5 pb-4 border-b-2 border-black">
               <div className="flex items-center justify-between gap-3">
@@ -928,20 +936,28 @@ export function GuildDiscoveryPanel() {
                 {applyMutation.isPending ? <><GiSwordSpin size={14} className="animate-spin" /> Sending…</> : "Submit Application"}
               </Button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* ══ Guild Creation Request Modal ═══════════════════════════════════ */}
       {showCreationForm && (
-        <div
-          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-[2px] p-0 sm:p-4 animate-in fade-in duration-200"
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-md p-0 sm:p-4"
           onClick={e => { if (e.target === e.currentTarget) setShowCreationForm(false); }}
         >
-          <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-2 md:border-[3px] border-black overflow-hidden max-h-[92vh] sm:max-h-[90vh] overflow-y-auto animate-in duration-300 ease-out slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95">
+          <motion.div
+            variants={modalIn}
+            initial="initial"
+            animate="animate"
+            className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-2 md:border-[3px] border-black overflow-hidden max-h-[92vh] sm:max-h-[90vh] overflow-y-auto"
+          >
             <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b-2 border-black">
               <div>
-                <BlackChip className="mb-2.5">ENGINE C · NEW GUILD</BlackChip>
+                <BlackChip className="mb-2.5">NEW GUILD · REVIEW</BlackChip>
                 <div className="font-black text-base md:text-lg tracking-tight">Request Guild Creation</div>
                 <div className="text-[11px] text-black/50 mt-1">Admin will review and approve your request.</div>
               </div>
@@ -1057,8 +1073,8 @@ export function GuildDiscoveryPanel() {
                   : "Submit Request"}
               </Button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
     </div>
   );
