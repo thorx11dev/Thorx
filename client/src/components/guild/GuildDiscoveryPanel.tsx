@@ -567,7 +567,7 @@ export function GuildDiscoveryPanel() {
                     {applied ? <><GiRoundShield size={11} /> Applied</> : inGuild ? <><GiShield size={11} /> In a Guild</> : rankBlocked ? <><GiPadlock size={11} /> Unlock {guild.minRankRequired.replace("-Rank", "")}</> : !guild.recruitmentOpen ? <><GiSkullCrossedBones size={11} /> Closed</> : <>Apply Now <GiArrowhead size={12} /></>}
                   </button>
                 </div>
-              </article>
+              </motion.article>
             );
           })}
         </div>
