@@ -1000,7 +1000,7 @@ export function GuildDiscoveryPanel() {
                 </div>
 
                 {/* ── Sticky footer CTA ── */}
-                <div className="flex-shrink-0 bg-white border-t-2 border-black px-5 md:px-6 py-4">
+                <div className="flex-shrink-0 bg-white border-t-2 border-black px-5 md:px-6 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                   {applied ? (
                     <div className="flex items-center gap-2 text-xs font-black text-emerald-700">
                       <ShieldCheck className="size-4" /> Application sent — the captain will review it soon.
@@ -1027,7 +1027,7 @@ export function GuildDiscoveryPanel() {
             </div>
           </motion.div>
         );
-      })()}
+      })(), document.body)}
 
       {/* ══ Application Letter Modal ═════════════════════════════════════════ */}
       {applyingTo && (
