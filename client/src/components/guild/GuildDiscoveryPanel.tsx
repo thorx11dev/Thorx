@@ -575,9 +575,14 @@ export function GuildDiscoveryPanel() {
 
       {/* Guild Creation Request CTA */}
       {!pendingRequest && !alreadyInGuild && guilds.length > 0 && (
-        <div className="bg-white rounded-2xl border-2 md:border-[3px] border-black p-5 md:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+        <motion.div
+          variants={riseIn}
+          initial="initial"
+          animate="animate"
+          className="bg-white rounded-2xl border-2 md:border-[3px] border-black p-5 md:p-7 flex flex-col sm:flex-row sm:items-center gap-4"
+        >
           <div className="flex-1 min-w-0">
-            <div className="text-base md:text-lg font-black uppercase tracking-tight">Want to start your own guild?</div>
+            <div className="text-lg md:text-2xl font-black uppercase tracking-tighter">Want to start your own guild?</div>
             <div className="text-xs md:text-sm text-black/50 mt-1.5">Any rank can request admin approval to create a new guild.</div>
           </div>
           <Button
