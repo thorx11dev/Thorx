@@ -535,6 +535,7 @@ export function GuildDiscoveryPanel() {
               >
                 {/* Media — ivory like the landing value-proposition section */}
                 <div className="relative aspect-[4/3] sm:aspect-square bg-[#EAE5DD] overflow-hidden">
+                  <CornerPlus />
                   {/* Letter monogram sits underneath as a graceful fallback */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-7xl md:text-8xl font-black text-black/[0.08] select-none leading-none">{guild.name[0].toUpperCase()}</span>
@@ -548,18 +549,16 @@ export function GuildDiscoveryPanel() {
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                     />
                   )}
-
-                  {/* Rank chip — black chip top-left (landing label chip) */}
-                  <span className="absolute top-3 left-3 bg-black text-white px-2.5 py-1 rounded-sm font-black uppercase tracking-[0.2em] text-[9px] md:text-[10px]">
-                    {tier.replace("-Rank", "")}-RANK
-                  </span>
                 </div>
 
                 {/* Body */}
                 <div className="p-4 md:p-5 flex flex-col flex-1">
-                  <h3 className="font-black text-lg md:text-xl tracking-tight truncate" data-testid={`text-guild-name-${guild.id}`}>
-                    {guild.name}
-                  </h3>
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                    <h3 className="font-black text-xl md:text-2xl uppercase tracking-tighter truncate" data-testid={`text-guild-name-${guild.id}`}>
+                      {guild.name}
+                    </h3>
+                    <BlackChip>{tier.replace("-Rank", "")}-RANK</BlackChip>
+                  </div>
                   <div className="mt-1.5 flex items-center gap-1.5 text-[9px] md:text-[10px] font-black uppercase tracking-wider text-black/40 min-h-[16px]">
                     <span className="truncate">THORX · {guild.recruitmentOpen ? "Recruiting" : "Closed"}</span>
                     <span className="text-primary">·</span>
