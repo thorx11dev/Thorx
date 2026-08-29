@@ -132,11 +132,11 @@ export default function TwoFactorCard() {
         </span>
       </div>
 
-      <p className="text-[11px] text-white/50 leading-relaxed">
-        {enabled
-          ? "Login requires your password plus a 6-digit code from your authenticator app."
-          : "Add a second layer of protection: login requires a rotating 6-digit code from Google Authenticator or similar."}
-      </p>
+      {enabled && (
+        <p className="text-[11px] text-white/50 leading-relaxed">
+          Login requires your password plus a 6-digit code from your authenticator app.
+        </p>
+      )}
 
       {/* ── Idle: OFF ── */}
       {!enabled && !enrolling && (
