@@ -644,13 +644,26 @@ export function GuildDiscoveryPanel() {
         ];
 
         return (
-          <div className="fixed inset-0 z-50 overflow-y-auto animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-label={`${viewingGuild.name} details`}>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${viewingGuild.name} details`}
+          >
             {/* Backdrop */}
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-[2px]" onClick={() => setViewingGuild(null)} />
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-md" onClick={() => setViewingGuild(null)} />
 
             <div className="relative min-h-full flex items-end sm:items-center justify-center sm:p-6">
               {/* Plate — nav-plate signature */}
-              <div className="relative w-full sm:max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl border-2 md:border-[3px] border-black max-h-[92vh] sm:max-h-[88vh] overflow-y-auto animate-in duration-300 ease-out slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95">
+              <motion.div
+                variants={modalIn}
+                initial="initial"
+                animate="animate"
+                className="relative w-full sm:max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl border-2 md:border-[3px] border-black max-h-[92vh] sm:max-h-[88vh] overflow-y-auto"
+              >
                 {/* Sticky identity header */}
                 <div className="sticky top-0 z-10 bg-white border-b-2 border-black px-5 md:px-7 py-4 md:py-5 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3 md:gap-4 min-w-0">
@@ -815,9 +828,9 @@ export function GuildDiscoveryPanel() {
                     </Button>
                   )}
                 </div>
-              </div>
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
         );
       })()}
 
