@@ -315,7 +315,7 @@ export function GuildDiscoveryPanel() {
   return (
     <div className="space-y-6 md:space-y-8">
       {/* ═══ Toolbar plate — nav-plate signature `border-2 md:border-[3px] border-black` ═══ */}
-      <div className="bg-white rounded-2xl border-2 md:border-[3px] border-black p-4 md:p-6 space-y-4">
+      <motion.div variants={riseIn} initial="initial" animate="animate" className="bg-white rounded-2xl border-2 md:border-[3px] border-black p-4 md:p-6 space-y-4">
         {/* Row 1: GiMagnifyingGlass + Sort */}
         <div className="flex gap-2.5">
           <div className="relative flex-1">
@@ -418,7 +418,7 @@ export function GuildDiscoveryPanel() {
             <TechnicalLabel text={`${filtered.length} GUILD${filtered.length !== 1 ? "S" : ""} FOUND`} className="text-black/45 text-[9px]" />
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* ═══ States & Grid ═══ */}
       {isLoading ? (
@@ -489,11 +489,14 @@ export function GuildDiscoveryPanel() {
             const canJoin = canApply(guild);
             const applyDisabled = applied || inGuild || rankBlocked || !guild.recruitmentOpen;
             return (
-              <article
+              <motion.article
                 key={guild.id}
+                variants={riseIn}
+                initial="initial"
+                animate="animate"
                 onClick={() => setViewingGuild(guild)}
                 data-testid={`card-guild-${guild.id}`}
-                className="group bg-white rounded-2xl border-2 border-black/10 cursor-pointer flex flex-col overflow-hidden transition-all duration-200 hover:border-black"
+                className="group bg-white rounded-2xl border-2 border-black/10 cursor-pointer flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:border-black hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
               >
                 {/* Media — ivory like the landing value-proposition section */}
                 <div className="relative aspect-[4/3] sm:aspect-square bg-[#EAE5DD] overflow-hidden">
