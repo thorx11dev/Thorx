@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
     <!-- PWA: installable on Android/iPhone (Add to Home Screen → standalone app). -->
     <link rel="manifest" href="/manifest.webmanifest" />
-    <!-- Browser tab favicon (new THORX mark, replaces the default letter icon) -->
-    <link rel="icon" type="image/png" sizes="48x48" href="/icons/favicon-48.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png" />
+    <!-- Browser tab favicon (new THORX mark, ?v=2 busts the browser + SW cache) -->
+    <link rel="icon" type="image/png" sizes="48x48" href="/icons/favicon-48.png?v=2" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png?v=2" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png?v=2" />
+    <link rel="mask-icon" href="/icons/favicon-48.png?v=2" color="#000000" />
     <!-- Matches the site's page background so the OS status bar blends into
          the page instead of showing as a separate colored block. -->
     <meta name="theme-color" content="#EAE5DD" />
@@ -20,11 +21,11 @@
     <meta property="og:title" content="THORX — Earn Real Money in Pakistan" />
     <meta property="og:description" content="Watch rewarded ads, complete paid surveys, win guild wars. Real PKR earnings via JazzCash & EasyPaisa." />
     <meta property="og:url" content="https://thorx.site/" />
-    <meta property="og:image" content="https://thorx.site/icons/apple-touch-icon.png" />
+    <meta property="og:image" content="https://thorx.site/icons/apple-touch-icon.png?v=2" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="THORX — Earn Real Money in Pakistan" />
     <meta name="twitter:description" content="Rewarded ads, paid surveys, guild wars. JazzCash & EasyPaisa payouts." />
-    <meta name="twitter:image" content="https://thorx.site/icons/apple-touch-icon.png" />
+    <meta name="twitter:image" content="https://thorx.site/icons/apple-touch-icon.png?v=2" />
     <!-- iOS standalone-app treatment: black-translucent lets page content
          extend under the status bar (true edge-to-edge). Fixed headers pad
          themselves with env(safe-area-inset-top) so nothing is hidden. -->
@@ -32,7 +33,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="THORX" />
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png?v=2" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Preload the universal avatar set so it's already in the browser cache
