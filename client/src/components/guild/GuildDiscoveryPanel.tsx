@@ -19,6 +19,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, type Variants } from "framer-motion";
+import { Plus } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -100,6 +101,24 @@ const modalIn: Variants = {
   initial: { opacity: 0, y: 56, scale: 0.98 },
   animate: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.45, ease: EASE } },
 };
+
+/** Landing PlusCard corner signature — four plus marks that rotate on hover. */
+const CornerPlus = () => (
+  <>
+    <div className="absolute top-2.5 left-2.5 transition-transform duration-500 group-hover:rotate-180 group-hover:scale-125">
+      <Plus className="size-4 text-black/25 group-hover:text-black" strokeWidth={2} />
+    </div>
+    <div className="absolute top-2.5 right-2.5 transition-transform duration-500 group-hover:rotate-90 group-hover:scale-125">
+      <Plus className="size-4 text-black/25 group-hover:text-black" strokeWidth={2} />
+    </div>
+    <div className="absolute bottom-2.5 left-2.5 transition-transform duration-500 group-hover:-rotate-90 group-hover:scale-125">
+      <Plus className="size-4 text-black/25 group-hover:text-black" strokeWidth={2} />
+    </div>
+    <div className="absolute bottom-2.5 right-2.5 transition-transform duration-500 group-hover:-rotate-180 group-hover:scale-125">
+      <Plus className="size-4 text-black/25 group-hover:text-black" strokeWidth={2} />
+    </div>
+  </>
+);
 
 const GUILD_NAME_SUGGESTIONS = ["Iron Wolves", "Pixel Raiders", "Shadow Syndicate", "Aurora Vanguard"];
 const GUILD_DESCRIPTION_SUGGESTIONS = ["A focused team that builds together", "Competitive players, one shared goal", "A crew for consistent weekly wins"];
