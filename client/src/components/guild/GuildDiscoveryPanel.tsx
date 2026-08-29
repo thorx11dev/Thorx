@@ -7,6 +7,7 @@
  * language) + grid/list toggle. No ranks are exposed anywhere in the UI.
  */
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion, type Variants } from "framer-motion";
 import {
