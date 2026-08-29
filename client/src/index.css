@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
 
 
 @tailwind base;
@@ -274,10 +274,6 @@
     letter-spacing: -2px;
   }
 
-  .pulse-glow {
-    animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
   @keyframes zoom-in {
     0% {
       opacity: 0;
@@ -532,7 +528,6 @@
 
   .work-card-hover:hover {
     transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 24px hsl(var(--primary) / 0.15);
   }
 
   .work-icon-bounce {
@@ -1023,7 +1018,7 @@
     transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Premium Payment Method Selection Cards — editorial system */
+  /* Premium Payment Method Selection Cards â€” editorial system */
   .payment-method-selection-card {
     background: #ffffff;
     border-radius: 1rem;
@@ -1074,7 +1069,6 @@
   .industrial-input:focus {
     outline: none;
     border-color: hsl(var(--primary));
-    box-shadow: 0 8px 20px hsl(var(--primary)/0.3);
     transform: translateY(-2px);
     background: linear-gradient(145deg, #ffffff, #fafafa);
   }
@@ -1105,7 +1099,6 @@
 
   .step-indicator.active {
     transform: translateY(-2px) scale(1.1);
-    box-shadow: 0 8px 20px hsl(var(--primary)/0.3);
     background: linear-gradient(145deg, hsl(var(--primary)), hsl(var(--primary)/0.9));
   }
 
@@ -2096,7 +2089,6 @@
 
   .work-card-hover:hover {
     transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 24px hsl(var(--primary) / 0.15);
   }
 
   .work-icon-bounce {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, User, Camera, Star, Check } from "lucide-react";
+import { X, User, Camera, Star, Check, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -314,8 +314,17 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
                       {rank.title}
                     </div>
                     {guildName && (
-                      <span className="text-[10px] font-bold text-white/45 uppercase tracking-widest px-2.5 py-1 rounded-full border border-white/10">
-                        {user?.guildRole === "captain" ? "Captain of" : "Member of"} {guildName}
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border",
+                          user?.guildRole === "captain"
+                            ? "text-amber-300 bg-amber-400/10 border-amber-300/30"
+                            : "text-white/45 border-white/10"
+                        )}
+                      >
+                        {user?.guildRole === "captain" && <Crown className="w-3 h-3" />}
+                        {user?.guildRole === "captain" ? "Captain" : "Member"}
+                        <span className="opacity-70">· {guildName}</span>
                       </span>
                     )}
                     {isGuildMvp && (
@@ -426,7 +435,7 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
                           className={cn(
                             "relative block w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden transition-all duration-200 ring-2 ring-offset-2 ring-offset-black",
                             isSelected
-                              ? "ring-primary shadow-[0_0_18px_rgba(255,107,51,0.45)] scale-[1.06]"
+                              ? "ring-primary scale-[1.06]"
                               : "ring-white/10 group-hover:ring-white/30 group-hover:scale-[1.04]"
                           )}
                         >
@@ -460,7 +469,7 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
               <Button
                 onClick={handleSave}
                 disabled={updateProfileMutation.isPending || isUploading}
-                className="h-12 md:h-14 px-8 bg-primary text-white hover:bg-primary/90 font-black uppercase tracking-tighter rounded-xl shadow-[0_10px_30px_-8px_rgba(255,107,51,0.55)] active:scale-[0.98] transition-all flex-1 text-sm md:text-base"
+                className="h-12 md:h-14 px-8 bg-primary text-white hover:bg-primary/90 font-black uppercase tracking-tighter rounded-xl active:scale-[0.98] transition-all flex-1 text-sm md:text-base"
               >
                 {updateProfileMutation.isPending ? "SAVING..." : "SAVE CHANGES"}
               </Button>

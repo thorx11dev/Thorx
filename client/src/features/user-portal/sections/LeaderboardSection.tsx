@@ -123,7 +123,7 @@ export default function LeaderboardSection() {
       {/* ── Meta row ─────────────────────────────────────────────────────── */}
       <motion.div variants={itemVariants} className="flex items-center justify-between mb-4 md:mb-6">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="w-2 h-2 rounded-full bg-primary pulse-glow shrink-0" />
+          <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
           <TechnicalLabel
             text={updatedLabel ? `UPDATED ${updatedLabel}` : "LIVE STANDINGS"}
             className="font-mono tracking-[0.2em] text-black/40 truncate"
@@ -205,15 +205,17 @@ export default function LeaderboardSection() {
                 variants={itemVariants}
                 className="flex items-center gap-3.5 rounded-2xl border-2 border-black bg-[#FFF7ED] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
               >
-                <span className="shrink-0 self-start rounded-sm bg-primary px-2 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white">
-                  #1
-                </span>
-                <img
-                  src={getAvatarSrc(entry)}
-                  alt=""
-                  className="h-14 w-14 shrink-0 rounded-xl border-2 border-black object-cover"
-                  onError={(e) => ((e.target as HTMLImageElement).src = "/avatars/avatar-1.png")}
-                />
+                <div className="relative shrink-0">
+                  <img
+                    src={getAvatarSrc(entry)}
+                    alt=""
+                    className="h-14 w-14 rounded-xl border-2 border-black object-cover"
+                    onError={(e) => ((e.target as HTMLImageElement).src = "/avatars/avatar-1.png")}
+                  />
+                  <span className="absolute -bottom-2 -right-2 rounded-md border-2 border-[#FFF7ED] bg-primary px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white">
+                    #1
+                  </span>
+                </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-black uppercase tracking-tight">{entry.name}</p>
                   <div className="mt-1.5">

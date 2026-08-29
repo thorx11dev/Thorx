@@ -37,7 +37,7 @@ export default function HookSection({ isActive, onAdvance }: HookSectionProps) {
         >
           <TechnicalLabel text="TAP TO START" className="md:hidden" />
           <TechnicalLabel text="PRESS ENTER TO BEGIN" className="hidden md:block" />
-          <div className="w-16 md:w-12 h-1 bg-primary mx-auto pulse-glow"></div>
+          <div className="w-16 md:w-12 h-1 bg-primary mx-auto"></div>
         </button>
       </div>
     </section>

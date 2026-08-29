@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { X, Copy } from "lucide-react";
 import { SiWhatsapp, SiTelegram, SiMessenger, SiInstagram, SiTiktok, SiFacebook, SiGmail } from "@/components/guild/guild-icons";
 
@@ -80,7 +80,7 @@ export function ShareModal({ isOpen, onClose, referralCode, userName, toast }: {
                 e.stopPropagation();
                 handleShare('whatsapp');
               }}
-              className="text-white hover:scale-125 hover:drop-shadow-[0_0_12px_rgba(37,211,102,0.6)] active:scale-95 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 transform origin-center"
+              className="text-white hover:scale-125 active:scale-95 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 transform origin-center"
               data-testid="share-whatsapp"
               aria-label="Share on WhatsApp"
               title="Share on WhatsApp"
@@ -93,7 +93,7 @@ export function ShareModal({ isOpen, onClose, referralCode, userName, toast }: {
                 e.stopPropagation();
                 handleShare('telegram');
               }}
-              className="text-white hover:scale-125 hover:drop-shadow-[0_0_12px_rgba(0,136,204,0.6)] active:scale-95 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150 transform origin-center"
+              className="text-white hover:scale-125 active:scale-95 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150 transform origin-center"
               data-testid="share-telegram"
               aria-label="Share on Telegram"
               title="Share on Telegram"
@@ -106,7 +106,7 @@ export function ShareModal({ isOpen, onClose, referralCode, userName, toast }: {
                 e.stopPropagation();
                 handleShare('messenger');
               }}
-              className="text-white hover:scale-125 hover:drop-shadow-[0_0_12px_rgba(0,132,250,0.6)] active:scale-95 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200 transform origin-center"
+              className="text-white hover:scale-125 active:scale-95 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200 transform origin-center"
               data-testid="share-messenger"
               aria-label="Share on Messenger"
               title="Share on Messenger"
@@ -119,7 +119,7 @@ export function ShareModal({ isOpen, onClose, referralCode, userName, toast }: {
                 e.stopPropagation();
                 handleShare('instagram');
               }}
-              className="text-white hover:scale-125 hover:drop-shadow-[0_0_12px_rgba(224,33,103,0.6)] active:scale-95 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-250 transform origin-center"
+              className="text-white hover:scale-125 active:scale-95 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-250 transform origin-center"
               data-testid="share-instagram"
               aria-label="Share on Instagram"
               title="Share on Instagram"
@@ -132,7 +132,7 @@ export function ShareModal({ isOpen, onClose, referralCode, userName, toast }: {
                 e.stopPropagation();
                 handleShare('tiktok');
               }}
-              className="text-white hover:scale-125 hover:drop-shadow-[0_0_12px_rgba(0,0,0,0.6)] active:scale-95 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 transform origin-center"
+              className="text-white hover:scale-125 active:scale-95 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 transform origin-center"
               data-testid="share-tiktok"
               aria-label="Share on TikTok"
               title="Share on TikTok"
@@ -145,7 +145,7 @@ export function ShareModal({ isOpen, onClose, referralCode, userName, toast }: {
                 e.stopPropagation();
                 handleShare('facebook');
               }}
-              className="text-white hover:scale-125 hover:drop-shadow-[0_0_12px_rgba(59,89,152,0.6)] active:scale-95 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-350 transform origin-center"
+              className="text-white hover:scale-125 active:scale-95 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-350 transform origin-center"
               data-testid="share-facebook"
               aria-label="Share on Facebook"
               title="Share on Facebook"
@@ -158,7 +158,7 @@ export function ShareModal({ isOpen, onClose, referralCode, userName, toast }: {
                 e.stopPropagation();
                 handleShare('gmail');
               }}
-              className="text-white hover:scale-125 hover:drop-shadow-[0_0_12px_rgba(221,75,57,0.6)] active:scale-95 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400 transform origin-center"
+              className="text-white hover:scale-125 active:scale-95 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400 transform origin-center"
               data-testid="share-gmail"
               aria-label="Share via Gmail"
               title="Share via Gmail"
@@ -177,7 +177,7 @@ export function ShareModal({ isOpen, onClose, referralCode, userName, toast }: {
               handleCopyLink();
             }}
             className={`p-2 md:p-3 text-white transition-all duration-300 hover:scale-125 active:scale-95 transform ${copied
-              ? 'scale-110 drop-shadow-[0_0_12px_rgba(255,255,255,0.6)]'
+              ? 'scale-110'
               : ''
               }`}
             data-testid="button-copy-referral-link"
