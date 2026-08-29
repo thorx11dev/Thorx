@@ -313,20 +313,6 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
                     )}>
                       {rank.title}
                     </div>
-                    {guildName && (
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border",
-                          user?.guildRole === "captain"
-                            ? "text-amber-300 bg-amber-400/10 border-amber-300/30"
-                            : "text-white/45 border-white/10"
-                        )}
-                      >
-                        {user?.guildRole === "captain" && <Crown className="w-3 h-3" />}
-                        {user?.guildRole === "captain" ? "Captain" : "Member"}
-                        <span className="opacity-70">· {guildName}</span>
-                      </span>
-                    )}
                     {isGuildMvp && (
                       <span className="inline-flex items-center gap-1 text-[9px] font-black text-black bg-amber-400 px-2.5 py-1 uppercase tracking-widest rounded-full">
                         <Star className="w-2.5 h-2.5" /> MVP
