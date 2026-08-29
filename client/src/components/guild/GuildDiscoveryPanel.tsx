@@ -333,6 +333,22 @@ export function GuildDiscoveryPanel() {
 
   return (
     <div className="space-y-6 md:space-y-8">
+      {/* ═══ Directory header — landing display type + live count ═══ */}
+      <motion.div variants={riseIn} initial="initial" animate="animate" className="flex items-end justify-between gap-4 flex-wrap">
+        <div className="min-w-0">
+          <TechnicalLabel text="GUILD DIRECTORY" className="text-black/40 font-mono tracking-[0.3em] text-[10px] mb-2" />
+          <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter leading-[0.95]">
+            Find your crew.
+          </h2>
+        </div>
+        <div className="text-left sm:text-right shrink-0">
+          <div className="text-3xl md:text-4xl font-black tracking-tighter text-primary tabular-nums leading-none" data-testid="text-guild-count">
+            {String(guilds.length).padStart(2, "0")}
+          </div>
+          <TechnicalLabel text="GUILDS ACTIVE" className="text-black/40 text-[9px] mt-1.5" />
+        </div>
+      </motion.div>
+
       {/* ═══ Toolbar plate — nav-plate signature `border-2 md:border-[3px] border-black` ═══ */}
       <motion.div variants={riseIn} initial="initial" animate="animate" className="bg-white rounded-2xl border-2 md:border-[3px] border-black p-4 md:p-6 space-y-4">
         {/* Row 1: GiMagnifyingGlass + Sort */}
