@@ -594,7 +594,7 @@ export function GuildDiscoveryPanel() {
           >
             Request Creation
           </Button>
-        </div>
+        </motion.div>
       )}
 
       {/* Pending request status */}
