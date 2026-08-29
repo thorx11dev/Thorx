@@ -518,7 +518,7 @@ export function GuildDiscoveryPanel() {
               </div>
 
               {/* ── Footer ── */}
-              <div className="px-6 py-4 border-t-2 border-black bg-white flex-shrink-0 flex gap-3">
+              <div className="px-6 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t-2 border-black bg-white flex-shrink-0 flex gap-3">
                 <button
                   onClick={resetFilters}
                   disabled={activeFilterCount === 0 && sortBy === "gps"}
@@ -537,7 +537,9 @@ export function GuildDiscoveryPanel() {
             </motion.div>
           </>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
       {/* ═══ Content ═══ */}
       {isLoading ? (
