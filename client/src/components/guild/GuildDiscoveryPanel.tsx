@@ -391,7 +391,8 @@ export function GuildDiscoveryPanel() {
       )}
 
       {/* ═══ Filter panel — notification-panel language ═══
-          Mobile: full screen · Desktop: floating window, slides from left */}
+          Mobile: full screen · Desktop: floating window top-right (notification twin) */}
+      {createPortal(
       <AnimatePresence>
         {filterOpen && (
           <>
@@ -406,13 +407,13 @@ export function GuildDiscoveryPanel() {
             />
             <motion.div
               key="filter-panel"
-              initial={isMobile ? { y: "100%" } : { x: "-110%", y: 24, opacity: 0 }}
+              initial={isMobile ? { y: "100%" } : { x: "110%", y: 24, opacity: 0 }}
               animate={isMobile ? { y: 0 } : { x: 0, y: 0, opacity: 1, transition: { type: "spring", damping: 30, stiffness: 300 } }}
-              exit={isMobile ? { y: "100%" } : { x: "-110%", y: 24, opacity: 0, transition: { duration: 0.25, ease: EASE } }}
+              exit={isMobile ? { y: "100%" } : { x: "110%", y: 24, opacity: 0, transition: { duration: 0.25, ease: EASE } }}
               className={cn(
                 "fixed z-[810] bg-[#F2EDE4] flex flex-col",
-                // Desktop: floating window on the left (notification-panel twin)
-                "md:top-6 md:left-6 md:bottom-auto md:right-auto md:w-[420px] md:h-[min(680px,calc(100vh-3rem))] md:rounded-2xl md:border-2 md:border-black md:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] md:overflow-hidden",
+                // Desktop: floating window top-right — same spot as the notification panel
+                "md:top-6 md:right-6 md:bottom-auto md:left-auto md:w-[420px] md:h-[min(680px,calc(100vh-3rem))] md:rounded-2xl md:border-2 md:border-black md:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] md:overflow-hidden",
                 // Mobile: full screen
                 "top-0 right-0 bottom-0 left-0"
               )}
@@ -421,7 +422,7 @@ export function GuildDiscoveryPanel() {
               aria-modal="true"
             >
               {/* ── Top bar ── */}
-              <div className="flex items-center justify-between px-6 py-4 border-b-2 border-black bg-white flex-shrink-0 md:rounded-t-2xl">
+              <div className="flex items-center justify-between px-6 pt-[max(1rem,env(safe-area-inset-top))] pb-4 border-b-2 border-black bg-white flex-shrink-0 md:rounded-t-2xl">
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-primary" />
                   <span className="text-[10px] font-mono font-bold tracking-[0.3em] text-black/40 uppercase">Refine</span>
