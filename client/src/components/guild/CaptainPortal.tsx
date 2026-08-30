@@ -569,8 +569,6 @@ export function CaptainPortal() {
       {/* ── REQUESTS ────────────────────────────────────────────────────── */}
       {tab === "requests" && (
         <div className="space-y-3 md:space-y-4">
-          <SectionChip>PENDING REQUESTS{pending.length > 0 ? ` · ${pending.length}` : ""}</SectionChip>
-
           {isAppsLoading && (
             <div className="space-y-3">
               {[0, 1].map(i => (
