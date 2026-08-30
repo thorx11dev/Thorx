@@ -1133,7 +1133,7 @@ export default function UserPortal() {
       {/* Industrial Grid Overlay */}
 
       {/* Navigation Header */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b-2 md:border-b-[3px] border-black pt-[env(safe-area-inset-top)]" role="navigation" aria-label="Main navigation">
+      <nav className="portal-topnav fixed top-0 left-0 right-0 z-50 bg-white border-b-2 md:border-b-[3px] border-black pt-[env(safe-area-inset-top)]" role="navigation" aria-label="Main navigation">
         <div className="max-w-[1600px] mx-auto px-4 md:px-12 h-20 md:h-24 flex items-center justify-between">
           {/* Brand/Logo Area */}
           <div className="flex items-center h-full">

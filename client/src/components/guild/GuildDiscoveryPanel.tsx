@@ -308,6 +308,14 @@ export function GuildDiscoveryPanel() {
     return () => window.removeEventListener("keydown", onKey);
   }, [applyingTo, showCreationForm, viewingGuild, filterOpen]);
 
+  /* ── Hide portal navigation while any guild overlay owns the screen ──── */
+
+  const anyOverlayOpen = filterOpen || !!viewingGuild || !!applyingTo || showCreationForm;
+  useEffect(() => {
+    document.body.classList.toggle("guild-overlay-open", anyOverlayOpen);
+    return () => document.body.classList.remove("guild-overlay-open");
+  }, [anyOverlayOpen]);
+
   /* ══════════════════════════════════════════════════════════════════════ */
   /* JSX                                                                    */
   /* ══════════════════════════════════════════════════════════════════════ */
