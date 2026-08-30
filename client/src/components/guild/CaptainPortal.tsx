@@ -356,16 +356,16 @@ export function CaptainPortal() {
   const RANK_ORDER = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
 
   const TABS: { id: Tab; label: string; icon: React.ElementType; badge?: number }[] = [
-    { id: "requests", label: "Requests",     icon: GiBroadsword,          badge: pending.length },
-    { id: "roster",   label: "Roster",       icon: GiRoundShield },
-    { id: "tasks",    label: "Tasks",        icon: GiWarhammer },
-    { id: "chat",     label: "Guild Chat",   icon: GiChatBubble },
-    { id: "dm",       label: "Private Chat", icon: GiChatBubble },
-    { id: "wars",     label: "Wars",         icon: GiCrossedSwords },
-    { id: "discover", label: "Discover",     icon: GiMagnifyingGlass },
-    { id: "profile",  label: "My Profile",   icon: GiPortrait },
-    { id: "stats",    label: "Stats",        icon: GiWarhammer },
-    { id: "settings", label: "Settings",   icon: GiCog },
+    { id: "requests", label: "Requests",     icon: Inbox,          badge: pending.length },
+    { id: "roster",   label: "Roster",       icon: Users },
+    { id: "tasks",    label: "Tasks",        icon: ListChecks },
+    { id: "chat",     label: "Guild Chat",   icon: MessagesSquare },
+    { id: "dm",       label: "Private Chat", icon: MessageCircle },
+    { id: "wars",     label: "Wars",         icon: Swords },
+    { id: "discover", label: "Discover",     icon: Search },
+    { id: "profile",  label: "My Profile",   icon: User },
+    { id: "stats",    label: "Stats",        icon: BarChart3 },
+    { id: "settings", label: "Settings",     icon: Settings },
   ];
 
   // ── Loading / no-guild guard ──────────────────────────────────────────────
