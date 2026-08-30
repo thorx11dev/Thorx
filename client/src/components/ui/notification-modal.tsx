@@ -309,12 +309,12 @@ function CommissionCard({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.04, duration: 0.25 }}
-            className="group bg-white border-2 border-black p-4 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 cursor-default"
+            className="group bg-white border-2 border-black rounded-xl p-4 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 cursor-default"
         >
             <div className="flex items-start gap-4">
                 {/* Icon */}
                 <div className={cn(
-                    "w-10 h-10 flex-shrink-0 flex items-center justify-center border-2",
+                    "w-10 h-10 flex-shrink-0 flex items-center justify-center border-2 rounded-lg",
                     isL1
                         ? "bg-primary border-primary"
                         : "bg-black border-black"
