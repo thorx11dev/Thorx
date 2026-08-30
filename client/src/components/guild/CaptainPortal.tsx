@@ -516,25 +516,6 @@ export function CaptainPortal() {
                 </span>
               </div>
             </div>
-            {/* Nav trigger — click stops here so the card toggle doesn't fire */}
-            <button
-              onClick={(e) => { e.stopPropagation(); setNavOpen(true); }}
-              aria-label="Open guild navigation"
-              data-testid="button-guild-nav"
-              className={cn(
-                "relative w-11 h-11 rounded-lg border-2 flex items-center justify-center shrink-0 transition-colors duration-300",
-                cardToggled
-                  ? "border-black/20 bg-black/5 text-black hover:bg-black hover:text-white hover:border-black"
-                  : "border-white/25 bg-white/5 text-white hover:bg-white hover:text-black"
-              )}
-            >
-              <Menu className="w-5 h-5" strokeWidth={2} />
-              {pending.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary border-2 border-black flex items-center justify-center text-[8px] font-black text-white">
-                  {pending.length > 9 ? "9+" : pending.length}
-                </span>
-              )}
-            </button>
           </div>
 
           <div className={cn(
