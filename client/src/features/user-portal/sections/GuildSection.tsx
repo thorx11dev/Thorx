@@ -45,7 +45,7 @@ export function GuildSection({ isGuildHeroToggled, setIsGuildHeroToggled, handle
           onClick={() => handleHeroToggle(setIsGuildHeroToggled)}
           className={cn(
             "rounded-2xl p-6 md:p-12 mb-0 relative overflow-hidden group border-2 cursor-pointer",
-            "h-[160px] md:h-[260px] flex items-center justify-center md:justify-start"
+            "hidden lg:flex h-[160px] md:h-[260px] items-center justify-center md:justify-start"
           )}
         >
           <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-700" />
