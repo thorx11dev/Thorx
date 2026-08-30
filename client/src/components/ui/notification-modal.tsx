@@ -375,11 +375,11 @@ function FinancialCard({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.04, duration: 0.25 }}
-            className="group bg-white border-2 border-black p-4 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 cursor-default"
+            className="group bg-white border-2 border-black rounded-xl p-4 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 cursor-default"
         >
             {/* Row 1: icon + title + time */}
             <div className="flex items-start gap-3">
-                <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center border-2 bg-black border-black">
+                <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center border-2 rounded-lg bg-black border-black">
                     <Wallet className="w-5 h-5 text-white" strokeWidth={2} />
                 </div>
 
