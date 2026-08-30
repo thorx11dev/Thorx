@@ -48,15 +48,20 @@ export function GuildNavDrawer({
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    // Floating widgets (feedback dock) hide while the drawer owns the screen.
+    // Floating widgets hide + the portal top navigation is removed while
+    // the drawer owns the screen (same system as the guild filter panel).
     document.body.classList.add("drawer-open");
+    document.body.classList.add("guild-overlay-open");
     return () => {
       document.body.style.overflow = prev;
       document.body.classList.remove("drawer-open");
+      document.body.classList.remove("guild-overlay-open");
     };
   }, [open]);
 
-  return (
+  // Rendered through a portal so section transforms can never trap the
+  // fixed panel (same approach as the notification panel and filters).
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
