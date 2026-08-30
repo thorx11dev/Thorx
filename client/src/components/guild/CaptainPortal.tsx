@@ -48,7 +48,6 @@ export function CaptainPortal() {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("requests");
   const [navOpen, setNavOpen] = useState(false);
-  const [cardToggled, setCardToggled] = useState(false);
   const [rejectModal, setRejectModal] = useState<{ appId: string; applicantName: string } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [kickConfirm, setKickConfirm] = useState<string | null>(null);
