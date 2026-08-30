@@ -282,7 +282,7 @@ export function gpsTier(gps: number): string {
 /** Black technical role chip — CAPTAIN / ASSISTANT / MEMBER. */
 export function RoleChip({ role }: { role: "CAPTAIN" | "ASSISTANT" | "MEMBER" }) {
   return (
-    <span className="inline-flex items-center bg-black text-white px-3 py-1 rounded-sm font-black uppercase tracking-[0.2em] text-[10px]">
+    <span className="inline-flex items-center bg-black text-white px-3 py-1 rounded-md font-black uppercase tracking-[0.2em] text-[10px]">
       {role}
     </span>
   );
@@ -291,7 +291,7 @@ export function RoleChip({ role }: { role: "CAPTAIN" | "ASSISTANT" | "MEMBER" })
 /** Black technical section chip — e.g. `PENDING REQUESTS · 3`. */
 export function SectionChip({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <span className={cn("inline-flex items-center bg-black text-white px-3 py-1.5 rounded-sm font-black uppercase tracking-[0.2em] text-[10px]", className)}>
+    <span className={cn("inline-flex items-center bg-black text-white px-3 py-1.5 rounded-md font-black uppercase tracking-[0.2em] text-[10px]", className)}>
       {children}
     </span>
   );

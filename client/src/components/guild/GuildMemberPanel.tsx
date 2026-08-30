@@ -382,7 +382,7 @@ export function GuildMemberPanel() {
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <span className={cn(
-                      "w-6 h-6 rounded-sm border-2 flex items-center justify-center text-[10px] font-black shrink-0",
+                      "w-6 h-6 rounded-md border-2 flex items-center justify-center text-[10px] font-black shrink-0",
                       i === 0 ? "border-black bg-black text-white" : "border-black/15 text-black/50"
                     )}>{i + 1}</span>
                     {m.isMvp && <GiLaurelsTrophy size={12} className="text-primary shrink-0" />}

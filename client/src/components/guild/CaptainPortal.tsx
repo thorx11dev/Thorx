@@ -508,7 +508,7 @@ export function CaptainPortal() {
               {guild.name}
             </div>
             <span className={cn(
-              "shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-sm font-black uppercase tracking-[0.2em] text-[9px] transition-colors duration-300",
+              "shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-md font-black uppercase tracking-[0.2em] text-[9px] transition-colors duration-300",
               cardToggled ? "bg-black text-white" : "bg-white text-black"
             )}>
               CAPTAIN
@@ -757,12 +757,12 @@ export function CaptainPortal() {
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 <RankBadge rank={m.userRankTier || "E-Rank"} size="sm" showLabel={false} />
                                 {isCaptain && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm bg-primary/10 border border-primary/30 text-primary font-black uppercase tracking-wider text-[10px]">
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/30 text-primary font-black uppercase tracking-wider text-[10px]">
                                     CAPTAIN
                                   </span>
                                 )}
                                 {isInactive && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm bg-destructive/10 border border-destructive/30 text-destructive font-black uppercase tracking-wider text-[10px]">INACTIVE</span>
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-destructive/10 border border-destructive/30 text-destructive font-black uppercase tracking-wider text-[10px]">INACTIVE</span>
                                 )}
                               </div>
                             </div>
@@ -1096,7 +1096,7 @@ export function CaptainPortal() {
                       <Progress value={Math.min(100, pct)} className="h-2 bg-black/10 border-2 border-black/10 rounded-full [&>div]:bg-primary" />
                     </div>
                     <span className={cn(
-                      "shrink-0 inline-flex items-center px-2.5 py-1 rounded-sm font-black uppercase tracking-[0.2em] text-[10px] border-2",
+                      "shrink-0 inline-flex items-center px-2.5 py-1 rounded-md font-black uppercase tracking-[0.2em] text-[10px] border-2",
                       snap.wasSuccessful ? "bg-black text-white border-black" : "bg-white text-black/50 border-black/15"
                     )}>
                       {snap.wasSuccessful ? "MET" : "MISSED"}

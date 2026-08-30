@@ -109,7 +109,7 @@ export function GuildTasksPanel() {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm md:text-base font-black tracking-tight text-foreground">{task.title}</span>
               {task.completedByUser && (
-                <Badge className="text-[10px] bg-emerald-600 text-white font-black rounded-sm px-2 py-0.5">
+                <Badge className="text-[10px] bg-emerald-600 text-white font-black rounded-md px-2 py-0.5">
                   Completed ✓
                 </Badge>
               )}

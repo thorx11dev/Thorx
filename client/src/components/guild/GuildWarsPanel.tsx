@@ -176,7 +176,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
       {badges.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {badges.map((b: any) => (
-            <span key={b.id} className="inline-flex items-center px-2.5 py-1 rounded-sm bg-primary/10 border-2 border-primary/30 text-primary font-black uppercase tracking-wider text-[10px]">
+            <span key={b.id} className="inline-flex items-center px-2.5 py-1 rounded-md bg-primary/10 border-2 border-primary/30 text-primary font-black uppercase tracking-wider text-[10px]">
               {b.badgeName}
             </span>
           ))}
@@ -278,7 +278,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
           <div className="px-5 py-3.5 md:px-6 md:py-4 border-b-2 border-black bg-white">
             <div className="flex items-center justify-end gap-3">
               {statusCfg && (
-                <span className={cn("inline-flex items-center gap-1.5 rounded-sm font-black uppercase tracking-[0.2em] text-[10px] border-2 px-2.5 py-1", statusCfg.cls)}>
+                <span className={cn("inline-flex items-center gap-1.5 rounded-md font-black uppercase tracking-[0.2em] text-[10px] border-2 px-2.5 py-1", statusCfg.cls)}>
                   {war.status === "active" && <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
                   {statusCfg.label}
                 </span>
@@ -297,7 +297,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
                 )}
               >
                 {war.status === "active" && war.challengerScore > war.challengedScore && (
-                  <span className="absolute top-2 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1 bg-primary text-white border-2 border-black rounded-sm px-2 py-0.5 font-black uppercase tracking-[0.2em] text-[10px] whitespace-nowrap">
+                  <span className="absolute top-2 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1 bg-primary text-white border-2 border-black rounded-md px-2 py-0.5 font-black uppercase tracking-[0.2em] text-[10px] whitespace-nowrap">
                     <GiFlame size={10} /> Winning
                   </span>
                 )}
@@ -325,7 +325,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
                 )}
               >
                 {war.status === "active" && war.challengedScore > war.challengerScore && (
-                  <span className="absolute top-2 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1 bg-primary text-white border-2 border-black rounded-sm px-2 py-0.5 font-black uppercase tracking-[0.2em] text-[10px] whitespace-nowrap">
+                  <span className="absolute top-2 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1 bg-primary text-white border-2 border-black rounded-md px-2 py-0.5 font-black uppercase tracking-[0.2em] text-[10px] whitespace-nowrap">
                     <GiFlame size={10} /> Winning
                   </span>
                 )}
@@ -543,7 +543,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
             "On a draw, each guild keeps its own chest; chests return to their own pools",
           ].map((rule, i) => (
             <div key={i} className="flex items-start gap-3">
-              <span className="w-6 h-6 shrink-0 flex items-center justify-center rounded-sm border-2 border-black bg-black text-white font-black text-[10px]">
+              <span className="w-6 h-6 shrink-0 flex items-center justify-center rounded-md border-2 border-black bg-black text-white font-black text-[10px]">
                 {i + 1}
               </span>
               <p className="text-xs md:text-sm font-medium text-black/60 pt-0.5">{rule}</p>
