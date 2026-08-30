@@ -384,10 +384,91 @@ export function CaptainPortal() {
     </PremiumCard>
   );
 
-  return (
-    <div className="space-y-4 md:space-y-6">
+  const gpsScore = guild?.guildPerformanceScore ?? 0;
+  const weeklyTarget = guild?.weeklyTarget ?? 0;
+  const weeklyCurrent = guild?.currentWeeklyPoints ?? 0;
+  const targetPct = weeklyTarget > 0 ? Math.min(100, (weeklyCurrent / weeklyTarget) * 100) : 0;
 
-      {/* ── Guild identity header — nav-plate signature ────────────────── */}
+  return (
+    <div className="lg:grid lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)] lg:gap-6 lg:items-start space-y-4 md:space-y-6 lg:space-y-0">
+
+      {/* ── Sidebar — desktop: GUILD PROFILE + NAVIGATION ──────────────── */}
+      <aside className="hidden lg:flex flex-col bg-white rounded-2xl border-2 border-black overflow-hidden lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]">
+        {/* Profile block */}
+        <div className="p-5 border-b-2 border-black shrink-0">
+          <TechnicalLabel text="GUILD PROFILE" className="text-black/40 text-[9px] mb-4" />
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="relative w-14 h-14 rounded-xl border-2 border-black bg-[#EAE5DD] flex items-center justify-center font-black text-xl shrink-0 overflow-hidden">
+              <span className="absolute inset-0 flex items-center justify-center text-black/25">{(guild.name || "G")[0].toUpperCase()}</span>
+              {guild.avatarUrl && (
+                <img src={guild.avatarUrl} alt={guild.name} onError={(e) => { e.currentTarget.style.display = "none"; }} className="absolute inset-0 w-full h-full object-cover" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-black text-base uppercase tracking-tighter truncate leading-tight">{guild.name}</div>
+              <div className="mt-1.5"><RoleChip role="CAPTAIN" /></div>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="rounded-xl border-2 border-black/10 bg-[#EAE5DD]/30 px-3 py-2.5">
+              <TechnicalLabel text="MEMBERS" className="text-black/40 text-[8px]" />
+              <div className="font-black text-lg tabular-nums leading-tight mt-0.5">{active.length}</div>
+            </div>
+            <div className="rounded-xl border-2 border-black/10 bg-[#EAE5DD]/30 px-3 py-2.5">
+              <TechnicalLabel text="GPS" className="text-black/40 text-[8px]" />
+              <div className="font-black text-lg tabular-nums text-primary leading-tight mt-0.5">{gpsScore.toLocaleString()}</div>
+            </div>
+          </div>
+
+          {/* Weekly target */}
+          {weeklyTarget > 0 && (
+            <div className="mt-3.5">
+              <div className="flex items-center justify-between mb-1.5 gap-2">
+                <TechnicalLabel text="WEEKLY TARGET" className="text-black/40 text-[8px]" />
+                <span className="text-[9px] font-black tabular-nums text-black/55 shrink-0">
+                  {weeklyCurrent.toLocaleString()}/{weeklyTarget.toLocaleString()} · {targetPct.toFixed(0)}%
+                </span>
+              </div>
+              <Progress value={targetPct} className="h-1.5 bg-black/10 [&>div]:bg-primary" />
+            </div>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-3">
+          <TechnicalLabel text="NAVIGATION" className="text-black/40 text-[9px] px-2.5 mb-2 block" />
+          <div className="space-y-1">
+            {TABS.map((t) => {
+              const isActive = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3.5 h-11 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-150",
+                    isActive ? "bg-black text-white" : "text-black/55 hover:bg-black/5 hover:text-black"
+                  )}
+                >
+                  <t.icon size={15} strokeWidth={2} />
+                  <span className="flex-1 text-left">{t.label}</span>
+                  {(t.badge ?? 0) > 0 && (
+                    <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-primary text-white text-[9px] font-black flex items-center justify-center">
+                      {t.badge! > 9 ? "9+" : t.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      </aside>
+
+      {/* ── Main column — GUILD HERO + tab content ────────────────────── */}
+      <div className="space-y-4 md:space-y-6 min-w-0">
+
+      {/* ── GUILD HERO — nav-plate signature ──────────────────────────── */}
       <GuildIdentityHeader
         guild={guild}
         role="CAPTAIN"
