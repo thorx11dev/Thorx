@@ -504,12 +504,14 @@ export function CaptainPortal() {
         </PremiumCard>
       )}
 
-      {/* ── Tab bar — landing-grade segmented ──────────────────────────── */}
-      <GuildTabBar
-        tabs={TABS.map(t => ({ ...t, icon: <t.icon size={13} /> }))}
-        value={tab}
-        onChange={setTab}
-      />
+      {/* ── Tab bar — mobile only (desktop uses the sidebar navigation) ── */}
+      <div className="lg:hidden">
+        <GuildTabBar
+          tabs={TABS.map(t => ({ ...t, icon: <t.icon size={13} /> }))}
+          value={tab}
+          onChange={setTab}
+        />
+      </div>
 
       {/* Tab content — keyed so each switch plays the landing entrance motion */}
       <div key={tab} className="animate-in fade-in slide-in-from-bottom-1 duration-200">
