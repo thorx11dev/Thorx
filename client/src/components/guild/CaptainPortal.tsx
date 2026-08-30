@@ -468,13 +468,16 @@ export function CaptainPortal() {
       {/* ── Main column — GUILD HERO + tab content ────────────────────── */}
       <div className="space-y-4 md:space-y-6 min-w-0">
 
-      {/* ── GUILD HERO — nav-plate signature ──────────────────────────── */}
-      <GuildIdentityHeader
-        guild={guild}
-        role="CAPTAIN"
-        memberCount={active.length}
-        avatarUrl={guild.avatarUrl}
-      />
+      {/* ── Guild identity header — MOBILE ONLY (desktop uses the sidebar
+             profile block; hidden here to avoid showing it twice) ──────── */}
+      <div className="lg:hidden">
+        <GuildIdentityHeader
+          guild={guild}
+          role="CAPTAIN"
+          memberCount={active.length}
+          avatarUrl={guild.avatarUrl}
+        />
+      </div>
 
       {/* ── Active announcement preview ─────────────────────────────────── */}
       {guild.latestAnnouncement && (
