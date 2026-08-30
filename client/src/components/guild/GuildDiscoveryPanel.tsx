@@ -906,19 +906,19 @@ export function GuildDiscoveryPanel() {
                     <div>
                       <GroupLabel text="Performance" />
                       <div className="grid grid-cols-3 gap-3">
-                        <div className="bg-white border-2 border-black p-3.5">
+                        <div className="bg-white border-2 border-black rounded-xl p-3.5">
                           <div className="text-[9px] font-mono font-bold tracking-[0.2em] text-black/40 uppercase">GPS</div>
                           <div className="font-black text-lg md:text-xl tracking-tighter tabular-nums text-primary mt-1.5 leading-none">
                             {viewingGuild.guildPerformanceScore.toLocaleString()}
                           </div>
                         </div>
-                        <div className="bg-white border-2 border-black p-3.5">
+                        <div className="bg-white border-2 border-black rounded-xl p-3.5">
                           <div className="text-[9px] font-mono font-bold tracking-[0.2em] text-black/40 uppercase">Members</div>
                           <div className="font-black text-lg md:text-xl tracking-tighter tabular-nums text-black mt-1.5 leading-none">
                             {viewingGuild.memberCount.toLocaleString()}
                           </div>
                         </div>
-                        <div className="bg-white border-2 border-black p-3.5">
+                        <div className="bg-white border-2 border-black rounded-xl p-3.5">
                           <div className="text-[9px] font-mono font-bold tracking-[0.2em] text-black/40 uppercase">Streak</div>
                           <div className="font-black text-lg md:text-xl tracking-tighter tabular-nums text-black mt-1.5 leading-none">
                             {viewingGuild.successfulWeeks ?? 0}<span className="text-[10px] ml-0.5">w</span>
