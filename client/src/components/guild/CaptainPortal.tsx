@@ -535,6 +535,24 @@ export function CaptainPortal() {
         </div>
       </motion.div>
 
+      {/* ── Mobile nav strip — separate strip for the guild navigation ── */}
+      <div className="lg:hidden bg-black rounded-2xl border-2 border-black h-14 px-4 flex items-center justify-between">
+        <span className="text-lg font-black tracking-tighter text-white leading-none pl-1">GUILD.</span>
+        <button
+          onClick={() => setNavOpen(true)}
+          aria-label="Open guild navigation"
+          data-testid="button-guild-nav"
+          className="relative w-10 h-10 rounded-lg border-2 border-white/25 bg-white/5 text-white flex items-center justify-center shrink-0 transition-colors duration-200 hover:bg-white hover:text-black"
+        >
+          <Menu className="w-5 h-5" strokeWidth={2} />
+          {pending.length > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary border-2 border-black flex items-center justify-center text-[8px] font-black text-white">
+              {pending.length > 9 ? "9+" : pending.length}
+            </span>
+          )}
+        </button>
+      </div>
+
       {/* ── Mobile guild navigation drawer — cream twin of the portal menu,
              slides in from the LEFT with staggered spring rows ─────────── */}
       <GuildNavDrawer
