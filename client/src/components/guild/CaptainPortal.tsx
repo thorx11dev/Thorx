@@ -17,12 +17,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PremiumCard } from "@/components/ui/premium-card";
 import TechnicalLabel from "@/components/ui/technical-label";
 import {
-  GuildIdentityHeader, GuildTabBar, SectionChip, QueryError,
+  GuildIdentityHeader, GuildTabBar, SectionChip, QueryError, RoleChip,
   CTA_CLASS, OUTLINE_CLASS, DESTRUCTIVE_CLASS, DESTRUCTIVE_OUTLINE, ICON_BTN_CLASS,
   FIELD_CLASS, FIELD_AREA_CLASS, FieldLabel, useEscape, ModalShell,
   AvatarStamp, EmptyState, SelectField, SegmentedToggle, ChatComposer,
   PanelSkeleton, SkeletonBlock,
 } from "./GuildPanelShell";
+import { Inbox, Users, ListChecks, MessagesSquare, MessageCircle, Swords, Search, User, BarChart3, Settings } from "lucide-react";
 import {
   GiKnightBanner, GiChatBubble, GiWarhammer, GiCog,
   GiRoundShield, GiSkullCrossedBones, GiLaurelsTrophy, GiHuntingHorn, GiBroadsword, GiSpartanHelmet,
