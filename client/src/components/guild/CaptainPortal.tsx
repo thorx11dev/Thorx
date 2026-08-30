@@ -25,6 +25,7 @@ import {
   PanelSkeleton, SkeletonBlock,
 } from "./GuildPanelShell";
 import { Inbox, Users, ListChecks, MessagesSquare, MessageCircle, Swords, Search, User, BarChart3, Settings, Menu } from "lucide-react";
+import { InteractiveDivider } from "@/features/user-portal/shared";
 import { GuildNavDrawer } from "./GuildNavDrawer";
 import {
   GiKnightBanner, GiChatBubble, GiWarhammer, GiCog,
@@ -488,14 +489,14 @@ export function CaptainPortal() {
           borderColor: { duration: 0.4 }
         }}
         onClick={() => setCardToggled(v => !v)}
-        className="lg:hidden relative overflow-hidden group rounded-2xl border-2 p-4 md:p-5 cursor-pointer"
+        className="lg:hidden relative overflow-hidden group rounded-2xl border-2 p-3.5 cursor-pointer"
       >
         <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-700" />
 
         <div className="relative z-10">
-          <div className="flex items-center gap-3.5 min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
             <div className={cn(
-              "relative w-12 h-12 md:w-14 md:h-14 rounded-xl border-2 bg-[#EAE5DD] flex items-center justify-center font-black text-lg shrink-0 overflow-hidden transition-colors duration-300",
+              "relative w-11 h-11 rounded-lg border-2 bg-[#EAE5DD] flex items-center justify-center font-black text-base shrink-0 overflow-hidden transition-colors duration-300",
               cardToggled ? "border-black" : "border-white/40"
             )}>
               <span className="absolute inset-0 flex items-center justify-center text-black/25">{(guild.name || "G")[0].toUpperCase()}</span>
@@ -503,23 +504,19 @@ export function CaptainPortal() {
                 <img src={guild.avatarUrl} alt={guild.name} onError={(e) => { e.currentTarget.style.display = "none"; }} className="absolute inset-0 w-full h-full object-cover" />
               )}
             </div>
-            <div className="min-w-0 flex-1">
-              <div className={cn("font-black text-lg uppercase tracking-tighter truncate leading-tight transition-colors duration-300", cardToggled ? "text-black" : "text-white")}>
-                {guild.name}
-              </div>
-              <div className="mt-1.5">
-                <span className={cn(
-                  "inline-flex items-center px-3 py-1 rounded-sm font-black uppercase tracking-[0.2em] text-[10px] transition-colors duration-300",
-                  cardToggled ? "bg-black text-white" : "bg-white text-black"
-                )}>
-                  CAPTAIN
-                </span>
-              </div>
+            <div className={cn("flex-1 min-w-0 font-black text-base uppercase tracking-tighter truncate leading-tight transition-colors duration-300", cardToggled ? "text-black" : "text-white")}>
+              {guild.name}
             </div>
+            <span className={cn(
+              "shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-sm font-black uppercase tracking-[0.2em] text-[9px] transition-colors duration-300",
+              cardToggled ? "bg-black text-white" : "bg-white text-black"
+            )}>
+              CAPTAIN
+            </span>
           </div>
 
           <div className={cn(
-            "mt-3.5 pt-3 border-t-2 flex items-center justify-between gap-2 text-[9px] font-mono font-bold tracking-[0.12em] uppercase transition-colors duration-300",
+            "mt-2.5 pt-2.5 border-t-2 flex items-center justify-between gap-2 text-[9px] font-mono font-bold tracking-[0.12em] uppercase transition-colors duration-300",
             cardToggled ? "border-black/10 text-black/45" : "border-white/15 text-white/50"
           )}>
             <span className="shrink-0">{active.length} MEMBERS</span>
@@ -534,6 +531,9 @@ export function CaptainPortal() {
           </div>
         </div>
       </motion.div>
+
+      {/* ── The line that used to sit under the GUILD hero — standard spacing ── */}
+      <InteractiveDivider className="my-12 lg:hidden" />
 
       {/* ── Mobile nav strip — separate strip for the guild navigation ── */}
       <div className="lg:hidden bg-black rounded-2xl border-2 border-black h-14 px-4 flex items-center justify-between">
