@@ -482,7 +482,7 @@ export function GuildDiscoveryPanel() {
                       onClick={() => setRecruitingOnly(v => !v)}
                       data-testid="chip-recruiting"
                       className={cn(
-                        "w-full bg-white border-2 border-black p-4 flex items-center justify-between gap-3 transition-all duration-200",
+                        "w-full bg-white border-2 border-black rounded-xl p-4 flex items-center justify-between gap-3 transition-all duration-200",
                         recruitingOnly ? "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : "hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                       )}
                     >
@@ -504,7 +504,7 @@ export function GuildDiscoveryPanel() {
                       onClick={() => setWarOnly(v => !v)}
                       data-testid="chip-war"
                       className={cn(
-                        "w-full bg-white border-2 border-black p-4 flex items-center justify-between gap-3 transition-all duration-200",
+                        "w-full bg-white border-2 border-black rounded-xl p-4 flex items-center justify-between gap-3 transition-all duration-200",
                         warOnly ? "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : "hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                       )}
                     >
@@ -896,7 +896,7 @@ export function GuildDiscoveryPanel() {
                     {viewingGuild.description && (
                       <div>
                         <GroupLabel text="About" />
-                        <div className="bg-white border-2 border-black p-4">
+                        <div className="bg-white border-2 border-black rounded-xl p-4">
                           <p className="text-[13px] text-black/70 leading-relaxed font-medium">{viewingGuild.description}</p>
                         </div>
                       </div>
@@ -931,7 +931,7 @@ export function GuildDiscoveryPanel() {
                     {viewingGuild.weeklyTarget > 0 && (
                       <div>
                         <GroupLabel text="Weekly Target" />
-                        <div className="bg-white border-2 border-black p-4">
+                        <div className="bg-white border-2 border-black rounded-xl p-4">
                           <div className="flex items-baseline justify-between mb-3">
                             <span className="text-2xl font-black tracking-tighter text-black leading-none tabular-nums">
                               {viewingGuild.currentWeeklyPoints.toLocaleString()}
