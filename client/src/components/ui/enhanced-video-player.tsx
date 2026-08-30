@@ -181,8 +181,8 @@ function AreaPlayer({
       className={`relative flex items-center justify-center overflow-hidden transition-all duration-300 ${isFullscreen
           ? 'h-screen w-full border-none'
           : isMobileDevice
-            ? 'w-full border border-black'
-            : 'w-full border-2 border-black'
+            ? 'w-full border border-black rounded-2xl'
+            : 'w-full border-2 border-black rounded-2xl'
         }`}
       style={{
         backgroundColor: "#0a0a0a",

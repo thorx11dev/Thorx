@@ -992,7 +992,7 @@ export function GuildDiscoveryPanel() {
                             const won = w.winnerId === viewingGuild.id;
                             const isActive = w.status === "active";
                             return (
-                              <div key={w.id} className="bg-white border-2 border-black/10 p-3 flex items-center gap-3">
+                              <div key={w.id} className="bg-white border-2 border-black/10 rounded-xl p-3 flex items-center gap-3">
                                 <span className={cn("w-2 h-2 rounded-full shrink-0", isActive ? "bg-primary animate-pulse" : won ? "bg-emerald-500" : "bg-destructive/60")} />
                                 <span className="flex-1 text-[11px] font-black uppercase tracking-wider text-black">
                                   {isActive ? "Active War" : won ? "Victory" : "Defeat"}
