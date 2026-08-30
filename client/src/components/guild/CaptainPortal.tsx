@@ -470,16 +470,43 @@ export function CaptainPortal() {
       {/* ── Main column — GUILD HERO + tab content ────────────────────── */}
       <div className="space-y-4 md:space-y-6 min-w-0">
 
-      {/* ── Guild identity header — MOBILE ONLY (desktop uses the sidebar
-             profile block; hidden here to avoid showing it twice) ──────── */}
-      <div className="lg:hidden">
-        <GuildIdentityHeader
-          guild={guild}
-          role="CAPTAIN"
-          memberCount={active.length}
-          avatarUrl={guild.avatarUrl}
-        />
+      {/* ── Mobile: compact guild profile strip + nav drawer trigger ──── */}
+      <div className="lg:hidden bg-white rounded-2xl border-2 border-black p-3.5 flex items-center gap-3">
+        <div className="relative w-11 h-11 rounded-lg border-2 border-black bg-[#EAE5DD] flex items-center justify-center font-black text-base shrink-0 overflow-hidden">
+          <span className="absolute inset-0 flex items-center justify-center text-black/25">{(guild.name || "G")[0].toUpperCase()}</span>
+          {guild.avatarUrl && (
+            <img src={guild.avatarUrl} alt={guild.name} onError={(e) => { e.currentTarget.style.display = "none"; }} className="absolute inset-0 w-full h-full object-cover" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-black text-base uppercase tracking-tighter truncate leading-tight">{guild.name}</span>
+            <RoleChip role="CAPTAIN" />
+          </div>
+          <div className="text-[9px] font-mono font-bold tracking-[0.15em] text-black/40 uppercase mt-1 truncate">
+            {active.length} MEMBERS · {gpsScore.toLocaleString()} GPS{weeklyTarget > 0 ? ` · TARGET ${targetPct.toFixed(0)}%` : ""}
+          </div>
+        </div>
+        <button
+          onClick={() => setNavOpen(true)}
+          aria-label="Open guild navigation"
+          data-testid="button-guild-nav"
+          className="relative w-11 h-11 rounded-lg border-2 border-black bg-black text-white flex items-center justify-center shrink-0 transition-colors duration-200 hover:bg-primary"
+        >
+          <Menu className="w-5 h-5" strokeWidth={2} />
+          {pending.length > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-primary border-2 border-white" />}
+        </button>
       </div>
+
+      {/* ── Mobile guild navigation drawer — cream twin of the portal menu,
+             slides in from the LEFT with staggered spring rows ─────────── */}
+      <GuildNavDrawer
+        open={navOpen}
+        onClose={() => setNavOpen(false)}
+        tabs={TABS}
+        value={tab}
+        onChange={setTab}
+      />
 
       {/* ── Active announcement preview ─────────────────────────────────── */}
       {guild.latestAnnouncement && (
