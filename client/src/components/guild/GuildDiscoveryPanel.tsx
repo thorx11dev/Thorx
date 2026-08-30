@@ -636,7 +636,7 @@ export function GuildDiscoveryPanel() {
                     />
                   )}
                   {guild.inActiveWar && (
-                    <div className="absolute top-2 right-2 bg-black text-destructive p-1.5 rounded-sm">
+                    <div className="absolute top-2 right-2 bg-black text-destructive p-1.5 rounded-md">
                       <Swords className="size-3" strokeWidth={2.5} />
                     </div>
                   )}
