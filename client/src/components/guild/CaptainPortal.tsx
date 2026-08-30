@@ -1347,6 +1347,8 @@ export function CaptainPortal() {
           <p className="text-sm text-black/50 font-medium mt-1">They will need to re-apply to join again.</p>
         </ModalShell>
       )}
+
+      </div>{/* end main column — sidebar layout */}
     </div>
   );
 }
