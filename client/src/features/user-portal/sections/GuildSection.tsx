@@ -79,7 +79,7 @@ export function GuildSection({ isGuildHeroToggled, setIsGuildHeroToggled, handle
           </div>
         </motion.div>
 
-        <InteractiveDivider className="my-12" />
+        <InteractiveDivider className="my-12 hidden lg:block" />
 
         {/* THORX v3 (spec F.6–F.8): 3-context routing by guildRole. */}
         {user && (() => {
