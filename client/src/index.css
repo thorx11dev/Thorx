@@ -171,6 +171,18 @@
     pointer-events: none;
   }
 
+  /* Guild overlays (filter panel + details/modals) own the screen — hide the
+     portal top navigation and floating dock while any guild overlay is open
+     (body.guild-overlay-open is toggled by GuildDiscoveryPanel). */
+  body.guild-overlay-open nav.portal-topnav {
+    display: none !important;
+  }
+
+  body.guild-overlay-open .feedback-dock {
+    opacity: 0 !important;
+    pointer-events: none;
+  }
+
 
   .technical-label {
     font-family: var(--font-sans);
