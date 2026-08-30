@@ -106,9 +106,6 @@ export function GuildNavDrawer({
 
           {/* Tab entries */}
           <nav className="relative flex-1 overflow-y-auto px-5 py-4" aria-label="Guild tabs">
-            <div className="text-[10px] font-mono font-bold tracking-[0.3em] text-black/35 uppercase mt-1 mb-2">
-              NAVIGATION
-            </div>
             {tabs.map((t, index) => {
               const Icon = t.icon;
               const isActive = value === t.id;
