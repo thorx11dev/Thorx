@@ -222,7 +222,7 @@ export function NotificationModal({
                                         onPointerDown={e => e.stopPropagation()}
                                         onClick={() => clearAllMutation.mutate()}
                                         disabled={clearAllMutation.isPending}
-                                        className="mb-1 flex items-center gap-1.5 px-3 h-7 border-2 border-black/20 hover:border-black hover:bg-black hover:text-white text-black/40 text-[10px] font-black uppercase tracking-wider transition-all duration-150 disabled:opacity-40"
+                                        className="mb-1 flex items-center gap-1.5 px-3 h-7 border-2 border-black/20 hover:border-black hover:bg-black hover:text-white text-black/40 text-[10px] font-black uppercase tracking-wider transition-all duration-150 rounded-lg disabled:opacity-40"
                                         aria-label="Clear all notifications"
                                     >
                                         <Trash2 className="w-3 h-3" strokeWidth={2.5} />
