@@ -472,29 +472,26 @@ export function CaptainPortal() {
       <div className="space-y-4 md:space-y-6 min-w-0">
 
       {/* ── Mobile guild header — the profile card IS the header ──────── */}
-      <div className="lg:hidden relative overflow-hidden group rounded-2xl border-2 border-black bg-white p-4">
+      <div className="lg:hidden relative overflow-hidden group rounded-2xl border-2 border-black bg-white p-5">
         <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-700" />
 
         <div className="relative z-10">
-          <div className="flex items-center gap-3.5 min-w-0 py-1">
-            <div className="relative w-12 h-12 rounded-lg border-2 border-black bg-[#EAE5DD] flex items-center justify-center font-black text-lg shrink-0 overflow-hidden">
+          <div className="flex items-center gap-3.5 min-w-0 py-2">
+            <div className="relative w-14 h-14 rounded-xl border-2 border-black bg-[#EAE5DD] flex items-center justify-center font-black text-xl shrink-0 overflow-hidden">
               <span className="absolute inset-0 flex items-center justify-center text-black/25">{(guild.name || "G")[0].toUpperCase()}</span>
               {guild.avatarUrl && (
                 <img src={guild.avatarUrl} alt={guild.name} onError={(e) => { e.currentTarget.style.display = "none"; }} className="absolute inset-0 w-full h-full object-cover" />
               )}
             </div>
-            <div className="flex-1 min-w-0 font-black text-lg uppercase tracking-tighter truncate leading-tight text-black">
+            <div className="flex-1 min-w-0 font-black text-xl uppercase tracking-tighter truncate leading-tight text-black">
               {guild.name}
             </div>
-            <span className="shrink-0 inline-flex items-center px-3 py-1 rounded-md font-black uppercase tracking-[0.2em] text-[9px] bg-black text-white">
-              CAPTAIN
-            </span>
           </div>
 
-          <div className="mt-3.5 pt-3 border-t-2 border-black/10 flex items-center justify-between gap-2 text-[9px] font-mono font-bold tracking-[0.12em] uppercase text-black/45">
+          <div className="mt-4 pt-3.5 border-t-2 border-black/10 flex items-center justify-between gap-2 text-[10px] font-mono font-bold tracking-[0.12em] uppercase text-black/45">
             <span className="shrink-0">{active.length} MEMBERS</span>
             <span className="w-1 h-1 rounded-full bg-black/15 shrink-0" />
-            <span className="text-primary shrink-0">{gpsScore.toLocaleString()} GPS</span>
+            <span className="shrink-0">{gpsScore.toLocaleString()} GPS</span>
             {weeklyTarget > 0 && (
               <>
                 <span className="w-1 h-1 rounded-full bg-black/15 shrink-0" />
