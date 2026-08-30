@@ -466,7 +466,7 @@ export function GuildDiscoveryPanel() {
                     <SelectTrigger className="h-12 w-full border-2 border-black rounded-lg text-[11px] font-black uppercase tracking-wider focus:ring-0 focus:border-primary hover:border-black transition-colors bg-white" data-testid="select-sort-by">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[900]" position="popper">
                       <SelectItem value="gps">Top GPS</SelectItem>
                       <SelectItem value="members">Most Members</SelectItem>
                       <SelectItem value="streak">Best Streak</SelectItem>
