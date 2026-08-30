@@ -487,7 +487,7 @@ export function GuildDiscoveryPanel() {
                       )}
                     >
                       <span className="flex items-center gap-3">
-                        <span className={cn("w-10 h-10 flex items-center justify-center border-2 border-black shrink-0", recruitingOnly ? "bg-primary text-white" : "bg-black text-white")}>
+                        <span className={cn("w-10 h-10 flex items-center justify-center border-2 border-black rounded-lg shrink-0", recruitingOnly ? "bg-primary text-white" : "bg-black text-white")}>
                           <Shield className="w-5 h-5" strokeWidth={2} />
                         </span>
                         <span className="text-left">
@@ -509,7 +509,7 @@ export function GuildDiscoveryPanel() {
                       )}
                     >
                       <span className="flex items-center gap-3">
-                        <span className={cn("w-10 h-10 flex items-center justify-center border-2 border-black shrink-0", warOnly ? "bg-primary text-white" : "bg-black text-white")}>
+                        <span className={cn("w-10 h-10 flex items-center justify-center border-2 border-black rounded-lg shrink-0", warOnly ? "bg-primary text-white" : "bg-black text-white")}>
                           <Swords className="w-5 h-5" strokeWidth={2} />
                         </span>
                         <span className="text-left">
@@ -957,7 +957,7 @@ export function GuildDiscoveryPanel() {
                       ) : (
                         <div className="max-h-60 overflow-y-auto space-y-2 pr-0.5">
                           {guildMembers.map((m: any) => (
-                            <div key={m.userId} className="bg-white border-2 border-black/10 hover:border-black transition-colors p-3 flex items-center gap-3">
+                            <div key={m.userId} className="bg-white border-2 border-black/10 hover:border-black rounded-xl transition-colors p-3 flex items-center gap-3">
                               <div className="relative w-9 h-9 rounded-lg border-2 border-black bg-[#EAE5DD] flex items-center justify-center text-[11px] font-black shrink-0 overflow-hidden">
                                 <span className="absolute inset-0 flex items-center justify-center text-black/30">{(m.firstName || m.identity || "M")[0].toUpperCase()}</span>
                                 {m.avatarUrl && (
