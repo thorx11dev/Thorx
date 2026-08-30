@@ -160,7 +160,8 @@ export function GuildNavDrawer({
           </nav>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 
