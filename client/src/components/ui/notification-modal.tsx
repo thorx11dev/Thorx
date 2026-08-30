@@ -212,7 +212,7 @@ export function NotificationModal({
                                         Activity
                                     </h1>
                                     {totalCount > 0 && (
-                                        <div className="mb-1 flex h-7 min-w-[28px] items-center justify-center bg-primary text-white font-black text-xs px-2 border-2 border-black">
+                                        <div className="mb-1 flex h-7 min-w-[28px] items-center justify-center bg-primary text-white font-black text-xs px-2 border-2 border-black rounded-lg">
                                             {totalCount}
                                         </div>
                                     )}
