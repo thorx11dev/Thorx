@@ -473,64 +473,39 @@ export function CaptainPortal() {
       {/* ── Main column — GUILD HERO + tab content ────────────────────── */}
       <div className="space-y-4 md:space-y-6 min-w-0">
 
-      {/* ── Mobile guild header — the profile card IS the header.
-             Tap toggles black ↔ white exactly like the section hero. ──── */}
-      <motion.div
-        initial={false}
-        animate={{
-          backgroundColor: cardToggled ? "#ffffff" : "#000000",
-          borderColor: cardToggled ? "#000000" : "#ffffff",
-          boxShadow: cardToggled
-            ? "0 4px 20px rgba(0,0,0,0.06)"
-            : "0 8px 30px rgba(0,0,0,0.12)"
-        }}
-        transition={{
-          backgroundColor: { duration: 0.4 },
-          borderColor: { duration: 0.4 }
-        }}
-        onClick={() => setCardToggled(v => !v)}
-        className="lg:hidden relative overflow-hidden group rounded-2xl border-2 p-3.5 cursor-pointer"
-      >
+      {/* ── Mobile guild header — the profile card IS the header ──────── */}
+      <div className="lg:hidden relative overflow-hidden group rounded-2xl border-2 border-black bg-white p-4">
         <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-700" />
 
         <div className="relative z-10">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className={cn(
-              "relative w-11 h-11 rounded-lg border-2 bg-[#EAE5DD] flex items-center justify-center font-black text-base shrink-0 overflow-hidden transition-colors duration-300",
-              cardToggled ? "border-black" : "border-white/40"
-            )}>
+          <div className="flex items-center gap-3.5 min-w-0 py-1">
+            <div className="relative w-12 h-12 rounded-lg border-2 border-black bg-[#EAE5DD] flex items-center justify-center font-black text-lg shrink-0 overflow-hidden">
               <span className="absolute inset-0 flex items-center justify-center text-black/25">{(guild.name || "G")[0].toUpperCase()}</span>
               {guild.avatarUrl && (
                 <img src={guild.avatarUrl} alt={guild.name} onError={(e) => { e.currentTarget.style.display = "none"; }} className="absolute inset-0 w-full h-full object-cover" />
               )}
             </div>
-            <div className={cn("flex-1 min-w-0 font-black text-base uppercase tracking-tighter truncate leading-tight transition-colors duration-300", cardToggled ? "text-black" : "text-white")}>
+            <div className="flex-1 min-w-0 font-black text-lg uppercase tracking-tighter truncate leading-tight text-black">
               {guild.name}
             </div>
-            <span className={cn(
-              "shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-md font-black uppercase tracking-[0.2em] text-[9px] transition-colors duration-300",
-              cardToggled ? "bg-black text-white" : "bg-white text-black"
-            )}>
+            <span className="shrink-0 inline-flex items-center px-3 py-1 rounded-md font-black uppercase tracking-[0.2em] text-[9px] bg-black text-white">
               CAPTAIN
             </span>
           </div>
 
-          <div className={cn(
-            "mt-2.5 pt-2.5 border-t-2 flex items-center justify-between gap-2 text-[9px] font-mono font-bold tracking-[0.12em] uppercase transition-colors duration-300",
-            cardToggled ? "border-black/10 text-black/45" : "border-white/15 text-white/50"
-          )}>
+          <div className="mt-3.5 pt-3 border-t-2 border-black/10 flex items-center justify-between gap-2 text-[9px] font-mono font-bold tracking-[0.12em] uppercase text-black/45">
             <span className="shrink-0">{active.length} MEMBERS</span>
-            <span className={cn("w-1 h-1 rounded-full shrink-0", cardToggled ? "bg-black/15" : "bg-white/20")} />
+            <span className="w-1 h-1 rounded-full bg-black/15 shrink-0" />
             <span className="text-primary shrink-0">{gpsScore.toLocaleString()} GPS</span>
             {weeklyTarget > 0 && (
               <>
-                <span className={cn("w-1 h-1 rounded-full shrink-0", cardToggled ? "bg-black/15" : "bg-white/20")} />
+                <span className="w-1 h-1 rounded-full bg-black/15 shrink-0" />
                 <span className="shrink-0">{targetPct.toFixed(0)}% TARGET</span>
               </>
             )}
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* ── The line that used to sit under the GUILD hero — standard spacing ── */}
       <InteractiveDivider className="my-12 lg:hidden" />
