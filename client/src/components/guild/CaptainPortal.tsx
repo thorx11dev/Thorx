@@ -471,53 +471,87 @@ export function CaptainPortal() {
       {/* ── Main column — GUILD HERO + tab content ────────────────────── */}
       <div className="space-y-4 md:space-y-6 min-w-0">
 
-      {/* ── Mobile guild header — wordmark plate + compact profile card ── */}
-      <div className="lg:hidden space-y-3">
-        {/* Header plate — GUILD. wordmark + nav trigger (portal-header rhythm) */}
-        <div className="bg-black rounded-2xl border-2 border-black h-16 px-4 flex items-center justify-between">
-          <span className="text-xl font-black tracking-tighter text-white leading-none pl-1">GUILD.</span>
-          <button
-            onClick={() => setNavOpen(true)}
-            aria-label="Open guild navigation"
-            data-testid="button-guild-nav"
-            className="relative w-11 h-11 rounded-lg border-2 border-white/25 bg-white/5 text-white flex items-center justify-center shrink-0 transition-colors duration-200 hover:bg-white hover:text-black"
-          >
-            <Menu className="w-5 h-5" strokeWidth={2} />
-            {pending.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary border-2 border-black flex items-center justify-center text-[8px] font-black text-white">
-                {pending.length > 9 ? "9+" : pending.length}
-              </span>
-            )}
-          </button>
-        </div>
+      {/* ── Mobile guild header — the profile card IS the header.
+             Tap toggles black ↔ white exactly like the section hero. ──── */}
+      <motion.div
+        initial={false}
+        animate={{
+          backgroundColor: cardToggled ? "#ffffff" : "#000000",
+          borderColor: cardToggled ? "#000000" : "#ffffff",
+          boxShadow: cardToggled
+            ? "0 4px 20px rgba(0,0,0,0.06)"
+            : "0 8px 30px rgba(0,0,0,0.12)"
+        }}
+        transition={{
+          backgroundColor: { duration: 0.4 },
+          borderColor: { duration: 0.4 }
+        }}
+        onClick={() => setCardToggled(v => !v)}
+        className="lg:hidden relative overflow-hidden group rounded-2xl border-2 p-4 md:p-5 cursor-pointer"
+      >
+        <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-700" />
 
-        {/* Compact profile card — clean structure, hairline-separated stats */}
-        <div className="bg-white rounded-2xl border-2 border-black p-4">
+        <div className="relative z-10">
           <div className="flex items-center gap-3.5 min-w-0">
-            <div className="relative w-12 h-12 rounded-xl border-2 border-black bg-[#EAE5DD] flex items-center justify-center font-black text-lg shrink-0 overflow-hidden">
+            <div className={cn(
+              "relative w-12 h-12 md:w-14 md:h-14 rounded-xl border-2 bg-[#EAE5DD] flex items-center justify-center font-black text-lg shrink-0 overflow-hidden transition-colors duration-300",
+              cardToggled ? "border-black" : "border-white/40"
+            )}>
               <span className="absolute inset-0 flex items-center justify-center text-black/25">{(guild.name || "G")[0].toUpperCase()}</span>
               {guild.avatarUrl && (
                 <img src={guild.avatarUrl} alt={guild.name} onError={(e) => { e.currentTarget.style.display = "none"; }} className="absolute inset-0 w-full h-full object-cover" />
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="font-black text-lg uppercase tracking-tighter truncate leading-tight">{guild.name}</div>
-              <div className="mt-1.5"><RoleChip role="CAPTAIN" /></div>
+              <div className={cn("font-black text-lg uppercase tracking-tighter truncate leading-tight transition-colors duration-300", cardToggled ? "text-black" : "text-white")}>
+                {guild.name}
+              </div>
+              <div className="mt-1.5">
+                <span className={cn(
+                  "inline-flex items-center px-3 py-1 rounded-sm font-black uppercase tracking-[0.2em] text-[10px] transition-colors duration-300",
+                  cardToggled ? "bg-black text-white" : "bg-white text-black"
+                )}>
+                  CAPTAIN
+                </span>
+              </div>
             </div>
+            {/* Nav trigger — click stops here so the card toggle doesn't fire */}
+            <button
+              onClick={(e) => { e.stopPropagation(); setNavOpen(true); }}
+              aria-label="Open guild navigation"
+              data-testid="button-guild-nav"
+              className={cn(
+                "relative w-11 h-11 rounded-lg border-2 flex items-center justify-center shrink-0 transition-colors duration-300",
+                cardToggled
+                  ? "border-black/20 bg-black/5 text-black hover:bg-black hover:text-white hover:border-black"
+                  : "border-white/25 bg-white/5 text-white hover:bg-white hover:text-black"
+              )}
+            >
+              <Menu className="w-5 h-5" strokeWidth={2} />
+              {pending.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary border-2 border-black flex items-center justify-center text-[8px] font-black text-white">
+                  {pending.length > 9 ? "9+" : pending.length}
+                </span>
+              )}
+            </button>
           </div>
-          <div className="mt-3.5 pt-3 border-t-2 border-black/10 flex items-center justify-between gap-2 text-[9px] font-mono font-bold tracking-[0.12em] text-black/45 uppercase">
+
+          <div className={cn(
+            "mt-3.5 pt-3 border-t-2 flex items-center justify-between gap-2 text-[9px] font-mono font-bold tracking-[0.12em] uppercase transition-colors duration-300",
+            cardToggled ? "border-black/10 text-black/45" : "border-white/15 text-white/50"
+          )}>
             <span className="shrink-0">{active.length} MEMBERS</span>
-            <span className="w-1 h-1 rounded-full bg-black/15 shrink-0" />
+            <span className={cn("w-1 h-1 rounded-full shrink-0", cardToggled ? "bg-black/15" : "bg-white/20")} />
             <span className="text-primary shrink-0">{gpsScore.toLocaleString()} GPS</span>
             {weeklyTarget > 0 && (
               <>
-                <span className="w-1 h-1 rounded-full bg-black/15 shrink-0" />
+                <span className={cn("w-1 h-1 rounded-full shrink-0", cardToggled ? "bg-black/15" : "bg-white/20")} />
                 <span className="shrink-0">{targetPct.toFixed(0)}% TARGET</span>
               </>
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* ── Mobile guild navigation drawer — cream twin of the portal menu,
              slides in from the LEFT with staggered spring rows ─────────── */}
