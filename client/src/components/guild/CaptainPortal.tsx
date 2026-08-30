@@ -5,6 +5,7 @@
  * NEVER shows PKR pool amounts to users — only after distribution.
  */
 import { useState, useRef, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
