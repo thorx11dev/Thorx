@@ -397,7 +397,7 @@ function FinancialCard({
                     {notification.adminName && (
                         <div className="flex items-center gap-2 mt-1.5">
                             <span className={cn(
-                                "px-1.5 py-px text-[8px] font-black border uppercase tracking-wider",
+                                "px-1.5 py-px text-[8px] font-black border uppercase tracking-wider rounded-sm",
                                 getRoleBadgeStyle(notification.adminRole)
                             )}>
                                 {notification.adminRole || "SYSTEM"}
@@ -440,7 +440,7 @@ function FinancialCard({
 function EmptyState() {
     return (
         <div className="flex flex-col items-center justify-center py-24 px-8 text-center">
-            <div className="w-16 h-16 border-2 border-black/15 flex items-center justify-center mb-6 bg-white">
+            <div className="w-16 h-16 border-2 border-black/15 rounded-2xl flex items-center justify-center mb-6 bg-white">
                 <Bell className="w-7 h-7 text-black/20" strokeWidth={1.5} />
             </div>
             <h3 className="text-lg font-black text-black uppercase tracking-tight">
