@@ -470,32 +470,52 @@ export function CaptainPortal() {
       {/* ── Main column — GUILD HERO + tab content ────────────────────── */}
       <div className="space-y-4 md:space-y-6 min-w-0">
 
-      {/* ── Mobile: compact guild profile strip + nav drawer trigger ──── */}
-      <div className="lg:hidden bg-white rounded-2xl border-2 border-black p-3.5 flex items-center gap-3">
-        <div className="relative w-11 h-11 rounded-lg border-2 border-black bg-[#EAE5DD] flex items-center justify-center font-black text-base shrink-0 overflow-hidden">
-          <span className="absolute inset-0 flex items-center justify-center text-black/25">{(guild.name || "G")[0].toUpperCase()}</span>
-          {guild.avatarUrl && (
-            <img src={guild.avatarUrl} alt={guild.name} onError={(e) => { e.currentTarget.style.display = "none"; }} className="absolute inset-0 w-full h-full object-cover" />
-          )}
+      {/* ── Mobile guild header — wordmark plate + compact profile card ── */}
+      <div className="lg:hidden space-y-3">
+        {/* Header plate — GUILD. wordmark + nav trigger (portal-header rhythm) */}
+        <div className="bg-black rounded-2xl border-2 border-black h-16 px-4 flex items-center justify-between">
+          <span className="text-xl font-black tracking-tighter text-white leading-none pl-1">GUILD.</span>
+          <button
+            onClick={() => setNavOpen(true)}
+            aria-label="Open guild navigation"
+            data-testid="button-guild-nav"
+            className="relative w-11 h-11 rounded-lg border-2 border-white/25 bg-white/5 text-white flex items-center justify-center shrink-0 transition-colors duration-200 hover:bg-white hover:text-black"
+          >
+            <Menu className="w-5 h-5" strokeWidth={2} />
+            {pending.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary border-2 border-black flex items-center justify-center text-[8px] font-black text-white">
+                {pending.length > 9 ? "9+" : pending.length}
+              </span>
+            )}
+          </button>
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-black text-base uppercase tracking-tighter truncate leading-tight">{guild.name}</span>
-            <RoleChip role="CAPTAIN" />
+
+        {/* Compact profile card — clean structure, hairline-separated stats */}
+        <div className="bg-white rounded-2xl border-2 border-black p-4">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="relative w-12 h-12 rounded-xl border-2 border-black bg-[#EAE5DD] flex items-center justify-center font-black text-lg shrink-0 overflow-hidden">
+              <span className="absolute inset-0 flex items-center justify-center text-black/25">{(guild.name || "G")[0].toUpperCase()}</span>
+              {guild.avatarUrl && (
+                <img src={guild.avatarUrl} alt={guild.name} onError={(e) => { e.currentTarget.style.display = "none"; }} className="absolute inset-0 w-full h-full object-cover" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-black text-lg uppercase tracking-tighter truncate leading-tight">{guild.name}</div>
+              <div className="mt-1.5"><RoleChip role="CAPTAIN" /></div>
+            </div>
           </div>
-          <div className="text-[9px] font-mono font-bold tracking-[0.15em] text-black/40 uppercase mt-1 truncate">
-            {active.length} MEMBERS · {gpsScore.toLocaleString()} GPS{weeklyTarget > 0 ? ` · TARGET ${targetPct.toFixed(0)}%` : ""}
+          <div className="mt-3.5 pt-3 border-t-2 border-black/10 flex items-center justify-between gap-2 text-[9px] font-mono font-bold tracking-[0.12em] text-black/45 uppercase">
+            <span className="shrink-0">{active.length} MEMBERS</span>
+            <span className="w-1 h-1 rounded-full bg-black/15 shrink-0" />
+            <span className="text-primary shrink-0">{gpsScore.toLocaleString()} GPS</span>
+            {weeklyTarget > 0 && (
+              <>
+                <span className="w-1 h-1 rounded-full bg-black/15 shrink-0" />
+                <span className="shrink-0">{targetPct.toFixed(0)}% TARGET</span>
+              </>
+            )}
           </div>
         </div>
-        <button
-          onClick={() => setNavOpen(true)}
-          aria-label="Open guild navigation"
-          data-testid="button-guild-nav"
-          className="relative w-11 h-11 rounded-lg border-2 border-black bg-black text-white flex items-center justify-center shrink-0 transition-colors duration-200 hover:bg-primary"
-        >
-          <Menu className="w-5 h-5" strokeWidth={2} />
-          {pending.length > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-primary border-2 border-white" />}
-        </button>
       </div>
 
       {/* ── Mobile guild navigation drawer — cream twin of the portal menu,
