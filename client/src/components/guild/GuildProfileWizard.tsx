@@ -237,7 +237,7 @@ export function GuildProfileWizard({ guildId, guildName, onDone, mode = "wizard"
                 maxLength={50}
               />
               <Input
-                placeholder="URL (https://...)"
+                placeholder="https://…"
                 value={newLink.url}
                 onChange={e => setNewLink(l => ({ ...l, url: e.target.value }))}
                 className={cn(FIELD_CLASS, "h-10")}
