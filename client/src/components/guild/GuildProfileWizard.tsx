@@ -161,10 +161,7 @@ export function GuildProfileWizard({ guildId, guildName, onDone, mode = "wizard"
           <span className="w-10 h-10 rounded-lg bg-black text-white border-2 border-black flex items-center justify-center shrink-0">
             <GiPortrait size={16} className="text-primary" />
           </span>
-          <div className="min-w-0">
-            <div className="font-black text-sm uppercase tracking-tight">Guild Profile</div>
-            <div className="text-[9px] font-mono font-bold tracking-[0.2em] text-black/40 uppercase mt-0.5">How teammates see you</div>
-          </div>
+          <div className="font-black text-sm uppercase tracking-tight">Guild Profile</div>
         </div>
       )}
 
