@@ -1229,6 +1229,7 @@ export function CaptainPortal() {
             </div>
 
             <div className="space-y-5">
+              <GroupLabel text="Identity" />
               <div>
                 <FieldLabel>Guild Name</FieldLabel>
                 <Input
