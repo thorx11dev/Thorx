@@ -13,7 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { PremiumCard } from "@/components/ui/premium-card";
 import { SectionChip, CTA_CLASS, OUTLINE_CLASS, AvatarStamp } from "./GuildPanelShell";
 import {
-  GiBroadsword, GiShield, GiPocketWatch, GiRoundShield, GiSkullCrossedBones, GiSwordSpin,
+  GiBroadsword, GiPocketWatch, GiRoundShield, GiSkullCrossedBones, GiSwordSpin,
   GiCrossedSwords, GiSpartanHelmet, GiFlame, GiLaurelsTrophy,
 } from "./guild-icons";
 import { cn } from "@/lib/utils";
