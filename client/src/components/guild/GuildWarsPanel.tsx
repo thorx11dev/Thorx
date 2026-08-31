@@ -242,7 +242,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
               ) : opponentsData.opponents?.length === 0 ? (
                 <div className="rounded-2xl bg-[#EAE5DD]/40 border-2 border-black/10 p-4">
                   <p className="text-sm font-medium text-black/55">
-                    No eligible opponents available. Opponents must be active guilds at your target difficulty and not currently in a war.
+                    No eligible opponents right now.
                   </p>
                 </div>
               ) : (
