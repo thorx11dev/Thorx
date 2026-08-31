@@ -1379,9 +1379,6 @@ export function CaptainPortal() {
               />
             ) : (
               <div className="space-y-3">
-                <p className="text-sm font-medium text-black/55">
-                  Appoint a trusted member as your assistant. They can help manage the guild based on permissions you grant.
-                </p>
                 <SelectField
                   defaultValue=""
                   onChange={async (e) => {
