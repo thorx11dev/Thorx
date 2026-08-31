@@ -901,7 +901,6 @@ export function CaptainPortal() {
                         <MessagesSquare size={20} className="text-black/25" />
                       </div>
                       <p className="text-sm font-black uppercase tracking-tight text-black/45 mb-1">No messages yet</p>
-                      <p className="text-xs font-medium text-black/40">Say hello to your guild!</p>
                     </div>
                   ) : (
                     chatDayGroups.map(([dayLabel, msgs]) => (
