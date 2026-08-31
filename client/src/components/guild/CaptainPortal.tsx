@@ -884,7 +884,7 @@ export function CaptainPortal() {
               )}
 
               {!isChatError && (
-                <div className="flex-1 overflow-y-auto p-4 space-y-2.5 bg-[#F2EDE4]/40">
+                <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-2.5 bg-[#F2EDE4]/40">
                   {chatMessages.length === 0 ? (
                     <div className="text-center py-16">
                       <div className="w-14 h-14 rounded-2xl border-2 border-black/10 bg-white flex items-center justify-center mx-auto mb-4">
@@ -893,34 +893,53 @@ export function CaptainPortal() {
                       <p className="text-sm font-black uppercase tracking-tight text-black/45 mb-1">No messages yet</p>
                       <p className="text-xs font-medium text-black/40">Say hello to your guild!</p>
                     </div>
-                  ) : chatMessages.map((msg: any, i: number) => {
-                    // engine_c_messages stores senderId (not userId/fromUserId) — the
-                    // senderId check is what aligns server messages to the right side;
-                    // userId/fromUserId cover the optimistic append until refetch.
-                    const isMe = msg.senderId === user?.id || msg.userId === user?.id || msg.fromUserId === user?.id;
-                    return (
-                      <div key={msg.id ?? i} className={cn("flex items-end gap-2", isMe ? "justify-end" : "justify-start")}>
-                        {!isMe && (
-                          <div className="w-7 h-7 rounded-lg border-2 border-black bg-[#EAE5DD] flex items-center justify-center text-[10px] font-black shrink-0 overflow-hidden">
-                            <span className="text-black/35">{(msg.senderName || msg.firstName || "M")[0].toUpperCase()}</span>
-                          </div>
-                        )}
-                        <div className={cn(
-                          "max-w-[72%] rounded-2xl px-4 py-2.5 text-sm border-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)]",
-                          isMe
-                            ? "bg-black text-white border-black rounded-br-md"
-                            : "bg-white text-black border-black rounded-bl-md"
-                        )}>
-                          {!isMe && (
-                            <p className="text-[10px] font-black uppercase tracking-wider text-primary mb-0.5">
-                              {msg.senderName || msg.firstName || "Member"}
-                            </p>
-                          )}
-                          {msg.message}
+                  ) : (
+                    chatDayGroups.map(([dayLabel, msgs]) => (
+                      <div key={dayLabel} className="space-y-2.5">
+                        {/* Day separator — mono label + hairline */}
+                        <div className="flex items-center gap-3 py-2">
+                          <span className="text-[9px] font-mono font-bold tracking-[0.3em] text-black/35 uppercase whitespace-nowrap">{dayLabel}</span>
+                          <div className="h-px flex-1 bg-black/10" />
                         </div>
+                        {msgs.map((msg: any, i: number) => {
+                          // engine_c_messages stores senderId (not userId/fromUserId) — the
+                          // senderId check is what aligns server messages to the right side;
+                          // userId/fromUserId cover the optimistic append until refetch.
+                          const isMe = msg.senderId === user?.id || msg.userId === user?.id || msg.fromUserId === user?.id;
+                          const isPending = !!(msg as any)._optimistic;
+                          return (
+                            <div key={msg.id ?? `${dayLabel}-${i}`} className={cn("flex items-end gap-2", isMe ? "justify-end" : "justify-start")}>
+                              {!isMe && (
+                                <div className="w-7 h-7 rounded-lg border-2 border-black bg-[#EAE5DD] flex items-center justify-center text-[10px] font-black shrink-0 overflow-hidden">
+                                  <span className="text-black/35">{(msg.senderName || msg.firstName || "M")[0].toUpperCase()}</span>
+                                </div>
+                              )}
+                              <div className={cn(
+                                "max-w-[72%] rounded-2xl px-4 py-2.5 text-sm border-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)]",
+                                isMe
+                                  ? "bg-black text-white border-black rounded-br-md"
+                                  : "bg-white text-black border-black rounded-bl-md",
+                                isPending && "opacity-60"
+                              )}>
+                                {!isMe && (
+                                  <p className="text-[10px] font-black uppercase tracking-wider text-primary mb-0.5">
+                                    {msg.senderName || msg.firstName || "Member"}
+                                  </p>
+                                )}
+                                <p className="break-words">{msg.message}</p>
+                                <p className={cn(
+                                  "text-[8px] font-mono font-bold tracking-[0.15em] mt-1 uppercase",
+                                  isMe ? "text-white/40" : "text-black/30"
+                                )}>
+                                  {msg.createdAt ? format(new Date(msg.createdAt), "HH:mm") : "sending…"}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    ))
+                  )}
                   <div ref={chatEndRef} />
                 </div>
               )}
