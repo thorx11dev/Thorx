@@ -1020,20 +1020,24 @@ export function CaptainPortal() {
                 <PremiumCard interactive={false} className="flex flex-col p-0 overflow-hidden h-[520px] md:h-[560px]">
                   <div className="px-4 py-3.5 border-b-2 border-black flex items-center gap-3 bg-white">
                     <button
-                      className={ICON_BTN_CLASS}
+                      className="w-9 h-9 rounded-lg border-2 border-black bg-black text-white flex items-center justify-center shrink-0 hover:bg-primary transition-colors"
                       onClick={() => setSelectedDmMember(null)}
                       aria-label="Back to member list"
                     >
-                      <ArrowLeft size={14} />
+                      <ArrowLeft size={14} strokeWidth={2} />
                     </button>
                     <AvatarStamp
                       name={active.find((m: any) => m.userId === selectedDmMember)?.firstName || active.find((m: any) => m.userId === selectedDmMember)?.identity}
                       avatarUrl={active.find((m: any) => m.userId === selectedDmMember)?.avatarUrl}
                       size="sm"
                     />
-                    <div className="font-black text-sm text-black tracking-tight truncate">
-                      {active.find((m: any) => m.userId === selectedDmMember)?.firstName || "Member"}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-black text-sm text-black tracking-tight truncate">
+                        {active.find((m: any) => m.userId === selectedDmMember)?.firstName || "Member"}
+                      </div>
+                      <div className="text-[8px] font-mono font-bold tracking-[0.2em] text-black/40 uppercase mt-0.5">Direct Message</div>
                     </div>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                   </div>
 
                   {isDmError && (
