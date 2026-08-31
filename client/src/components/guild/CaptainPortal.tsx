@@ -39,6 +39,16 @@ import { GuildDiscoveryPanel } from "./GuildDiscoveryPanel";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow, format } from "date-fns";
 
+/** Mono group label + hairline — notification-panel section signature. */
+function GroupLabel({ text }: { text: string }) {
+  return (
+    <div className="flex items-center gap-3 pt-1">
+      <span className="text-[10px] font-mono font-bold tracking-[0.3em] text-black/35 uppercase whitespace-nowrap">{text}</span>
+      <div className="h-px flex-1 bg-black/10" />
+    </div>
+  );
+}
+
 type Tab = "requests" | "roster" | "tasks" | "chat" | "wars" | "discover" | "stats" | "settings";
 
 export function CaptainPortal() {
