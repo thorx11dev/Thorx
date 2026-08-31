@@ -230,7 +230,7 @@ export function GuildProfileWizard({ guildId, guildName, onDone, mode = "wizard"
           {showLinkForm && (
             <div className="rounded-2xl border-2 border-black p-3.5 space-y-2.5 bg-white">
               <Input
-                placeholder="Label (e.g. LinkedIn)"
+                placeholder="Label"
                 value={newLink.label}
                 onChange={e => setNewLink(l => ({ ...l, label: e.target.value }))}
                 className={cn(FIELD_CLASS, "h-10")}
