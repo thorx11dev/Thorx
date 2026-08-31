@@ -1057,14 +1057,20 @@ export function CaptainPortal() {
                           <p className="text-xs font-medium text-black/40">Start the conversation.</p>
                         </div>
                       ) : dmMessages.map((msg: any, i) => (
-                        <div key={msg.id ?? i} className={cn("flex", msg.fromUserId === user?.id ? "justify-end" : "justify-start")}>
+                        <div key={msg.id ?? i} className={cn("flex items-end", msg.fromUserId === user?.id ? "justify-end" : "justify-start")}>
                           <div className={cn(
                             "max-w-[72%] rounded-2xl px-4 py-2.5 text-sm border-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)]",
                             msg.fromUserId === user?.id
                               ? "bg-black text-white border-black rounded-br-md"
                               : "bg-white text-black border-black rounded-bl-md"
                           )}>
-                            {msg.message}
+                            <p className="break-words">{msg.message}</p>
+                            <p className={cn(
+                              "text-[8px] font-mono font-bold tracking-[0.15em] mt-1 uppercase",
+                              msg.fromUserId === user?.id ? "text-white/40" : "text-black/30"
+                            )}>
+                              {msg.createdAt ? format(new Date(msg.createdAt), "HH:mm") : "sending…"}
+                            </p>
                           </div>
                         </div>
                       ))}
