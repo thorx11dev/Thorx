@@ -4,7 +4,7 @@
  * Tabs: Requests | Roster | DM Hub | Weekly Stats | Settings
  * NEVER shows PKR pool amounts to users — only after distribution.
  */
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -37,7 +37,7 @@ import { GuildProfileWizard } from "./GuildProfileWizard";
 import { GuildTasksPanel } from "./GuildTasksPanel";
 import { GuildDiscoveryPanel } from "./GuildDiscoveryPanel";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 
 type Tab = "requests" | "roster" | "tasks" | "chat" | "wars" | "discover" | "stats" | "settings";
 
