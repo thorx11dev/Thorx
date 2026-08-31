@@ -1272,9 +1272,14 @@ export function CaptainPortal() {
 
           {/* Assistant Captain */}
           <PremiumCard interactive={false}>
-            <div className="flex items-center justify-between mb-4">
-              <SectionChip>ASSISTANT CAPTAIN</SectionChip>
-              <GiShield size={16} className="text-primary" />
+            <div className="flex items-center gap-3 mb-5">
+              <span className="w-10 h-10 rounded-lg bg-black text-white border-2 border-black flex items-center justify-center shrink-0">
+                <Shield size={16} strokeWidth={2} />
+              </span>
+              <div className="min-w-0">
+                <div className="font-black text-sm uppercase tracking-tight">Assistant Captain</div>
+                <div className="text-[9px] font-mono font-bold tracking-[0.2em] text-black/40 uppercase mt-0.5">Delegation · Permissions</div>
+              </div>
             </div>
 
             {guild.assistantCaptainId ? (
