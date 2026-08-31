@@ -1053,7 +1053,6 @@ export function CaptainPortal() {
                             <MessageCircle size={20} className="text-black/25" />
                           </div>
                           <p className="text-sm font-black uppercase tracking-tight text-black/45 mb-1">No messages yet</p>
-                          <p className="text-xs font-medium text-black/40">Start the conversation.</p>
                         </div>
                       ) : dmMessages.map((msg: any, i) => (
                         <div key={msg.id ?? i} className={cn("flex items-end", msg.fromUserId === user?.id ? "justify-end" : "justify-start")}>
