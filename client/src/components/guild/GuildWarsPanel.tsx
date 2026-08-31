@@ -441,7 +441,6 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
               const chestB = Number(challengedGuild?.warChestPkr ?? 0);
               const totalChest = chestA + chestB;
               const chestShare = totalChest > 0 ? (chestA / totalChest) * 100 : 50;
-              const levy = warData?.warLevyPcts;
               return (
                 <div className="rounded-2xl bg-white border-2 border-black p-4 md:p-5 space-y-3">
                   <div className="flex items-center justify-between">
