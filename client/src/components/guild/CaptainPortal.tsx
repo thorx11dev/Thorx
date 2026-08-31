@@ -135,6 +135,24 @@ export function CaptainPortal() {
     refetchInterval: tab === "chat" ? 15000 : false,
   });
 
+  // Group chat messages by day for mono separators (Today / Yesterday / date).
+  const chatDayGroups = useMemo(() => {
+    const groups: { label: string; msgs: any[] }[] = [];
+    chatMessages.forEach((msg: any) => {
+      const d = msg.createdAt ? new Date(msg.createdAt) : new Date();
+      const dayKey = format(d, "yyyy-MM-dd");
+      const label = dayKey === format(new Date(), "yyyy-MM-dd")
+        ? "Today"
+        : dayKey === format(new Date(Date.now() - 86400000), "yyyy-MM-dd")
+          ? "Yesterday"
+          : format(d, "dd MMM yyyy");
+      const last = groups[groups.length - 1];
+      if (last && last.label === label) last.msgs.push(msg);
+      else groups.push({ label, msgs: [msg] });
+    });
+    return groups.map(g => [g.label, g.msgs] as [string, any[]]);
+  }, [chatMessages]);
+
   // DM messages
   const {
     data: dmMessages = [],
