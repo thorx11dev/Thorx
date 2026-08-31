@@ -141,9 +141,6 @@ export function MemberAvatarEditor() {
 
         {/* Universal avatar grid */}
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-2.5">
-            Choose a portrait
-          </p>
           <div className="grid grid-cols-6 gap-2.5">
             {UNIVERSAL_AVATARS.map((av) => {
               const isSelected = avatar === av.id;
