@@ -23,7 +23,7 @@ import {
   AvatarStamp, EmptyState, SelectField, SegmentedToggle, ChatComposer,
   PanelSkeleton, SkeletonBlock,
 } from "./GuildPanelShell";
-import { Inbox, Users, ListChecks, MessagesSquare, MessageCircle, Swords, Search, BarChart3, Settings, Menu, ArrowRight, ArrowLeft, Megaphone } from "lucide-react";
+import { Inbox, Users, ListChecks, MessagesSquare, MessageCircle, Swords, Search, BarChart3, Settings, Menu, ArrowRight, ArrowLeft, Megaphone, Shield } from "lucide-react";
 import { InteractiveDivider } from "@/features/user-portal/shared";
 import { GuildNavDrawer } from "./GuildNavDrawer";
 import {
