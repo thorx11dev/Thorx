@@ -1194,12 +1194,24 @@ export function CaptainPortal() {
       {/* ── SETTINGS — guild settings + profile wizard unified ─────────── */}
       {tab === "settings" && (
         <div className="space-y-3 md:space-y-4">
-          {/* Mode switch — Guild / Profile */}
-          <SegmentedToggle
-            options={[{ value: true, label: "Guild Settings" }, { value: false, label: "Guild Profile" }]}
-            value={settingsView === "guild"}
-            onChange={(v) => setSettingsView(v ? "guild" : "profile")}
-          />
+          {/* Mode switch — full-width segmented plate */}
+          <div className="bg-white rounded-2xl border-2 border-black p-1.5 flex gap-1.5">
+            {([
+              { id: "guild", label: "Guild Settings", icon: Settings },
+              { id: "profile", label: "Guild Profile", icon: ImagePlus },
+            ] as const).map(m => (
+              <button
+                key={m.id}
+                onClick={() => setSettingsView(m.id)}
+                className={cn(
+                  "flex-1 h-11 rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-200",
+                  settingsView === m.id ? "bg-black text-white" : "text-black/55 hover:bg-black/5 hover:text-black"
+                )}
+              >
+                <m.icon size={14} strokeWidth={2} /> {m.label}
+              </button>
+            ))}
+          </div>
 
           {settingsView === "guild" && settingsForm && (
           <div className="space-y-4 md:space-y-6">
