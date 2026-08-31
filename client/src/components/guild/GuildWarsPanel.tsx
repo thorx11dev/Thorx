@@ -462,10 +462,6 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
                     <span className="truncate">{challengerGuild?.name || "Challenger"} · {fmtRs(chestA)}</span>
                     <span className="truncate">{challengedGuild?.name || "Opponent"} · {fmtRs(chestB)}</span>
                   </div>
-                  <p className="text-[10px] font-medium text-black/40 leading-relaxed">
-                    Funded from THORX's own revenue cut
-                    {levy ? ` (${levy.engineA}% Engine A · ${levy.engineB}% Engine B · ${levy.engineC}% Engine C)` : ""} — never from member earnings.
-                  </p>
                 </div>
               );
             })()}
