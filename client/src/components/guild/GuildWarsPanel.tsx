@@ -222,9 +222,6 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
             <h2 className="font-black text-2xl md:text-3xl text-black uppercase tracking-tighter leading-none">
               Your guild stands at peace.
             </h2>
-            <p className="text-sm text-black/50 mt-2.5 max-w-md">
-              Initiate a challenge to battle for the war chest — the winner takes both guilds' chests.
-            </p>
           </div>
 
           {isCaptain && !challengeMode && (
