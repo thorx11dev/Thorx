@@ -722,17 +722,18 @@ export function CaptainPortal() {
                                 </span>
                                 {m.isMvp && <GiLaurelsTrophy size={13} className="text-primary fill-primary shrink-0" />}
                               </div>
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                <RankBadge rank={m.userRankTier || "E-Rank"} size="sm" showLabel={false} />
-                                {isCaptain && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/30 text-primary font-black uppercase tracking-wider text-[10px]">
-                                    CAPTAIN
-                                  </span>
-                                )}
-                                {isInactive && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-destructive/10 border border-destructive/30 text-destructive font-black uppercase tracking-wider text-[10px]">INACTIVE</span>
-                                )}
-                              </div>
+                              {(isCaptain || isInactive) && (
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  {isCaptain && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/30 text-primary font-black uppercase tracking-wider text-[10px]">
+                                      CAPTAIN
+                                    </span>
+                                  )}
+                                  {isInactive && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-destructive/10 border border-destructive/30 text-destructive font-black uppercase tracking-wider text-[10px]">INACTIVE</span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
 
