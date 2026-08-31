@@ -997,7 +997,7 @@ export function CaptainPortal() {
                     {active.filter((m: any) => m.userId !== user?.id).map((m: any) => (
                       <button
                         key={m.id}
-                        className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border-2 border-black/10 bg-white text-left transition-all duration-150 hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        className="group w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border-2 border-black/10 bg-white text-left transition-all duration-200 hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         onClick={() => setSelectedDmMember(m.userId)}
                       >
                         <AvatarStamp name={m.firstName || m.identity} avatarUrl={m.avatarUrl} size="sm" />
@@ -1009,7 +1009,9 @@ export function CaptainPortal() {
                             {(m.weeklyPointsContributed || 0).toLocaleString()} PTS THIS WEEK
                           </div>
                         </div>
-                        <ArrowRight size={16} className="text-black/30 shrink-0" />
+                        <span className="w-9 h-9 rounded-full border-2 border-black/15 group-hover:border-black group-hover:bg-black group-hover:text-white flex items-center justify-center text-black/40 transition-all shrink-0">
+                          <ArrowRight size={14} strokeWidth={2} />
+                        </span>
                       </button>
                     ))}
                   </div>
