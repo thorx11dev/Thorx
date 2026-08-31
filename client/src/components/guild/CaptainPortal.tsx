@@ -23,7 +23,7 @@ import {
   AvatarStamp, EmptyState, SelectField, SegmentedToggle, ChatComposer,
   PanelSkeleton, SkeletonBlock,
 } from "./GuildPanelShell";
-import { Inbox, Users, ListChecks, MessagesSquare, MessageCircle, Swords, Search, User, BarChart3, Settings, Menu } from "lucide-react";
+import { Inbox, Users, ListChecks, MessagesSquare, MessageCircle, Swords, Search, BarChart3, Settings, Menu, ArrowRight, ArrowLeft, Megaphone } from "lucide-react";
 import { InteractiveDivider } from "@/features/user-portal/shared";
 import { GuildNavDrawer } from "./GuildNavDrawer";
 import {
@@ -39,7 +39,7 @@ import { GuildDiscoveryPanel } from "./GuildDiscoveryPanel";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
-type Tab = "requests" | "roster" | "tasks" | "chat" | "dm" | "wars" | "discover" | "profile" | "stats" | "settings";
+type Tab = "requests" | "roster" | "tasks" | "chat" | "wars" | "discover" | "stats" | "settings";
 
 export function CaptainPortal() {
   const { user } = useAuth();
@@ -47,6 +47,8 @@ export function CaptainPortal() {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("requests");
   const [navOpen, setNavOpen] = useState(false);
+  const [chatMode, setChatMode] = useState<"group" | "solo">("group");
+  const [settingsView, setSettingsView] = useState<"guild" | "profile">("guild");
   const [rejectModal, setRejectModal] = useState<{ appId: string; applicantName: string } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [kickConfirm, setKickConfirm] = useState<string | null>(null);
@@ -141,7 +143,7 @@ export function CaptainPortal() {
   } = useQuery<any[]>({
     queryKey: ["/api/guilds", guildId, "private-chat", selectedDmMember],
     queryFn: async () => { const r = await apiRequest("GET", `/api/guilds/${guildId}/private-chat/${selectedDmMember}`); const d = await r.json(); return d.messages ?? []; },
-    enabled: !!guildId && !!selectedDmMember && tab === "dm",
+    enabled: !!guildId && !!selectedDmMember && tab === "chat" && chatMode === "solo",
     refetchInterval: 60000,
   });
 
@@ -277,7 +279,7 @@ export function CaptainPortal() {
 
   // DM thread scrolls to the latest message when it loads/updates.
   useEffect(() => {
-    if (tab === "dm" && selectedDmMember) {
+    if (tab === "chat" && chatMode === "solo" && selectedDmMember) {
       dmEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [dmMessages, selectedDmMember, tab]);
@@ -362,11 +364,9 @@ export function CaptainPortal() {
     { id: "requests", label: "Requests",     icon: Inbox,          badge: pending.length },
     { id: "roster",   label: "Roster",       icon: Users },
     { id: "tasks",    label: "Tasks",        icon: ListChecks },
-    { id: "chat",     label: "Guild Chat",   icon: MessagesSquare },
-    { id: "dm",       label: "Private Chat", icon: MessageCircle },
+    { id: "chat",     label: "Chat",         icon: MessagesSquare },
     { id: "wars",     label: "Wars",         icon: Swords },
     { id: "discover", label: "Discover",     icon: Search },
-    { id: "profile",  label: "My Profile",   icon: User },
     { id: "stats",    label: "Stats",        icon: BarChart3 },
     { id: "settings", label: "Settings",     icon: Settings },
   ];
@@ -776,7 +776,7 @@ export function CaptainPortal() {
                                 className={ICON_BTN_CLASS}
                                 title="DM"
                                 aria-label={`Message ${m.firstName || "member"}`}
-                                onClick={() => { setSelectedDmMember(m.userId); setTab("dm"); }}
+                                onClick={() => { setSelectedDmMember(m.userId); setChatMode("solo"); setTab("chat"); }}
                               >
                                 <GiChatBubble size={13} />
                               </button>
@@ -818,172 +818,206 @@ export function CaptainPortal() {
         <GuildTasksPanel />
       )}
 
-      {/* ── GUILD CHAT ──────────────────────────────────────────────────── */}
+      {/* ── CHAT — group + solo unified ─────────────────────────────────── */}
       {tab === "chat" && (
-        <PremiumCard interactive={false} className="flex flex-col p-0 overflow-hidden h-[460px] max-h-[60vh] min-h-[280px]">
-          <div className="px-5 py-3.5 border-b-2 border-black flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <SectionChip>GUILD CHAT</SectionChip>
-              <span className="text-[10px] font-black uppercase tracking-wider text-black/40 truncate">Visible to all active members</span>
-            </div>
-            <GiChatBubble size={14} className="text-primary shrink-0" />
+        <div className="space-y-3 md:space-y-4">
+          {/* Mode switch — Group / Solo */}
+          <div className="flex items-center justify-between gap-3">
+            <SegmentedToggle
+              options={[{ value: true, label: "Group Chat" }, { value: false, label: "Solo Chat" }]}
+              value={chatMode === "group"}
+              onChange={(v) => setChatMode(v ? "group" : "solo")}
+            />
           </div>
 
-          {isChatError && (
-            <div className="flex-1 flex items-center justify-center p-4">
-              <QueryError message="Could not load messages." onRetry={() => refetchChat()} />
-            </div>
-          )}
-
-          {!isChatError && (
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {chatMessages.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-sm font-black uppercase tracking-tight text-black/45 mb-1">No messages yet</p>
-                  <p className="text-xs font-medium text-black/40">Say hello to your guild!</p>
-                </div>
-              ) : chatMessages.map((msg: any, i: number) => {
-                // engine_c_messages stores senderId (not userId/fromUserId) — the
-                // senderId check is what aligns server messages to the right side;
-                // userId/fromUserId cover the optimistic append until refetch.
-                const isMe = msg.senderId === user?.id || msg.userId === user?.id || msg.fromUserId === user?.id;
-                return (
-                  <div key={msg.id ?? i} className={cn("flex", isMe ? "justify-end" : "justify-start")}>
-                    <div className={cn(
-                      "max-w-[75%] rounded-2xl px-3.5 py-2 text-sm border-2",
-                      isMe
-                        ? "bg-black text-white border-black"
-                        : "bg-white text-black border-black/10"
-                    )}>
-                      {!isMe && (
-                        <p className="text-[10px] font-black uppercase tracking-wider text-primary mb-0.5">
-                          {msg.senderName || msg.firstName || "Member"}
-                        </p>
-                      )}
-                      {msg.message}
+          {chatMode === "group" ? (
+            /* ── Group chat ── */
+            <PremiumCard interactive={false} className="flex flex-col p-0 overflow-hidden h-[520px] md:h-[560px]">
+              <div className="px-5 py-4 border-b-2 border-black flex items-center justify-between gap-3 bg-white">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-black border-2 border-black text-white flex items-center justify-center shrink-0">
+                    <MessagesSquare size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-black text-sm uppercase tracking-tight truncate">{guild.name}</div>
+                    <div className="text-[9px] font-mono font-bold tracking-[0.15em] text-black/40 uppercase">
+                      {active.length} MEMBERS
                     </div>
                   </div>
-                );
-              })}
-              <div ref={chatEndRef} />
-            </div>
-          )}
-
-          <ChatComposer
-            value={chatMsg}
-            onChange={setChatMsg}
-            onSend={(v) => sendChatMutation.mutate(v)}
-            placeholder="Message the guild…"
-            isPending={sendChatMutation.isPending}
-          />
-        </PremiumCard>
-      )}
-
-      {/* ── DM HUB ──────────────────────────────────────────────────────── */}
-      {tab === "dm" && (
-        <div className="space-y-3 md:space-y-4">
-          {!selectedDmMember ? (
-            <>
-              <SectionChip>SELECT A MEMBER TO MESSAGE</SectionChip>
-              {isMembersLoading && (
-                <div className="space-y-2">
-                  {[0, 1, 2].map(i => (
-                    <div key={i} className="flex items-center gap-3 p-4 bg-white rounded-2xl border-2 border-black/10">
-                      <SkeletonBlock className="w-10 h-10 rounded-lg" />
-                      <div className="space-y-1.5 flex-1">
-                        <SkeletonBlock className="h-3 w-28" />
-                        <SkeletonBlock className="h-3 w-16" />
-                      </div>
-                    </div>
-                  ))}
                 </div>
-              )}
-              {isMembersError && (
-                <PremiumCard interactive={false}>
-                  <QueryError message="Could not load member list." onRetry={() => refetchMembers()} />
-                </PremiumCard>
-              )}
-              {!isMembersLoading && !isMembersError && active.filter((m: any) => m.userId !== user?.id).length === 0 && (
-                <EmptyState
-                  icon={<GiChatBubble size={22} className="text-black/40" />}
-                  chip="PRIVATE CHAT"
-                  title="No members to message yet"
-                  caption="Active members will appear here."
-                />
-              )}
-              <div className="space-y-2">
-                {active.filter((m: any) => m.userId !== user?.id).map((m: any) => (
-                  <button
-                    key={m.id}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-black/10 bg-white text-left transition-all duration-150 hover:border-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    onClick={() => setSelectedDmMember(m.userId)}
-                  >
-                    <AvatarStamp name={m.firstName || m.identity} avatarUrl={m.avatarUrl} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-foreground text-sm truncate">
-                        {m.firstName || m.identity || "Member"}
-                      </div>
-                      <RankBadge rank={m.userRankTier || "E-Rank"} size="sm" />
-                    </div>
-                    <GiArrowhead size={16} className="text-black/40 shrink-0" />
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : (
-            <PremiumCard interactive={false} className="flex flex-col p-0 overflow-hidden h-[420px] max-h-[60vh] min-h-[280px]">
-              <div className="px-4 py-3 border-b-2 border-black flex items-center gap-3">
-                <button
-                  className={ICON_BTN_CLASS}
-                  onClick={() => setSelectedDmMember(null)}
-                  aria-label="Back to member list"
-                >
-                  <GiArrowCluster size={14} />
-                </button>
-                <div className="flex items-center gap-2">
-                  <AvatarStamp
-                    name={active.find((m: any) => m.userId === selectedDmMember)?.firstName || active.find((m: any) => m.userId === selectedDmMember)?.identity}
-                    avatarUrl={active.find((m: any) => m.userId === selectedDmMember)?.avatarUrl}
-                    size="sm"
-                  />
-                  <span className="font-bold text-black text-sm">
-                    {active.find((m: any) => m.userId === selectedDmMember)?.firstName || "Member"}
-                  </span>
-                </div>
+                <SectionChip className="hidden sm:inline-flex">GROUP</SectionChip>
               </div>
 
-              {isDmError && (
+              {isChatError && (
                 <div className="flex-1 flex items-center justify-center p-4">
-                  <QueryError message="Could not load messages." onRetry={() => refetchDm()} />
+                  <QueryError message="Could not load messages." onRetry={() => refetchChat()} />
                 </div>
               )}
 
-              {!isDmError && (
-                <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                  {dmMessages.map((msg: any, i) => (
-                    <div key={msg.id ?? i} className={cn("flex", msg.fromUserId === user?.id ? "justify-end" : "justify-start")}>
-                      <div className={cn(
-                        "max-w-[75%] rounded-2xl px-3.5 py-2 text-sm border-2",
-                        msg.fromUserId === user?.id
-                          ? "bg-black text-white border-black"
-                          : "bg-white text-black border-black/10"
-                      )}>
-                        {msg.message}
+              {!isChatError && (
+                <div className="flex-1 overflow-y-auto p-4 space-y-2.5 bg-[#F2EDE4]/40">
+                  {chatMessages.length === 0 ? (
+                    <div className="text-center py-16">
+                      <div className="w-14 h-14 rounded-2xl border-2 border-black/10 bg-white flex items-center justify-center mx-auto mb-4">
+                        <MessagesSquare size={20} className="text-black/25" />
                       </div>
+                      <p className="text-sm font-black uppercase tracking-tight text-black/45 mb-1">No messages yet</p>
+                      <p className="text-xs font-medium text-black/40">Say hello to your guild!</p>
                     </div>
-                  ))}
-                  <div ref={dmEndRef} />
+                  ) : chatMessages.map((msg: any, i: number) => {
+                    // engine_c_messages stores senderId (not userId/fromUserId) — the
+                    // senderId check is what aligns server messages to the right side;
+                    // userId/fromUserId cover the optimistic append until refetch.
+                    const isMe = msg.senderId === user?.id || msg.userId === user?.id || msg.fromUserId === user?.id;
+                    return (
+                      <div key={msg.id ?? i} className={cn("flex items-end gap-2", isMe ? "justify-end" : "justify-start")}>
+                        {!isMe && (
+                          <div className="w-7 h-7 rounded-lg border-2 border-black bg-[#EAE5DD] flex items-center justify-center text-[10px] font-black shrink-0 overflow-hidden">
+                            <span className="text-black/35">{(msg.senderName || msg.firstName || "M")[0].toUpperCase()}</span>
+                          </div>
+                        )}
+                        <div className={cn(
+                          "max-w-[72%] rounded-2xl px-4 py-2.5 text-sm border-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)]",
+                          isMe
+                            ? "bg-black text-white border-black rounded-br-md"
+                            : "bg-white text-black border-black rounded-bl-md"
+                        )}>
+                          {!isMe && (
+                            <p className="text-[10px] font-black uppercase tracking-wider text-primary mb-0.5">
+                              {msg.senderName || msg.firstName || "Member"}
+                            </p>
+                          )}
+                          {msg.message}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={chatEndRef} />
                 </div>
               )}
 
               <ChatComposer
-                value={dmMsg}
-                onChange={setDmMsg}
-                onSend={(v) => sendDmMutation.mutate(v)}
-                placeholder="Message member…"
-                isPending={sendDmMutation.isPending}
+                value={chatMsg}
+                onChange={setChatMsg}
+                onSend={(v) => sendChatMutation.mutate(v)}
+                placeholder="Message the guild…"
+                isPending={sendChatMutation.isPending}
               />
             </PremiumCard>
+          ) : (
+            /* ── Solo chat — member picker + 1:1 thread ── */
+            <div className="space-y-3">
+              {!selectedDmMember ? (
+                <>
+                  {isMembersLoading && (
+                    <div className="space-y-2">
+                      {[0, 1, 2].map(i => (
+                        <div key={i} className="flex items-center gap-3 p-4 bg-white rounded-2xl border-2 border-black/10">
+                          <SkeletonBlock className="w-10 h-10 rounded-lg" />
+                          <div className="space-y-1.5 flex-1">
+                            <SkeletonBlock className="h-3 w-28" />
+                            <div className="h-3 w-16" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {isMembersError && (
+                    <PremiumCard interactive={false}>
+                      <QueryError message="Could not load member list." onRetry={() => refetchMembers()} />
+                    </PremiumCard>
+                  )}
+                  {!isMembersLoading && !isMembersError && active.filter((m: any) => m.userId !== user?.id).length === 0 && (
+                    <EmptyState
+                      icon={<MessageCircle size={22} className="text-black/40" />}
+                      chip="SOLO CHAT"
+                      title="No members to message yet"
+                      caption="Active members will appear here."
+                    />
+                  )}
+                  <div className="space-y-2">
+                    {active.filter((m: any) => m.userId !== user?.id).map((m: any) => (
+                      <button
+                        key={m.id}
+                        className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border-2 border-black/10 bg-white text-left transition-all duration-150 hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        onClick={() => setSelectedDmMember(m.userId)}
+                      >
+                        <AvatarStamp name={m.firstName || m.identity} avatarUrl={m.avatarUrl} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-black text-sm text-black tracking-tight truncate">
+                            {m.firstName || m.identity || "Member"}
+                          </div>
+                          <div className="text-[9px] font-mono font-bold tracking-[0.15em] text-black/40 uppercase mt-0.5">
+                            {(m.weeklyPointsContributed || 0).toLocaleString()} PTS THIS WEEK
+                          </div>
+                        </div>
+                        <ArrowRight size={16} className="text-black/30 shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <PremiumCard interactive={false} className="flex flex-col p-0 overflow-hidden h-[520px] md:h-[560px]">
+                  <div className="px-4 py-3.5 border-b-2 border-black flex items-center gap-3 bg-white">
+                    <button
+                      className={ICON_BTN_CLASS}
+                      onClick={() => setSelectedDmMember(null)}
+                      aria-label="Back to member list"
+                    >
+                      <ArrowLeft size={14} />
+                    </button>
+                    <AvatarStamp
+                      name={active.find((m: any) => m.userId === selectedDmMember)?.firstName || active.find((m: any) => m.userId === selectedDmMember)?.identity}
+                      avatarUrl={active.find((m: any) => m.userId === selectedDmMember)?.avatarUrl}
+                      size="sm"
+                    />
+                    <div className="font-black text-sm text-black tracking-tight truncate">
+                      {active.find((m: any) => m.userId === selectedDmMember)?.firstName || "Member"}
+                    </div>
+                  </div>
+
+                  {isDmError && (
+                    <div className="flex-1 flex items-center justify-center p-4">
+                      <QueryError message="Could not load messages." onRetry={() => refetchDm()} />
+                    </div>
+                  )}
+
+                  {!isDmError && (
+                    <div className="flex-1 overflow-y-auto p-4 space-y-2.5 bg-[#F2EDE4]/40">
+                      {dmMessages.length === 0 ? (
+                        <div className="text-center py-16">
+                          <div className="w-14 h-14 rounded-2xl border-2 border-black/10 bg-white flex items-center justify-center mx-auto mb-4">
+                            <MessageCircle size={20} className="text-black/25" />
+                          </div>
+                          <p className="text-sm font-black uppercase tracking-tight text-black/45 mb-1">No messages yet</p>
+                          <p className="text-xs font-medium text-black/40">Start the conversation.</p>
+                        </div>
+                      ) : dmMessages.map((msg: any, i) => (
+                        <div key={msg.id ?? i} className={cn("flex", msg.fromUserId === user?.id ? "justify-end" : "justify-start")}>
+                          <div className={cn(
+                            "max-w-[72%] rounded-2xl px-4 py-2.5 text-sm border-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)]",
+                            msg.fromUserId === user?.id
+                              ? "bg-black text-white border-black rounded-br-md"
+                              : "bg-white text-black border-black rounded-bl-md"
+                          )}>
+                            {msg.message}
+                          </div>
+                        </div>
+                      ))}
+                      <div ref={dmEndRef} />
+                    </div>
+                  )}
+
+                  <ChatComposer
+                    value={dmMsg}
+                    onChange={setDmMsg}
+                    onSend={(v) => sendDmMutation.mutate(v)}
+                    placeholder="Message member…"
+                    isPending={sendDmMutation.isPending}
+                  />
+                </PremiumCard>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -1087,22 +1121,24 @@ export function CaptainPortal() {
         <GuildDiscoveryPanel />
       )}
 
-      {/* ── MY GUILD PROFILE ────────────────────────────────────────────── */}
-      {tab === "profile" && guildId && guild && (
-        <PremiumCard interactive={false}>
-          <GuildProfileWizard guildId={guildId} guildName={guild.name} mode="edit" />
-        </PremiumCard>
-      )}
+      {/* ── SETTINGS — guild settings + profile wizard unified ─────────── */}
+      {tab === "settings" && (
+        <div className="space-y-3 md:space-y-4">
+          {/* Mode switch — Guild / Profile */}
+          <SegmentedToggle
+            options={[{ value: true, label: "Guild Settings" }, { value: false, label: "Guild Profile" }]}
+            value={settingsView === "guild"}
+            onChange={(v) => setSettingsView(v ? "guild" : "profile")}
+          />
 
-      {/* ── SETTINGS ────────────────────────────────────────────────────── */}
-      {tab === "settings" && settingsForm && (
-        <div className="space-y-4 md:space-y-6">
+          {settingsView === "guild" && settingsForm && (
+          <div className="space-y-4 md:space-y-6">
 
           {/* Guild settings */}
           <PremiumCard interactive={false}>
             <div className="flex items-center justify-between mb-5">
               <SectionChip>GUILD SETTINGS</SectionChip>
-              <GiCog size={16} className="text-primary" />
+              <Settings size={16} className="text-primary" />
             </div>
 
             <div className="space-y-5">
@@ -1305,11 +1341,19 @@ export function CaptainPortal() {
                 disabled={announcementText.trim().length === 0 || announcementMutation.isPending}
                 onClick={() => announcementMutation.mutate(announcementText.trim())}
               >
-                <GiKnightBanner size={13} />
+                <Megaphone size={13} />
                 {announcementMutation.isPending ? "Posting…" : "Post Announcement"}
               </Button>
             </div>
           </PremiumCard>
+          </div>
+          )}
+
+          {settingsView === "profile" && guildId && guild && (
+            <PremiumCard interactive={false}>
+              <GuildProfileWizard guildId={guildId} guildName={guild.name} mode="edit" />
+            </PremiumCard>
+          )}
         </div>
       )}
 
