@@ -183,7 +183,6 @@ export function GuildProfileWizard({ guildId, guildName, onDone, mode = "wizard"
             maxLength={50}
             className={FIELD_CLASS}
           />
-          <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-1.5">How teammates see you</p>
         </div>
 
         {/* Bio */}
@@ -193,7 +192,7 @@ export function GuildProfileWizard({ guildId, guildName, onDone, mode = "wizard"
           <textarea
             value={form.description}
             onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            placeholder="Tell your guild about yourself, your goals, when you're most active…"
+            placeholder="Tell your guild about yourself…"
             rows={3}
             maxLength={500}
             className={cn(FIELD_AREA_CLASS, "min-h-[100px]")}
