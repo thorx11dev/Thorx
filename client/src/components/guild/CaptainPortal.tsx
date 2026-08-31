@@ -1285,6 +1285,7 @@ export function CaptainPortal() {
                 </div>
               </div>
 
+              <GroupLabel text="Recruitment" />
               <div>
                 <FieldLabel>Min Rank to Join</FieldLabel>
                 <SelectField
@@ -1318,18 +1319,18 @@ export function CaptainPortal() {
                 </p>
               </div>
 
+              <GroupLabel text="Weekly Target" />
               {/* Weekly target — admin-only, read-only for captains */}
-              <div className="bg-[#EAE5DD]/30 border-2 border-black/10 rounded-2xl px-4 py-3.5 flex items-center justify-between gap-3">
+              <div className="bg-white border-2 border-black rounded-2xl px-4 py-4 flex items-center justify-between gap-3">
                 <div>
-                  <TechnicalLabel text="Weekly Target" className="text-black/40 text-[10px] mb-1" />
-                  <div className="font-black text-black text-lg tabular-nums">
-                    {(guild.weeklyTarget || 0).toLocaleString()} PTS
+                  <div className="font-black text-2xl tracking-tighter tabular-nums text-black leading-none">
+                    {(guild.weeklyTarget || 0).toLocaleString()}
+                    <span className="text-[10px] font-mono font-bold tracking-[0.15em] text-black/40 ml-1.5 uppercase">PTS / WEEK</span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <TechnicalLabel text={`Difficulty: ${guild.targetDifficulty || "medium"}`} className="text-black/40 text-[10px]" />
-                  <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-0.5">Set by admin</p>
-                </div>
+                <span className="shrink-0 inline-flex items-center px-2.5 py-1 rounded-md bg-[#EAE5DD] border-2 border-black/10 text-black/50 font-black uppercase tracking-[0.2em] text-[9px]">
+                  Set by admin
+                </span>
               </div>
             </div>
 
