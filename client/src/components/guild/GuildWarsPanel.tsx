@@ -541,8 +541,6 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
                 </span>
                 <p className="text-sm font-medium text-black/55">
                   War started {war.startedAt ? formatDistanceToNow(new Date(war.startedAt), { addSuffix: true }) : "recently"}
-                  <span className="text-black/20 mx-2">·</span>
-                  Complete your weekly target to win!
                 </p>
               </div>
             )}
