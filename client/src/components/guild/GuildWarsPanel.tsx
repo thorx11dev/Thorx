@@ -15,7 +15,7 @@ import { PremiumCard } from "@/components/ui/premium-card";
 import { SectionChip, CTA_CLASS, OUTLINE_CLASS, AvatarStamp } from "./GuildPanelShell";
 import {
   GiPocketWatch, GiRoundShield, GiSwordSpin,
-  GiCrossedSwords, GiFlame, GiLaurelsTrophy,
+  GiCrossedSwords, GiFlame, GiLaurelsTrophy, GiBroadsword, GiSpartanHelmet, GiSkullCrossedBones,
 } from "./guild-icons";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
