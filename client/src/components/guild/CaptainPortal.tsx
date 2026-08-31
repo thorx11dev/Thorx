@@ -850,13 +850,23 @@ export function CaptainPortal() {
       {/* ── CHAT — group + solo unified ─────────────────────────────────── */}
       {tab === "chat" && (
         <div className="space-y-3 md:space-y-4">
-          {/* Mode switch — Group / Solo */}
-          <div className="flex items-center justify-between gap-3">
-            <SegmentedToggle
-              options={[{ value: true, label: "Group Chat" }, { value: false, label: "Solo Chat" }]}
-              value={chatMode === "group"}
-              onChange={(v) => setChatMode(v ? "group" : "solo")}
-            />
+          {/* Mode switch — full-width segmented plate */}
+          <div className="bg-white rounded-2xl border-2 border-black p-1.5 flex gap-1.5">
+            {([
+              { id: "group", label: "Group Chat", icon: MessagesSquare },
+              { id: "solo", label: "Solo Chat", icon: MessageCircle },
+            ] as const).map(m => (
+              <button
+                key={m.id}
+                onClick={() => { setChatMode(m.id); if (m.id === "group") setSelectedDmMember(null); }}
+                className={cn(
+                  "flex-1 h-11 rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-200",
+                  chatMode === m.id ? "bg-black text-white" : "text-black/55 hover:bg-black/5 hover:text-black"
+                )}
+              >
+                <m.icon size={14} strokeWidth={2} /> {m.label}
+              </button>
+            ))}
           </div>
 
           {chatMode === "group" ? (
