@@ -533,7 +533,6 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
       <div className="rounded-2xl bg-white border-2 border-black/10 p-4 md:p-5">
         <div className="flex items-center gap-2.5 mb-4">
           <SectionChip>WAR RULES</SectionChip>
-          <GiShield size={14} className="text-primary" />
         </div>
         <div className="space-y-3">
           {          [
