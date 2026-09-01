@@ -1138,7 +1138,7 @@ export default function UserPortal() {
           {/* Brand/Logo Area */}
           <div className="flex items-center h-full">
             <div className="flex flex-col cursor-pointer" onClick={() => navigateToSection(0)}>
-              <span className="text-2xl md:text-4xl font-black tracking-tighter text-black leading-none">THORX.</span>
+              <span data-rope-anchor className="text-2xl md:text-4xl font-black tracking-tighter text-black leading-none">THORX.</span>
             </div>
 
           </div>
