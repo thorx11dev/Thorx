@@ -23,7 +23,7 @@ import {
   AvatarStamp, EmptyState, SelectField, SegmentedToggle, ChatComposer,
   PanelSkeleton, SkeletonBlock,
 } from "./GuildPanelShell";
-import { Inbox, Users, ListChecks, MessagesSquare, MessageCircle, Swords, Search, BarChart3, Settings, Menu, ArrowRight, ArrowLeft, Megaphone, Shield, ImagePlus } from "lucide-react";
+import { Inbox, Users, ListChecks, MessagesSquare, MessageCircle, Swords, Search, BarChart3, Settings, Menu, ArrowRight, ArrowLeft, Megaphone, Shield, ImagePlus, ChevronDown, BellRing, Trophy, X, Loader2 } from "lucide-react";
 import { InteractiveDivider } from "@/features/user-portal/shared";
 import { GuildNavDrawer } from "./GuildNavDrawer";
 import {
@@ -59,6 +59,7 @@ export function CaptainPortal() {
   const [navOpen, setNavOpen] = useState(false);
   const [chatMode, setChatMode] = useState<"group" | "solo">("group");
   const [settingsView, setSettingsView] = useState<"guild" | "profile">("guild");
+  const [expandedRoster, setExpandedRoster] = useState<string | null>(null);
   const [rejectModal, setRejectModal] = useState<{ appId: string; applicantName: string } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [kickConfirm, setKickConfirm] = useState<string | null>(null);
@@ -691,15 +692,15 @@ export function CaptainPortal() {
 
           {!isMembersLoading && !isMembersError && active.length > 0 && (
             <>
-              {/* Roster KPI strip */}
+              {/* KPI strip — display numbers */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="bg-white rounded-2xl border-2 border-black px-4 py-3.5">
                   <TechnicalLabel text="TOTAL MEMBERS" className="text-black/40 text-[10px] mb-1" />
-                  <div className="font-black text-xl md:text-2xl tracking-tight tabular-nums">{active.length}</div>
+                  <div className="font-black text-xl md:text-2xl tracking-tighter tabular-nums">{active.length}</div>
                 </div>
                 <div className="bg-white rounded-2xl border-2 border-black px-4 py-3.5">
                   <TechnicalLabel text="WEEKLY POINTS" className="text-black/40 text-[10px] mb-1" />
-                  <div className="font-black text-xl md:text-2xl tracking-tight tabular-nums text-primary">
+                  <div className="font-black text-xl md:text-2xl tracking-tighter tabular-nums text-primary">
                     {active.reduce((s: number, m: any) => s + (m.weeklyPointsContributed || 0), 0).toLocaleString()}
                   </div>
                 </div>
@@ -711,129 +712,152 @@ export function CaptainPortal() {
                 </div>
                 <div className="bg-white rounded-2xl border-2 border-black px-4 py-3.5">
                   <TechnicalLabel text="AVG PER MEMBER" className="text-black/40 text-[10px] mb-1" />
-                  <div className="font-black text-xl md:text-2xl tracking-tight tabular-nums">
+                  <div className="font-black text-xl md:text-2xl tracking-tighter tabular-nums">
                     {Math.round(active.reduce((s: number, m: any) => s + (m.weeklyPointsContributed || 0), 0) / Math.max(1, active.length)).toLocaleString()}
                   </div>
                 </div>
               </div>
 
-              {/* Roster — premium member card grid */}
+              {/* Roster — leaderboard-style list rows with expand/collapse */}
               {(() => {
                 const maxPts = Math.max(1, ...active.map((m: any) => m.weeklyPointsContributed || 0));
                 const sorted = [...active].sort((a: any, b: any) => (b.weeklyPointsContributed || 0) - (a.weeklyPointsContributed || 0));
                 return (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
-                    {sorted.map((m: any) => {
-                      const isCaptain = m.userId === guild.captainId;
-                      const isMe = m.userId === user?.id;
-                      const isInactive = m.lastActiveAt && (Date.now() - new Date(m.lastActiveAt).getTime()) > 48 * 3600 * 1000;
-                      const pts = m.weeklyPointsContributed || 0;
-                      const pct = Math.max(3, (pts / maxPts) * 100);
-                      return (
-                        <div
-                          key={m.id}
-                          className={cn(
-                            "relative bg-white rounded-2xl border-2 p-4 md:p-5 transition-all duration-200 flex flex-col gap-3.5",
-                            isCaptain
-                              ? "border-black hover:shadow-[4px_4px_0_0_rgba(10,10,10,0.9)]"
-                              : "border-black/10 hover:border-black hover:shadow-[4px_4px_0_0_rgba(10,10,10,0.9)]"
-                          )}
-                        >
+                  <div className="rounded-2xl border border-black/15 bg-white overflow-hidden">
+                    {/* Header row — desktop */}
+                    <div className="hidden md:flex items-center gap-6 px-8 py-4 border-b border-black/10 bg-black/[0.03]">
+                      <span className="flex-1">
+                        <TechnicalLabel text="MEMBER" className="text-black/40" />
+                      </span>
+                      <span className="w-20 md:w-24 text-right">
+                        <TechnicalLabel text="PS" className="text-black/40" />
+                      </span>
+                      <span className="w-8" />
+                    </div>
 
-                          {/* Header: avatar + name */}
-                          <div className="flex items-center gap-3 min-w-0">
-                            <AvatarStamp name={m.firstName || m.identity} avatarUrl={m.avatarUrl} size="md" />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className={cn("font-bold text-sm md:text-base truncate", isMe ? "text-primary" : "text-black")}>
+                    <div className="divide-y divide-black/[0.06]">
+                      {sorted.map((m: any) => {
+                        const isCaptain = m.userId === guild.captainId;
+                        const isMe = m.userId === user?.id;
+                        const isInactive = m.lastActiveAt && (Date.now() - new Date(m.lastActiveAt).getTime()) > 48 * 3600 * 1000;
+                        const pts = m.weeklyPointsContributed || 0;
+                        const pct = Math.max(3, (pts / maxPts) * 100);
+                        const isExpanded = expandedRoster === m.id;
+                        const lastNudged = m.lastNudgedAt ? new Date(m.lastNudgedAt).getTime() : 0;
+                        const onCooldown = lastNudged > 0 && Date.now() - lastNudged < 24 * 60 * 60 * 1000;
+                        return (
+                          <div key={m.id} className="relative">
+                            {isMe && (
+                              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-10 md:h-12 w-1 rounded-r-full bg-primary" />
+                            )}
+
+                            {/* Row — clickable to expand */}
+                            <button
+                              onClick={() => setExpandedRoster(isExpanded ? null : m.id)}
+                              className={cn(
+                                "w-full flex items-center gap-3 md:gap-6 px-4 md:px-8 py-4 md:py-5 text-left transition-colors duration-300",
+                                isMe ? "bg-primary/[0.07]" : "hover:bg-black/[0.03]"
+                              )}
+                            >
+                              {/* Avatar — real profile picture w/ fallback */}
+                              <img
+                                src={m.avatarUrl || m.profilePicture || "/avatars/avatar-1.png"}
+                                alt=""
+                                className="w-9 h-9 md:w-11 md:h-11 rounded-lg md:rounded-xl border border-black/15 object-cover shrink-0"
+                                onError={(e) => { (e.target as HTMLImageElement).src = "/avatars/avatar-1.png"; }}
+                              />
+
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm md:text-base font-black uppercase tracking-tight truncate flex items-center gap-2">
                                   {isMe ? "You" : (m.firstName || m.identity || "Member")}
-                                </span>
-                                {m.isMvp && <GiLaurelsTrophy size={13} className="text-primary fill-primary shrink-0" />}
-                              </div>
-                              {(isCaptain || isInactive) && (
-                                <div className="flex items-center gap-1.5 mt-0.5">
                                   {isCaptain && (
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/30 text-primary font-black uppercase tracking-wider text-[10px]">
+                                    <span className="shrink-0 bg-black text-white rounded-sm px-1.5 py-0.5 text-[9px] font-black tracking-widest">
                                       CAPTAIN
                                     </span>
                                   )}
                                   {isInactive && (
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-destructive/10 border border-destructive/30 text-destructive font-black uppercase tracking-wider text-[10px]">INACTIVE</span>
+                                    <span className="shrink-0 bg-white text-black/45 border border-black/15 rounded-sm px-1.5 py-0.5 text-[9px] font-black tracking-widest">
+                                      INACTIVE
+                                    </span>
                                   )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Weekly contribution — hero number + bar */}
-                          <div className="rounded-xl border-2 border-black/10 bg-[#EAE5DD]/30 px-3.5 py-3">
-                            <div className="flex items-end justify-between gap-2">
-                              <div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/45">This Week</p>
-                                <p className="font-black text-2xl tracking-tighter tabular-nums mt-0.5">
-                                  {pts.toLocaleString()}
-                                  <span className="text-xs text-black/40 font-black"> PTS</span>
+                                </p>
+                                <p className="text-[9px] font-mono font-bold tracking-[0.2em] text-black/40 uppercase mt-1">
+                                  {pts.toLocaleString()} PTS · {pct.toFixed(0)}% OF TOP
                                 </p>
                               </div>
-                              <div className="text-right">
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/45">% of Top</p>
-                                <p className="font-black text-sm tabular-nums mt-0.5">{pct.toFixed(0)}%</p>
+
+                              <div className="w-14 md:w-24 text-right shrink-0">
+                                <p className={cn("text-sm md:text-xl font-black tracking-tighter tabular-nums", isMe ? "text-primary" : "text-black")}>
+                                  {pts.toLocaleString()}
+                                </p>
+                                <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.25em] text-black/40">PS</p>
                               </div>
-                            </div>
-                            <Progress value={pct} className="h-2 bg-black/10 border border-black/10 rounded-full [&>div]:bg-primary mt-2.5" />
+
+                              <ChevronDown
+                                size={16}
+                                className={cn(
+                                  "shrink-0 text-black/30 transition-transform duration-300 hidden md:block",
+                                  isExpanded && "rotate-180"
+                                )}
+                              />
+                            </button>
+
+                            {/* Expanded detail — actions + progress */}
+                            {isExpanded && (
+                              <div className="px-4 md:px-8 pb-5 pt-1 bg-black/[0.02] space-y-3.5">
+                                <Progress value={pct} className="h-2 bg-black/10 border border-black/10 rounded-full [&>div]:bg-primary" />
+
+                                {!isCaptain && !isMe ? (
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <Button
+                                      size="sm"
+                                      className={cn(CTA_CLASS, "h-9 px-4 text-[10px]")}
+                                      disabled={nudgeMutation.isPending || onCooldown}
+                                      title={onCooldown ? "Nudged within the last 24h" : "Nudge"}
+                                      onClick={() => nudgeMutation.mutate(m.userId)}
+                                    >
+                                      {nudgeMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <BellRing size={12} />}
+                                      {onCooldown ? "Nudged" : "Nudge"}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      className={cn(OUTLINE_CLASS, "h-9 px-4 text-[10px]")}
+                                      onClick={() => { setSelectedDmMember(m.userId); setChatMode("solo"); setTab("chat"); }}
+                                    >
+                                      <MessageCircle size={12} />
+                                      Message
+                                    </Button>
+                                    {!m.isMvp && !weekMvpSet && (
+                                      <Button
+                                        size="sm"
+                                        className={cn(OUTLINE_CLASS, "h-9 px-4 text-[10px] hover:border-primary hover:text-primary")}
+                                        disabled={mvpMutation.isPending}
+                                        onClick={() => mvpMutation.mutate(m.userId)}
+                                      >
+                                        {mvpMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Trophy size={12} />}
+                                        Set MVP
+                                      </Button>
+                                    )}
+                                    <button
+                                      className="ml-auto inline-flex items-center justify-center w-9 h-9 rounded-lg border-2 border-black bg-black text-white transition-all duration-150 hover:bg-destructive hover:border-destructive"
+                                      title="Kick member"
+                                      aria-label={`Remove ${m.firstName || "member"}`}
+                                      onClick={() => setKickConfirm(m.userId)}
+                                    >
+                                      <X size={14} strokeWidth={2.5} />
+                                    </button>
+                                  </div>
+                                ) : isMe ? (
+                                  <p className="text-[9px] font-mono font-bold tracking-[0.2em] text-black/35 uppercase">This is you</p>
+                                ) : (
+                                  <p className="text-[9px] font-mono font-bold tracking-[0.2em] text-black/35 uppercase">Guild captain</p>
+                                )}
+                              </div>
+                            )}
                           </div>
-
-                          {/* Actions */}
-                          {!isCaptain && !isMe && (
-                            <div className="flex items-center gap-1.5 pt-0.5">
-                              {(() => {
-                                const lastNudged = m.lastNudgedAt ? new Date(m.lastNudgedAt).getTime() : 0;
-                                const onCooldown = lastNudged > 0 && Date.now() - lastNudged < 24 * 60 * 60 * 1000;
-                                return (
-                                  <button
-                                    className={ICON_BTN_CLASS}
-                                    title={onCooldown ? "Nudged within the last 24h" : "Nudge"}
-                                    aria-label={`Nudge ${m.firstName || "member"}`}
-                                    disabled={nudgeMutation.isPending || onCooldown}
-                                    onClick={() => nudgeMutation.mutate(m.userId)}
-                                  >
-                                    {nudgeMutation.isPending ? <GiSwordSpin size={13} className="animate-spin" /> : <GiHuntingHorn size={13} />}
-                                  </button>
-                                );
-                              })()}
-                              <button
-                                className={ICON_BTN_CLASS}
-                                title="DM"
-                                aria-label={`Message ${m.firstName || "member"}`}
-                                onClick={() => { setSelectedDmMember(m.userId); setChatMode("solo"); setTab("chat"); }}
-                              >
-                                <GiChatBubble size={13} />
-                              </button>
-                              {!m.isMvp && !weekMvpSet && (
-                                <button
-                                  className={cn(ICON_BTN_CLASS, "hover:border-primary hover:text-primary")}
-                                  title="Set MVP"
-                                  aria-label={`Set ${m.firstName || "member"} as MVP`}
-                                  disabled={mvpMutation.isPending}
-                                  onClick={() => mvpMutation.mutate(m.userId)}
-                                >
-                                  {mvpMutation.isPending ? <GiSwordSpin size={13} className="animate-spin" /> : <GiLaurelsTrophy size={13} />}
-                                </button>
-                              )}
-                              <button
-                                className="inline-flex items-center justify-center w-10 h-10 ml-auto rounded-lg border-2 border-black bg-black text-white transition-all duration-150 hover:bg-destructive hover:border-destructive"
-                                title="Kick member"
-                                aria-label={`Remove ${m.firstName || "member"}`}
-                                onClick={() => setKickConfirm(m.userId)}
-                              >
-                                <GiCrossedAxes size={13} />
-                              </button>
-                            </div>
-                          )}
-
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })()}

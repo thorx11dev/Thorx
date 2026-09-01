@@ -1,14 +1,14 @@
 /**
  * MemberAvatarEditor — Engine C "My Profile" picture editor.
  *
- * Lets any guild member change the profile picture that appears across
- * Engine C (roster cards, DM lists, leaderboard, wars). Reuses the same
- * universal avatar set + custom-upload flow as the account Profile modal and
- * saves through PATCH /api/profile, then invalidates the auth + guild roster
- * queries so the new picture shows up everywhere immediately.
+ * Avatar selector mirrors the account Profile modal: circular tiles with
+ * ring-highlight selection, uploaded-photo support, monochrome actions.
+ * Saves through PATCH /api/profile and invalidates the auth + roster queries
+ * so the new picture shows up everywhere immediately.
  */
 import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ImagePlus, Loader2, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,8 +19,7 @@ import {
   UNIVERSAL_AVATARS,
   DEFAULT_AVATAR_ID,
 } from "@/lib/rankAvatars";
-import { SectionChip, CTA_CLASS, OUTLINE_CLASS } from "./GuildPanelShell";
-import { GiPortrait, GiSwordSpin, GiCrossedAxes } from "./guild-icons";
+import { CTA_CLASS, OUTLINE_CLASS } from "./GuildPanelShell";
 import { cn } from "@/lib/utils";
 
 export function MemberAvatarEditor() {
@@ -117,83 +116,87 @@ export function MemberAvatarEditor() {
         onChange={handleFileChange}
       />
 
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <SectionChip>PROFILE PICTURE</SectionChip>
-        <GiPortrait size={15} className="text-primary shrink-0" />
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-4">
-        {/* Live preview */}
-        <div className="shrink-0 flex items-center gap-3">
-          <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl border-2 border-black bg-[#EAE5DD] overflow-hidden flex items-center justify-center">
-            {previewSrc ? (
-              <img src={previewSrc} alt="Profile preview" className="w-full h-full object-cover" />
-            ) : (
-              <GiPortrait size={22} className="text-black/40" />
-            )}
-          </div>
-          <div className="sm:hidden">
-            <p className="text-[10px] font-black uppercase tracking-wider text-black/40">
-              Shown across the whole guild
-            </p>
-          </div>
+      {/* Live preview + upload actions */}
+      <div className="flex items-center gap-4 mb-5">
+        <div
+          className={cn(
+            "w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden transition-all duration-200 ring-2 ring-offset-2 ring-offset-white",
+            avatar === "custom" ? "ring-primary" : "ring-black"
+          )}
+        >
+          {previewSrc ? (
+            <img src={previewSrc} alt="Profile preview" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-[#EAE5DD]">
+              <ImagePlus size={20} className="text-black/30" />
+            </div>
+          )}
         </div>
 
-        {/* Universal avatar grid */}
-        <div className="flex-1 min-w-0">
-          <div className="grid grid-cols-6 gap-2.5">
-            {UNIVERSAL_AVATARS.map((av) => {
-              const isSelected = avatar === av.id;
-              return (
-                <button
-                  key={av.id}
-                  type="button"
-                  onClick={() => { setAvatar(av.id); setUploadedPhotoUrl(null); }}
-                  aria-pressed={isSelected}
-                  aria-label={`Select avatar ${av.label}`}
-                  title={av.label}
+        <div className="flex flex-wrap items-center gap-2">
+          <label
+            className={cn(
+              "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-black text-white text-[10px] font-black uppercase tracking-wider cursor-pointer hover:bg-primary transition-colors",
+              isUploading && "opacity-60 pointer-events-none"
+            )}
+          >
+            {isUploading ? <Loader2 size={12} className="animate-spin" /> : <ImagePlus size={12} />}
+            {avatar === "custom" ? "Change Photo" : "Upload Photo"}
+            <input type="file" accept="image/*" className="sr-only" onChange={handleFileChange} />
+          </label>
+          {avatar === "custom" && (
+            <button
+              type="button"
+              onClick={() => { setUploadedPhotoUrl(null); setAvatar(DEFAULT_AVATAR_ID); }}
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border-2 border-black/15 text-[10px] font-black uppercase tracking-wider text-black/50 hover:border-destructive hover:text-destructive transition-colors"
+            >
+              <X size={12} strokeWidth={2.5} />
+              Remove
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Universal avatar grid — profile-modal selector style */}
+      <div className="rounded-2xl bg-[#EAE5DD]/30 border-2 border-black/10 p-4 md:p-5">
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-6 gap-4 md:gap-5 justify-items-center">
+          {UNIVERSAL_AVATARS.map((av) => {
+            const isSelected = avatar === av.id;
+            return (
+              <button
+                key={av.id}
+                type="button"
+                onClick={() => { setAvatar(av.id); setUploadedPhotoUrl(null); }}
+                aria-pressed={isSelected}
+                aria-label={`Select avatar ${av.label}`}
+                className="group flex flex-col items-center gap-2 focus:outline-none"
+              >
+                <span
                   className={cn(
-                    "relative w-full aspect-square rounded-lg overflow-hidden border-2 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    "relative block w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden transition-all duration-200 ring-2 ring-offset-2 ring-offset-white",
                     isSelected
-                      ? "border-primary ring-2 ring-primary/30 scale-[1.06]"
-                      : "border-black/10 hover:border-black hover:scale-[1.04]"
+                      ? "ring-primary scale-[1.06]"
+                      : "ring-black/10 group-hover:ring-black/40 group-hover:scale-[1.04]"
                   )}
                 >
-                  <img src={av.url} alt={av.label} className="w-full h-full object-cover" />
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Custom upload / remove */}
-          <div className="flex flex-wrap items-center gap-2 mt-3.5">
-            <label
-              className={cn(
-                "inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-black text-white text-[10px] font-black uppercase tracking-wider cursor-pointer hover:bg-primary transition-colors",
-                isUploading && "opacity-60 pointer-events-none"
-              )}
-            >
-              {isUploading ? (
-                <GiSwordSpin size={12} className="animate-spin" />
-              ) : (
-                <GiPortrait size={12} />
-              )}
-              {avatar === "custom" ? "Change photo" : "Upload your own"}
-              <input type="file" accept="image/*" className="sr-only" onChange={handleFileChange} />
-            </label>
-            {avatar === "custom" && (
-              <button
-                type="button"
-                onClick={() => { setUploadedPhotoUrl(null); setAvatar(DEFAULT_AVATAR_ID); }}
-                className={cn(
-                  "inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border-2 border-black/15 text-[10px] font-black uppercase tracking-wider text-black/50 hover:border-destructive hover:text-destructive transition-colors"
-                )}
-              >
-                <GiCrossedAxes size={12} />
-                Remove photo
+                  <img
+                    src={av.url}
+                    alt={av.label}
+                    className="w-full h-full object-cover pointer-events-none"
+                    draggable={false}
+                  />
+                </span>
+                <span
+                  className={cn(
+                    "text-[9px] font-black uppercase tracking-wider transition-colors",
+                    isSelected ? "text-black" : "text-black/35 group-hover:text-black/60"
+                  )}
+                >
+                  {av.label}
+                </span>
               </button>
-            )}
-          </div>
+            );
+          })}
         </div>
       </div>
 
@@ -204,11 +207,7 @@ export function MemberAvatarEditor() {
             disabled={saveMutation.isPending}
             onClick={handleSave}
           >
-            {saveMutation.isPending ? (
-              <GiSwordSpin size={14} className="animate-spin" />
-            ) : (
-              <GiPortrait size={14} />
-            )}
+            {saveMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : null}
             Save Picture
           </Button>
           <Button
