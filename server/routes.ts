@@ -4516,9 +4516,10 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
         await db.insert(passwordResetTokens).values({ userId: user.id, tokenHash, expiresAt });
 
-        // Build the reset URL using the public Replit dev domain when no APP_URL is configured
-        const appUrl = process.env.APP_URL
-          ?? (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "");
+        // Build the reset URL — production domain is the safe default so
+        // emailed links are always absolute, even if APP_URL is unset
+        // (e.g. fresh Render deploys without the env var configured).
+        const appUrl = process.env.APP_URL ?? "https://thorx.site";
         const resetUrl = `${appUrl}/reset-password?token=${rawToken}`;
 
         // Fire-and-forget — email failures are logged but should not 500 the request
