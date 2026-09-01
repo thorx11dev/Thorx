@@ -75,17 +75,23 @@ export function InteractiveRopeNav({
     const wrap = wrapRef.current;
     if (!wrap) return;
 
-    // Anchor = the THORX. branding in the main header. Viewport coords are
-    // converted to wrap-local coords every frame so the rope head stays
-    // glued to the header's bottom border through resizes/rotation.
-    const anchorEl = document.querySelector<HTMLElement>("[data-rope-anchor]");
+    // Anchor = the divider line at the bottom of the main header (Y) and the
+    // THORX. branding position (X). Viewport coords are converted to
+    // wrap-local coords every frame so the rope head stays glued to that
+    // divider through resizes/rotation.
+    const headerEl = document.querySelector<HTMLElement>(".portal-topnav");
+    const logoEl = document.querySelector<HTMLElement>("[data-rope-anchor]");
     const anchorLocal = () => {
       const wrapRect = wrap.getBoundingClientRect();
-      if (!anchorEl) return { x: wrapRect.width / 2, y: 6 };
-      const r = anchorEl.getBoundingClientRect();
+      const headerRect = headerEl?.getBoundingClientRect();
+      const logoRect = logoEl?.getBoundingClientRect();
+      const x = (logoRect ? logoRect.left + logoRect.width / 2 : (headerRect ? headerRect.left + 32 : wrapRect.width / 2)) - wrapRect.left;
+      const y = headerRect
+        ? headerRect.bottom - wrapRect.top + 1 // right on the divider line
+        : 6;
       return {
-        x: Math.min(Math.max(r.left + r.width / 2 - wrapRect.left, ICON_SIZE / 2 + 4), Math.max(wrapRect.width - ICON_SIZE / 2 - 4, ICON_SIZE / 2 + 4)),
-        y: Math.max(r.bottom - wrapRect.top + 2, ICON_SIZE / 2 + 2),
+        x: Math.min(Math.max(x, ICON_SIZE / 2 + 4), Math.max(wrapRect.width - ICON_SIZE / 2 - 4, ICON_SIZE / 2 + 4)),
+        y: Math.max(y, ICON_SIZE / 2 + 2),
       };
     };
 
