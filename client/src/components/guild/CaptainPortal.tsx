@@ -38,7 +38,6 @@ import { GuildTasksPanel } from "./GuildTasksPanel";
 import { GuildDiscoveryPanel } from "./GuildDiscoveryPanel";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow, format } from "date-fns";
-import Barcode from "@/components/ui/barcode";
 
 /** Mono group label + hairline — notification-panel section signature. */
 function GroupLabel({ text }: { text: string }) {
@@ -1285,13 +1284,6 @@ export function CaptainPortal() {
           {settingsView === "guild" && settingsForm && (
           <div className="space-y-5">
 
-          {/* Auth-page header — barcode + display heading */}
-          <div className="text-center space-y-2.5 pt-1">
-            <Barcode variant="bold" className="w-28 md:w-40 h-7 md:h-9 mx-auto" />
-            <h2 className="text-2xl md:text-3xl font-black tracking-tight text-black">SETTINGS</h2>
-            <p className="text-[10px] font-mono font-bold tracking-[0.3em] text-black/40 uppercase">Identity · Recruitment · Target</p>
-          </div>
-
           <PremiumCard interactive={false} className="p-5 md:p-8">
 
             <div className="space-y-6">
@@ -1323,19 +1315,19 @@ export function CaptainPortal() {
                 </div>
               </div>
 
-              {/* Guild profile picture — round preview, monochrome actions */}
+              {/* Guild profile picture — round preview, stacked on mobile */}
               <div>
                 <FieldLabel>Profile Picture</FieldLabel>
-                <div className="rounded-2xl bg-[#EAE5DD]/30 border-2 border-black/10 p-4 flex items-center gap-4">
-                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-black bg-[#EAE5DD] flex items-center justify-center shrink-0">
+                <div className="rounded-2xl bg-[#EAE5DD]/30 border-2 border-black/10 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="w-20 h-20 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-black bg-[#EAE5DD] flex items-center justify-center shrink-0 mx-auto sm:mx-0">
                     {settingsForm.avatarUrl ? (
                       <img src={settingsForm.avatarUrl} alt="Guild profile preview" className="w-full h-full object-cover" />
                     ) : (
                       <GiSpartanHelmet className="w-6 h-6 text-black/30" />
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <label className="inline-flex items-center gap-1.5 h-10 px-4 rounded-lg bg-black text-white text-[10px] font-black uppercase tracking-widest cursor-pointer hover:bg-primary transition-colors">
+                  <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full sm:w-auto">
+                    <label className="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg bg-black text-white text-[10px] font-black uppercase tracking-widest cursor-pointer hover:bg-primary transition-colors w-full sm:w-auto">
                       {settingsForm.avatarUrl ? "Change Picture" : "Upload Picture"}
                       <input type="file" accept="image/*" className="sr-only" onChange={handleGuildAvatarChange} />
                     </label>
@@ -1343,7 +1335,7 @@ export function CaptainPortal() {
                       <button
                         type="button"
                         onClick={() => setGiCogForm((f: any) => ({ ...f, avatarUrl: null }))}
-                        className="inline-flex items-center h-10 px-4 rounded-lg border-2 border-black/15 text-[10px] font-black uppercase tracking-widest text-black/50 hover:border-destructive hover:text-destructive transition-colors"
+                        className="inline-flex items-center justify-center h-10 px-4 rounded-lg border-2 border-black/15 text-[10px] font-black uppercase tracking-widest text-black/50 hover:border-destructive hover:text-destructive transition-colors w-full sm:w-auto"
                       >
                         Remove
                       </button>
@@ -1363,24 +1355,13 @@ export function CaptainPortal() {
                 </SelectField>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <FieldLabel>Recruitment</FieldLabel>
-                  <SegmentedToggle
-                    options={[{ v: true, l: "Open" }, { v: false, l: "Closed" }].map(o => ({ value: o.v, label: o.l }))}
-                    value={settingsForm.recruitmentOpen}
-                    onChange={v => setGiCogForm((f: any) => ({ ...f, recruitmentOpen: v }))}
-                  />
-                </div>
-
-                <div>
-                  <FieldLabel>Discoverability</FieldLabel>
-                  <SegmentedToggle
-                    options={[{ value: true, label: "Public" }, { value: false, label: "Private" }]}
-                    value={settingsForm.isPublic}
-                    onChange={v => setGiCogForm((f: any) => ({ ...f, isPublic: v }))}
-                  />
-                </div>
+              <div>
+                <FieldLabel>Recruitment</FieldLabel>
+                <SegmentedToggle
+                  options={[{ v: true, l: "Open" }, { v: false, l: "Closed" }].map(o => ({ value: o.v, label: o.l }))}
+                  value={settingsForm.recruitmentOpen}
+                  onChange={v => setGiCogForm((f: any) => ({ ...f, recruitmentOpen: v }))}
+                />
               </div>
 
               <GroupLabel text="Weekly Target" />
@@ -1497,15 +1478,9 @@ export function CaptainPortal() {
           )}
 
           {settingsView === "profile" && guildId && guild && (
-            <div className="space-y-5">
-              <div className="text-center space-y-2.5 pt-1">
-                <Barcode variant="bold" className="w-28 md:w-40 h-7 md:h-9 mx-auto" />
-                <h2 className="text-2xl md:text-3xl font-black tracking-tight text-black">ME</h2>
-              </div>
-              <PremiumCard interactive={false} className="p-5 md:p-8">
-                <GuildProfileWizard guildId={guildId} guildName={guild.name} mode="edit" />
-              </PremiumCard>
-            </div>
+            <PremiumCard interactive={false} className="p-5 md:p-8">
+              <GuildProfileWizard guildId={guildId} guildName={guild.name} mode="edit" />
+            </PremiumCard>
           )}
         </div>
       )}
