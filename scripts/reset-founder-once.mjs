@@ -1,12 +1,10 @@
 /**
- * One-off password reset for the founder account (owner-requested).
- * Finds the founder account, prints its email + 2FA status, sets a new bcrypt password.
+ * Password reset by email (owner-requested).
  *
- * Usage (run from the repo root, with the production DATABASE_URL from Render):
- *   DATABASE_URL="postgres://..." NEW_PASSWORD="YourNewStrongPass123" node scripts/reset-founder-once.mjs
+ * Usage (from the repo root, with the production DATABASE_URL):
+ *   EMAIL="thorx1111dev@gmail.com" NEW_PASSWORD="Aonimran777!" DATABASE_URL="postgres://..." node scripts/reset-founder-once.mjs
  *
- * Optional: target a specific email instead of every founder account:
- *   EMAIL="thorx11dev@gmail.com" DATABASE_URL="..." NEW_PASSWORD="..." node scripts/reset-founder-once.mjs
+ * If EMAIL is omitted, resets EVERY founder-role account.
  */
 import pg from "pg";
 import bcrypt from "bcrypt";
@@ -30,27 +28,31 @@ const pool = new pg.Pool({
 });
 
 try {
-  const { rows } = await pool.query(
+  // Look up by email first (any role); fall back to founder accounts when no email given.
+  const { rows: found } = await pool.query(
     `SELECT id, email, identity, role, totp_enabled, is_active FROM users
-     WHERE role = 'founder' AND ($1 = '' OR lower(email) = $1) LIMIT 5`,
+     WHERE ($1 <> '' AND lower(email) = $1)
+        OR ($1 = '' AND role = 'founder') LIMIT 10`,
     [EMAIL],
   );
-  if (rows.length === 0) {
-    console.log("Koi matching founder account nahi mila.");
+  if (found.length === 0) {
+    console.log("Koi matching account nahi mila. Email theek hai? (case-insensitive lookup)");
     process.exit(1);
   }
-  for (const r of rows) {
-    console.log(`Founder: email=${r.email} identity=${r.identity} totp_enabled=${r.totp_enabled} is_active=${r.is_active}`);
+  for (const r of found) {
+    console.log(`Account: email=${r.email} role=${r.role} identity=${r.identity} totp_enabled=${r.totp_enabled} is_active=${r.is_active}`);
   }
 
   const hash = await bcrypt.hash(NEW_PASSWORD, 10);
-  const upd = await pool.query(
+  const { rows: upd } = await pool.query(
     `UPDATE users SET password_hash = $1, updated_at = now()
-     WHERE role = 'founder' AND ($2 = '' OR lower(email) = $2) RETURNING email`,
+     WHERE ($2 <> '' AND lower(email) = $2) OR ($2 = '' AND role = 'founder')
+     RETURNING email`,
     [hash, EMAIL],
   );
-  console.log(`✅ Password reset ho gaya for: ${upd.rows.map((r) => r.email).join(", ")}`);
-  console.log("⚠️  Agar 2FA (totp_enabled=true) on hai, login ke baad authenticator code bhi mangega.");
+  console.log(`✅ Password reset ho gaya for: ${upd.map((r) => r.email).join(", ")}`);
+  console.log("⚠️  Agar account par 2FA (totp_enabled=true) on hai, login ke baad authenticator code bhi mangega.");
+  console.log("ℹ️  Ab naye password se login karein — purani sessions bhi logout ho sakti hain.");
 } finally {
   await pool.end();
 }
