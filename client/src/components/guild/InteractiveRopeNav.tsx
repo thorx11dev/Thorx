@@ -59,36 +59,31 @@ export function InteractiveRopeNav({
     const wrap = wrapRef.current;
     if (!wrap) return;
 
-    // Anchor element = the THORX. branding in the main header
+    // Anchor element = the THORX. branding in the main header.
+    // getBoundingClientRect() returns VIEWPORT coords, but the SVG renders
+    // relative to this wrap — so we must subtract the wrap origin, otherwise
+    // the rope head floats far below the header. Recomputed every frame so
+    // orientation/resize changes stay pinned to the header bottom.
     const anchorEl = document.querySelector<HTMLElement>("[data-rope-anchor]");
-    const anchorX = () => {
-      if (!anchorEl) return window.innerWidth / 2;
+    const anchorLocal = () => {
+      const wrapRect = wrap.getBoundingClientRect();
+      if (!anchorEl) return { x: wrapRect.width / 2, y: 6 };
       const r = anchorEl.getBoundingClientRect();
-      return Math.max(ICON_SIZE / 2 + 4, r.left + r.width / 2);
-    };
-    const anchorY = () => {
-      if (!anchorEl) return 64;
-      return anchorEl.getBoundingClientRect().bottom + 4;
+      return {
+        x: Math.min(Math.max(r.left + r.width / 2 - wrapRect.left, ICON_SIZE / 2 + 4), Math.max(wrapRect.width - ICON_SIZE / 2 - 4, ICON_SIZE / 2 + 4)),
+        y: Math.max(r.bottom - wrapRect.top + 2, ICON_SIZE / 2 + 2),
+      };
     };
 
-    const segLen = () => Math.max(9, (anchorY() + 150 - ICON_GAP_TOTAL()) / SEG_COUNT - 0);
-    const ICON_GAP_TOTAL = () => 0; // natural length tuned below
-
-    let width = 1, height = 1;
+    let width = 1;
 
     const init = () => {
       width = Math.max(wrap.clientWidth || window.innerWidth, 1);
-      height = 190; // generous drag room under the header
-      const ax = anchorX();
-      const ay = anchorY();
+      const a = anchorLocal();
       const len = 9.5; // chunky, thick rope links
       pointsRef.current = Array.from({ length: SEG_COUNT + 1 }, (_, i) => ({
-        x: ax, y: ay + i * len, px: ax, py: ay + i * len,
+        x: a.x, y: a.y + i * len, px: a.x, py: a.y + i * len,
       }));
-      if (anchorDotRef.current) {
-        anchorDotRef.current.setAttribute("cx", ax.toFixed(1));
-        anchorDotRef.current.setAttribute("cy", ay.toFixed(1));
-      }
     };
     init();
 
@@ -99,7 +94,7 @@ export function InteractiveRopeNav({
       const rect = wrap.getBoundingClientRect();
       return {
         x: Math.min(Math.max(clientX - rect.left, ICON_SIZE / 2 + 2), Math.max(width - ICON_SIZE / 2 - 2, ICON_SIZE / 2 + 2)),
-        y: Math.min(Math.max(clientY - rect.top, ICON_SIZE / 2 + 4), height - ICON_SIZE / 2 - 2),
+        y: Math.min(Math.max(clientY - rect.top, ICON_SIZE / 2 + 4), window.innerHeight - rect.top - ICON_SIZE / 2 - 2),
       };
     };
 
@@ -161,8 +156,9 @@ export function InteractiveRopeNav({
       }
 
       for (let k = 0; k < ITERATIONS; k++) {
-        pts[0].x = anchorX();
-        pts[0].y = anchorY();
+        const a0 = anchorLocal();
+        pts[0].x = a0.x;
+        pts[0].y = a0.y;
         for (let i = 0; i < pts.length - 1; i++) {
           const a = pts[i], b = pts[i + 1];
           const dx = b.x - a.x, dy = b.y - a.y;
