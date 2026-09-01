@@ -38,6 +38,7 @@ import { GuildTasksPanel } from "./GuildTasksPanel";
 import { GuildDiscoveryPanel } from "./GuildDiscoveryPanel";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow, format } from "date-fns";
+import Barcode from "@/components/ui/barcode";
 
 /** Mono group label + hairline — notification-panel section signature. */
 function GroupLabel({ text }: { text: string }) {
@@ -48,6 +49,50 @@ function GroupLabel({ text }: { text: string }) {
     </div>
   );
 }
+
+/** Animated placeholder — auth-page typing effect for empty fields. */
+function AnimatedPlaceholder({ examples, className = "text-black/35" }: { examples: string[]; className?: string }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentText, setCurrentText] = useState("");
+  const [isTyping, setIsTyping] = useState(true);
+
+  useEffect(() => {
+    const example = examples[currentIndex];
+    let timeout: ReturnType<typeof setTimeout>;
+    if (isTyping) {
+      if (currentText.length < example.length) {
+        timeout = setTimeout(() => setCurrentText(example.slice(0, currentText.length + 1)), 70);
+      } else {
+        timeout = setTimeout(() => setIsTyping(false), 1200);
+      }
+    } else {
+      if (currentText.length > 0) {
+        timeout = setTimeout(() => setCurrentText(currentText.slice(0, -1)), 35);
+      } else {
+        setCurrentIndex(prev => (prev + 1) % examples.length);
+        setIsTyping(true);
+      }
+    }
+    return () => clearTimeout(timeout);
+  }, [currentText, currentIndex, examples, isTyping]);
+
+  return (
+    <span className={className}>
+      {currentText}<span className="animate-pulse">|</span>
+    </span>
+  );
+}
+
+const DESCRIPTION_SUGGESTIONS = [
+  "A focused crew that wins every week…",
+  "Daily active members, one shared goal…",
+  "Built for the Sunday leaderboard push…",
+];
+const ANNOUNCEMENT_SUGGESTIONS = [
+  "Sunday payout drops at 9pm sharp…",
+  "MVP bonus doubles this week…",
+  "Stay active — war chest is loading…",
+];
 
 type Tab = "requests" | "roster" | "tasks" | "chat" | "wars" | "discover" | "stats" | "settings";
 
@@ -1213,96 +1258,96 @@ export function CaptainPortal() {
         <GuildDiscoveryPanel />
       )}
 
-      {/* ── SETTINGS — guild settings + profile wizard unified ─────────── */}
+      {/* ── SETTINGS — GUILD | ME (auth-page design language) ──────────── */}
       {tab === "settings" && (
-        <div className="space-y-3 md:space-y-4">
-          {/* Mode switch — full-width segmented plate */}
+        <div className="space-y-4">
+          {/* Mode switch — GUILD | ME (text-only) */}
           <div className="bg-white rounded-2xl border-2 border-black p-1.5 flex gap-1.5">
             {([
-              { id: "guild", label: "Guild Settings", icon: Settings },
-              { id: "profile", label: "Guild Profile", icon: ImagePlus },
+              { id: "guild", label: "Guild" },
+              { id: "profile", label: "Me" },
             ] as const).map(m => (
               <button
                 key={m.id}
                 onClick={() => setSettingsView(m.id)}
                 className={cn(
-                  "flex-1 h-11 rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-200",
-                  settingsView === m.id ? "bg-black text-white" : "text-black/55 hover:bg-black/5 hover:text-black"
+                  "flex-1 h-12 rounded-xl text-xs font-black uppercase tracking-[0.25em] transition-all duration-200",
+                  settingsView === m.id
+                    ? "bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,0.2)]"
+                    : "text-black/45 hover:text-black"
                 )}
               >
-                <m.icon size={14} strokeWidth={2} /> {m.label}
+                {m.label}
               </button>
             ))}
           </div>
 
           {settingsView === "guild" && settingsForm && (
-          <div className="space-y-4 md:space-y-6">
+          <div className="space-y-5">
 
-          {/* Guild settings */}
-          <PremiumCard interactive={false}>
-            <div className="flex items-center gap-3 mb-6">
-              <span className="w-10 h-10 rounded-lg bg-black text-white border-2 border-black flex items-center justify-center shrink-0">
-                <Settings size={16} strokeWidth={2} />
-              </span>
-              <div className="min-w-0">
-                <div className="font-black text-sm uppercase tracking-tight">Guild Settings</div>
-                <div className="text-[9px] font-mono font-bold tracking-[0.2em] text-black/40 uppercase mt-0.5">Identity · Recruitment · Target</div>
-              </div>
-            </div>
+          {/* Auth-page header — barcode + display heading */}
+          <div className="text-center space-y-2.5 pt-1">
+            <Barcode variant="bold" className="w-28 md:w-40 h-7 md:h-9 mx-auto" />
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight text-black">SETTINGS</h2>
+            <p className="text-[10px] font-mono font-bold tracking-[0.3em] text-black/40 uppercase">Identity · Recruitment · Target</p>
+          </div>
 
-            <div className="space-y-5">
+          <PremiumCard interactive={false} className="p-5 md:p-8">
+
+            <div className="space-y-6">
               <GroupLabel text="Identity" />
               <div>
                 <FieldLabel>Guild Name</FieldLabel>
                 <Input
                   value={settingsForm.name}
                   onChange={e => setGiCogForm((f: any) => ({ ...f, name: e.target.value }))}
-                  className={FIELD_CLASS}
+                  className={cn(FIELD_CLASS, "h-auto py-3 text-base md:text-lg")}
                 />
               </div>
 
               <div>
                 <FieldLabel hint={`${settingsForm.description.length}/500`}>Description</FieldLabel>
-                <textarea
-                  maxLength={500}
-                  rows={3}
-                  value={settingsForm.description}
-                  onChange={e => setGiCogForm((f: any) => ({ ...f, description: e.target.value }))}
-                  className={cn(FIELD_AREA_CLASS, "min-h-[90px]")}
-                />
+                <div className="relative">
+                  <textarea
+                    maxLength={500}
+                    rows={3}
+                    value={settingsForm.description}
+                    onChange={e => setGiCogForm((f: any) => ({ ...f, description: e.target.value }))}
+                    className={cn(FIELD_AREA_CLASS, "min-h-[100px] py-3 px-4 text-base md:text-lg")}
+                  />
+                  {!settingsForm.description && (
+                    <div className="absolute top-3 left-4 right-4 pointer-events-none text-base md:text-lg">
+                      <AnimatedPlaceholder examples={DESCRIPTION_SUGGESTIONS} />
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Guild profile picture — captain-only because this panel is captain-only. */}
+              {/* Guild profile picture — round preview, monochrome actions */}
               <div>
-                <FieldLabel>Guild Profile Picture</FieldLabel>
-                <div className="flex items-center gap-3.5 rounded-2xl border-2 border-black/10 bg-[#EAE5DD]/30 p-3.5">
-                  <div className="w-16 h-16 rounded-lg overflow-hidden border-2 border-black/20 bg-[#EAE5DD] flex items-center justify-center shrink-0">
+                <FieldLabel>Profile Picture</FieldLabel>
+                <div className="rounded-2xl bg-[#EAE5DD]/30 border-2 border-black/10 p-4 flex items-center gap-4">
+                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-black bg-[#EAE5DD] flex items-center justify-center shrink-0">
                     {settingsForm.avatarUrl ? (
                       <img src={settingsForm.avatarUrl} alt="Guild profile preview" className="w-full h-full object-cover" />
                     ) : (
-                      <GiSpartanHelmet className="w-7 h-7 text-primary" />
+                      <GiSpartanHelmet className="w-6 h-6 text-black/30" />
                     )}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-2.5">
-                      Appears on the public guild discovery cards.
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <label className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-black text-white text-[10px] font-black uppercase tracking-wider cursor-pointer hover:bg-primary transition-colors">
-                        <GiPortrait size={12} />
-                        {settingsForm.avatarUrl ? "Change picture" : "Add picture"}
-                        <input type="file" accept="image/*" className="sr-only" onChange={handleGuildAvatarChange} />
-                      </label>
-                      {settingsForm.avatarUrl && (
-                        <button
-                          type="button"
-                          onClick={() => setGiCogForm((f: any) => ({ ...f, avatarUrl: null }))}
-                          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border-2 border-black/15 text-[10px] font-black uppercase tracking-wider text-black/50 hover:border-destructive hover:text-destructive transition-colors"
-                        >
-                          <GiCrossedAxes size={12} /> Remove
-                        </button>
-                      )}
-                    </div>
+                  <div className="flex flex-wrap gap-2">
+                    <label className="inline-flex items-center gap-1.5 h-10 px-4 rounded-lg bg-black text-white text-[10px] font-black uppercase tracking-widest cursor-pointer hover:bg-primary transition-colors">
+                      {settingsForm.avatarUrl ? "Change Picture" : "Upload Picture"}
+                      <input type="file" accept="image/*" className="sr-only" onChange={handleGuildAvatarChange} />
+                    </label>
+                    {settingsForm.avatarUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setGiCogForm((f: any) => ({ ...f, avatarUrl: null }))}
+                        className="inline-flex items-center h-10 px-4 rounded-lg border-2 border-black/15 text-[10px] font-black uppercase tracking-widest text-black/50 hover:border-destructive hover:text-destructive transition-colors"
+                      >
+                        Remove
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1318,37 +1363,34 @@ export function CaptainPortal() {
                 </SelectField>
               </div>
 
-              <div>
-                <FieldLabel>Recruitment</FieldLabel>
-                <SegmentedToggle
-                  options={[{ v: true, l: "Open" }, { v: false, l: "Closed" }].map(o => ({ value: o.v, label: o.l }))}
-                  value={settingsForm.recruitmentOpen}
-                  onChange={v => setGiCogForm((f: any) => ({ ...f, recruitmentOpen: v }))}
-                />
-              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <FieldLabel>Recruitment</FieldLabel>
+                  <SegmentedToggle
+                    options={[{ v: true, l: "Open" }, { v: false, l: "Closed" }].map(o => ({ value: o.v, label: o.l }))}
+                    value={settingsForm.recruitmentOpen}
+                    onChange={v => setGiCogForm((f: any) => ({ ...f, recruitmentOpen: v }))}
+                  />
+                </div>
 
-              <div>
-                <FieldLabel>Discoverability</FieldLabel>
-                <SegmentedToggle
-                  options={[{ value: true, label: "Public" }, { value: false, label: "Private" }]}
-                  value={settingsForm.isPublic}
-                  onChange={v => setGiCogForm((f: any) => ({ ...f, isPublic: v }))}
-                />
-                <p className="text-xs font-medium text-black/45">
-                  {settingsForm.isPublic
-                    ? "Your guild appears in the discovery list and accepts public applications."
-                    : "Your guild is hidden from discovery. Only invite links can bring in members."}
-                </p>
+                <div>
+                  <FieldLabel>Discoverability</FieldLabel>
+                  <SegmentedToggle
+                    options={[{ value: true, label: "Public" }, { value: false, label: "Private" }]}
+                    value={settingsForm.isPublic}
+                    onChange={v => setGiCogForm((f: any) => ({ ...f, isPublic: v }))}
+                  />
+                </div>
               </div>
 
               <GroupLabel text="Weekly Target" />
               {/* Weekly target — admin-only, read-only for captains */}
-              <div className="bg-white border-2 border-black rounded-2xl px-4 py-4 flex items-center justify-between gap-3">
+              <div className="bg-white border-2 border-black rounded-2xl px-5 py-5 flex items-center justify-between gap-3">
                 <div>
-                  <div className="font-black text-2xl tracking-tighter tabular-nums text-black leading-none">
+                  <div className="font-black text-3xl md:text-4xl tracking-tighter tabular-nums text-black leading-none">
                     {(guild.weeklyTarget || 0).toLocaleString()}
-                    <span className="text-[10px] font-mono font-bold tracking-[0.15em] text-black/40 ml-1.5 uppercase">PTS / WEEK</span>
                   </div>
+                  <div className="text-[9px] font-mono font-bold tracking-[0.3em] text-black/40 uppercase mt-1.5">PTS / WEEK</div>
                 </div>
                 <span className="shrink-0 inline-flex items-center px-2.5 py-1 rounded-md bg-[#EAE5DD] border-2 border-black/10 text-black/50 font-black uppercase tracking-[0.2em] text-[9px]">
                   Set by admin
@@ -1357,7 +1399,7 @@ export function CaptainPortal() {
             </div>
 
             <Button
-              className={cn(CTA_CLASS, "w-full mt-6")}
+              className="w-full mt-7 bg-black text-white font-black text-sm uppercase tracking-widest py-4 h-auto border-2 border-black rounded-lg hover:bg-primary hover:border-primary transition-colors disabled:opacity-50"
               disabled={settingsMutation.isPending}
               onClick={() => {
                 if (!settingsForm.name || settingsForm.name.trim().length < 3) {
@@ -1376,16 +1418,8 @@ export function CaptainPortal() {
           </PremiumCard>
 
           {/* Assistant Captain */}
-          <PremiumCard interactive={false}>
-            <div className="flex items-center gap-3 mb-5">
-              <span className="w-10 h-10 rounded-lg bg-black text-white border-2 border-black flex items-center justify-center shrink-0">
-                <Shield size={16} strokeWidth={2} />
-              </span>
-              <div className="min-w-0">
-                <div className="font-black text-sm uppercase tracking-tight">Assistant Captain</div>
-                <div className="text-[9px] font-mono font-bold tracking-[0.2em] text-black/40 uppercase mt-0.5">Delegation · Permissions</div>
-              </div>
-            </div>
+          <PremiumCard interactive={false} className="p-5 md:p-8">
+            <GroupLabel text="Assistant Captain" />
 
             {guild.assistantCaptainId ? (
               <AssistantPermissionsEditor
@@ -1428,43 +1462,50 @@ export function CaptainPortal() {
           </PremiumCard>
 
           {/* Announcements */}
-          <PremiumCard interactive={false}>
-            <div className="flex items-center gap-3 mb-5">
-              <span className="w-10 h-10 rounded-lg bg-black text-white border-2 border-black flex items-center justify-center shrink-0">
-                <Megaphone size={16} strokeWidth={2} />
-              </span>
-              <div className="font-black text-sm uppercase tracking-tight">Announcements</div>
+          <PremiumCard interactive={false} className="p-5 md:p-8">
+            <GroupLabel text="Announcements" />
+            <div className="relative">
+              <textarea
+                rows={3}
+                maxLength={500}
+                value={announcementText}
+                onChange={e => setAnnouncementText(e.target.value)}
+                placeholder=" "
+                className={cn(FIELD_AREA_CLASS, "min-h-[100px] py-3 px-4 text-base md:text-lg")}
+              />
+              {!announcementText && (
+                <div className="absolute top-3 left-4 right-4 pointer-events-none text-base md:text-lg">
+                  <AnimatedPlaceholder examples={ANNOUNCEMENT_SUGGESTIONS} />
+                </div>
+              )}
             </div>
-            <textarea
-              rows={3}
-              maxLength={500}
-              value={announcementText}
-              onChange={e => setAnnouncementText(e.target.value)}
-              placeholder="Write an announcement for your guild members…"
-              className={cn(FIELD_AREA_CLASS, "min-h-[100px]")}
-            />
             <div className="flex items-center justify-between mt-3">
               <span className={cn("text-[10px] font-black uppercase tracking-wider", announcementText.length > 480 ? "text-destructive" : "text-black/40")}>
                 {announcementText.length}/500
               </span>
-              <Button
-                size="sm"
-                className={cn(CTA_CLASS, "h-10 px-4")}
+              <button
+                className="inline-flex items-center gap-2 bg-black text-white font-black text-[11px] uppercase tracking-widest py-3 px-6 border-2 border-black rounded-lg hover:bg-primary hover:border-primary transition-colors disabled:opacity-50"
                 disabled={announcementText.trim().length === 0 || announcementMutation.isPending}
                 onClick={() => announcementMutation.mutate(announcementText.trim())}
               >
                 <Megaphone size={13} />
-                {announcementMutation.isPending ? "Posting…" : "Post Announcement"}
-              </Button>
+                {announcementMutation.isPending ? "Posting…" : "Post"}
+              </button>
             </div>
           </PremiumCard>
           </div>
           )}
 
           {settingsView === "profile" && guildId && guild && (
-            <PremiumCard interactive={false}>
-              <GuildProfileWizard guildId={guildId} guildName={guild.name} mode="edit" />
-            </PremiumCard>
+            <div className="space-y-5">
+              <div className="text-center space-y-2.5 pt-1">
+                <Barcode variant="bold" className="w-28 md:w-40 h-7 md:h-9 mx-auto" />
+                <h2 className="text-2xl md:text-3xl font-black tracking-tight text-black">ME</h2>
+              </div>
+              <PremiumCard interactive={false} className="p-5 md:p-8">
+                <GuildProfileWizard guildId={guildId} guildName={guild.name} mode="edit" />
+              </PremiumCard>
+            </div>
           )}
         </div>
       )}

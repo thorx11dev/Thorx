@@ -143,8 +143,9 @@ export function GuildProfileWizard({ guildId, guildName, onDone, mode = "wizard"
 
   return (
     <div className="space-y-5 md:space-y-6">
-      {/* Header — icon-chip style (edit mode); centered display (wizard mode) */}
-      {mode === "wizard" ? (
+      {/* Header — centered display (wizard mode); settings page already shows
+          the ME heading, so edit mode needs no extra header. */}
+      {mode === "wizard" && (
         <div className="text-center space-y-2 pb-1">
           <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-[#EAE5DD] border-2 border-black/10 flex items-center justify-center mx-auto">
             <GiPortrait size={24} className="text-primary" />
@@ -155,13 +156,6 @@ export function GuildProfileWizard({ guildId, guildName, onDone, mode = "wizard"
               How you appear to your teammates in <strong className="text-black">{guildName}</strong>.
             </p>
           </div>
-        </div>
-      ) : (
-        <div className="flex items-center gap-3">
-          <span className="w-10 h-10 rounded-lg bg-black text-white border-2 border-black flex items-center justify-center shrink-0">
-            <GiPortrait size={16} className="text-primary" />
-          </span>
-          <div className="font-black text-sm uppercase tracking-tight">Guild Profile</div>
         </div>
       )}
 
@@ -178,7 +172,7 @@ export function GuildProfileWizard({ guildId, guildName, onDone, mode = "wizard"
             onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
             placeholder="Your name in this guild"
             maxLength={50}
-            className={FIELD_CLASS}
+            className={cn(FIELD_CLASS, "h-auto py-3 text-base md:text-lg")}
           />
         </div>
 
@@ -192,7 +186,7 @@ export function GuildProfileWizard({ guildId, guildName, onDone, mode = "wizard"
             placeholder="Tell your guild about yourself…"
             rows={3}
             maxLength={500}
-            className={cn(FIELD_AREA_CLASS, "min-h-[100px]")}
+            className={cn(FIELD_AREA_CLASS, "min-h-[100px] py-3 px-4 text-base md:text-lg")}
           />
         </div>
 
@@ -271,21 +265,24 @@ export function GuildProfileWizard({ guildId, guildName, onDone, mode = "wizard"
         )}
       </div>
 
-      {/* Save */}
+      {/* Save — auth-page black block button */}
       <div className="flex gap-3 pt-1">
         {mode === "wizard" && onDone && (
           <Button className={cn(OUTLINE_CLASS, "flex-1")} onClick={onDone}>
             Skip for Now
           </Button>
         )}
-        <Button
-          className={mode === "wizard" ? cn(CTA_CLASS, "flex-1") : cn(CTA_CLASS, "w-full")}
+        <button
+          className={cn(
+            "w-full bg-black text-white font-black text-sm uppercase tracking-widest py-4 border-2 border-black rounded-lg hover:bg-primary hover:border-primary transition-colors disabled:opacity-50 flex items-center justify-center gap-2",
+            mode === "wizard" && "flex-1"
+          )}
           disabled={!form.username.trim() || saveMutation.isPending}
           onClick={() => saveMutation.mutate()}
         >
           {saveMutation.isPending ? <GiSwordSpin size={14} className="animate-spin" /> : null}
           {mode === "wizard" ? "Create Profile" : "Save Changes"}
-        </Button>
+        </button>
       </div>
     </div>
   );
