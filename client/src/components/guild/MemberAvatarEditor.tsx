@@ -107,7 +107,7 @@ export function MemberAvatarEditor() {
   };
 
   return (
-    <div className="rounded-2xl border-2 border-black/10 bg-white p-4 md:p-5">
+    <div className="rounded-2xl border-2 border-black/10 bg-white p-3.5 sm:p-4 md:p-5">
       <input
         ref={fileInputRef}
         type="file"
@@ -116,11 +116,11 @@ export function MemberAvatarEditor() {
         onChange={handleFileChange}
       />
 
-      {/* Live preview + upload actions */}
-      <div className="flex items-center gap-4 mb-5">
+      {/* Live preview + upload actions — stacked & centered on mobile */}
+      <div className="flex flex-col items-center gap-4 mb-5 sm:flex-row sm:items-center sm:justify-between">
         <div
           className={cn(
-            "w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden transition-all duration-200 ring-2 ring-offset-2 ring-offset-white",
+            "w-24 h-24 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden transition-all duration-200 ring-2 ring-offset-2 ring-offset-white shrink-0",
             avatar === "custom" ? "ring-primary" : "ring-black"
           )}
         >
@@ -133,10 +133,10 @@ export function MemberAvatarEditor() {
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           <label
             className={cn(
-              "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-black text-white text-[10px] font-black uppercase tracking-wider cursor-pointer hover:bg-primary transition-colors",
+              "inline-flex items-center justify-center gap-1.5 h-11 sm:h-9 px-4 sm:px-3.5 rounded-lg bg-black text-white text-[10px] font-black uppercase tracking-widest cursor-pointer hover:bg-primary transition-colors",
               isUploading && "opacity-60 pointer-events-none"
             )}
           >
@@ -148,7 +148,7 @@ export function MemberAvatarEditor() {
             <button
               type="button"
               onClick={() => { setUploadedPhotoUrl(null); setAvatar(DEFAULT_AVATAR_ID); }}
-              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border-2 border-black/15 text-[10px] font-black uppercase tracking-wider text-black/50 hover:border-destructive hover:text-destructive transition-colors"
+              className="inline-flex items-center justify-center gap-1.5 h-11 sm:h-9 px-4 sm:px-3.5 rounded-lg border-2 border-black/15 text-[10px] font-black uppercase tracking-widest text-black/50 hover:border-destructive hover:text-destructive transition-colors"
             >
               <X size={12} strokeWidth={2.5} />
               Remove
@@ -158,8 +158,8 @@ export function MemberAvatarEditor() {
       </div>
 
       {/* Universal avatar grid — profile-modal selector style */}
-      <div className="rounded-2xl bg-[#EAE5DD]/30 border-2 border-black/10 p-4 md:p-5">
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-6 gap-4 md:gap-5 justify-items-center">
+      <div className="rounded-2xl bg-[#EAE5DD]/30 border-2 border-black/10 p-3.5 sm:p-4 md:p-5">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 sm:gap-3 md:gap-5 justify-items-center">
           {UNIVERSAL_AVATARS.map((av) => {
             const isSelected = avatar === av.id;
             return (
@@ -173,7 +173,7 @@ export function MemberAvatarEditor() {
               >
                 <span
                   className={cn(
-                    "relative block w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden transition-all duration-200 ring-2 ring-offset-2 ring-offset-white",
+                    "relative block w-16 h-16 md:w-16 md:h-16 rounded-full overflow-hidden transition-all duration-200 ring-2 ring-offset-2 ring-offset-white",
                     isSelected
                       ? "ring-primary scale-[1.06]"
                       : "ring-black/10 group-hover:ring-black/40 group-hover:scale-[1.04]"
@@ -188,7 +188,7 @@ export function MemberAvatarEditor() {
                 </span>
                 <span
                   className={cn(
-                    "text-[9px] font-black uppercase tracking-wider transition-colors",
+                    "text-[8px] sm:text-[9px] font-black uppercase tracking-wider transition-colors text-center leading-tight",
                     isSelected ? "text-black" : "text-black/35 group-hover:text-black/60"
                   )}
                 >
