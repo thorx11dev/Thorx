@@ -1,12 +1,21 @@
 import React, { useState } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion } from "framer-motion";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { AlertTriangle, CheckCircle, ChevronDown, ChevronRight, User, Shield, Loader2, XCircle, Download } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useAuth } from "@/hooks/useAuth";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -319,7 +328,7 @@ export function ReconciliationPanel() {
                       disabled={isFetching}
                       className="flex items-center gap-1.5 px-4 h-9 bg-zinc-100 text-zinc-700 text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-zinc-200 transition-colors disabled:opacity-50"
                     >
-                      {isFetching && <Loader2 className="w-3 h-3 animate-spin" />}
+                      {isFetching && <ThorxSpinner size={12} />}
                       Load more ({(data?.adminCreditDetails?.length ?? 0)} of {data?.adminCreditTotalCount ?? 0})
                     </button>
                   </div>

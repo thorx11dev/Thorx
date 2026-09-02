@@ -7,20 +7,30 @@
  * so the new picture shows up everywhere immediately.
  */
 import { useRef, useState } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, Loader2, X } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {ImagePlus, X} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { QUERY_KEYS } from "@/lib/queryKeys";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useAuth } from "@/hooks/useAuth";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   resolveAvatarUrl,
   UNIVERSAL_AVATARS,
   DEFAULT_AVATAR_ID,
 } from "@/lib/rankAvatars";
 import { CTA_CLASS, OUTLINE_CLASS } from "./GuildPanelShell";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 export function MemberAvatarEditor() {
   const { user } = useAuth();
@@ -140,7 +150,7 @@ export function MemberAvatarEditor() {
               isUploading && "opacity-60 pointer-events-none"
             )}
           >
-            {isUploading ? <Loader2 size={12} className="animate-spin" /> : <ImagePlus size={12} />}
+            {isUploading ? <ThorxSpinner size={12} /> : <ImagePlus size={12} />}
             {avatar === "custom" ? "Change Photo" : "Upload Photo"}
             <input type="file" accept="image/*" className="sr-only" onChange={handleFileChange} />
           </label>
@@ -200,7 +210,7 @@ export function MemberAvatarEditor() {
             disabled={saveMutation.isPending}
             onClick={handleSave}
           >
-            {saveMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : null}
+            {saveMutation.isPending ? <ThorxSpinner size={14} /> : null}
             Save Picture
           </Button>
           <Button

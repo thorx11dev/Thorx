@@ -11,13 +11,21 @@
 // signed S2S callback → recordEarnEvent pipeline. Nothing here handles money.
 
 import { useQuery } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion } from "framer-motion";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { ClipboardList, ExternalLink, Lock, Loader2, Clock3 } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Progress } from "@/components/ui/progress";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { captureEvent } from "@/lib/posthog";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface SurveyNetwork {
   networkId: string;
@@ -69,7 +77,7 @@ export default function SurveyWallPanel() {
       <div className="p-5 space-y-4">
         {isLoading ? (
           <div className="flex items-center justify-center gap-2 py-8 text-black/40">
-            <Loader2 size={16} className="animate-spin" />
+            <ThorxSpinner size={16} />
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Loading survey walls…</span>
           </div>
         ) : !data?.eligible ? (

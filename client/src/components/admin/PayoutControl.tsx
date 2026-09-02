@@ -1,8 +1,13 @@
 import React, { useState } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import Decimal from "decimal.js";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { downloadFromUrl } from "@/lib/downloadFromUrl";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Loader2 } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { 
   CreditCard, 
   CheckCircle, 
@@ -28,17 +33,28 @@ import {
   ShieldX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiAbsolutePath } from "@/lib/apiOrigin";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 import { useDebounce } from "@/hooks/use-debounce";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion, AnimatePresence } from "framer-motion";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { formatDistanceToNow } from "date-fns";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Checkbox } from "@/components/ui/checkbox";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   Dialog,
   DialogContent,
@@ -48,7 +64,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Label } from "@/components/ui/label";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -485,7 +503,7 @@ export function PayoutControl() {
                            {withdrawal.status === 'approved' && <ShieldCheck size={10} />}
                            {withdrawal.status === 'completed' && <CheckCircle size={10} />}
                            {withdrawal.status === 'rejected' && <XCircle size={10} />}
-                           {withdrawal.status === 'processing' && <Loader2 size={10} className="animate-spin" />}
+                           {withdrawal.status === 'processing' && <ThorxSpinner size={10} />}
                            {withdrawal.status}
                         </div>
                       </td>
@@ -680,7 +698,7 @@ export function PayoutControl() {
                          rejectionReason: `Blocked by administrator — ledger mismatch detected (severity: ${ledgerCheck?.severity || 'CRITICAL'})`,
                        })}
                      >
-                       {updateStatusMutation.isPending ? <Loader2 size={12} className="mr-1 animate-spin" /> : <ShieldX size={12} className="mr-1" />} Block Withdrawal
+                       {updateStatusMutation.isPending ? <ThorxSpinner size={12} className="mr-1" /> : <ShieldX size={12} className="mr-1" />} Block Withdrawal
                      </Button>
                    </div>
                  </div>
@@ -798,7 +816,7 @@ export function PayoutControl() {
                  onClick={() => updateStatusMutation.mutate({ id: selectedWithdrawal!.id, status: 'completed', transactionId })}
                  disabled={updateStatusMutation.isPending || !transactionId}
                >
-                 {updateStatusMutation.isPending ? <span className="flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" />Processing…</span> : "Finalize Payout"}
+                 {updateStatusMutation.isPending ? <span className="flex items-center gap-1.5"><ThorxSpinner size={14} />Processing…</span> : "Finalize Payout"}
                </Button>
                <button
                  type="button"
@@ -833,7 +851,7 @@ export function PayoutControl() {
                  onClick={() => updateStatusMutation.mutate({ id: selectedWithdrawal!.id, status: 'rejected', rejectionReason })}
                  disabled={updateStatusMutation.isPending || !rejectionReason}
                >
-                 {updateStatusMutation.isPending ? <span className="flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" />Processing…</span> : "Decline Entry"}
+                 {updateStatusMutation.isPending ? <span className="flex items-center gap-1.5"><ThorxSpinner size={14} />Processing…</span> : "Decline Entry"}
                </Button>
                <button
                  type="button"

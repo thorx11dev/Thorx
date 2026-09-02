@@ -2,46 +2,29 @@
 // business accounting (₨ balances, PKR labels). Excluded from Points-Only
 // Mandate which applies only to user-facing screens. Do not convert to TX-Points.
 import React, { useState, useEffect } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import Decimal from "decimal.js";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { downloadFromUrl } from "@/lib/downloadFromUrl";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useDragToPan } from "@/hooks/useDragToPan";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  Users, 
-  Search, 
-  Filter, 
-  MoreVertical, 
-  User, 
-  Mail, 
-  Phone, 
-  Shield, 
-  Ban, 
-  CheckCircle, 
-  DollarSign, 
-  Network,
-  ArrowRight,
-  ExternalLink,
-  Edit3,
-  Calendar,
-  Wallet,
-  ArrowUpRight,
-  ArrowDownRight,
-  ChevronRight,
-  X,
-  StickyNote,
-  Send,
-  Plus,
-  Check,
-  Lock,
-  TrendingUp,
-  Crown,
-} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {Users, Search, Filter, MoreVertical, User, Mail, Phone, Shield, Ban, CheckCircle, DollarSign, Network, ArrowRight, ExternalLink, Edit3, Calendar, Wallet, ArrowUpRight, ArrowDownRight, ChevronRight, X, StickyNote, Send, Plus, Check, Lock, TrendingUp, Crown} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Checkbox } from "@/components/ui/checkbox";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiAbsolutePath } from "@/lib/apiOrigin";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   Dialog,
   DialogContent,
@@ -51,16 +34,26 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Label } from "@/components/ui/label";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { ReferralTree } from "@/components/ui/referral-tree";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useDebounce } from "@/hooks/use-debounce";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { resolveAvatarUrl, resolveAvatarUrlByTier, getRankDef } from "@/lib/rankAvatars";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 import { motion, AnimatePresence } from "framer-motion";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { TRUST_STATUSES } from "@shared/constants";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface UserProfile {
   id: string;
@@ -752,7 +745,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                </div>
             ) : (
                <div className="flex flex-col items-center justify-center h-64 grayscale opacity-40">
-                  <div className="w-12 h-12 border-4 border-[#141413] border-t-transparent animate-spin rounded-full mb-6"></div>
+                  <ThorxSpinner size={48} className="mb-6" />
                   <TechnicalLabel text="Mapping network..." className="font-black text-xs text-[#141413] uppercase tracking-widest border border-[#141413] rounded-full px-4 py-1" />
                </div>
             )}

@@ -4,18 +4,31 @@
  * Landing/notification language: mono group labels, icon-chip header, hard shadows.
  */
 import { useState, useEffect } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, Link2 } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {Plus, X, Link2} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useAuth } from "@/hooks/useAuth";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { PremiumCard } from "@/components/ui/premium-card";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { CTA_CLASS, OUTLINE_CLASS, FIELD_CLASS, FIELD_AREA_CLASS, FieldLabel, SelectField } from "./GuildPanelShell";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { MemberAvatarEditor } from "./MemberAvatarEditor";
-import { GiPortrait, GiLinkedRings, GiSwordSpin } from "./guild-icons";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {GiPortrait, GiLinkedRings} from "./guild-icons";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface GuildProfileWizardProps {
   guildId: string;
@@ -117,7 +130,7 @@ export function GuildProfileWizard({ guildId, guildName, onDone, mode = "wizard"
   if (isLoading) {
     return (
       <div className="flex items-center justify-center gap-2 py-10">
-        <GiSwordSpin size={15} className="animate-spin text-primary" />
+        <ThorxSpinner size={15} className="text-primary" />
         <span className="text-[10px] font-mono font-bold tracking-[0.3em] text-black/45 uppercase">Loading profile…</span>
       </div>
     );
@@ -280,7 +293,7 @@ export function GuildProfileWizard({ guildId, guildName, onDone, mode = "wizard"
           disabled={!form.username.trim() || saveMutation.isPending}
           onClick={() => saveMutation.mutate()}
         >
-          {saveMutation.isPending ? <GiSwordSpin size={14} className="animate-spin" /> : null}
+          {saveMutation.isPending ? <ThorxSpinner size={14} /> : null}
           {mode === "wizard" ? "Create Profile" : "Save Changes"}
         </button>
       </div>

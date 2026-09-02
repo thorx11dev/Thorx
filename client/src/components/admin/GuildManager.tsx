@@ -1,15 +1,27 @@
 import { useState } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Badge } from "@/components/ui/badge";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Checkbox } from "@/components/ui/checkbox";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Textarea } from "@/components/ui/textarea";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import { Search, ShieldAlert, ShieldCheck, Snowflake, Play, RefreshCw, TrendingUp, Target, AlertTriangle, Crown, UserCog, Users2, ClipboardList, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp, Eye, Download, Send, Trash2, Moon } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {Search, ShieldAlert, ShieldCheck, Snowflake, Play, RefreshCw, TrendingUp, Target, AlertTriangle, Crown, UserCog, Users2, ClipboardList, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp, Eye, Download, Send, Trash2, Moon} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -18,10 +30,15 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { GuildKpiHeader } from "./guild-manager/GuildKpiHeader";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { GuildDetailDrawer } from "./guild-manager/GuildDetailDrawer";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { RankOrUnknown, formatPkr, daysOffline, formatPersonName, downloadCsvSafely } from "./guild-manager/guild-format";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import type { AdminGuild, GuildCreationRequestRow, DormantGuildRow } from "./guild-manager/types";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 const GUILD_PAGE_SIZE = 20;
 
@@ -335,7 +352,7 @@ export function GuildManager() {
           disabled={runResolutionMutation.isPending}
           className="border-2 border-black font-black text-xs flex items-center gap-2"
         >
-          <RefreshCw className={cn("w-4 h-4", runResolutionMutation.isPending && "animate-spin")} />
+          {runResolutionMutation.isPending ? <ThorxSpinner size={16} /> : <RefreshCw className="w-4 h-4" />}
           Run Weekly Resolution Now
         </Button>
       </div>
@@ -461,7 +478,7 @@ export function GuildManager() {
               disabled={decideMutation.isPending}
               onClick={() => decideMutation.mutate({ id: decideDialogId!, action: decideAction, note: adminNote })}
             >
-              {decideMutation.isPending ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : null}
+              {decideMutation.isPending ? <ThorxSpinner size={12} className="mr-1" /> : null}
               Confirm {decideAction === "approve" ? "Approval" : "Rejection"}
             </Button>
           </DialogFooter>
@@ -963,7 +980,7 @@ export function GuildManager() {
               disabled={bulkMessageText.trim().length === 0 || bulkMessageMutation.isPending}
               onClick={() => bulkMessageMutation.mutate({ guildIds: Array.from(selectedGuildIds), message: bulkMessageText.trim() })}
             >
-              {bulkMessageMutation.isPending ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : <Send className="w-3 h-3 mr-1" />}
+              {bulkMessageMutation.isPending ? <ThorxSpinner size={12} className="mr-1" /> : <Send className="w-3 h-3 mr-1" />}
               Send
             </Button>
           </DialogFooter>

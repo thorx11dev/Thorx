@@ -1,17 +1,31 @@
 import { useState, useEffect, useRef } from "react";
-import { X, User, Camera, Star, Check } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {X, User, Camera, Star, Check} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { QUERY_KEYS } from "@/lib/queryKeys";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useLocation } from "wouter";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TwoFactorCard from "@/components/ui/two-factor-card";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Progress } from "@/components/ui/progress";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { PS_THRESHOLDS } from "@/components/PSProgressCard";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   getRankDef,
   resolveAvatarUrl,
@@ -293,7 +307,7 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
                     title="Upload photo"
                   >
                     {isUploading ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <ThorxSpinner size={20} className="text-white" />
                     ) : (
                       <Camera className="w-5 h-5 text-white" />
                     )}

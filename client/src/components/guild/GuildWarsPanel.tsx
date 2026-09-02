@@ -4,21 +4,31 @@
  * Landing-page language: display type, mono labels, hard shadows, orange accents.
  */
 import { useState } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {Plus} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useAuth } from "@/hooks/useAuth";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Progress } from "@/components/ui/progress";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { PremiumCard } from "@/components/ui/premium-card";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { SectionChip, CTA_CLASS, OUTLINE_CLASS, AvatarStamp } from "./GuildPanelShell";
-import {
-  GiPocketWatch, GiRoundShield, GiSwordSpin,
-  GiCrossedSwords, GiFlame, GiLaurelsTrophy, GiBroadsword, GiSpartanHelmet, GiSkullCrossedBones,
-} from "./guild-icons";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {GiPocketWatch, GiRoundShield, GiCrossedSwords, GiFlame, GiLaurelsTrophy, GiBroadsword, GiSpartanHelmet, GiSkullCrossedBones} from "./guild-icons";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { formatDistanceToNow } from "date-fns";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface GuildWarsPanelProps {
   guildId: string;
@@ -130,7 +140,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
     return (
       <div className="space-y-4">
         <div className="bg-white border-2 border-black rounded-2xl p-4 flex items-center gap-3">
-          <GiSwordSpin size={15} className="animate-spin text-primary" />
+          <ThorxSpinner size={15} className="text-primary" />
           <span className="text-[10px] font-mono font-bold tracking-[0.3em] text-black/45 uppercase">Loading war status…</span>
         </div>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-2">
@@ -236,7 +246,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
               <GroupLabel text="Select an Opponent" />
               {!opponentsData ? (
                 <div className="flex items-center gap-2 py-2">
-                  <GiSwordSpin size={14} className="animate-spin text-primary" />
+                  <ThorxSpinner size={14} className="text-primary" />
                   <span className="text-[10px] font-mono font-bold tracking-[0.2em] text-black/45 uppercase">Loading eligible opponents…</span>
                 </div>
               ) : opponentsData.opponents?.length === 0 ? (
@@ -297,7 +307,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
                   disabled={!selectedOpponent || challengeMutation.isPending}
                   onClick={() => selectedOpponent && challengeMutation.mutate(selectedOpponent.id)}
                 >
-                  {challengeMutation.isPending ? <GiSwordSpin size={12} className="animate-spin" /> : null}
+                  {challengeMutation.isPending ? <ThorxSpinner size={12} /> : null}
                   Send Challenge
                 </Button>
               </div>
@@ -552,7 +562,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
                 disabled={cancelMutation.isPending}
                 onClick={() => cancelMutation.mutate(war.id)}
               >
-                {cancelMutation.isPending ? <GiSwordSpin size={12} className="animate-spin" /> : null}
+                {cancelMutation.isPending ? <ThorxSpinner size={12} /> : null}
                 Cancel Challenge
               </Button>
             )}

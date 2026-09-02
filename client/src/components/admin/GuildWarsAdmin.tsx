@@ -4,21 +4,34 @@
  *         GET/POST /api/admin/guild-wars/wars, PATCH resolve
  */
 import { useState } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { formatDistanceToNow } from "date-fns";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import Decimal from "decimal.js";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Badge } from "@/components/ui/badge";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Swords, Trophy, Plus, Play, CheckCircle2, RefreshCw, Shield, Zap } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {Swords, Trophy, Plus, Play, CheckCircle2, RefreshCw, Shield, Zap} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 const STATUS_COLORS: Record<string, string> = {
   pending_challenger_approval: "bg-yellow-100 text-yellow-700 border-yellow-200",
@@ -393,7 +406,7 @@ export function GuildWarsAdmin() {
               disabled={!seasonForm.name || !seasonForm.startDate || !seasonForm.endDate || !seasonForm.prizePoolPkr || createSeasonMutation.isPending}
               onClick={() => createSeasonMutation.mutate(seasonForm)}
             >
-              {createSeasonMutation.isPending ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : null}
+              {createSeasonMutation.isPending ? <ThorxSpinner size={12} className="mr-1" /> : null}
               Create Season
             </Button>
           </DialogFooter>
@@ -459,7 +472,7 @@ export function GuildWarsAdmin() {
               disabled={!warForm.seasonId || !warForm.guild1Id || !warForm.guild2Id || createWarMutation.isPending}
               onClick={() => createWarMutation.mutate(warForm)}
             >
-              {createWarMutation.isPending ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : <Swords className="w-3 h-3 mr-1" />}
+              {createWarMutation.isPending ? <ThorxSpinner size={12} className="mr-1" /> : <Swords className="w-3 h-3 mr-1" />}
               Create Matchup
             </Button>
           </DialogFooter>

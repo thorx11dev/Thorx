@@ -19,12 +19,19 @@
 // to match the cinematic landing-page language.
 
 import { useEffect, useMemo, useState } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion, AnimatePresence } from "framer-motion";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Megaphone, X, Send, Loader2, CheckCircle2, Eye } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface BetaTrustUser {
   id?: string;
@@ -371,7 +378,7 @@ function FeedbackDock() {
                     disabled={!canSubmit}
                     className="w-full h-11 rounded-xl bg-black text-white font-black uppercase tracking-[0.15em] text-xs flex items-center justify-center gap-2 hover:bg-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-40 disabled:pointer-events-none"
                   >
-                    {submit.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={13} />}
+                    {submit.isPending ? <ThorxSpinner size={14} /> : <Send size={13} />}
                     Send to Team
                   </motion.button>
 

@@ -1,12 +1,21 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ExternalLink, ChevronUp } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {X, ExternalLink, ChevronUp} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Progress } from "@/components/ui/progress";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiAbsolutePath } from "@/lib/apiOrigin";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { WaterfallAdPlayer } from "@/components/ads/HilltopAdsPlayer";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface AdWebPanelProps {
     isOpen: boolean;
@@ -263,7 +272,7 @@ export function AdWebPanel({
                                 <>
                                     {loading && (
                                         <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/50 backdrop-blur-[2px]">
-                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                            <ThorxSpinner size={32} className="text-primary" />
                                         </div>
                                     )}
 

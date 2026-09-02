@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   AlertTriangle,
   Shield,
@@ -35,11 +39,17 @@ import {
   UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { format, formatDistanceToNow } from "date-fns";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { resolveAvatarUrlByTier } from "@/lib/rankAvatars";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { QUERY_KEYS } from "@/lib/queryKeys";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { TRUST_STATUSES } from "@shared/constants";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -540,7 +550,7 @@ function CaseDetailDrawer({
               disabled={isPending}
               className="h-8 bg-[#141413] text-white font-black text-[9px] uppercase tracking-widest px-5 rounded-full hover:bg-zinc-700 transition-all"
             >
-              {isPending ? <RefreshCw size={12} className="animate-spin" /> : "Save Notes"}
+              {isPending ? <ThorxSpinner size={12} /> : "Save Notes"}
             </Button>
           </div>
 
@@ -621,7 +631,7 @@ function CaseDetailDrawer({
           )}
           {isPending && (
             <div className="flex items-center gap-2 text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">
-              <RefreshCw size={12} className="animate-spin" /> Saving…
+              <ThorxSpinner size={12} /> Saving…
             </div>
           )}
         </div>
@@ -802,7 +812,7 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
           className="h-10 bg-[#141413] text-white border-[1.5px] border-[#141413] font-black text-[10px] px-5 hover:bg-red-600 hover:border-red-600 rounded-full transition-all uppercase shadow-sm flex items-center gap-2"
         >
           {scanMutation.isPending
-            ? <><Loader2 size={13} className="animate-spin" /> Scanning…</>
+            ? <><ThorxSpinner size={13} /> Scanning…</>
             : <><Zap size={13} /> Run Risk Scan</>
           }
         </Button>

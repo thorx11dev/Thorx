@@ -1,12 +1,21 @@
 import { useState } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Label } from "@/components/ui/label";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Loader2, RefreshCw, DollarSign, BarChart3, Zap, AlertCircle } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface HilltopAdsConfig {
   id: string;
@@ -140,7 +149,7 @@ export default function HilltopAdsAdmin() {
   if (configLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" data-testid="loading-spinner" />
+        <ThorxSpinner size={32} data-testid="loading-spinner" />
       </div>
     );
   }
@@ -238,7 +247,7 @@ export default function HilltopAdsAdmin() {
               disabled={createConfigMutation.isPending}
               data-testid="button-save-config"
             >
-              {createConfigMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {createConfigMutation.isPending && <ThorxSpinner size={16} className="mr-2" />}
               Save Configuration
             </Button>
           </CardContent>
@@ -274,7 +283,7 @@ export default function HilltopAdsAdmin() {
                   variant="outline"
                   data-testid="button-sync-inventory"
                 >
-                  {syncInventoryMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {syncInventoryMutation.isPending && <ThorxSpinner size={16} className="mr-2" />}
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Sync Inventory
                 </Button>
@@ -284,7 +293,7 @@ export default function HilltopAdsAdmin() {
                   variant="outline"
                   data-testid="button-sync-stats"
                 >
-                  {syncStatsMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {syncStatsMutation.isPending && <ThorxSpinner size={16} className="mr-2" />}
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Sync Stats
                 </Button>
@@ -300,7 +309,7 @@ export default function HilltopAdsAdmin() {
             <CardContent>
               {zonesLoading ? (
                 <div className="flex justify-center py-4">
-                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <ThorxSpinner size={24} />
                 </div>
               ) : zones && zones.length > 0 ? (
                 <div className="space-y-3">

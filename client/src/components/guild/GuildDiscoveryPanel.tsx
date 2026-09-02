@@ -7,27 +7,43 @@
  * language) + grid/list toggle. No ranks are exposed anywhere in the UI.
  */
 import { useEffect, useState } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { createPortal } from "react-dom";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { AnimatePresence, motion, type Variants } from "framer-motion";
-import {
-  Search, SlidersHorizontal, LayoutGrid, List, X, Swords, Shield, ShieldCheck,
-  Lock, ArrowRight, Clock, Flame, Crown, Trophy, Loader2, RotateCcw, Users, ChevronDown, Info,
-} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {Search, SlidersHorizontal, LayoutGrid, List, X, Swords, Shield, ShieldCheck, Lock, ArrowRight, Clock, Flame, Crown, Trophy, RotateCcw, Users, ChevronDown, Info} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useAuth } from "@/hooks/useAuth";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Textarea } from "@/components/ui/textarea";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Progress } from "@/components/ui/progress";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { formatDistanceToNow } from "date-fns";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { DEV_UNLOCK_RANK_GATES } from "@/lib/previewAccess";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Types + helpers                                                           */
@@ -95,7 +111,8 @@ const CornerPlus = () => (
   </>
 );
 
-import { Plus } from "lucide-react";
+import {Plus} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 const GUILD_NAME_SUGGESTIONS = ["Iron Wolves", "Pixel Raiders", "Shadow Syndicate", "Aurora Vanguard"];
 const GUILD_DESCRIPTION_SUGGESTIONS = ["A focused team that builds together", "Competitive players, one shared goal", "A crew for consistent weekly wins"];
@@ -1184,7 +1201,7 @@ export function GuildDiscoveryPanel() {
                 Cancel
               </Button>
               <Button className={cn("flex-1 h-12", CTA_CLASS, "text-[10px]")} disabled={coverLetter.trim().length < 50 || applyMutation.isPending} onClick={submitApplication} data-testid="button-submit-application">
-                {applyMutation.isPending ? <><Loader2 className="size-3.5 animate-spin" /> Sending…</> : "Submit Application"}
+                {applyMutation.isPending ? <><ThorxSpinner size={14} /> Sending…</> : "Submit Application"}
               </Button>
             </div>
           </motion.div>
@@ -1266,7 +1283,7 @@ export function GuildDiscoveryPanel() {
                 Cancel
               </Button>
               <Button className={cn("flex-1 h-12", CTA_CLASS, "text-[10px]")} disabled={creationForm.guildName.trim().length < 3 || creationForm.reason.trim().length < 50 || creationRequestMutation.isPending} onClick={() => creationRequestMutation.mutate(creationForm)} data-testid="button-submit-creation-request">
-                {creationRequestMutation.isPending ? <><Loader2 className="size-3.5 animate-spin" /> Submitting…</> : "Submit Request"}
+                {creationRequestMutation.isPending ? <><ThorxSpinner size={14} /> Submitting…</> : "Submit Request"}
               </Button>
             </div>
           </motion.div>

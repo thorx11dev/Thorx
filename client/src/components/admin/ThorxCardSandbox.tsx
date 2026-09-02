@@ -4,13 +4,21 @@
  * POST /api/admin/simulate/thorx-card
  */
 import { useState } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { ThorxCard } from "@/components/ThorxCard";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Zap, Play, RotateCcw, Loader2, Download, ListTree } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 // Matches server/modules/thorx-card.ts SimulationResult exactly.
 interface SimulateResult {
@@ -182,17 +190,17 @@ export function ThorxCardSandbox() {
 
         <div className="flex gap-2 flex-wrap">
           <Button className="flex-1" style={{ backgroundColor: color }} onClick={() => simulateMutation.mutate({ count: 1 })} disabled={simulateMutation.isPending}>
-            {simulateMutation.isPending ? <Loader2 size={14} className="mr-2 text-white animate-spin" /> : <Play size={14} className="mr-2 text-white" />}
+            {simulateMutation.isPending ? <ThorxSpinner size={14} className="mr-2 text-white" /> : <Play size={14} className="mr-2 text-white" />}
             <span className="text-white">Draw Card</span>
           </Button>
           {batchCount > 1 && (
             <Button variant="outline" className="flex-1" onClick={() => simulateMutation.mutate({ count: batchCount })} disabled={simulateMutation.isPending}>
-              {simulateMutation.isPending ? <Loader2 size={14} className="mr-2 animate-spin" /> : null}
+              {simulateMutation.isPending ? <ThorxSpinner size={14} className="mr-2" /> : null}
               Batch Draw ×{batchCount}
             </Button>
           )}
           <Button variant="outline" onClick={() => compareRanksMutation.mutate()} disabled={compareRanksMutation.isPending} title="Run this input across all 6 rank tiers">
-            {compareRanksMutation.isPending ? <Loader2 size={14} className="mr-2 animate-spin" /> : <ListTree size={14} className="mr-2" />}
+            {compareRanksMutation.isPending ? <ThorxSpinner size={14} className="mr-2" /> : <ListTree size={14} className="mr-2" />}
             Compare All Ranks
           </Button>
           {results.length > 0 && (

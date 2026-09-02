@@ -3,40 +3,37 @@
 // screens only). parseFloat() on line ~192 is for client-side sort comparison
 // only (not stored or sent to the DB) — float imprecision is acceptable for sort.
 import React, { useEffect, useState, useMemo } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import Decimal from "decimal.js";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useDebounce } from "@/hooks/use-debounce";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Trophy, 
-  Users, 
-  AlertTriangle, 
-  Search,
-  ArrowUpDown,
-  Eye,
-  User,
-  ShieldCheck,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  CheckSquare,
-  Square,
-  RefreshCw,
-  ServerCrash,
-  TrendingUp,
-  Wallet,
-  ShieldAlert,
-} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {Trophy, Users, AlertTriangle, Search, ArrowUpDown, Eye, User, ShieldCheck, ChevronLeft, ChevronRight, Download, CheckSquare, Square, RefreshCw, ServerCrash, TrendingUp, Wallet, ShieldAlert} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { resolveAvatarUrlByTier } from "@/lib/rankAvatars";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { RankBadge } from "@/components/RankBadge";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { format } from "date-fns";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { UserInspectorPanel } from "./UserInspectorPanel";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { RiskWatchlistPanel } from "./RiskWatchlistPanel";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface LeaderboardData {
   globalRanking: any[];
@@ -254,7 +251,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
           disabled={forceSyncMutation.isPending}
           className="mt-2 h-10 bg-red-600 text-white hover:bg-red-700 border-b-4 border-red-900 rounded-full font-black text-[10px] uppercase px-6 flex items-center gap-2"
         >
-          <RefreshCw size={14} className={forceSyncMutation.isPending ? "animate-spin" : ""} />
+          {forceSyncMutation.isPending ? <ThorxSpinner size={14} /> : <RefreshCw size={14} />}
           {forceSyncMutation.isPending ? "Refreshing..." : "Refresh Rankings"}
         </Button>
       </div>
@@ -300,7 +297,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
             disabled={forceSyncMutation.isPending}
             className="h-10 bg-[#141413] text-white border-[1.5px] border-[#141413] font-black text-[10px] px-5 hover:bg-primary hover:text-white rounded-full transition-all uppercase shadow-sm flex items-center gap-2"
           >
-            <RefreshCw size={13} className={forceSyncMutation.isPending ? "animate-spin" : ""} />
+            {forceSyncMutation.isPending ? <ThorxSpinner size={13} /> : <RefreshCw size={13} />}
             {forceSyncMutation.isPending ? "Updating..." : "Refresh Rankings"}
           </Button>
         </div>

@@ -1,6 +1,9 @@
 import { useState, useCallback } from "react";
-import { RefreshCw } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {RefreshCw} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface RefreshButtonProps {
   onClick: () => void;
@@ -26,7 +29,7 @@ export function RefreshButton({ onClick, refreshing = false, className, size = "
         className
       )}
     >
-      <RefreshCw className={cn("w-3.5 h-3.5 md:w-4 md:h-4", refreshing && "animate-spin")} strokeWidth={2.5} />
+      {refreshing ? <ThorxSpinner size={16} /> : <RefreshCw className="w-3.5 h-3.5 md:w-4 md:h-4" strokeWidth={2.5} />}
     </button>
   );
 }

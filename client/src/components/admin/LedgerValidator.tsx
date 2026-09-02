@@ -5,14 +5,23 @@
  * POST /api/admin/ledger/reconcile/:userId
  */
 import { useState, useMemo } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Textarea } from "@/components/ui/textarea";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Label } from "@/components/ui/label";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Badge } from "@/components/ui/badge";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   Dialog,
   DialogContent,
@@ -22,9 +31,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Shield, Search, AlertTriangle, CheckCircle, RotateCcw, User, Wrench, Download, Loader2, History, Wallet, ListFilter, Layers } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { formatDistanceToNow } from "date-fns";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { UserInspectorPanel } from "./UserInspectorPanel";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface ValidationResult {
   userId: string;
@@ -177,7 +190,7 @@ function ValidationCard({
               title="Reconcile balance to computed value"
               data-testid={`button-reconcile-${result.userId}`}
             >
-              {isReconciling ? <Loader2 size={12} className="animate-spin" /> : <Wrench size={12} />}
+              {isReconciling ? <ThorxSpinner size={12} /> : <Wrench size={12} />}
             </Button>
           )}
           {onShowHistory && (
@@ -202,7 +215,7 @@ function ValidationCard({
               title="View full profile"
               data-testid={`button-view-${result.userId}`}
             >
-              {isViewLoading ? <Loader2 size={12} className="animate-spin" /> : <User size={12} />}
+              {isViewLoading ? <ThorxSpinner size={12} /> : <User size={12} />}
             </Button>
           )}
         </div>
@@ -511,7 +524,7 @@ export function LedgerValidator() {
             data-testid="input-ledger-user"
           />
           <Button disabled={!userId.trim() || validateMutation.isPending} onClick={() => validateMutation.mutate(userId.trim())} data-testid="button-validate-user">
-            {validateMutation.isPending ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Search size={14} className="mr-1" />}
+            {validateMutation.isPending ? <ThorxSpinner size={14} className="mr-1" /> : <Search size={14} className="mr-1" />}
             Validate
           </Button>
         </div>
@@ -742,7 +755,7 @@ export function LedgerValidator() {
               onClick={() => reconcileTarget && reconcileMutation.mutate({ targetUserId: reconcileTarget.userId, reason: reconcileReason.trim() })}
               data-testid="button-confirm-reconcile"
             >
-              {reconcileMutation.isPending ? <span className="flex items-center gap-1.5 justify-center"><Loader2 className="w-3.5 h-3.5 animate-spin" />Reconciling…</span> : "Apply Correction"}
+              {reconcileMutation.isPending ? <span className="flex items-center gap-1.5 justify-center"><ThorxSpinner size={14} />Reconciling…</span> : "Apply Correction"}
             </Button>
             <button type="button" className="text-sm text-zinc-400 hover:text-zinc-600 transition-colors py-1" onClick={() => { setReconcileTarget(null); setReconcileReason(""); }}>
               Cancel
@@ -809,7 +822,7 @@ export function LedgerValidator() {
               </Button>
             ) : (
               <div className="flex items-center justify-center gap-1.5 text-sm text-zinc-400 py-1">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Processing…
+                <ThorxSpinner size={14} /> Processing…
               </div>
             )}
           </DialogFooter>
@@ -827,7 +840,7 @@ export function LedgerValidator() {
           </DialogHeader>
           <div className="px-7 py-6 max-h-[420px] overflow-y-auto space-y-3">
             {historyLoading ? (
-              <div className="flex items-center justify-center py-8 text-zinc-400"><Loader2 className="w-5 h-5 animate-spin" /></div>
+              <div className="flex items-center justify-center py-8 text-zinc-400"><ThorxSpinner size={20} /></div>
             ) : !historyData?.trail?.length ? (
               <div className="text-center py-8 text-sm text-zinc-400">No past reconciliations or balance adjustments on record for this account.</div>
             ) : (

@@ -1,27 +1,51 @@
 import { useState, useEffect, useRef, ReactNode } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useLocation, useSearchParams } from "wouter";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useForm } from "react-hook-form";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { zodResolver } from "@hookform/resolvers/zod";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { z } from "zod";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion, AnimatePresence } from "framer-motion";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { identifyUser, captureEvent } from "@/lib/posthog";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import Barcode from "@/components/ui/barcode";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Eye, EyeOff, Loader2, Mail, CheckCircle2 } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { QUERY_KEYS } from "@/lib/queryKeys";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { calculatePasswordStrength } from "@/lib/password-strength";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { getDeviceFingerprint } from "@/lib/fingerprint";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { InviteAcceptCard } from "@/components/auth/InviteAcceptCard";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import AuthNav from "@/components/auth/AuthNav";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 // Animated Placeholder Component
 function AnimatedPlaceholder({ examples, className = "text-muted-foreground" }: { examples: string[]; className?: string }) {
@@ -609,7 +633,7 @@ export default function Auth() {
                   {isSubmitting && (
                     <div className="flex justify-center">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <div className="w-4 h-4 border-2 border-black border-t-transparent animate-spin" />
+                        <ThorxSpinner size={16} />
                         <span className="font-bold tracking-wider">VERIFYING...</span>
                       </div>
                     </div>
@@ -681,7 +705,7 @@ export default function Auth() {
                         >
                           {isSubmitting ? (
                             <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <ThorxSpinner size={16} />
                               SENDING...
                             </>
                           ) : (
@@ -1147,7 +1171,7 @@ export default function Auth() {
                           data-testid="button-register-submit"
                         >
                           {isSubmitting ? (
-                            <><Loader2 className="mr-2 h-5 w-5 animate-spin inline" />PROCESSING</>
+                            <><ThorxSpinner size={20} className="mr-2" />PROCESSING</>
                           ) : "Enter"}
                         </Button>
                       </div>
@@ -1288,7 +1312,7 @@ export default function Auth() {
                             data-testid="button-login-submit"
                           >
                             {isSubmitting ? (
-                              <><Loader2 className="mr-2 h-5 w-5 animate-spin inline" />LOGGING IN</>
+                              <><ThorxSpinner size={20} className="mr-2" />LOGGING IN</>
                             ) : "Enter"}
                           </Button>
                         </div>

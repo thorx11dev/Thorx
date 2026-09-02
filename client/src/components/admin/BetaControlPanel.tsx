@@ -13,19 +13,29 @@
 // borders, black pills, uppercase micro-labels.
 
 import { useState } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Textarea } from "@/components/ui/textarea";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   MessageSquare, Ticket, Loader2, Send, Ban, Copy,
   CheckCircle2, Eye, Inbox, Users2, Power,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface FeedbackRow {
   id: string;
@@ -168,7 +178,7 @@ function FeedbackInbox({
 
       {query.isLoading ? (
         <div className="flex items-center gap-2 justify-center py-16 text-black/40">
-          <Loader2 size={16} className="animate-spin" />
+          <ThorxSpinner size={16} />
           <span className="text-[10px] font-black uppercase tracking-widest">Loading inbox…</span>
         </div>
       ) : (query.data?.feedback ?? []).length === 0 ? (
@@ -241,7 +251,7 @@ function FeedbackInbox({
                         onClick={() => updateMutation.mutate({ id: row.id, status: nextStatus, adminResponse: responseText.trim() || undefined })}
                         className="bg-primary text-black hover:bg-primary/90 rounded-lg text-[10px] font-black uppercase tracking-wider h-8 px-3"
                       >
-                        {updateMutation.isPending ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />} Send
+                        {updateMutation.isPending ? <ThorxSpinner size={11} /> : <Send size={11} />} Send
                       </Button>
                     </div>
                   </div>
@@ -354,7 +364,7 @@ function InviteManager() {
             )}
             data-testid="button-toggle-invite-gate"
           >
-            {gateToggle.isPending ? <Loader2 size={12} className="animate-spin" /> : <Power size={12} />}
+            {gateToggle.isPending ? <ThorxSpinner size={12} /> : <Power size={12} />}
             {gateOn ? "Open Registration" : "Lock to Invites"}
           </Button>
         )}
@@ -385,7 +395,7 @@ function InviteManager() {
             className="bg-[#141413] text-white hover:bg-primary hover:text-black rounded-lg h-10 px-5 text-[10px] font-black uppercase tracking-wider shrink-0"
             data-testid="button-mint-invite"
           >
-            {createMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Ticket size={12} />} Mint
+            {createMutation.isPending ? <ThorxSpinner size={12} /> : <Ticket size={12} />} Mint
           </Button>
         </div>
         <p className="text-[10px] font-bold text-black/35 uppercase tracking-wider">Batch size = max uses per code (1–1000)</p>
@@ -394,7 +404,7 @@ function InviteManager() {
       {/* Invite list */}
       {invites.isLoading ? (
         <div className="flex items-center gap-2 justify-center py-12 text-black/40">
-          <Loader2 size={16} className="animate-spin" />
+          <ThorxSpinner size={16} />
           <span className="text-[10px] font-black uppercase tracking-widest">Loading invites…</span>
         </div>
       ) : (invites.data?.invites ?? []).length === 0 ? (

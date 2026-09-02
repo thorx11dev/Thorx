@@ -1,12 +1,21 @@
 import { useState } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
-import { Trophy, RefreshCw } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {Trophy, RefreshCw} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { QUERY_KEYS } from "@/lib/queryKeys";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import RankBadge from "@/components/RankBadge";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { InteractiveDivider } from "@/features/user-portal/shared";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface LeaderEntry {
   rank: number;
@@ -141,7 +150,7 @@ export default function LeaderboardSection() {
           aria-label="Refresh leaderboard"
           data-testid="leaderboard-refresh"
         >
-          <RefreshCw className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isRefetching ? "animate-spin" : ""}`} strokeWidth={2.5} />
+          {isRefetching ? <ThorxSpinner size={16} /> : <RefreshCw className="w-3.5 h-3.5 md:w-4 md:h-4" strokeWidth={2.5} />}
           SYNC
         </button>
       </motion.div>

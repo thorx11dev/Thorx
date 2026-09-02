@@ -5,17 +5,29 @@
  * NEVER shows PKR pool amounts to users — only after distribution.
  */
 import { useState, useRef, useEffect, useMemo } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useAuth } from "@/hooks/useAuth";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { RankBadge } from "@/components/RankBadge";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Progress } from "@/components/ui/progress";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { PremiumCard } from "@/components/ui/premium-card";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   SectionChip, QueryError, RoleChip,
   CTA_CLASS, OUTLINE_CLASS, DESTRUCTIVE_CLASS, DESTRUCTIVE_OUTLINE, ICON_BTN_CLASS,
@@ -24,9 +36,13 @@ import {
   PanelSkeleton, SkeletonBlock,
 } from "./GuildPanelShell";
 import { Inbox, Users, ListChecks, MessagesSquare, MessageCircle, Swords, Search, BarChart3, Settings, Menu, ArrowRight, ArrowLeft, Megaphone, Shield, ImagePlus, ChevronDown, BellRing, Glasses, X, Loader2, UserMinus } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { InteractiveDivider } from "@/features/user-portal/shared";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { GuildNavDrawer } from "./GuildNavDrawer";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { EmblemBirds } from "./EmblemBirds";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   GiKnightBanner, GiChatBubble, GiWarhammer, GiCog,
   GiRoundShield, GiSkullCrossedBones, GiLaurelsTrophy, GiHuntingHorn, GiBroadsword, GiSpartanHelmet,
@@ -34,11 +50,17 @@ import {
   GiArrowCluster, GiArrowhead, GiPortrait, GiMagnifyingGlass,
 } from "./guild-icons";
 import { GuildWarsPanel } from "./GuildWarsPanel";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { GuildProfileWizard } from "./GuildProfileWizard";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { GuildTasksPanel } from "./GuildTasksPanel";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { GuildDiscoveryPanel } from "./GuildDiscoveryPanel";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { formatDistanceToNow, format } from "date-fns";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 /** Mono group label + hairline — notification-panel section signature. */
 function GroupLabel({ text }: { text: string }) {
@@ -699,7 +721,7 @@ export function CaptainPortal() {
               disabled={clearAnnouncementMutation.isPending}
               className="shrink-0 inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border-2 border-black/20 bg-white text-black/50 font-black uppercase tracking-wider text-[10px] transition-all duration-200 hover:border-destructive hover:text-destructive disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              {clearAnnouncementMutation.isPending ? <GiSwordSpin className="w-3 h-3 animate-spin" /> : <GiCrossedAxes size={12} />}
+              {clearAnnouncementMutation.isPending ? <ThorxSpinner size={12} /> : <GiCrossedAxes size={12} />}
               Clear
             </button>
           </div>
@@ -922,7 +944,7 @@ export function CaptainPortal() {
                                       aria-label={onCooldown ? "Nudged" : "Nudge member"}
                                       onClick={() => nudgeMutation.mutate(m.userId)}
                                     >
-                                      {nudgeMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <BellRing size={14} strokeWidth={2} />}
+                                      {nudgeMutation.isPending ? <ThorxSpinner size={14} /> : <BellRing size={14} strokeWidth={2} />}
                                     </button>
                                     <button
                                       className={ICON_BTN_CLASS}
@@ -940,7 +962,7 @@ export function CaptainPortal() {
                                         aria-label={`Set ${m.firstName || "member"} as MVP`}
                                         onClick={() => mvpMutation.mutate(m.userId)}
                                       >
-                                        {mvpMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Glasses size={14} strokeWidth={2} />}
+                                        {mvpMutation.isPending ? <ThorxSpinner size={14} /> : <Glasses size={14} strokeWidth={2} />}
                                       </button>
                                     )}
 
@@ -1456,7 +1478,7 @@ export function CaptainPortal() {
               }}
             >
               {settingsMutation.isPending
-                ? <><GiSwordSpin className="w-4 h-4 animate-spin mr-2" />Saving…</>
+                ? <><ThorxSpinner size={16} className="mr-2" />Saving…</>
                 : "Save Settings"}
             </Button>
           </PremiumCard>
@@ -1567,7 +1589,7 @@ export function CaptainPortal() {
                 disabled={rejectReason.trim().length < 10 || appActionMutation.isPending}
                 onClick={() => appActionMutation.mutate({ appId: rejectModal.appId, action: "reject", reason: rejectReason })}
               >
-                {appActionMutation.isPending ? <GiSwordSpin size={14} className="animate-spin" /> : null}
+                {appActionMutation.isPending ? <ThorxSpinner size={14} /> : null}
                 Reject
               </Button>
             </div>
@@ -1619,7 +1641,7 @@ export function CaptainPortal() {
                 disabled={kickMutation.isPending}
                 onClick={() => kickMutation.mutate(kickConfirm)}
               >
-                {kickMutation.isPending ? <GiSwordSpin size={14} className="animate-spin" /> : null}
+                {kickMutation.isPending ? <ThorxSpinner size={14} /> : null}
                 Remove
               </Button>
             </div>
@@ -1746,7 +1768,7 @@ function AssistantPermissionsEditor({
           disabled={permsMutation.isPending}
           onClick={() => permsMutation.mutate(perms)}
         >
-          {permsMutation.isPending ? <GiSwordSpin size={13} className="animate-spin" /> : null}
+          {permsMutation.isPending ? <ThorxSpinner size={13} /> : null}
           Save Permissions
         </Button>
       )}

@@ -1,5 +1,7 @@
 import React, { useState } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { 
   Search, 
   Shield, 
@@ -20,15 +22,23 @@ import {
   Check
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useAuth } from "@/hooks/useAuth";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface TeamMember {
   id: string;
@@ -320,7 +330,7 @@ export function TeamKeysManager() {
                   className="w-full h-12 bg-primary text-white border-[1.5px] border-[#141413] font-black text-xs rounded-full hover:bg-primary/80 transition-colors uppercase disabled:opacity-50"
                 >
                   {addMemberMutation.isPending
-                    ? <span className="flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" />Processing…</span>
+                    ? <span className="flex items-center gap-1.5"><ThorxSpinner size={14} />Processing…</span>
                     : "Process Key Issuance"}
                 </Button>
               </div>

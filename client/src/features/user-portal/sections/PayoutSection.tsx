@@ -1,17 +1,31 @@
 import { motion, AnimatePresence } from "framer-motion";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { InteractiveDivider, AnimatedPlaceholder } from "@/features/user-portal/shared";
-import { ArrowLeft, ArrowRight, RefreshCw, History, LifeBuoy } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {ArrowLeft, ArrowRight, RefreshCw, History, LifeBuoy} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { JazzCashLogo, EasyPaisaLogo } from "@/components/ui/payment-icons";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { QUERY_KEYS } from "@/lib/queryKeys";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { DEV_UNLOCK_PAYOUT } from "@/lib/previewAccess";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { z } from "zod";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { captureEvent } from "@/lib/posthog";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface PayoutSectionProps {
   isPayoutHeroToggled: boolean;
@@ -575,7 +589,7 @@ export function PayoutSection(props: PayoutSectionProps) {
                   >
                     {isProcessing && currentStep === 3 ? (
                       <>
-                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        <ThorxSpinner size={16} />
                         SUBMITTING...
                       </>
                     ) : (

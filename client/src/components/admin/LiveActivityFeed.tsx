@@ -5,16 +5,21 @@
  * useRealtimeSync) with a slower poll as a fallback in case the socket drops.
  */
 import { useMemo, useState } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { RankBadge } from "@/components/RankBadge";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Badge } from "@/components/ui/badge";
-import {
-  Activity, RefreshCw, Zap, Users, Target, Wallet, UserPlus, TrendingDown,
-  AlertTriangle, Pause, Play, ChevronDown,
-} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {Activity, RefreshCw, Zap, Users, Target, Wallet, UserPlus, TrendingDown, AlertTriangle, Pause, Play, ChevronDown} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { formatDistanceToNow } from "date-fns";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface FeedEvent {
   id: string;
@@ -187,7 +192,7 @@ export function LiveActivityFeed({ onViewUserInCRM }: { onViewUserInCRM?: (email
             onClick={() => refetch()}
             className={cn("flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 transition-colors", isFetching ? "animate-pulse" : "")}
           >
-            <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
+            {isFetching ? <ThorxSpinner size={14} /> : <RefreshCw size={14} />}
             Refresh
           </button>
         </div>

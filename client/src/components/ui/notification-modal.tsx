@@ -1,11 +1,19 @@
 import * as React from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
-import { TrendingUp, User, Bell, Wallet, X, GripHorizontal, Trash2, ArrowUpRight } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {TrendingUp, User, Bell, Wallet, X, GripHorizontal, Trash2, ArrowUpRight} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { format, isToday, subDays, isAfter } from "date-fns";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface Commission {
     id: string;
@@ -237,7 +245,7 @@ export function NotificationModal({
                         <div className="flex-1 overflow-y-auto">
                             {isLoading ? (
                                 <div className="flex items-center justify-center py-24">
-                                    <div className="h-8 w-8 animate-spin rounded-full border-[2.5px] border-primary border-t-transparent" />
+                                    <ThorxSpinner size={32} className="text-primary" />
                                 </div>
                             ) : totalCount === 0 ? (
                                 <EmptyState />

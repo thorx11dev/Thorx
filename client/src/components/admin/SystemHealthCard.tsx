@@ -1,13 +1,23 @@
 import React, { useState } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion } from "framer-motion";
-import { Zap, TrendingUp, TrendingDown, Minus, RefreshCw, X, AlertCircle, ServerCrash } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {Zap, TrendingUp, TrendingDown, Minus, RefreshCw, X, AlertCircle, ServerCrash} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { HealthReportPanel } from "./HealthReportPanel";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface HealthSignal {
   name: string;
@@ -284,7 +294,7 @@ export function SystemHealthCard() {
                 disabled={recalcMutation.isPending}
                 className="flex items-center gap-1.5 px-4 h-9 bg-black text-white text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-black/80 transition-colors disabled:opacity-50"
               >
-                <RefreshCw className={cn("w-3 h-3", recalcMutation.isPending && "animate-spin")} />
+                {recalcMutation.isPending ? <ThorxSpinner size={12} /> : <RefreshCw className="w-3 h-3" />}
                 {recalcMutation.isPending ? "Updating..." : "Refresh Now"}
               </button>
               <button

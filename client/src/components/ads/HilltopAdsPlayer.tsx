@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import { Zap } from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
+import {Zap} from "lucide-react";
+import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface AdNetwork {
   id: string;
@@ -169,7 +173,7 @@ export function WaterfallAdPlayer({ onComplete, adFormat = "video" }: WaterfallA
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-12 bg-zinc-50 border-2 border-black/5 rounded-2xl animate-pulse">
-        <div className="w-10 h-10 border-4 border-black border-t-transparent rounded-full animate-spin mb-4" />
+        <ThorxSpinner size={40} className="mb-4" />
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40">Synchronizing Network...</p>
       </div>
     );
