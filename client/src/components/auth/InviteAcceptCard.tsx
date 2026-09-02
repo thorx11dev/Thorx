@@ -119,7 +119,7 @@ export function InviteAcceptCard({ token }: InviteAcceptCardProps) {
               <div className="max-w-[480px] mx-auto w-full space-y-6 md:space-y-8">
                 {isLoading && (
                   <div className="text-center space-y-4 py-12">
-                    <Loader2 className="w-8 h-8 mx-auto animate-spin text-black/40" />
+                    <ThorxSpinner size={32} className="mx-auto text-black/40" />
                     <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Verifying invitation…</p>
                   </div>
                 )}
