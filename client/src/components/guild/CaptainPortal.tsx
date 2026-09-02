@@ -640,7 +640,6 @@ export function CaptainPortal() {
             <div className="flex-1 min-w-0 font-black text-xl uppercase tracking-tighter truncate leading-tight text-black">
               {guild.name}
             </div>
-            <RefreshButton onClick={handleRefresh} refreshing={isRefreshing} size="sm" title="Refresh guild data" />
           </div>
 
           <div className="mt-4 pt-3.5 border-t-2 border-black/10 flex items-center justify-between gap-2 text-[10px] font-mono font-bold tracking-[0.12em] uppercase text-black/45">
@@ -673,6 +672,11 @@ export function CaptainPortal() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Sync control — mobile */}
+      <div className="lg:hidden flex items-center justify-end">
+        <RefreshButton onClick={handleRefresh} refreshing={isRefreshing} size="sm" title="Refresh guild data" />
       </div>
 
       {/* "CLICK ME" birds — words fly out of the emblem across the screen */}
