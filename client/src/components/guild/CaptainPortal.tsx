@@ -940,7 +940,7 @@ export function CaptainPortal() {
                                         aria-label={`Set ${m.firstName || "member"} as MVP`}
                                         onClick={() => mvpMutation.mutate(m.userId)}
                                       >
-                                        {mvpMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trophy size={14} strokeWidth={2} />}
+                                        {mvpMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Glasses size={14} strokeWidth={2} />}
                                       </button>
                                     )}
 

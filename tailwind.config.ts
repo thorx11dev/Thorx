@@ -11,6 +11,22 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       colors: {
+        // Brand color lockdown: one orange, one black, one white sitewide.
+        black: "#141413",
+        white: "#FAF9F5",
+        orange: {
+          "50": "#D97757",
+          "100": "#D97757",
+          "200": "#D97757",
+          "300": "#D97757",
+          "400": "#D97757",
+          "500": "#D97757",
+          "600": "#D97757",
+          "700": "#D97757",
+          "800": "#D97757",
+          "900": "#D97757",
+          "950": "#D97757",
+        },
         background: "var(--background)",
         foreground: "var(--foreground)",
         card: {

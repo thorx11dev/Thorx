@@ -27,14 +27,15 @@ interface PSProgressCardProps {
 
 export function PSProgressCard({ performanceScore, userRankTier, streakDays = 0, className }: PSProgressCardProps) {
   const tier = PS_THRESHOLDS[userRankTier] ?? PS_THRESHOLDS["E-Rank"];
+  const score = Number.isFinite(Number(performanceScore)) ? Number(performanceScore) : 0;
 
   let pct = 0;
   let psToNext: number | null = null;
   if (tier.max !== null) {
     const range = tier.max - tier.min + 1;
-    const progress = Math.max(0, performanceScore - tier.min);
+    const progress = Math.max(0, score - tier.min);
     pct = Math.min(100, (progress / range) * 100);
-    psToNext = tier.max + 1 - performanceScore;
+    psToNext = tier.max + 1 - score;
   } else {
     pct = 100;
   }
@@ -49,8 +50,7 @@ export function PSProgressCard({ performanceScore, userRankTier, streakDays = 0,
         <div className="flex items-center gap-2">
           <RankBadge rank={userRankTier} size="md" />
           <span className="text-sm font-bold text-foreground">
-            {performanceScore.toLocaleString()} PS
-          </span>
+            {performanceScore.toLocaleString()} PS          </span>
         </div>
         {streakDays > 0 && (
           <span className="text-xs flex items-center gap-1 text-primary font-bold">

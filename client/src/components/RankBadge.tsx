@@ -26,10 +26,11 @@ interface RankBadgeProps {
   rank: string;
   size?: "sm" | "md" | "lg";
   showLabel?: boolean;
+  showIcon?: boolean;
   className?: string;
 }
 
-export function RankBadge({ rank, size = "md", showLabel = true, className }: RankBadgeProps) {
+export function RankBadge({ rank, size = "md", showLabel = true, showIcon = true, className }: RankBadgeProps) {
   const cfg = RANK_CONFIG[rank] ?? RANK_CONFIG["E-Rank"];
   const sz = SIZE_MAP[size];
   const Icon = cfg.useCrown ? Crown : Shield;
@@ -43,7 +44,7 @@ export function RankBadge({ rank, size = "md", showLabel = true, className }: Ra
       )}
       style={{ color: cfg.hex, backgroundColor: cfg.bg, borderColor: cfg.hex + "40" }}
     >
-      <Icon size={sz.icon} style={{ color: cfg.hex }} />
+      {showIcon && <Icon size={sz.icon} style={{ color: cfg.hex }} />}
       {showLabel && <span>{rank}</span>}
     </span>
   );
