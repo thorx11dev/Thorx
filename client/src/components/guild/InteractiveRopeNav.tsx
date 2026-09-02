@@ -1,51 +1,98 @@
 /**
- * InteractiveRopeNav — photoreal sprite-rope navigation (mobile).
+ * InteractiveRopeNav — real-texture rope navigation (mobile).
  *
- * The rope is a pre-rendered 36-frame sprite sheet (6×6, 326×822/frame)
- * captured from a 3D rope simulation — one full pendulum swing cycle.
- * A Verlet physics chain drives the tip; every frame we:
- *   1. solve the chain (gravity, damping, constraints, drag),
- *   2. match the tip offset against the sprite's baked tip table,
- *   3. cross-fade the two nearest frames so the rendered rope's tip
- *      lands exactly on the physics tip,
- *   4. rotate by any residual angle + stretch along the rope axis when
- *      the chain is pulled beyond natural length.
+ * A AI-rendered rope artwork (craiyon) is straightened at load time
+ * (per-row centre unwarp) into a clean vertical texture, then mapped onto
+ * a Verlet physics chain with arc-length texture slices — the rope bends,
+ * swings, stretches elastically and springs back with inertia.
  *
- * Interaction contract (unchanged):
- *   • Tap/click the ≡ icon while resting → open drawer, rope never moves.
- *   • Drag past threshold → physics engage, rope follows + springs back.
+ * Anchor: fixed to the divider line at the bottom of the main header,
+ * under the THORX. branding ([data-rope-anchor]).
  *
- * Fallback: until the sheet loads, nothing is drawn (local asset <100ms).
+ * Interaction contract:
+ *   • Tap/click ≡ while resting → open drawer. Rope does not move.
+ *   • Drag past threshold → elastic stretch + pointer-follow with velocity.
+ *   • Release → momentum throw + wobble spring-back.
+ *   • Icon binds to the rope tip, tilting subtly with the swing.
  */
 import { useEffect, useRef } from "react";
 import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const SHEET_URL = "/rope/rope-sprite.png";
-const COLS = 6, ROWS = 6, FRAMES = 36;
-
-/* Baked tip offsets (px, sprite-space) per frame — measured from the sheet.
-   Index = frame; value = tip x relative to frame centre. */
-const TIP_TABLE = [
-  9, 17, 39, 61, 69, 85, 101, 115, 107, 119, 105, 79, 73, 59, 39, 23,
-  -3, -23, -23, -29, -61, -69, -75, -99, -105, -127, -127, -117, -109,
-  -107, -95, -73, -69, -41, -33, -1,
-];
-const SPRITE_ROPE_LEN = 812;   // rope span inside a frame (px)
-const SPRITE_MAX_TIP = 127;    // widest swing tip offset in the sheet
+const TEXTURE_URL = "/rope/craiyon-ref.png";
 
 const GRAVITY = 0.5;
 const DAMPING = 0.985;
 const ITERATIONS = 24;
-const SEG_COUNT = 12;
-const LINK = 9.5;
-const CHAIN_NATURAL = LINK * SEG_COUNT;            // screen px at rest
-const SPRITE_SCALE = CHAIN_NATURAL / SPRITE_ROPE_LEN; // ≈ 0.14
+const SEG_COUNT = 26;
+const LINK = 7;                 // natural segment length (screen px)
+const CHAIN_NATURAL = SEG_COUNT * LINK;
+const MAX_STRETCH = 1.38;       // elastic cap
+const ROPE_W = 11;              // on-screen rope width
+const TEX_W = 200;              // straightened texture width
+const TEX_DENSITY = 1.8;        // texture px per screen px (texture is hi-res)
 const ICON_SIZE = 46;
 const STRETCH_THRESHOLD = 14;
 const TAP_MAX_MS = 400;
 
 interface RopePoint { x: number; y: number; px: number; py: number; }
+
+/** Unwarp the artwork into a straight vertical rope texture (offscreen). */
+function buildStraightTexture(img: HTMLImageElement): HTMLCanvasElement {
+  const src = document.createElement("canvas");
+  src.width = img.naturalWidth;
+  src.height = img.naturalHeight;
+  const sctx = src.getContext("2d")!;
+  sctx.drawImage(img, 0, 0);
+
+  const { width: W, height: H } = src;
+  const data = sctx.getImageData(0, 0, W, H).data;
+
+  const tex = document.createElement("canvas");
+  tex.width = TEX_W;
+  tex.height = H;
+  const tctx = tex.getContext("2d")!;
+  const out = tctx.createImageData(TEX_W, H);
+
+  // Per-row weighted centre of opaque pixels → the rope's local axis.
+  const centres = new Float32Array(H);
+  for (let y = 0; y < H; y++) {
+    let sum = 0, w = 0;
+    for (let x = 0; x < W; x++) {
+      const a = data[(y * W + x) * 4 + 3];
+      if (a > 24) { sum += x * a; w += a; }
+    }
+    centres[y] = w > 0 ? sum / w : W / 2;
+  }
+  // Smooth the centre line so the unwarp doesn't jitter row to row.
+  const sm = new Float32Array(H);
+  for (let y = 0; y < H; y++) {
+    let s = 0, n = 0;
+    for (let k = -14; k <= 14; k++) {
+      const yy = Math.min(H - 1, Math.max(0, y + k));
+      s += centres[yy]; n++;
+    }
+    sm[y] = s / n;
+  }
+
+  // Copy a TEX_W-wide window around the smoothed centre, row by row.
+  const half = TEX_W / 2;
+  for (let y = 0; y < H; y++) {
+    const cx = sm[y];
+    const srcX0 = Math.round(cx - half);
+    for (let x = 0; x < TEX_W; x++) {
+      const sx = Math.min(W - 1, Math.max(0, srcX0 + x));
+      const si = (y * W + sx) * 4;
+      const di = (y * TEX_W + x) * 4;
+      out.data[di] = data[si];
+      out.data[di + 1] = data[si + 1];
+      out.data[di + 2] = data[si + 2];
+      out.data[di + 3] = data[si + 3];
+    }
+  }
+  tctx.putImageData(out, 0, 0);
+  return tex;
+}
 
 export function InteractiveRopeNav({
   onOpen,
@@ -63,6 +110,8 @@ export function InteractiveRopeNav({
   const dragRef = useRef<{ x: number; y: number } | null>(null);
   const stretchRef = useRef(false);
   const downRef = useRef({ x: 0, y: 0, t: 0, moved: 0 });
+  const velRef = useRef({ x: 0, y: 0 });
+  const lastPtRef = useRef<{ x: number; y: number; t: number } | null>(null);
   const onOpenRef = useRef(onOpen);
   onOpenRef.current = onOpen;
 
@@ -73,13 +122,13 @@ export function InteractiveRopeNav({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    /* ── Sprite sheet load ── */
-    const sheet = new Image();
-    let sheetReady = false;
-    sheet.onload = () => { sheetReady = true; };
-    sheet.src = SHEET_URL;
+    /* ── Texture load + straighten ── */
+    let tex: HTMLCanvasElement | null = null;
+    const texImg = new Image();
+    texImg.onload = () => { tex = buildStraightTexture(texImg); };
+    texImg.src = TEXTURE_URL;
 
-    /* ── Anchor: below the THORX. branding, on the header divider ── */
+    /* ── Anchor: divider line under THORX. branding ── */
     const headerEl = document.querySelector<HTMLElement>(".portal-topnav");
     const logoEl = document.querySelector<HTMLElement>("[data-rope-anchor]");
     const anchorLocal = () => {
@@ -94,10 +143,7 @@ export function InteractiveRopeNav({
       };
     };
 
-    let width = 1;
-
     const init = () => {
-      width = Math.max(wrap.clientWidth || window.innerWidth, 1);
       const a = anchorLocal();
       pointsRef.current = Array.from({ length: SEG_COUNT + 1 }, (_, i) => ({
         x: a.x, y: a.y + i * LINK, px: a.x, py: a.y + i * LINK,
@@ -117,19 +163,32 @@ export function InteractiveRopeNav({
     const setLocal = (clientX: number, clientY: number) => {
       const rect = wrap.getBoundingClientRect();
       return {
-        x: Math.min(Math.max(clientX - rect.left, ICON_SIZE / 2 + 2), Math.max(width - ICON_SIZE / 2 - 2, ICON_SIZE / 2 + 2)),
+        x: Math.min(Math.max(clientX - rect.left, ICON_SIZE / 2 + 2), Math.max(wrap.clientWidth - ICON_SIZE / 2 - 2, ICON_SIZE / 2 + 2)),
         y: Math.min(Math.max(clientY - rect.top, ICON_SIZE / 2 + 4), window.innerHeight - rect.top - ICON_SIZE / 2 - 2),
       };
     };
 
-    /* ── Pointer: stable tap, thresholded stretch ── */
+    /* ── Pointer: stable tap, thresholded elastic stretch ── */
     const onDown = (e: PointerEvent) => {
       downRef.current = { x: e.clientX, y: e.clientY, t: Date.now(), moved: 0 };
+      velRef.current = { x: 0, y: 0 };
+      lastPtRef.current = { x: e.clientX, y: e.clientY, t: Date.now() };
     };
     const onMove = (e: PointerEvent) => {
       if (downRef.current.t === 0) return;
       const moved = Math.hypot(e.clientX - downRef.current.x, e.clientY - downRef.current.y);
       downRef.current.moved = Math.max(downRef.current.moved, moved);
+
+      const now = Date.now();
+      if (lastPtRef.current && now - lastPtRef.current.t > 4) {
+        const dt = Math.max(8, now - lastPtRef.current.t);
+        const vx = (e.clientX - lastPtRef.current.x) / dt * 16;
+        const vy = (e.clientY - lastPtRef.current.y) / dt * 16;
+        velRef.current.x = velRef.current.x * 0.55 + vx * 0.45;
+        velRef.current.y = velRef.current.y * 0.55 + vy * 0.45;
+        lastPtRef.current = { x: e.clientX, y: e.clientY, t: now };
+      }
+
       if (!stretchRef.current && moved > STRETCH_THRESHOLD) {
         stretchRef.current = true;
         const tip = pointsRef.current[pointsRef.current.length - 1];
@@ -145,7 +204,15 @@ export function InteractiveRopeNav({
       stretchRef.current = false;
       dragRef.current = null;
       downRef.current.t = 0;
-      if (!wasStretched && downRef.current.moved < 8 && dt < TAP_MAX_MS) onOpenRef.current();
+      if (!wasStretched && downRef.current.moved < 8 && dt < TAP_MAX_MS) {
+        onOpenRef.current();
+      } else if (wasStretched) {
+        // Momentum throw — pointer velocity becomes tip velocity.
+        const tip = pointsRef.current[pointsRef.current.length - 1];
+        tip.px = tip.x - velRef.current.x * 0.9;
+        tip.py = tip.y - velRef.current.y * 0.9;
+      }
+      lastPtRef.current = null;
     };
 
     const icon = iconRef.current;
@@ -154,27 +221,7 @@ export function InteractiveRopeNav({
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
 
-    /* ── Frame matching: physics tip offset → sprite frame pair ── */
-    const pickFrames = (dxScreen: number): { a: number; b: number; mix: number } => {
-      // Convert the physics tip offset into sprite-space pixels.
-      const sx = dxScreen / SPRITE_SCALE;
-      // Score every frame by how close its baked tip is to sx.
-      const scored = TIP_TABLE.map((tip, i) => ({ i, d: Math.abs(tip - sx) }))
-        .sort((p, q) => p.d - q.d);
-      const a = scored[0].i, b = scored[1].i;
-      const da = TIP_TABLE[a], db = TIP_TABLE[b];
-      const mix = Math.abs(da - db) < 0.001 ? 0 : Math.min(1, Math.max(0, (sx - da) / (db - da)));
-      return { a, b, mix: Math.abs(db - da) < 0.001 ? 0 : Math.max(0, Math.min(1, (sx - da) / (db - da))) } as any;
-    };
-
-    const drawFrame = (idx: number) => {
-      const fw = sheet.width / COLS, fh = sheet.height / ROWS;
-      const col = idx % COLS, row = Math.floor(idx / COLS);
-      ctx.drawImage(sheet, col * fw, row * fh, fw, fh,
-        -fw * SPRITE_SCALE / 2, 0, fw * SPRITE_SCALE, fh * SPRITE_SCALE);
-    };
-
-    /* ── Physics + render loop ── */
+    /* ── Physics + texture render loop ── */
     let raf = 0;
     let t = 0;
     const tick = () => {
@@ -183,6 +230,13 @@ export function InteractiveRopeNav({
       t++;
       const pts = pointsRef.current;
       if (!pts.length) return;
+      const a0 = anchorLocal();
+
+      // Elastic stretch — tension from tip distance past natural length.
+      const tipDx = pts[pts.length - 1].x - a0.x;
+      const tipDy = pts[pts.length - 1].y - a0.y;
+      const tension = Math.min(1, Math.max(0, (Math.hypot(tipDx, tipDy) - CHAIN_NATURAL) / (CHAIN_NATURAL * 1.2)));
+      const linkEff = LINK * (1 + tension * 0.38);
 
       for (let i = 1; i < pts.length; i++) {
         const p = pts[i];
@@ -194,14 +248,13 @@ export function InteractiveRopeNav({
       }
 
       for (let k = 0; k < ITERATIONS; k++) {
-        const a0 = anchorLocal();
         pts[0].x = a0.x;
         pts[0].y = a0.y;
         for (let i = 0; i < pts.length - 1; i++) {
           const a = pts[i], b = pts[i + 1];
           const dx = b.x - a.x, dy = b.y - a.y;
           const d = Math.hypot(dx, dy) || 0.0001;
-          const diff = (d - LINK) / d;
+          const diff = (d - linkEff) / d;
           const ox = dx * diff * 0.5, oy = dy * diff * 0.5;
           if (i === 0) { b.x -= ox * 2; b.y -= oy * 2; }
           else { a.x += ox; a.y += oy; b.x -= ox; b.y -= oy; }
@@ -213,37 +266,57 @@ export function InteractiveRopeNav({
         }
       }
 
-      /* ── Sprite render ── */
-      if (!sheetReady) return;
-      const a0 = anchorLocal();
+      // Hard elastic cap — can never overstretch.
       const tip = pts[pts.length - 1];
-      const dx = tip.x - a0.x;
-      const dy = tip.y - a0.y;
-      const chainLen = Math.hypot(dx, dy) || 1;
-      const theta = Math.atan2(dx, dy); // 0 = hanging straight down
-
-      const stretch = chainLen / CHAIN_NATURAL;
-      const { a, b, mix } = pickFrames(dx);
-
-      ctx.clearRect(0, 0, width, canvas.height);
-      ctx.save();
-      ctx.translate(a0.x, a0.y);
-      ctx.rotate(theta);
-      ctx.scale(1, Math.max(0.35, stretch));
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
-      ctx.globalAlpha = 1 - mix;
-      drawFrame(a);
-      if (mix > 0.01) {
-        ctx.globalAlpha = mix;
-        drawFrame(b);
+      const tdx = tip.x - a0.x, tdy = tip.y - a0.y;
+      const tLen = Math.hypot(tdx, tdy) || 1;
+      const maxLen = CHAIN_NATURAL * MAX_STRETCH;
+      if (tLen > maxLen) {
+        tip.x = a0.x + tdx / tLen * maxLen;
+        tip.y = a0.y + tdy / tLen * maxLen;
       }
-      ctx.globalAlpha = 1;
-      ctx.restore();
 
+      /* ── Render: texture-mapped rope ── */
+      ctx.clearRect(0, 0, wrap.clientWidth, wrap.clientHeight);
+      if (tex) {
+        const texH = tex.height;
+        let cum = 0;
+        for (let i = 0; i < pts.length - 1; i++) {
+          const p = pts[i], q = pts[i + 1];
+          const segLen = Math.hypot(q.x - p.x, q.y - p.y) || 0.001;
+          const angle = Math.atan2(q.y - p.y, q.x - p.x) + Math.PI / 2;
+          const srcH = segLen * TEX_DENSITY;
+          let srcY = (cum * TEX_DENSITY) % texH;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(angle);
+          if (srcY + srcH <= texH) {
+            ctx.drawImage(tex, 0, srcY, TEX_W, srcH, -ROPE_W / 2, -0.5, ROPE_W, segLen + 1);
+          } else {
+            const part1 = texH - srcY;
+            ctx.drawImage(tex, 0, srcY, TEX_W, part1, -ROPE_W / 2, -0.5, ROPE_W, part1 / TEX_DENSITY + 0.5);
+            ctx.drawImage(tex, 0, 0, TEX_W, srcH - part1, -ROPE_W / 2, part1 / TEX_DENSITY - 0.5, ROPE_W, segLen + 1 - part1 / TEX_DENSITY);
+          }
+          ctx.restore();
+          cum += segLen;
+        }
+
+        // End cap — small dark knot behind the icon
+        ctx.save();
+        ctx.translate(tip.x, tip.y);
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, ROPE_W / 2 + 2, ROPE_W / 2 + 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Icon — bound to the tip, tilts subtly with the swing.
       if (iconRef.current) {
+        const next = pts[pts.length - 2];
+        const tilt = Math.max(-14, Math.min(14, Math.atan2(tip.x - next.x, Math.max(1, tip.y - next.y)) * -32));
         iconRef.current.style.transform =
-          `translate3d(${tip.x.toFixed(1)}px, ${tip.y.toFixed(1)}px, 0) translate(-50%, -50%)`;
+          `translate3d(${tip.x.toFixed(1)}px, ${tip.y.toFixed(1)}px, 0) translate(-50%, -50%) rotate(${tilt.toFixed(1)}deg)`;
       }
     };
     raf = requestAnimationFrame(tick);
