@@ -12,7 +12,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion, type Variants } from "framer-motion";
 import {
   Search, SlidersHorizontal, LayoutGrid, List, X, Swords, Shield, ShieldCheck,
-  Lock, ArrowRight, Clock, Flame, Crown, Trophy, Loader2, RotateCcw, Users, ChevronDown,
+  Lock, ArrowRight, Clock, Flame, Crown, Trophy, Loader2, RotateCcw, Users, ChevronDown, Info,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
