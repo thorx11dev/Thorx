@@ -554,23 +554,40 @@ export function GuildDiscoveryPanel() {
 
       {/* ═══ Content ═══ */}
       {isLoading ? (
-        /* Loading — list-row skeletons */
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl border-2 border-black/10 overflow-hidden flex">
-              <Skeleton className="w-1/2 aspect-square rounded-none bg-[#EAE5DD]" />
-              <div className="w-1/2 p-3 md:p-4 space-y-2">
-                <Skeleton className="h-4 w-2/3 rounded bg-black/15" />
-                <Skeleton className="h-2.5 w-1/2 rounded bg-black/10" />
-                <div className="pt-2 space-y-1.5">
+        /* Loading — mirrors the active view mode */
+        viewMode === "grid" ? (
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl border-2 border-black/10 overflow-hidden flex flex-col">
+                <div className="flex-1 min-h-[120px] bg-[#EAE5DD]" />
+                <div className="p-3 space-y-2 flex-1">
+                  <Skeleton className="h-4 w-2/3 rounded bg-black/15" />
+                  <Skeleton className="h-2.5 w-1/2 rounded bg-black/10" />
                   <Skeleton className="h-5 w-16 rounded bg-black/10" />
                   <Skeleton className="h-1 w-full rounded bg-black/10" />
+                  <Skeleton className="h-9 w-full rounded-lg bg-black/10" />
                 </div>
-                <Skeleton className="h-9 w-full rounded-lg bg-black/10" />
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl border-2 border-black/10 overflow-hidden flex">
+                <Skeleton className="w-1/2 aspect-square rounded-none bg-[#EAE5DD]" />
+                <div className="w-1/2 p-3 md:p-4 space-y-2">
+                  <Skeleton className="h-4 w-2/3 rounded bg-black/15" />
+                  <Skeleton className="h-2.5 w-1/2 rounded bg-black/10" />
+                  <div className="pt-2 space-y-1.5">
+                    <Skeleton className="h-5 w-16 rounded bg-black/10" />
+                    <Skeleton className="h-1 w-full rounded bg-black/10" />
+                  </div>
+                  <Skeleton className="h-9 w-full rounded-lg bg-black/10" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       ) : isError ? (
         <div className="bg-white rounded-2xl border-2 md:border-[3px] border-black p-10 text-center">
           <Shield className="size-6 text-black/30 mx-auto mb-3" />
