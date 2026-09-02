@@ -4,7 +4,7 @@ import { DashboardCards } from "@/components/DashboardCards";
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { resolveAvatarUrl } from "@/lib/rankAvatars";
-import { Crown, Trophy, Medal, Shield, User, BarChart3, PieChart } from "lucide-react";
+import { Crown, Trophy, Medal, Shield, User } from "lucide-react";
 import {
   AreaChart, Area, PieChart as RechartsPieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
@@ -111,9 +111,6 @@ export function DashboardSection(props: DashboardSectionProps) {
             <CardHeader className="border-b-2 border-black p-3 md:p-6 bg-white">
               <CardTitle className="flex items-center justify-between">
                 <TechnicalLabel text="WEEKLY EARNINGS" className="text-foreground group-hover:text-primary transition-colors text-xs md:text-sm" />
-                <div className="p-1 md:p-2 bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-all duration-300">
-                  <BarChart3 className="w-3 h-3 md:w-4 md:h-4 text-primary" />
-                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-2 md:p-4">
@@ -185,9 +182,6 @@ export function DashboardSection(props: DashboardSectionProps) {
             <CardHeader className="border-b-2 border-black p-3 md:p-6 bg-white">
               <CardTitle className="flex items-center justify-between">
                 <TechnicalLabel text="EARNINGS BREAKDOWN" className="text-foreground group-hover:text-primary transition-colors text-xs md:text-sm" />
-                <div className="p-1 md:p-2 bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-all duration-300">
-                  <PieChart className="w-3 h-3 md:w-4 md:h-4 text-primary" />
-                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-2 md:p-4">

@@ -94,7 +94,7 @@ export function ReferralsSection(props: ReferralsSectionProps) {
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   className="font-black tracking-tighter uppercase leading-none text-5xl md:text-8xl text-white"
                 >
-                  REFERRALS
+                  TEAM
                 </motion.h1>
               )}
             </AnimatePresence>
