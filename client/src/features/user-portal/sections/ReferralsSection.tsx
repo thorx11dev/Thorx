@@ -105,7 +105,7 @@ export function ReferralsSection(props: ReferralsSectionProps) {
         </motion.div>
 
         {/* Sync control — refresh team/referral data without a hard reload */}
-        <div className="flex items-center justify-end -mt-6 mb-6">
+        <div className="flex items-center justify-end mt-4 mb-4">
           <RefreshButton onClick={handleRefresh} refreshing={isRefreshing} title="Refresh team data" />
         </div>
 

@@ -98,7 +98,7 @@ export function DashboardSection(props: DashboardSectionProps) {
         </motion.div>
 
         {/* Sync control — refresh charts/cards without a hard reload */}
-        <div className="flex items-center justify-end mb-8 md:-mt-6">
+        <div className="flex items-center justify-end -mt-6 mb-6">
           <RefreshButton onClick={handleRefresh} refreshing={isRefreshing} title="Refresh dashboard data" />
         </div>
 
