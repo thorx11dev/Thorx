@@ -662,44 +662,59 @@ export function GuildDiscoveryPanel() {
                   )}
                 </div>
 
-                {/* Body — compact: members digit + GPS progress */}
+                {/* Body — compact: members icon+digit, GPS digit + progress */}
                 <div className="p-3 flex flex-col flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-black text-sm md:text-base uppercase tracking-tighter truncate leading-tight" data-testid={`text-guild-name-${guild.id}`}>
-                      {guild.name}
-                    </h3>
+                  <h3 className="font-black text-sm md:text-base uppercase tracking-tighter truncate leading-tight" data-testid={`text-guild-name-${guild.id}`}>
+                    {guild.name}
+                  </h3>
+
+                  {/* Members icon + digit — same as the list rows */}
+                  <div className="mt-1.5 flex items-center gap-1.5 text-[9px] md:text-[10px] font-mono font-bold uppercase tracking-[0.12em] text-black/40">
+                    <Users className="size-3" />
+                    <span className="tabular-nums">{guild.memberCount}</span>
                   </div>
 
-                  {/* Members digit (name ke sath) + GPS digit + progress */}
+                  {/* GPS digit + progress */}
                   <div className="mt-auto pt-2.5 space-y-1.5">
-                    <div className="flex items-end justify-between gap-2">
-                      <span className="font-black text-sm md:text-base tabular-nums text-black tracking-tight leading-none">
-                        {guild.memberCount}
-                      </span>
-                      <span className="font-black text-base md:text-lg tabular-nums text-primary tracking-tight leading-none">
-                        {guild.guildPerformanceScore.toLocaleString()}
-                      </span>
-                    </div>
+                    <span className="font-black text-base md:text-lg tabular-nums text-primary tracking-tight leading-none">
+                      {guild.guildPerformanceScore.toLocaleString()}
+                    </span>
                     <Progress value={weeklyPct} className="h-1 bg-black/10 [&>div]:bg-primary" />
                   </div>
 
-                  {/* Apply */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); if (canJoin && !applied) handleApply(guild); }}
-                    disabled={applyDisabled}
-                    data-testid={`button-apply-guild-${guild.id}`}
-                    className={cn(
-                      "mt-3 w-full h-9 rounded-lg border-2 text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all duration-300",
-                      applied
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                        : inGuild || rankBlocked || !guild.recruitmentOpen
-                          ? "bg-[#EAE5DD] text-black/40 border-black/10"
-                          : "bg-primary text-white border-black hover:bg-black"
-                    )}
-                  >
-                    {applied ? <><ShieldCheck className="size-3" /> Applied</> : inGuild ? <><Shield className="size-3" /> In a Guild</> : rankBlocked ? <><Lock className="size-3" /> Locked</> : !guild.recruitmentOpen ? <><X className="size-3" /> Closed</> : <>Apply <ArrowRight className="size-3" /></>}
-                  </button>
+                  {/* Expand hint */}
+                  <div className="flex justify-end mt-1.5">
+                    <ChevronDown size={14} className={cn("text-black/30 transition-transform duration-300", isExpandedCard && "rotate-180")} />
+                  </div>
                 </div>
+
+                {/* Expanded — DETAILS + APPLY buttons */}
+                {isExpandedCard && (
+                  <div className="px-3 pb-3 pt-2 bg-black/[0.02] border-t-2 border-black/10 flex gap-2">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setViewingGuild(guild); }}
+                      data-testid={`button-details-guild-${guild.id}`}
+                      className={cn(OUTLINE_CLASS, "flex-1 h-10 text-[9px]")}
+                    >
+                      Details
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); if (canJoin && !applied) handleApply(guild); }}
+                      disabled={applyDisabled}
+                      data-testid={`button-apply-guild-${guild.id}`}
+                      className={cn(
+                        "flex-1 h-10 rounded-lg border-2 text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all duration-300",
+                        applied
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                          : inGuild || rankBlocked || !guild.recruitmentOpen
+                            ? "bg-[#EAE5DD] text-black/40 border-black/10"
+                            : "bg-primary text-white border-black hover:bg-black"
+                      )}
+                    >
+                      {applied ? <><ShieldCheck className="size-3" /> Applied</> : inGuild || rankBlocked || !guild.recruitmentOpen ? <><Lock className="size-3" /> N/A</> : <>Apply <ArrowRight className="size-3" /></>}
+                    </button>
+                  </div>
+                )}
               </motion.article>
             );
           })}
