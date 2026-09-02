@@ -709,7 +709,7 @@ export function GuildDiscoveryPanel() {
         </div>
       ) : (
         /* ─── Guild list — 50% photo / 50% details, roster-style expand ─── */
-        <div className="space-y-3">
+        <div className="space-y-3 max-w-2xl mx-auto w-full">
           {filtered.map((guild) => {
             const minIdx = RANK_ORDER.indexOf(guild.minRankRequired || "E-Rank");
             const rankBlocked = !DEV_UNLOCK_RANK_GATES && userTierIdx < minIdx;
