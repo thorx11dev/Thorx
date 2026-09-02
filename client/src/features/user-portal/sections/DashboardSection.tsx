@@ -251,7 +251,7 @@ export function DashboardSection(props: DashboardSectionProps) {
                 </div>
 
                 {/* Legend */}
-                <div className="w-full md:w-auto grid grid-cols-2 md:flex md:flex-col gap-1.5 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 bg-background/60 border border-black/15 rounded-lg hover:bg-primary/5 transition-colors">
+                <div className="w-full md:w-auto grid grid-cols-2 gap-1.5 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 bg-background/60 border border-black/15 rounded-lg hover:bg-primary/5 transition-colors">
                   {earningTypesData.map((entry, index) => (
                     <div key={`legend-${index}`} className="flex items-center gap-1.5 md:gap-2">
                       <div
