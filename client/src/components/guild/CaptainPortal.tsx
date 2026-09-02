@@ -597,6 +597,11 @@ export function CaptainPortal() {
         </div>
       </div>
 
+      {/* "CLICK ME" birds — words fly out of the emblem across the screen */}
+      <div className="lg:hidden">
+        <EmblemBirds anchorRef={emblemBtnRef} />
+      </div>
+
       {/* ── The line that used to sit under the GUILD hero — standard spacing ── */}
       <InteractiveDivider className="my-12 lg:hidden" />
 
