@@ -665,17 +665,20 @@ export function GuildDiscoveryPanel() {
                   )}
                 </div>
 
-                {/* Body — flex-1 = the other 50% */}
+                {/* Body — compact: members digit + GPS progress */}
                 <div className="p-3 flex flex-col flex-1">
-                  <h3 className="font-black text-sm md:text-base uppercase tracking-tighter truncate leading-tight" data-testid={`text-guild-name-${guild.id}`}>
-                    {guild.name}
-                  </h3>
-
-                  {/* GPS — digits only */}
-                  <div className="mt-auto pt-3">
-                    <span className="font-black text-base md:text-lg tabular-nums text-primary tracking-tight leading-none">
-                      {guild.guildPerformanceScore.toLocaleString()}
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-black text-sm md:text-base uppercase tracking-tighter truncate leading-tight" data-testid={`text-guild-name-${guild.id}`}>
+                      {guild.name}
+                    </h3>
+                    <span className="font-black text-sm md:text-base tabular-nums text-black tracking-tight leading-none shrink-0">
+                      {guild.memberCount}
                     </span>
+                  </div>
+
+                  {/* GPS progress bar */}
+                  <div className="mt-auto pt-3">
+                    <Progress value={weeklyPct} className="h-1 bg-black/10 [&>div]:bg-primary" />
                   </div>
 
                   {/* Apply */}
