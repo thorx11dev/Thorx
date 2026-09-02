@@ -237,7 +237,7 @@ export default function LeaderboardSection() {
                   <motion.div
                     key={entry.rank}
                     variants={itemVariants}
-                    className="relative rounded-2xl border border-black/15 bg-white p-3.5 pt-5 text-center transition-all duration-500 ease-out hover:border-black"
+                    className="relative rounded-2xl border border-black/60 bg-white p-3.5 pt-5 text-center transition-all duration-500 ease-out hover:border-black"
                   >
                     <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-sm bg-black px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] text-white">
                       #{entry.rank}
@@ -278,10 +278,7 @@ export default function LeaderboardSection() {
                 )}
               >
                 <div
-                  className={cn(
-                    "absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-sm text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-white",
-                    entry.rank === 1 ? "bg-black" : "bg-black"
-                  )}
+                    className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-sm text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-white bg-black"
                 >
                   #{entry.rank}
                 </div>
