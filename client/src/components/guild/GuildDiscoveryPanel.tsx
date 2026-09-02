@@ -670,20 +670,12 @@ export function GuildDiscoveryPanel() {
                   <h3 className="font-black text-sm md:text-base uppercase tracking-tighter truncate leading-tight" data-testid={`text-guild-name-${guild.id}`}>
                     {guild.name}
                   </h3>
-                  <div className="mt-1 flex items-center gap-1 text-[8px] md:text-[9px] font-black uppercase tracking-wider text-black/40 min-h-[14px]">
-                    <span>{guild.memberCount} MEMBERS</span>
-                    {!!guild.successfulWeeks && guild.successfulWeeks > 0 && (<><span className="text-primary">·</span><span className="flex items-center gap-0.5"><Flame className="size-2.5" /> {guild.successfulWeeks}w</span></>)}
-                  </div>
 
-                  {/* GPS + progress */}
-                  <div className="mt-auto pt-3 border-t-[3px] border-black/10 space-y-1.5">
-                    <div className="flex items-end justify-between">
-                      <TechnicalLabel text="GPS" className="text-black/35 text-[8px]" />
-                      <span className="font-black text-base md:text-lg tabular-nums text-primary tracking-tight leading-none">
-                        {guild.guildPerformanceScore.toLocaleString()}
-                      </span>
-                    </div>
-                    <Progress value={weeklyPct} className="h-1 bg-black/10 [&>div]:bg-primary" />
+                  {/* GPS — digits only */}
+                  <div className="mt-auto pt-3">
+                    <span className="font-black text-base md:text-lg tabular-nums text-primary tracking-tight leading-none">
+                      {guild.guildPerformanceScore.toLocaleString()}
+                    </span>
                   </div>
 
                   {/* Apply */}
