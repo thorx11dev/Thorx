@@ -23,7 +23,6 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
-import { Zap, Users } from "lucide-react";
 import { PSProgressCard } from "@/components/PSProgressCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import TechnicalLabel from "@/components/ui/technical-label";
@@ -43,12 +42,9 @@ function CardShell({ children, className, testId }: { children: React.ReactNode;
   );
 }
 
-function CardHead({ icon: Icon, label }: { icon: any; label: string }) {
+function CardHead({ label }: { label: string }) {
   return (
     <div className="flex items-start justify-between mb-5">
-      <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg group-hover:bg-primary/20 transition-all duration-300">
-        <Icon className="w-5 h-5 text-primary" />
-      </div>
       <TechnicalLabel text={label} className="text-muted-foreground text-xs pt-1" />
     </div>
   );
@@ -76,12 +72,12 @@ export function DashboardCards() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-12">
       <CardShell testId="card-tx-points">
-        <CardHead icon={Zap} label="TX-POINTS" />
+        <CardHead label="TX-POINTS" />
         <p className="text-3xl md:text-4xl font-black text-primary mb-1 tracking-tighter">{txPoints.toLocaleString()}</p>
       </CardShell>
 
       <CardShell testId="card-referral-balance">
-        <CardHead icon={Users} label="REFERRALS" />
+        <CardHead label="REFERRALS" />
         <div className="text-3xl md:text-4xl font-black text-foreground mb-1 tracking-tighter">
           {isReferralStatsLoading
             ? <Skeleton className="h-8 w-20 rounded" />
