@@ -1,10 +1,10 @@
 import { useState } from "react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
-import { Trophy, RefreshCw } from "lucide-react";
+import { Trophy } from "lucide-react";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import TechnicalLabel from "@/components/ui/technical-label";
+import { RefreshButton } from "@/components/ui/refresh-button";
 import RankBadge from "@/components/RankBadge";
 import { InteractiveDivider } from "@/features/user-portal/shared";
 import { cn } from "@/lib/utils";
