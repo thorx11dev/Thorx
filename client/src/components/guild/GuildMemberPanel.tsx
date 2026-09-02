@@ -15,6 +15,7 @@ import { RankBadge } from "@/components/RankBadge";
 import { Progress } from "@/components/ui/progress";
 import { PremiumCard } from "@/components/ui/premium-card";
 import TechnicalLabel from "@/components/ui/technical-label";
+import { RefreshButton, useRefreshAction } from "@/components/ui/refresh-button";
 import {
   GiLaurelsTrophy, GiBullseye, GiPocketWatch, GiChatBubble, GiKnightBanner, GiPortrait, GiBeveledStar,
   GiRoundShield, GiWarhammer, GiCrossedSwords, GiArrowCluster, GiSpartanHelmet, GiSkullCrossedBones, GiFlame,
