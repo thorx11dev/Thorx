@@ -11,7 +11,7 @@ import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion, type Variants } from "framer-motion";
 import {
-  Search, SlidersHorizontal, X, Swords, Shield, ShieldCheck,
+  Search, SlidersHorizontal, LayoutGrid, List, X, Swords, Shield, ShieldCheck,
   Lock, ArrowRight, Clock, Flame, Crown, Trophy, Loader2, RotateCcw, Users, ChevronDown,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
