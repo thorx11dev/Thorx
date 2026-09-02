@@ -847,49 +847,50 @@ export function CaptainPortal() {
                               />
                             </button>
 
-                            {/* Expanded detail — actions + progress */}
+                            {/* Expanded detail — progress + icon-only actions */}
                             {isExpanded && (
                               <div className="px-4 md:px-8 pb-5 pt-1 bg-black/[0.02] space-y-3.5">
                                 <Progress value={pct} className="h-2 bg-black/10 border border-black/10 rounded-full [&>div]:bg-primary" />
 
                                 {!isCaptain && !isMe ? (
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <Button
-                                      size="sm"
-                                      className={cn(CTA_CLASS, "h-9 px-4 text-[10px]")}
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      className={ICON_BTN_CLASS}
                                       disabled={nudgeMutation.isPending || onCooldown}
-                                      title={onCooldown ? "Nudged within the last 24h" : "Nudge"}
+                                      title={onCooldown ? "Nudged within the last 24h" : "Nudge member"}
+                                      aria-label={onCooldown ? "Nudged" : "Nudge member"}
                                       onClick={() => nudgeMutation.mutate(m.userId)}
                                     >
-                                      {nudgeMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <BellRing size={12} />}
-                                      {onCooldown ? "Nudged" : "Nudge"}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      className={cn(OUTLINE_CLASS, "h-9 px-4 text-[10px]")}
+                                      {nudgeMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <BellRing size={14} strokeWidth={2} />}
+                                    </button>
+                                    <button
+                                      className={ICON_BTN_CLASS}
+                                      title="Message member"
+                                      aria-label={`Message ${m.firstName || "member"}`}
                                       onClick={() => { setSelectedDmMember(m.userId); setChatMode("solo"); setTab("chat"); }}
                                     >
-                                      <MessageCircle size={12} />
-                                      Message
-                                    </Button>
+                                      <MessageCircle size={14} strokeWidth={2} />
+                                    </button>
                                     {!m.isMvp && !weekMvpSet && (
-                                      <Button
-                                        size="sm"
-                                        className={cn(OUTLINE_CLASS, "h-9 px-4 text-[10px] hover:border-primary hover:text-primary")}
+                                      <button
+                                        className={cn(ICON_BTN_CLASS, "hover:border-primary hover:text-primary")}
                                         disabled={mvpMutation.isPending}
+                                        title="Set as weekly MVP"
+                                        aria-label={`Set ${m.firstName || "member"} as MVP`}
                                         onClick={() => mvpMutation.mutate(m.userId)}
                                       >
-                                        {mvpMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Trophy size={12} />}
-                                        Set MVP
-                                      </Button>
+                                        {mvpMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trophy size={14} strokeWidth={2} />}
+                                      </button>
                                     )}
+
+                                    {/* Kick — pushed to the far right, context-relevant icon */}
                                     <button
-                                      className="ml-auto inline-flex items-center justify-center w-9 h-9 rounded-lg border-2 border-black bg-black text-white transition-all duration-150 hover:bg-destructive hover:border-destructive"
-                                      title="Kick member"
-                                      aria-label={`Remove ${m.firstName || "member"}`}
+                                      className="ml-auto inline-flex items-center justify-center w-10 h-10 rounded-lg border-2 border-black/15 bg-white text-black/50 transition-all duration-150 hover:border-destructive hover:bg-destructive hover:text-white"
+                                      title="Remove from guild"
+                                      aria-label={`Remove ${m.firstName || "member"} from guild`}
                                       onClick={() => setKickConfirm(m.userId)}
                                     >
-                                      <X size={14} strokeWidth={2.5} />
+                                      <UserMinus size={15} strokeWidth={2} />
                                     </button>
                                   </div>
                                 ) : isMe ? (
