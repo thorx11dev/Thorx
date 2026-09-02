@@ -569,7 +569,7 @@ export function CaptainPortal() {
               onClick={() => setNavOpen(true)}
               aria-label="Open guild navigation"
               data-testid="button-guild-nav"
-              className="shrink-0 self-start -my-3 w-14 h-14 p-0.5 cursor-pointer transition-transform duration-200 hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl"
+              className="shrink-0 self-end -mt-1 mb-1 mr-1 w-20 h-20 p-0.5 cursor-pointer transition-transform duration-200 hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl"
             >
               <img
                 src={`/guild/emblem-${EMBLEM_INDEX}.webp`}
