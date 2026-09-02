@@ -293,18 +293,18 @@ export function GuildMemberPanel() {
         </PremiumCard>
       )}
 
-      {/* Guild identity header — shared landing-grade shell */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <GuildIdentityHeader
-            guild={guild}
-            role={myRole}
-            memberCount={guild?.memberCount ?? members.length}
-            avatarUrl={guild?.avatarUrl}
-          />
-        </div>
-        <RefreshButton onClick={handleRefresh} refreshing={isRefreshing} title="Refresh guild data" className="mt-1" />
+      {/* Sync control — refetch guild data without a hard reload */}
+      <div className="flex items-center justify-end">
+        <RefreshButton onClick={handleRefresh} refreshing={isRefreshing} title="Refresh guild data" />
       </div>
+
+      {/* Guild identity header — shared landing-grade shell */}
+      <GuildIdentityHeader
+        guild={guild}
+        role={myRole}
+        memberCount={guild?.memberCount ?? members.length}
+        avatarUrl={guild?.avatarUrl}
+      />
 
       {/* Unified segmented tabs */}
       <GuildTabBar tabs={TABS} value={tab} onChange={setTab} />
