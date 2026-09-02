@@ -42,6 +42,7 @@ const ProfileModal = retryLazy(() =>
 );
 import { PortalMenuDrawer } from "@/components/ui/portal-menu-drawer";
 import { DesktopNavTabs } from "@/components/ui/desktop-nav-tabs";
+import { RefreshButton, useRefreshAction } from "@/components/ui/refresh-button";
 const AdWebPanel = retryLazy(() =>
   import("@/components/ui/ad-web-panel").then((m) => ({ default: m.AdWebPanel }))
 );
@@ -251,6 +252,25 @@ export default function UserPortal() {
       });
     }
   }, [user?.id]);
+
+  // Manual data sync — invalidates every user-portal query so each section
+  // refetches on demand (nav + per-section refresh buttons) without a hard reload.
+  const refreshPortalData = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.sessionAuth });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.dashboardStats });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earnings });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earningsHistory });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earningsBreakdown });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.referrals });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.referralsLeaderboard });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.commissions });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adViewsToday });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.twoFactorStatus });
+    queryClient.invalidateQueries({ queryKey: ["transactions", "history"] });
+    queryClient.invalidateQueries({ queryKey: ["ad-views", "today"] });
+  }, [queryClient]);
+  const { refreshing: isPortalRefreshing, refresh: refreshPortal } = useRefreshAction(refreshPortalData);
 
   // Share Modal State
   const [showShareModal, setShowShareModal] = useState(false);
