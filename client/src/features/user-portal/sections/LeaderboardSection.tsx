@@ -307,7 +307,7 @@ export default function LeaderboardSection() {
           {data.leaders.length > 3 && (
             <motion.div
               variants={itemVariants}
-              className="rounded-2xl border border-black/15 bg-white overflow-hidden"
+              className="rounded-2xl border border-black/60 bg-white overflow-hidden"
             >
             <div className="hidden md:flex items-center gap-6 px-8 py-4 border-b border-black/10 bg-black/[0.03]">
               <span className="w-8 text-center">
