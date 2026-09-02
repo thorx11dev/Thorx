@@ -223,6 +223,11 @@ export function AssistantPanel() {
 
   return (
     <div className="space-y-4 md:space-y-6">
+      {/* Sync control — refetch guild data without a hard reload */}
+      <div className="flex items-center justify-end">
+        <RefreshButton onClick={handleRefresh} refreshing={isRefreshing} title="Refresh guild data" />
+      </div>
+
       <GuildIdentityHeader guild={guild} role="ASSISTANT" memberCount={activeMembers.length} avatarUrl={guild?.avatarUrl} />
 
       {/* Permission hint strip */}
