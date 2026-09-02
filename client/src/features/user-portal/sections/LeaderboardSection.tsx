@@ -99,7 +99,7 @@ export default function LeaderboardSection() {
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 className="font-black tracking-tighter uppercase leading-none text-[clamp(2.5rem,13vw,6rem)] md:text-9xl text-black"
               >
-                RANKS
+                CHART
               </motion.h1>
             ) : (
               <motion.h1
@@ -111,7 +111,7 @@ export default function LeaderboardSection() {
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 className="font-black tracking-tighter uppercase leading-none text-[clamp(2.5rem,13vw,6rem)] md:text-9xl text-white"
               >
-                RANKS
+                CHART
               </motion.h1>
             )}
           </AnimatePresence>
