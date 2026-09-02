@@ -676,8 +676,16 @@ export function GuildDiscoveryPanel() {
                     </span>
                   </div>
 
-                  {/* GPS progress bar */}
-                  <div className="mt-auto pt-3">
+                  {/* Members digit (name ke sath) + GPS digit + progress */}
+                  <div className="mt-auto pt-2.5 space-y-1.5">
+                    <div className="flex items-end justify-between gap-2">
+                      <span className="font-black text-sm md:text-base tabular-nums text-black tracking-tight leading-none">
+                        {guild.memberCount}
+                      </span>
+                      <span className="font-black text-base md:text-lg tabular-nums text-primary tracking-tight leading-none">
+                        {guild.guildPerformanceScore.toLocaleString()}
+                      </span>
+                    </div>
                     <Progress value={weeklyPct} className="h-1 bg-black/10 [&>div]:bg-primary" />
                   </div>
 
