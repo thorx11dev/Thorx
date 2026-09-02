@@ -664,16 +664,16 @@ export function GuildDiscoveryPanel() {
                   )}
                 </div>
 
-                {/* Body — compact: members icon+digit, GPS digit + progress */}
+                {/* Body — name + members badge right, GPS progress, expand hint */}
                 <div className="p-3 flex flex-col flex-1">
-                  <h3 className="font-black text-sm md:text-base uppercase tracking-tighter truncate leading-tight" data-testid={`text-guild-name-${guild.id}`}>
-                    {guild.name}
-                  </h3>
-
-                  {/* Members icon + digit — same as the list rows */}
-                  <div className="mt-1.5 flex items-center gap-1.5 text-[9px] md:text-[10px] font-mono font-bold uppercase tracking-[0.12em] text-black/40">
-                    <Users className="size-3" />
-                    <span className="tabular-nums">{guild.memberCount}</span>
+                  <div className="flex items-center justify-between gap-2 min-w-0">
+                    <h3 className="font-black text-sm md:text-base uppercase tracking-tighter truncate leading-tight min-w-0" data-testid={`text-guild-name-${guild.id}`}>
+                      {guild.name}
+                    </h3>
+                    <span className="shrink-0 flex items-center gap-1 text-[9px] md:text-[10px] font-mono font-bold uppercase tracking-[0.12em] text-black/40">
+                      <Users className="size-3" />
+                      <span className="tabular-nums">{guild.memberCount}</span>
+                    </span>
                   </div>
 
                   {/* GPS digit + progress */}
@@ -690,19 +690,23 @@ export function GuildDiscoveryPanel() {
                   </div>
                 </div>
 
-                {/* Expanded — DETAILS + APPLY buttons */}
+                {/* Expanded — DETAILS + APPLY icon buttons (compact) */}
                 {isExpandedCard && (
                   <div className="px-3 pb-3 pt-2 bg-black/[0.02] border-t-2 border-black/10 flex gap-2">
                     <button
                       onClick={(e) => { e.stopPropagation(); setViewingGuild(guild); }}
+                      aria-label="View guild details"
+                      title="Details"
                       data-testid={`button-details-guild-${guild.id}`}
-                      className={cn(OUTLINE_CLASS, "flex-1 h-10 text-[9px]")}
+                      className={cn(ICON_BTN_CLASS, "shrink-0")}
                     >
-                      Details
+                      <Info size={15} strokeWidth={2} />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); if (canJoin && !applied) handleApply(guild); }}
                       disabled={applyDisabled}
+                      aria-label="Apply to join"
+                      title={applied ? "Applied" : "Apply to join"}
                       data-testid={`button-apply-guild-${guild.id}`}
                       className={cn(
                         "flex-1 h-10 rounded-lg border-2 text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all duration-300",
