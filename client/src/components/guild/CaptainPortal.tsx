@@ -106,6 +106,7 @@ export function CaptainPortal() {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("requests");
   const [navOpen, setNavOpen] = useState(false);
+  const emblemBtnRef = useRef<HTMLButtonElement>(null);
   const [chatMode, setChatMode] = useState<"group" | "solo">("group");
   const [settingsView, setSettingsView] = useState<"guild" | "profile">("guild");
   const [expandedRoster, setExpandedRoster] = useState<string | null>(null);
