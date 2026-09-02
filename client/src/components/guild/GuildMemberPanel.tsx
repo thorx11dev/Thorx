@@ -293,11 +293,6 @@ export function GuildMemberPanel() {
         </PremiumCard>
       )}
 
-      {/* Sync control — refetch guild data without a hard reload */}
-      <div className="flex items-center justify-end">
-        <RefreshButton onClick={handleRefresh} refreshing={isRefreshing} title="Refresh guild data" />
-      </div>
-
       {/* Guild identity header — shared landing-grade shell */}
       <GuildIdentityHeader
         guild={guild}
@@ -305,6 +300,11 @@ export function GuildMemberPanel() {
         memberCount={guild?.memberCount ?? members.length}
         avatarUrl={guild?.avatarUrl}
       />
+
+      {/* Sync control — refetch guild data without a hard reload */}
+      <div className="flex items-center justify-end">
+        <RefreshButton onClick={handleRefresh} refreshing={isRefreshing} title="Refresh guild data" />
+      </div>
 
       {/* Unified segmented tabs */}
       <GuildTabBar tabs={TABS} value={tab} onChange={setTab} />
