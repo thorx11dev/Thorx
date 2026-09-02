@@ -505,6 +505,40 @@
     transition: width 0.5s ease;
   }
 
+  /* Thorx brand sweep spinner — quarter-arc border loader.
+     Scales via --size (total px = 48 * --size); color follows currentColor. */
+  .thorx-loader {
+    --color-1: rgba(255, 255, 255, 0);
+    --size: 1px;
+
+    width: calc(48 * var(--size));
+    height: calc(48 * var(--size));
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+    border: calc(10 * var(--size)) solid;
+    box-sizing: border-box;
+    animation: animloader 1s linear infinite alternate;
+  }
+
+  @keyframes animloader {
+    0% {
+      border-color: currentColor var(--color-1) var(--color-1) var(--color-1);
+    }
+
+    33% {
+      border-color: currentColor currentColor var(--color-1) var(--color-1);
+    }
+
+    66% {
+      border-color: currentColor currentColor currentColor var(--color-1);
+    }
+
+    100% {
+      border-color: currentColor currentColor currentColor currentColor;
+    }
+  }
+
   /* Loading skeleton styles */
   .skeleton {
     background: linear-gradient(90deg, var(--muted) 0%, color-mix(in srgb, --muted 80%, transparent) 50%, var(--muted) 100%);
