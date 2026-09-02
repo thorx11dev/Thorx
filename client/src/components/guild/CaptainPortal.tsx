@@ -568,6 +568,7 @@ export function CaptainPortal() {
 
             {/* Emblem — random per refresh, tap opens the guild navigation drawer */}
             <button
+              ref={emblemBtnRef}
               onClick={() => setNavOpen(true)}
               aria-label="Open guild navigation"
               data-testid="button-guild-nav"
