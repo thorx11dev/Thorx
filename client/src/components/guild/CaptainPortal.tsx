@@ -49,6 +49,10 @@ function GroupLabel({ text }: { text: string }) {
   );
 }
 
+/* Guild emblem count — a random emblem-N.webp is picked once per page load. */
+const EMBLEM_COUNT = 7;
+const EMBLEM_INDEX = 1 + Math.floor(Math.random() * EMBLEM_COUNT);
+
 /** Animated placeholder — auth-page typing effect for empty fields. */
 function AnimatedPlaceholder({ examples, className = "text-black/35" }: { examples: string[]; className?: string }) {
   const [currentIndex, setCurrentIndex] = useState(0);
