@@ -135,16 +135,7 @@ export default function LeaderboardSection() {
             className="text-black/40 hidden sm:block"
           />
         </div>
-        <button
-          onClick={() => refetch()}
-          disabled={isRefetching}
-          className="flex items-center gap-1.5 md:gap-2 rounded-lg border-2 border-black bg-white px-3 md:px-4 py-2 md:py-2.5 text-[10px] md:text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 hover:bg-black hover:text-white active:scale-95 disabled:opacity-50"
-          aria-label="Refresh leaderboard"
-          data-testid="leaderboard-refresh"
-        >
-          {isRefetching ? <ThorxSpinner size={16} /> : <RefreshCw className="w-3.5 h-3.5 md:w-4 md:h-4" strokeWidth={2.5} />}
-          SYNC
-        </button>
+        <RefreshButton onClick={() => refetch()} refreshing={isRefetching} title="Refresh leaderboard" />
       </motion.div>
 
       {/* ── States ───────────────────────────────────────────────────────── */}
