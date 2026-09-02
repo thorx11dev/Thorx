@@ -1088,10 +1088,10 @@ export default function UserPortal() {
 
     // Theme-consistent color palette: Primary orange, black, beige accents, white
     const chartColors = {
-      primary: '#FF6B35',      // Primary orange
-      secondary: '#000000',    // Black
-      tertiary: '#E8DCC4',     // Beige
-      quaternary: '#FFFFFF'    // White (with black border for visibility)
+      primary: '#D97757',      // Primary orange
+      secondary: '#141413',    // Black
+      tertiary: '#E8E5D8',     // Beige
+      quaternary: '#FAF9F5'    // White (with black border for visibility)
     };
 
     const categories = [

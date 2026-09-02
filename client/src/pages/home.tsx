@@ -132,7 +132,7 @@ export default function Home() {
 
             {/* Center Section - Wordmark */}
             <div className="justify-self-center">
-              <TextBlockAnimation blockColor="#000" animateOnScroll={false} delay={0.1}>
+              <TextBlockAnimation blockColor="#141413" animateOnScroll={false} delay={0.1}>
                 <h1 className="text-xl md:text-3xl lg:text-4xl font-black tracking-tighter whitespace-nowrap" data-testid="main-logo">
                   THORX.
                 </h1>

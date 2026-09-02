@@ -215,11 +215,11 @@ export function PayoutSection(props: PayoutSectionProps) {
         <motion.div
           initial={false}
           animate={{
-            backgroundColor: isPayoutHeroToggled ? "#ffffff" : "#000000",
-            borderColor: isPayoutHeroToggled ? "#000000" : "#ffffff",
+            backgroundColor: isPayoutHeroToggled ? "#FAF9F5" : "#141413",
+            borderColor: isPayoutHeroToggled ? "#141413" : "#FAF9F5",
             boxShadow: isPayoutHeroToggled
-              ? "0 4px 20px rgba(0,0,0,0.06)"
-              : "0 8px 30px rgba(0,0,0,0.12)"
+              ? "0 4px 20px rgba(20, 20, 19,0.06)"
+              : "0 8px 30px rgba(20, 20, 19,0.12)"
           }}
           transition={{
             backgroundColor: { duration: 0.4 },
@@ -274,7 +274,7 @@ export function PayoutSection(props: PayoutSectionProps) {
             }}
             className="lg:col-span-2"
           >
-            <div className="bg-white border-2 border-black rounded-2xl p-6 md:p-12 relative shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
+            <div className="bg-white border-2 border-black rounded-2xl p-6 md:p-12 relative shadow-[0_12px_40px_rgba(20, 20, 19,0.06)]">
               {/* Step Content Container - Mobile Optimized */}
               <div className="min-h-[300px] md:min-h-[400px] flex flex-col justify-center overflow-hidden">
                 <AnimatePresence mode="wait">
@@ -314,10 +314,10 @@ export function PayoutSection(props: PayoutSectionProps) {
                               }}
                               className={`w-full flex items-center justify-between p-3 md:p-4 border-2 rounded-xl transition-all duration-200 ${
                                 isSelected
-                                  ? "border-foreground bg-foreground text-background shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
+                                  ? "border-foreground bg-foreground text-background shadow-[0_8px_24px_rgba(20, 20, 19,0.12)]"
                                   : isEmpty
                                   ? "border-muted-foreground/20 bg-muted/30 text-muted-foreground cursor-not-allowed opacity-50"
-                                  : "border-black/15 bg-white hover:border-primary/40 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
+                                  : "border-black/15 bg-white hover:border-primary/40 hover:shadow-[0_4px_16px_rgba(20, 20, 19,0.06)]"
                               }`}
                             >
                               <div className="text-left">
@@ -367,9 +367,9 @@ export function PayoutSection(props: PayoutSectionProps) {
                               key={method.id}
                               initial={false}
                               animate={{
-                                backgroundColor: isSelected ? '#000000' : '#ffffff',
-                                borderColor: isSelected ? '#000000' : 'rgba(0,0,0,0.15)',
-                                boxShadow: isSelected ? '0 8px 24px rgba(0,0,0,0.14)' : '0px 0px 0px rgba(0,0,0,0)'
+                                backgroundColor: isSelected ? '#141413' : '#FAF9F5',
+                                borderColor: isSelected ? '#141413' : 'rgba(20, 20, 19,0.15)',
+                                boxShadow: isSelected ? '0 8px 24px rgba(20, 20, 19,0.14)' : '0px 0px 0px rgba(20, 20, 19,0)'
                               }}
                               transition={{ duration: 0.25, ease: "easeInOut" }}
                               onClick={() => setSelectedMethod(method.id)}
@@ -568,9 +568,9 @@ export function PayoutSection(props: PayoutSectionProps) {
                     aria-label={currentStep === 3 ? "Send payout request" : "Continue to next step"}
                     className={`flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-xs font-black tracking-widest transition-all sm:flex-none sm:px-6 md:px-8 ${canProceed() && !(currentStep === 3 && isProcessing)
                       ? currentStep === 3
-                        ? "border-black bg-black text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] hover:-translate-y-0.5 hover:bg-black hover:text-white hover:shadow-[0_12px_28px_rgba(0,0,0,0.24)]"
-                        : "border-black bg-black text-white shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:bg-white hover:text-black"
-                      : "cursor-not-allowed border-black/20 bg-[#f1f0ea] text-black/50 shadow-none"
+                        ? "border-black bg-black text-white shadow-[0_8px_24px_rgba(20, 20, 19,0.18)] hover:-translate-y-0.5 hover:bg-black hover:text-white hover:shadow-[0_12px_28px_rgba(20, 20, 19,0.24)]"
+                        : "border-black bg-black text-white shadow-[0_8px_24px_rgba(20, 20, 19,0.12)] hover:bg-white hover:text-black"
+                      : "cursor-not-allowed border-black/20 bg-[#E8E5D8] text-black/50 shadow-none"
                       }`}
                   >
                     {isProcessing && currentStep === 3 ? (
@@ -599,7 +599,7 @@ export function PayoutSection(props: PayoutSectionProps) {
                 animate: { opacity: 1, x: 0 }
               }
               }
-              className="bg-white border border-black/15 rounded-2xl p-6 shadow-[0_12px_40px_rgba(0,0,0,0.06)]"
+              className="bg-white border border-black/15 rounded-2xl p-6 shadow-[0_12px_40px_rgba(20, 20, 19,0.06)]"
             >
               <TechnicalLabel text="HISTORY" className="text-foreground font-black text-sm mb-4" />
               <Button
@@ -668,7 +668,7 @@ export function PayoutSection(props: PayoutSectionProps) {
               }
               }
               whileHover={{ scale: 1.02 }}
-              className="bg-white border border-black/15 rounded-2xl p-6 shadow-[0_12px_40px_rgba(0,0,0,0.06)] transition-all duration-300"
+              className="bg-white border border-black/15 rounded-2xl p-6 shadow-[0_12px_40px_rgba(20, 20, 19,0.06)] transition-all duration-300"
             >
               <TechnicalLabel text="NEED HELP?" className="text-foreground font-black text-sm mb-4" />
               <div className="space-y-3">
@@ -693,7 +693,7 @@ export function PayoutSection(props: PayoutSectionProps) {
           }}
           className="lg:hidden mt-6"
         >
-          <div className="bg-white border border-black/15 rounded-2xl p-3 md:p-4 shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
+          <div className="bg-white border border-black/15 rounded-2xl p-3 md:p-4 shadow-[0_12px_40px_rgba(20, 20, 19,0.06)]">
             <TechnicalLabel text="HISTORY" className="text-foreground font-black text-sm mb-4" />
             <Button
               onClick={() => setShowHistory(!showHistory)}

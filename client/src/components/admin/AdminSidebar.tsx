@@ -104,14 +104,14 @@ export function AdminNavigation({ activeSection, onSectionChange, onLogout, clas
         <div className="lg:hidden">
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-10 w-10 border-[1.5px] border-[#111] hover:bg-black/5 rounded-full transition-all text-[#111]">
+              <Button variant="ghost" size="icon" className="h-10 w-10 border-[1.5px] border-[#141413] hover:bg-black/5 rounded-full transition-all text-[#141413]">
                 <Menu className="w-5 h-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[85vw] max-w-[300px] border-l-4 border-[#111] bg-white p-0">
-              <SheetHeader className="p-6 border-b-[1.5px] border-[#111]/10 text-left">
+            <SheetContent side="right" className="w-[85vw] max-w-[300px] border-l-4 border-[#141413] bg-white p-0">
+              <SheetHeader className="p-6 border-b-[1.5px] border-[#141413]/10 text-left">
                 <TechnicalLabel text="Navigation" className="mb-2" />
-                <SheetTitle className="text-xl font-black uppercase text-[#111]">Secure Terminal</SheetTitle>
+                <SheetTitle className="text-xl font-black uppercase text-[#141413]">Secure Terminal</SheetTitle>
               </SheetHeader>
               
               <div className="flex flex-col h-full py-4">
@@ -127,16 +127,16 @@ export function AdminNavigation({ activeSection, onSectionChange, onLogout, clas
                         "w-full flex items-center gap-4 px-6 py-4 font-black text-xs uppercase tracking-widest transition-colors text-left rounded-xl",
                         activeSection === section.id 
                           ? "bg-black text-primary" 
-                          : "text-[#111]/60 hover:bg-black/5 hover:text-[#111]"
+                          : "text-[#141413]/60 hover:bg-black/5 hover:text-[#141413]"
                       )}
                     >
-                      <section.icon size={18} className={activeSection === section.id ? "text-primary" : "text-[#111]/40"} />
+                      <section.icon size={18} className={activeSection === section.id ? "text-primary" : "text-[#141413]/40"} />
                       {section.name}
                     </button>
                   ))}
                 </div>
                 
-                <div className="p-6 border-t-[1.5px] border-[#111]/10">
+                <div className="p-6 border-t-[1.5px] border-[#141413]/10">
                   <Button
                     onClick={onLogout}
                     variant="outline"

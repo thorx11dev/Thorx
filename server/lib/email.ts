@@ -45,24 +45,24 @@ export async function sendPasswordResetEmail(params: {
       <!DOCTYPE html>
       <html>
       <body style="font-family:sans-serif;background:#f4f4f4;padding:24px;margin:0;">
-        <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;">
-          <div style="background:#000;padding:20px 24px;">
-            <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:-0.5px;">THORX</h1>
+        <div style="max-width:520px;margin:0 auto;background:#FAF9F5;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;">
+          <div style="background:#141413;padding:20px 24px;">
+            <h1 style="color:#FAF9F5;font-size:22px;margin:0;letter-spacing:-0.5px;">THORX</h1>
           </div>
           <div style="padding:28px 24px;">
-            <h2 style="font-size:18px;margin:0 0 12px;color:#111;">Hi ${params.firstName},</h2>
+            <h2 style="font-size:18px;margin:0 0 12px;color:#141413;">Hi ${params.firstName},</h2>
             <p style="color:#444;line-height:1.6;margin:0 0 20px;">
               We received a request to reset your THORX password.
               Click the button below — this link is valid for <strong>60 minutes</strong>.
             </p>
             <a href="${params.resetUrl}"
-               style="display:inline-block;background:#000;color:#fff;font-weight:700;padding:12px 24px;border-radius:6px;text-decoration:none;font-size:14px;">
+               style="display:inline-block;background:#141413;color:#FAF9F5;font-weight:700;padding:12px 24px;border-radius:6px;text-decoration:none;font-size:14px;">
               Reset Password
             </a>
             <p style="color:#777;font-size:12px;margin:20px 0 0;line-height:1.6;">
               If you did not request a password reset, you can safely ignore this email —
               your account remains secure.<br>
-              Link: <a href="${params.resetUrl}" style="color:#000;">${params.resetUrl}</a>
+              Link: <a href="${params.resetUrl}" style="color:#141413;">${params.resetUrl}</a>
             </p>
           </div>
           <div style="background:#f8f8f8;padding:14px 24px;border-top:1px solid #eee;">
@@ -113,15 +113,15 @@ export async function sendPayoutStatusEmail(params: {
       <!DOCTYPE html>
       <html>
       <body style="font-family:sans-serif;background:#f4f4f4;padding:24px;margin:0;">
-        <div style="max-width:520px;margin:0 auto;background:#fff;overflow:hidden;border:1px solid #e2e8f0;">
-          <div style="background:#000;padding:20px 24px;">
-            <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:-0.5px;">THORX</h1>
+        <div style="max-width:520px;margin:0 auto;background:#FAF9F5;overflow:hidden;border:1px solid #e2e8f0;">
+          <div style="background:#141413;padding:20px 24px;">
+            <h1 style="color:#FAF9F5;font-size:22px;margin:0;letter-spacing:-0.5px;">THORX</h1>
           </div>
           <div style="padding:28px 24px;">
             <p style="font-size:11px;font-weight:700;letter-spacing:2px;color:${accent};margin:0 0 8px;">
               ${statusLabel}
             </p>
-            <h2 style="font-size:18px;margin:0 0 12px;color:#111;">Hi ${params.firstName},</h2>
+            <h2 style="font-size:18px;margin:0 0 12px;color:#141413;">Hi ${params.firstName},</h2>
             ${
               rejected
                 ? `<p style="color:#444;line-height:1.6;margin:0 0 16px;">
@@ -182,24 +182,24 @@ export async function sendTeamInvitationEmail(params: {
       <!DOCTYPE html>
       <html>
       <body style="font-family:sans-serif;background:#f4f4f4;padding:24px;margin:0;">
-        <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;">
-          <div style="background:#000;padding:20px 24px;">
-            <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:-0.5px;">THORX</h1>
+        <div style="max-width:520px;margin:0 auto;background:#FAF9F5;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;">
+          <div style="background:#141413;padding:20px 24px;">
+            <h1 style="color:#FAF9F5;font-size:22px;margin:0;letter-spacing:-0.5px;">THORX</h1>
           </div>
           <div style="padding:28px 24px;">
-            <h2 style="font-size:18px;margin:0 0 12px;color:#111;">You're invited</h2>
+            <h2 style="font-size:18px;margin:0 0 12px;color:#141413;">You're invited</h2>
             <p style="color:#444;line-height:1.6;margin:0 0 20px;">
               ${params.invitedByName} invited you to join the THORX team portal as
               <strong>${roleLabel}</strong>. Click below to set your password and activate access —
               this link is valid for <strong>48 hours</strong>.
             </p>
             <a href="${params.inviteUrl}"
-               style="display:inline-block;background:#000;color:#fff;font-weight:700;padding:12px 24px;border-radius:6px;text-decoration:none;font-size:14px;">
+               style="display:inline-block;background:#141413;color:#FAF9F5;font-weight:700;padding:12px 24px;border-radius:6px;text-decoration:none;font-size:14px;">
               Accept Invitation
             </a>
             <p style="color:#777;font-size:12px;margin:20px 0 0;line-height:1.6;">
               If you weren't expecting this, you can safely ignore this email.<br>
-              Link: <a href="${params.inviteUrl}" style="color:#000;">${params.inviteUrl}</a>
+              Link: <a href="${params.inviteUrl}" style="color:#141413;">${params.inviteUrl}</a>
             </p>
           </div>
           <div style="background:#f8f8f8;padding:14px 24px;border-top:1px solid #eee;">

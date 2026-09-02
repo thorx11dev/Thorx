@@ -42,7 +42,7 @@ export function AdminHeader({ userName, role, className }: AdminHeaderProps) {
               riskPanelOpen ? "opacity-0 pointer-events-none select-none" : "opacity-100"
             )}
           >
-            <TextBlockAnimation blockColor="#000" animateOnScroll={false} delay={0.1}>
+            <TextBlockAnimation blockColor="#141413" animateOnScroll={false} delay={0.1}>
               <h1
                 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter uppercase text-black"
                 data-testid="admin-main-logo"
@@ -56,7 +56,7 @@ export function AdminHeader({ userName, role, className }: AdminHeaderProps) {
           <div className="absolute right-4 md:right-8 flex items-center">
             <button
               onClick={() => setIsProfileOpen(true)}
-              className="group flex items-center gap-3 bg-white border-2 border-black p-1 md:p-1.5 shadow-[4px_4px_0px_#000] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all"
+              className="group flex items-center gap-3 bg-white border-2 border-black p-1 md:p-1.5 shadow-[4px_4px_0px_#141413] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all"
             >
               <div className="text-right hidden sm:block pl-2">
                 <div className="font-black text-[11px] md:text-xs uppercase text-black leading-none mb-1 group-hover:text-primary transition-colors">

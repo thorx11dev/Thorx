@@ -14,7 +14,7 @@ const Section = ({ title, icon: Icon, children, id, trigger }: { title: string, 
     >
         <div className="flex items-center gap-3 mb-6">
             {Icon && <Icon className="size-6 text-primary" />}
-            <TextBlockAnimation blockColor="#ff6b00" animateOnScroll={false} trigger={trigger}>
+            <TextBlockAnimation blockColor="#D97757" animateOnScroll={false} trigger={trigger}>
                 <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight">{title}</h2>
             </TextBlockAnimation>
         </div>
@@ -61,12 +61,12 @@ export default function PrivacyPolicy() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F5F5F3] text-black font-sans selection:bg-primary selection:text-white">
+        <div className="min-h-screen bg-[#FAF9F5] text-black font-sans selection:bg-primary selection:text-white">
             <LegalNav docLabel="PRIVACY" />
 
             <main className="max-w-5xl mx-auto px-6 pt-32 pb-24">
                 <div className="mb-20">
-                    <TextBlockAnimation blockColor="#ff6b00" duration={0.8} animateOnScroll={false}>
+                    <TextBlockAnimation blockColor="#D97757" duration={0.8} animateOnScroll={false}>
                         <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter leading-none mb-6">
                             Privacy <br /> Policy<span className="text-primary">.</span>
                         </h1>

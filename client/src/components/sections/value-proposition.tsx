@@ -85,7 +85,7 @@ const ContentBlock = ({ label, description, isActive }: ContentBlockProps) => (
                 />
             </div>
         </div>
-        <TextBlockAnimation blockColor="#ff6b00" delay={0.2} duration={0.4} animateOnScroll={false} trigger={isActive}>
+        <TextBlockAnimation blockColor="#D97757" delay={0.2} duration={0.4} animateOnScroll={false} trigger={isActive}>
             <p className="text-base md:text-xl text-black/80 dark:text-white/80 leading-relaxed font-bold">
                 {description}
             </p>
@@ -111,7 +111,7 @@ export default function ValueProposition({ isActive }: { isActive: boolean }) {
 
     return (
         <section
-            className={`cinematic-section ${isActive ? 'active' : ''} bg-[#EAE5DD] dark:bg-black pt-44 md:pt-[320px] pb-24 px-4 flex flex-col items-start justify-start overflow-y-auto`}
+            className={`cinematic-section ${isActive ? 'active' : ''} bg-[#E8E5D8] dark:bg-black pt-44 md:pt-[320px] pb-24 px-4 flex flex-col items-start justify-start overflow-y-auto`}
             data-section="3"
             data-testid="value-proposition-section"
         >
@@ -120,7 +120,7 @@ export default function ValueProposition({ isActive }: { isActive: boolean }) {
                 <div className="text-left mb-16 md:mb-24">
                     <CinematicBlockReveal
                         trigger={isActive}
-                        blockColor="#ff6b00"
+                        blockColor="#D97757"
                     >
                         <div className="py-2">
                             <VariableFontHoverByRandomLetter

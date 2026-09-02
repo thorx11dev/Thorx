@@ -54,11 +54,11 @@ export function ReferralsSection(props: ReferralsSectionProps) {
         <motion.div
           initial={false}
           animate={{
-            backgroundColor: isReferralsHeroToggled ? "#ffffff" : "#000000",
-            borderColor: isReferralsHeroToggled ? "#000000" : "#ffffff",
+            backgroundColor: isReferralsHeroToggled ? "#FAF9F5" : "#141413",
+            borderColor: isReferralsHeroToggled ? "#141413" : "#FAF9F5",
             boxShadow: isReferralsHeroToggled
-              ? "0 4px 20px rgba(0,0,0,0.06)"
-              : "0 8px 30px rgba(0,0,0,0.12)"
+              ? "0 4px 20px rgba(20, 20, 19,0.06)"
+              : "0 8px 30px rgba(20, 20, 19,0.12)"
           }}
           transition={{
             backgroundColor: { duration: 0.4 },
@@ -114,7 +114,7 @@ export function ReferralsSection(props: ReferralsSectionProps) {
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             whileHover={{ scale: 1.02, translateY: -4 }}
             whileTap={{ scale: 0.98 }}
-            className="group split-card bg-white border border-black/15 hover:border-primary/40 rounded-2xl p-6 text-left transition-all duration-300 cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)]"
+            className="group split-card bg-white border border-black/15 hover:border-primary/40 rounded-2xl p-6 text-left transition-all duration-300 cursor-pointer shadow-[0_4px_16px_rgba(20, 20, 19,0.05)] hover:shadow-[0_12px_32px_rgba(20, 20, 19,0.08)]"
             data-testid="card-total-referrals"
           >
             <div className="flex items-start justify-between mb-3">
@@ -133,7 +133,7 @@ export function ReferralsSection(props: ReferralsSectionProps) {
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             whileHover={{ scale: 1.02, translateY: -4 }}
             whileTap={{ scale: 0.98 }}
-            className="group split-card bg-white border border-primary/25 hover:border-primary/50 rounded-2xl p-6 text-left transition-all duration-300 cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)]"
+            className="group split-card bg-white border border-primary/25 hover:border-primary/50 rounded-2xl p-6 text-left transition-all duration-300 cursor-pointer shadow-[0_4px_16px_rgba(20, 20, 19,0.05)] hover:shadow-[0_12px_32px_rgba(20, 20, 19,0.08)]"
             data-testid="card-referral-earnings"
           >
             <div className="flex items-start justify-between mb-3">
@@ -159,7 +159,7 @@ export function ReferralsSection(props: ReferralsSectionProps) {
             <div className="flex justify-center pt-2">
               {/* Referral Code */}
               <div className="flex flex-col w-full max-w-xl">
-                <div className="bg-white border border-black/15 rounded-2xl p-5 md:p-10 relative overflow-hidden group h-full flex flex-col justify-center shadow-[0_4px_16px_rgba(0,0,0,0.05)] transition-all duration-300">
+                <div className="bg-white border border-black/15 rounded-2xl p-5 md:p-10 relative overflow-hidden group h-full flex flex-col justify-center shadow-[0_4px_16px_rgba(20, 20, 19,0.05)] transition-all duration-300">
                   <div className="relative z-10 w-full">
                     <div className="flex flex-col gap-6 md:gap-8">
                       <div className="text-center md:text-left">
@@ -245,12 +245,12 @@ export function ReferralsSection(props: ReferralsSectionProps) {
           {/* HIERARCHICAL TREE LAYOUT */}
           <div className="w-full">
             {isReferralError ? (
-              <div className="bg-white border border-destructive/30 rounded-2xl p-8 text-center shadow-[0_4px_16px_rgba(0,0,0,0.05)]">
+              <div className="bg-white border border-destructive/30 rounded-2xl p-8 text-center shadow-[0_4px_16px_rgba(20, 20, 19,0.05)]">
                 <p className="font-black text-destructive mb-2">Failed to load network data</p>
                 <p className="text-sm text-destructive/80">{(referralError as Error)?.message || "Unknown error"}</p>
               </div>
             ) : isReferralLoading ? (
-              <div className="flex justify-center items-center py-12 p-8 rounded-2xl border border-black/15 bg-white shadow-[0_4px_16px_rgba(0,0,0,0.05)]">
+              <div className="flex justify-center items-center py-12 p-8 rounded-2xl border border-black/15 bg-white shadow-[0_4px_16px_rgba(20, 20, 19,0.05)]">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
@@ -258,9 +258,9 @@ export function ReferralsSection(props: ReferralsSectionProps) {
                 />
               </div>
             ) : (displayUser ? (
-              <div className="bg-white border border-black/15 rounded-2xl overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.06)] relative">
+              <div className="bg-white border border-black/15 rounded-2xl overflow-hidden shadow-[0_12px_40px_rgba(20, 20, 19,0.06)] relative">
                 {/* Zoom / instrument toolbar — centered on mobile, tucked to the corner on desktop */}
-                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 rounded-xl border-2 border-black bg-white p-1 shadow-[0_6px_20px_rgba(0,0,0,0.14)] md:bottom-6 md:left-auto md:right-6 md:translate-x-0">
+                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 rounded-xl border-2 border-black bg-white p-1 shadow-[0_6px_20px_rgba(20, 20, 19,0.14)] md:bottom-6 md:left-auto md:right-6 md:translate-x-0">
                   <Button
                     size="icon"
                     variant="ghost"
@@ -329,7 +329,7 @@ export function ReferralsSection(props: ReferralsSectionProps) {
                 initial: { opacity: 0, scale: 0.98 },
                 animate: { opacity: 1, scale: 1 }
               }}
-              className="mt-6 md:mt-8 bg-white border border-black/15 rounded-2xl p-4 md:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.06)]"
+              className="mt-6 md:mt-8 bg-white border border-black/15 rounded-2xl p-4 md:p-8 shadow-[0_12px_40px_rgba(20, 20, 19,0.06)]"
             >
               <div className="border-b border-black/15 pb-3 md:pb-4 mb-4 md:mb-6">
                 <TechnicalLabel text="COMMISSION HISTORY" className="text-foreground text-sm md:text-lg font-black" />

@@ -12,7 +12,7 @@ export default function AdLanding() {
         binance: {
             name: "Binance",
             color: "#F3BA2F",
-            textColor: "black",
+            textColor: "#141413",
             heroText: "Exchange the World",
             subText: "Trade crypto with confidence.",
             cta: "Join Now",
@@ -21,7 +21,7 @@ export default function AdLanding() {
         daraz: {
             name: "Daraz",
             color: "#FF5900",
-            textColor: "white",
+            textColor: "#FAF9F5",
             heroText: "Discover Endless Possibilities",
             subText: "Pakistan's biggest online marketplace.",
             cta: "Shop Now",
@@ -30,7 +30,7 @@ export default function AdLanding() {
         foodpanda: {
             name: "Foodpanda",
             color: "#D70F64",
-            textColor: "white",
+            textColor: "#FAF9F5",
             heroText: "Food delivery usage is up 100%",
             subText: "Order now and get 50% off.",
             cta: "Order Food",
@@ -39,7 +39,7 @@ export default function AdLanding() {
         amazon: {
             name: "Amazon",
             color: "#232F3E",
-            textColor: "white",
+            textColor: "#FAF9F5",
             heroText: "Spend less. Smile more.",
             subText: "Free shipping on millions of items.",
             cta: "Browse Deals",
@@ -48,7 +48,7 @@ export default function AdLanding() {
         generic: {
             name: "Premium Partner",
             color: "#333",
-            textColor: "white",
+            textColor: "#FAF9F5",
             heroText: "Exclusive Offer",
             subText: "Limited time opportunity for THORX users.",
             cta: "Learn More",

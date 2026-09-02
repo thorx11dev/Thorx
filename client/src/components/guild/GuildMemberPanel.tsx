@@ -209,7 +209,7 @@ export function GuildMemberPanel() {
   if (isGuildError && !guild) {
     return (
       <PremiumCard className="p-6 md:p-8 flex flex-col items-center gap-4 text-center">
-        <div className="p-3 bg-[#EAE5DD] border-2 border-black/10 rounded-xl">
+        <div className="p-3 bg-[#E8E5D8] border-2 border-black/10 rounded-xl">
           <GiSpartanHelmet className="w-6 h-6 text-black/50" />
         </div>
         <div>

@@ -127,7 +127,7 @@ export function MemberAvatarEditor() {
           {previewSrc ? (
             <img src={previewSrc} alt="Profile preview" className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-[#EAE5DD]">
+            <div className="w-full h-full flex items-center justify-center bg-[#E8E5D8]">
               <ImagePlus size={20} className="text-black/30" />
             </div>
           )}
@@ -158,7 +158,7 @@ export function MemberAvatarEditor() {
       </div>
 
       {/* Universal avatar grid — profile-modal selector style */}
-      <div className="rounded-2xl bg-[#EAE5DD]/30 border-2 border-black/10 p-3.5 sm:p-4 md:p-5">
+      <div className="rounded-2xl bg-[#E8E5D8]/30 border-2 border-black/10 p-3.5 sm:p-4 md:p-5">
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 sm:gap-3 md:gap-5 justify-items-center">
           {UNIVERSAL_AVATARS.map((av) => {
             const isSelected = avatar === av.id;

@@ -285,7 +285,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-5xl font-black tracking-tighter uppercase text-[#111]">User CRM</h2>
+          <h2 className="text-5xl font-black tracking-tighter uppercase text-[#141413]">User CRM</h2>
         </div>
 
         <div className="flex items-center gap-4">
@@ -294,7 +294,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
             <input 
               type="text" 
               placeholder="Search directory..."
-              className="h-10 pl-11 pr-4 bg-white border-[1.5px] border-[#111] rounded-full focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-xs font-bold w-64 text-[#111] placeholder:text-zinc-400"
+              className="h-10 pl-11 pr-4 bg-white border-[1.5px] border-[#141413] rounded-full focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-xs font-bold w-64 text-[#141413] placeholder:text-zinc-400"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -303,7 +303,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
             />
           </div>
           <Button 
-            className="h-10 bg-white border-[1.5px] border-[#111] text-[#111] font-black text-xs px-6 hover:bg-[#111] hover:text-white rounded-full transition-all uppercase shadow-sm whitespace-nowrap"
+            className="h-10 bg-white border-[1.5px] border-[#141413] text-[#141413] font-black text-xs px-6 hover:bg-[#141413] hover:text-white rounded-full transition-all uppercase shadow-sm whitespace-nowrap"
             onClick={handleExport}
           >
             Export
@@ -312,10 +312,10 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
       </div>
 
       {/* Main Table Container */}
-      <div className="bg-background border-[1.5px] border-[#111] rounded-[2rem] overflow-hidden shadow-sm">
-        <div className="bg-white border-b-[1.5px] border-[#111] px-8 py-4 flex items-center justify-between">
+      <div className="bg-background border-[1.5px] border-[#141413] rounded-[2rem] overflow-hidden shadow-sm">
+        <div className="bg-white border-b-[1.5px] border-[#141413] px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-             <TechnicalLabel text="Operational Registry" className="text-[#111] font-black uppercase" />
+             <TechnicalLabel text="Operational Registry" className="text-[#141413] font-black uppercase" />
           </div>
           <div className="bg-black text-white px-4 py-1.5 rounded-lg font-black text-xs min-w-[40px] text-center shadow-lg uppercase tracking-tight">
             {totalCount < 10 ? `0${totalCount}` : totalCount}
@@ -323,7 +323,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
         </div>
 
         {selectedIds.length > 0 && (
-          <div className="bg-[#111] px-8 py-3 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+          <div className="bg-[#141413] px-8 py-3 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
             <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest italic">
               {selectedIds.length} {selectedIds.length === 1 ? 'item' : 'items'} ready for export...
             </div>
@@ -338,20 +338,20 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                   <Checkbox 
                     checked={allSelected}
                     onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                    className="border-[#111] data-[state=checked]:bg-[#111] data-[state=checked]:text-primary"
+                    className="border-[#141413] data-[state=checked]:bg-[#141413] data-[state=checked]:text-primary"
                   />
                 </th>
-                <th className="px-4 lg:px-6 py-6 font-black text-[10px] tracking-widest text-[#111] uppercase whitespace-nowrap">Profile</th>
-                <th className="px-4 lg:px-6 py-6 font-black text-[10px] tracking-widest text-[#111] uppercase whitespace-nowrap">Contact Protocol</th>
-                <th className="px-4 lg:px-6 py-6 font-black text-[10px] tracking-widest text-[#111] uppercase whitespace-nowrap text-center">Rank</th>
-                <th className="px-4 lg:px-6 py-6 font-black text-[10px] tracking-widest text-[#111] uppercase whitespace-nowrap text-center">Guild Role</th>
-                <th className="px-4 lg:px-6 py-6 font-black text-[10px] tracking-widest text-[#111] uppercase whitespace-nowrap">Last Active</th>
-                <th className="px-4 lg:px-6 py-6 font-black text-[10px] tracking-widest text-[#111] uppercase whitespace-nowrap">Financials (₨)</th>
-                <th className="px-4 lg:px-6 py-6 font-black text-[10px] tracking-widest text-[#111] uppercase whitespace-nowrap">Ref Cash</th>
-                <th className="px-4 lg:px-6 py-6 font-black text-[10px] tracking-widest text-[#111] uppercase text-right whitespace-nowrap">Actions</th>
+                <th className="px-4 lg:px-6 py-6 font-black text-[10px] tracking-widest text-[#141413] uppercase whitespace-nowrap">Profile</th>
+                <th className="px-4 lg:px-6 py-6 font-black text-[10px] tracking-widest text-[#141413] uppercase whitespace-nowrap">Contact Protocol</th>
+                <th className="px-4 lg:px-6 py-6 font-black text-[10px] tracking-widest text-[#141413] uppercase whitespace-nowrap text-center">Rank</th>
+                <th className="px-4 lg:px-6 py-6 font-black text-[10px] tracking-widest text-[#141413] uppercase whitespace-nowrap text-center">Guild Role</th>
+                <th className="px-4 lg:px-6 py-6 font-black text-[10px] tracking-widest text-[#141413] uppercase whitespace-nowrap">Last Active</th>
+                <th className="px-4 lg:px-6 py-6 font-black text-[10px] tracking-widest text-[#141413] uppercase whitespace-nowrap">Financials (₨)</th>
+                <th className="px-4 lg:px-6 py-6 font-black text-[10px] tracking-widest text-[#141413] uppercase whitespace-nowrap">Ref Cash</th>
+                <th className="px-4 lg:px-6 py-6 font-black text-[10px] tracking-widest text-[#141413] uppercase text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y-[1.5px] divide-[#111]/10">
+            <tbody className="divide-y-[1.5px] divide-[#141413]/10">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={`skeleton-${i}`}>
@@ -409,7 +409,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.05, type: "spring", stiffness: 300, damping: 30 }}
-                    className="hover:bg-black/5 transition-all group border-b-[1.5px] border-[#111]/5"
+                    className="hover:bg-black/5 transition-all group border-b-[1.5px] border-[#141413]/5"
                   >
                     <td className="p-6">
                       <Checkbox 
@@ -418,12 +418,12 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                           if (checked) setSelectedIds(prev => [...prev, user.id]);
                           else setSelectedIds(prev => prev.filter(id => id !== user.id));
                         }}
-                        className="border-[#111] data-[state=checked]:bg-[#111] transition-colors"
+                        className="border-[#141413] data-[state=checked]:bg-[#141413] transition-colors"
                       />
                     </td>
                     <td className="p-6">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 min-w-[3rem] shrink-0 bg-white border-[1.5px] border-[#111] rounded-[1rem] overflow-hidden group-hover:border-primary transition-all">
+                        <div className="w-12 h-12 min-w-[3rem] shrink-0 bg-white border-[1.5px] border-[#141413] rounded-[1rem] overflow-hidden group-hover:border-primary transition-all">
                           <img
                             src={user.profilePicture || resolveAvatarUrlByTier(user.avatar, user.userRankTier)}
                             alt={`${user.firstName} ${user.lastName}`}
@@ -431,7 +431,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                           />
                         </div>
                         <div>
-                          <div className="font-black text-sm tracking-tight text-[#111] uppercase">{user.firstName} {user.lastName}</div>
+                          <div className="font-black text-sm tracking-tight text-[#141413] uppercase">{user.firstName} {user.lastName}</div>
                           <div className="text-[10px] text-zinc-400 font-bold mt-1 tracking-widest uppercase">TX-ID: {user.identity || 'Pending'}</div>
                         </div>
                       </div>
@@ -439,11 +439,11 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                     <td className="p-6">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-xs font-bold text-zinc-600 uppercase">
-                          <Mail size={12} className="text-[#111]/30" />
+                          <Mail size={12} className="text-[#141413]/30" />
                           {user.email}
                         </div>
                         <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400 uppercase">
-                          <Phone size={12} className="text-[#111]/30" />
+                          <Phone size={12} className="text-[#141413]/30" />
                           {user.phone || "(N/A)"}
                         </div>
                       </div>
@@ -478,10 +478,10 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                       })()}
                     </td>
                     <td className="p-6">
-                      <div className="font-black text-base text-[#111] mb-1 leading-none">{new Decimal(user.availableBalance || "0").toNumber().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                      <div className="font-black text-base text-[#141413] mb-1 leading-none">{new Decimal(user.availableBalance || "0").toNumber().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                       <div className="flex items-center gap-1.5">
                          <span className="text-[9px] uppercase tracking-widest text-zinc-400 font-bold">Total:</span>
-                         <span className="text-[10px] font-black text-[#111]/50">{new Decimal(user.totalEarnings || "0").toNumber().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                         <span className="text-[10px] font-black text-[#141413]/50">{new Decimal(user.totalEarnings || "0").toNumber().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     </td>
                     <td className="p-6 text-right">
@@ -489,7 +489,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                         <Button 
                           size="sm" 
                           variant="ghost" 
-                          className="h-10 w-10 p-0 rounded-full border-[1.5px] border-[#111]/20 hover:border-[#111] hover:bg-[#111] hover:text-white transition-colors"
+                          className="h-10 w-10 p-0 rounded-full border-[1.5px] border-[#141413]/20 hover:border-[#141413] hover:bg-[#141413] hover:text-white transition-colors"
                           onClick={() => { setSelectedUser(user); setModalType('notes'); }}
                           title="Notes"
                         >
@@ -498,7 +498,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                         <Button 
                           size="sm" 
                           variant="ghost" 
-                          className="h-10 w-10 p-0 rounded-full border-[1.5px] border-[#111]/20 hover:border-primary hover:bg-primary/20 hover:text-primary transition-colors text-[#111]"
+                          className="h-10 w-10 p-0 rounded-full border-[1.5px] border-[#141413]/20 hover:border-primary hover:bg-primary/20 hover:text-primary transition-colors text-[#141413]"
                           onClick={() => { setSelectedUser(user); setModalType('network'); }}
                           title="Network"
                         >
@@ -507,7 +507,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                         <Button 
                           size="sm" 
                           variant="ghost" 
-                          className="h-10 w-10 p-0 rounded-full border-[1.5px] border-[#111]/20 hover:border-[#111] hover:bg-[#111] hover:text-white transition-colors"
+                          className="h-10 w-10 p-0 rounded-full border-[1.5px] border-[#141413]/20 hover:border-[#141413] hover:bg-[#141413] hover:text-white transition-colors"
                           onClick={() => { setSelectedUser(user); setModalType('balance'); }}
                           title="Balance"
                         >
@@ -537,7 +537,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                         <Button 
                           size="icon" 
                           variant="ghost" 
-                          className="h-10 w-10 border-[1.5px] border-[#111]/20 hover:bg-black hover:text-white rounded-full transition-all"
+                          className="h-10 w-10 border-[1.5px] border-[#141413]/20 hover:bg-black hover:text-white rounded-full transition-all"
                           onClick={() => {
                             setSelectedUser(user);
                             setModalType('details');
@@ -558,14 +558,14 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
         {totalPages > 1 && (
           <div className="flex items-center justify-between pt-8 border-t border-zinc-100">
             <div className="text-[10px] font-black tracking-widest uppercase text-zinc-400">
-              Showing <span className="text-[#111]">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-[#111]">{Math.min(currentPage * itemsPerPage, totalCount)}</span> of <span className="text-[#111]">{totalCount}</span> nodes
+              Showing <span className="text-[#141413]">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-[#141413]">{Math.min(currentPage * itemsPerPage, totalCount)}</span> of <span className="text-[#141413]">{totalCount}</span> nodes
             </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 disabled={currentPage === 1}
                 onClick={() => handlePageChange(currentPage - 1)}
-                className="h-10 px-6 border-[1.5px] border-[#111] rounded-full font-black text-xs uppercase hover:bg-[#111] hover:text-white transition-all disabled:opacity-30"
+                className="h-10 px-6 border-[1.5px] border-[#141413] rounded-full font-black text-xs uppercase hover:bg-[#141413] hover:text-white transition-all disabled:opacity-30"
               >
                 Previous Protocol
               </Button>
@@ -590,7 +590,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                         onClick={() => handlePageChange(p)}
                         className={cn(
                           "w-2 h-2 rounded-full transition-all",
-                          currentPage === p ? "w-8 bg-[#111]" : "bg-[#111]/20 hover:bg-[#111]/40"
+                          currentPage === p ? "w-8 bg-[#141413]" : "bg-[#141413]/20 hover:bg-[#141413]/40"
                         )}
                       />
                     )
@@ -601,7 +601,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                 variant="ghost"
                 disabled={currentPage === totalPages}
                 onClick={() => handlePageChange(currentPage + 1)}
-                className="h-10 px-6 border-[1.5px] border-[#111] rounded-full font-black text-xs uppercase hover:bg-[#111] hover:text-white transition-all disabled:opacity-30"
+                className="h-10 px-6 border-[1.5px] border-[#141413] rounded-full font-black text-xs uppercase hover:bg-[#141413] hover:text-white transition-all disabled:opacity-30"
               >
                 Next Protocol
               </Button>
@@ -612,11 +612,11 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
 
       {/* Internal Notes Dialog */}
       <Dialog open={!!selectedUser && modalType === 'notes'} onOpenChange={(open) => !open && closeModal()}>
-        <DialogContent className="border border-black/5 bg-white rounded-[2rem] p-0 max-w-lg flex flex-col overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.12)] h-[600px] max-h-[85vh] *:!rounded-none [&>button]:hidden">
+        <DialogContent className="border border-black/5 bg-white rounded-[2rem] p-0 max-w-lg flex flex-col overflow-hidden shadow-[0_20px_60px_rgba(20, 20, 19,0.12)] h-[600px] max-h-[85vh] *:!rounded-none [&>button]:hidden">
           <DialogHeader className="p-8 border-b border-zinc-100 bg-white shrink-0">
              <div className="flex items-center justify-between">
                 <div>
-                  <DialogTitle className="text-2xl font-black tracking-tighter text-[#111] uppercase">
+                  <DialogTitle className="text-2xl font-black tracking-tighter text-[#141413] uppercase">
                     Admin Notes
                   </DialogTitle>
                   <DialogDescription className="text-zinc-500 font-bold text-[10px] tracking-widest mt-1 uppercase">
@@ -624,7 +624,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                   </DialogDescription>
                 </div>
                 <Button onClick={closeModal} variant="ghost" className="h-10 w-10 p-0 rounded-full hover:bg-black/5">
-                  <X size={20} className="text-[#111]" />
+                  <X size={20} className="text-[#141413]" />
                 </Button>
              </div>
           </DialogHeader>
@@ -639,7 +639,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                     </div>
                   )}
                   {notesData?.notes.map((note) => (
-                    <div key={note.id} className="bg-white border border-zinc-200 rounded-2xl p-5 space-y-3 relative hover:border-[#111]/50 transition-colors">
+                    <div key={note.id} className="bg-white border border-zinc-200 rounded-2xl p-5 space-y-3 relative hover:border-[#141413]/50 transition-colors">
                        <div className="flex items-center justify-between border-b border-zinc-100/5 pb-3">
                           <TechnicalLabel 
                             text={`Author: ${note.admin ? `${note.admin.firstName} ${note.admin.lastName}` : (note.adminId || "").substring(0, 8)}`} 
@@ -647,7 +647,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                           />
                           <TechnicalLabel text={new Date(note.createdAt).toLocaleString()} className="text-zinc-400 text-[9px] tracking-wider" />
                        </div>
-                       <p className="text-xs font-bold leading-relaxed text-[#111]">{note.content}</p>
+                       <p className="text-xs font-bold leading-relaxed text-[#141413]">{note.content}</p>
                     </div>
                   ))}
                </div>
@@ -657,7 +657,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                <div className="flex gap-3">
                   <Input 
                     placeholder="Type a new note..." 
-                    className="flex-1 rounded-full border border-zinc-200 h-12 px-6 font-bold text-xs focus:ring-0 focus:border-[#111] transition-colors"
+                    className="flex-1 rounded-full border border-zinc-200 h-12 px-6 font-bold text-xs focus:ring-0 focus:border-[#141413] transition-colors"
                     value={newNote}
                     onChange={(e) => setNewNote(e.target.value)}
                     onKeyDown={(e) => {
@@ -667,7 +667,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                     }}
                   />
                   <Button 
-                    className="h-12 w-12 rounded-full bg-[#111] text-white hover:bg-primary hover:text-white border border-zinc-200 transition-colors p-0 flex items-center justify-center shrink-0 shadow-sm"
+                    className="h-12 w-12 rounded-full bg-[#141413] text-white hover:bg-primary hover:text-white border border-zinc-200 transition-colors p-0 flex items-center justify-center shrink-0 shadow-sm"
                     onClick={() => {
                       if (!newNote || !selectedUser) return;
                       createNoteMutation.mutate({ targetType: 'user', targetId: selectedUser.id, content: newNote });
@@ -684,11 +684,11 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
 
       {/* Network View Dialog */}
       <Dialog open={!!selectedUser && modalType === 'network'} onOpenChange={(open) => { if (!open) { closeModal(); setNetworkZoom(1); } }}>
-        <DialogContent className="border border-black/5 bg-white rounded-[2rem] p-0 max-w-4xl max-h-[85vh] flex flex-col overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.12)] *:!rounded-none [&>button]:hidden">
+        <DialogContent className="border border-black/5 bg-white rounded-[2rem] p-0 max-w-4xl max-h-[85vh] flex flex-col overflow-hidden shadow-[0_20px_60px_rgba(20, 20, 19,0.12)] *:!rounded-none [&>button]:hidden">
           <DialogHeader className="p-8 border-b border-zinc-100 bg-white">
              <div className="flex items-center justify-between">
                 <div>
-                  <DialogTitle className="text-2xl font-black tracking-tighter text-[#111] uppercase">
+                  <DialogTitle className="text-2xl font-black tracking-tighter text-[#141413] uppercase">
                     Referral Network
                   </DialogTitle>
                   <DialogDescription className="text-zinc-500 font-bold text-[10px] tracking-widest mt-1 uppercase">
@@ -699,22 +699,22 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                   {/* Zoom Controls */}
                   <button
                     onClick={() => setNetworkZoom(z => Math.max(0.4, parseFloat((z - 0.15).toFixed(2))))}
-                    className="h-9 w-9 rounded-full border border-zinc-200 hover:border-[#111] hover:bg-[#111] hover:text-white transition-colors flex items-center justify-center text-[#111] font-black text-lg"
+                    className="h-9 w-9 rounded-full border border-zinc-200 hover:border-[#141413] hover:bg-[#141413] hover:text-white transition-colors flex items-center justify-center text-[#141413] font-black text-lg"
                     title="Zoom Out"
                   >−</button>
                   <span className="text-[10px] font-black text-zinc-400 tracking-widest uppercase w-10 text-center">{Math.round(networkZoom * 100)}%</span>
                   <button
                     onClick={() => setNetworkZoom(z => Math.min(2.5, parseFloat((z + 0.15).toFixed(2))))}
-                    className="h-9 w-9 rounded-full border border-zinc-200 hover:border-[#111] hover:bg-[#111] hover:text-white transition-colors flex items-center justify-center text-[#111] font-black text-lg"
+                    className="h-9 w-9 rounded-full border border-zinc-200 hover:border-[#141413] hover:bg-[#141413] hover:text-white transition-colors flex items-center justify-center text-[#141413] font-black text-lg"
                     title="Zoom In"
                   >+</button>
                   <button
                     onClick={() => setNetworkZoom(1)}
-                    className="h-8 px-3 rounded-full border border-zinc-200 hover:border-[#111] hover:bg-[#111] hover:text-white transition-colors text-[#111] font-black text-[9px] tracking-widest uppercase"
+                    className="h-8 px-3 rounded-full border border-zinc-200 hover:border-[#141413] hover:bg-[#141413] hover:text-white transition-colors text-[#141413] font-black text-[9px] tracking-widest uppercase"
                     title="Fit to View"
                   >Fit</button>
                   <Button onClick={() => { closeModal(); setNetworkZoom(1); }} variant="ghost" className="h-10 w-10 p-0 rounded-full hover:bg-black/5 ml-1">
-                    <X size={20} className="text-[#111]" />
+                    <X size={20} className="text-[#141413]" />
                   </Button>
                 </div>
              </div>
@@ -752,8 +752,8 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                </div>
             ) : (
                <div className="flex flex-col items-center justify-center h-64 grayscale opacity-40">
-                  <div className="w-12 h-12 border-4 border-[#111] border-t-transparent animate-spin rounded-full mb-6"></div>
-                  <TechnicalLabel text="Mapping network..." className="font-black text-xs text-[#111] uppercase tracking-widest border border-[#111] rounded-full px-4 py-1" />
+                  <div className="w-12 h-12 border-4 border-[#141413] border-t-transparent animate-spin rounded-full mb-6"></div>
+                  <TechnicalLabel text="Mapping network..." className="font-black text-xs text-[#141413] uppercase tracking-widest border border-[#141413] rounded-full px-4 py-1" />
                </div>
             )}
           </div>
@@ -762,9 +762,9 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
 
       {/* Balance Adjustment Dialog */}
       <Dialog open={!!selectedUser && modalType === 'balance'} onOpenChange={(open) => !open && closeModal()}>
-        <DialogContent className="border border-black/5 bg-white rounded-[2rem] p-0 max-w-md overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.12)] *:!rounded-none [&>button]:hidden">
+        <DialogContent className="border border-black/5 bg-white rounded-[2rem] p-0 max-w-md overflow-hidden shadow-[0_20px_60px_rgba(20, 20, 19,0.12)] *:!rounded-none [&>button]:hidden">
           <DialogHeader className="p-8 border-b border-zinc-100 bg-white">
-            <DialogTitle className="text-2xl font-black tracking-tighter text-[#111] uppercase">
+            <DialogTitle className="text-2xl font-black tracking-tighter text-[#141413] uppercase">
               Financial Operation
             </DialogTitle>
             <DialogDescription className="text-zinc-500 font-bold text-[10px] tracking-widest mt-1 uppercase">
@@ -776,14 +776,14 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
              <div className="flex gap-4">
                 <button 
                   onClick={() => setAdjustmentType('add')}
-                  className={cn("flex-1 h-14 rounded-[1.5rem] border border-zinc-200 font-black text-[10px] tracking-widest uppercase transition-colors flex items-center justify-center gap-2", adjustmentType === 'add' ? "bg-[#111] text-white" : "bg-white hover:bg-black/5 text-[#111]")}
+                  className={cn("flex-1 h-14 rounded-[1.5rem] border border-zinc-200 font-black text-[10px] tracking-widest uppercase transition-colors flex items-center justify-center gap-2", adjustmentType === 'add' ? "bg-[#141413] text-white" : "bg-white hover:bg-black/5 text-[#141413]")}
                 >
                   <ArrowUpRight size={16} />
                   Credit
                 </button>
                 <button 
                   onClick={() => setAdjustmentType('subtract')}
-                  className={cn("flex-1 h-14 rounded-[1.5rem] border border-zinc-200 font-black text-[10px] tracking-widest uppercase transition-colors flex items-center justify-center gap-2", adjustmentType === 'subtract' ? "bg-red-500 text-white border-red-500" : "bg-white hover:bg-black/5 text-[#111]")}
+                  className={cn("flex-1 h-14 rounded-[1.5rem] border border-zinc-200 font-black text-[10px] tracking-widest uppercase transition-colors flex items-center justify-center gap-2", adjustmentType === 'subtract' ? "bg-red-500 text-white border-red-500" : "bg-white hover:bg-black/5 text-[#141413]")}
                 >
                   <ArrowDownRight size={16} />
                   Debit
@@ -821,7 +821,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                   <Input 
                     type="number"
                     placeholder="0.00" 
-                    className="rounded-[1.5rem] border border-zinc-200 focus:border-[#111] focus:ring-0 font-mono text-xl font-black h-16 px-6 bg-white transition-colors"
+                    className="rounded-[1.5rem] border border-zinc-200 focus:border-[#141413] focus:ring-0 font-mono text-xl font-black h-16 px-6 bg-white transition-colors"
                     value={adjustmentAmount}
                     onChange={(e) => setAdjustmentAmount(e.target.value)}
                   />
@@ -831,7 +831,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                   <Input 
                     type="number"
                     placeholder="0"
-                    className="rounded-[1.5rem] border border-zinc-200 focus:border-[#111] focus:ring-0 font-mono text-xl font-black h-16 px-6 bg-white transition-colors"
+                    className="rounded-[1.5rem] border border-zinc-200 focus:border-[#141413] focus:ring-0 font-mono text-xl font-black h-16 px-6 bg-white transition-colors"
                     value={adjustmentTxPoints}
                     onChange={(e) => setAdjustmentTxPoints(e.target.value)}
                   />
@@ -841,7 +841,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                   <Label className="text-[10px] font-black tracking-widest uppercase text-zinc-500 ml-2">Operation Reason</Label>
                   <Input 
                     placeholder="Enter short description..." 
-                    className="rounded-full border border-zinc-200 focus:border-[#111] focus:ring-0 font-bold text-sm h-14 px-6 bg-white transition-colors"
+                    className="rounded-full border border-zinc-200 focus:border-[#141413] focus:ring-0 font-bold text-sm h-14 px-6 bg-white transition-colors"
                     value={adjustmentReason}
                     onChange={(e) => setAdjustmentReason(e.target.value)}
                   />
@@ -851,7 +851,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
 
           <DialogFooter className="p-8 pt-2 bg-white border-t border-zinc-100 flex-col gap-3 sm:flex-col sm:space-x-0">
             <Button 
-               className="w-full h-14 rounded-2xl bg-[#111] text-white hover:bg-black font-black uppercase tracking-widest text-[11px] transition-colors shadow-sm"
+               className="w-full h-14 rounded-2xl bg-[#141413] text-white hover:bg-black font-black uppercase tracking-widest text-[11px] transition-colors shadow-sm"
                onClick={() => {
                  if (!adjustmentAmount || isNaN(parseFloat(adjustmentAmount))) return;
                  if (adjustmentType === 'add' && !creditIntent) return;
@@ -871,7 +871,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
             </Button>
             <button
               onClick={closeModal}
-              className="w-full text-center text-xs font-bold text-zinc-400 hover:text-[#111] transition-colors py-1"
+              className="w-full text-center text-xs font-bold text-zinc-400 hover:text-[#141413] transition-colors py-1"
             >
               Cancel
             </button>
@@ -998,9 +998,9 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
 
       {/* PS Adjust Dialog — THORX v3 */}
       <Dialog open={!!selectedUser && modalType === 'ps'} onOpenChange={(open) => !open && closeModal()}>
-        <DialogContent className="border border-black/5 bg-white rounded-[2rem] p-0 max-w-sm overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.12)] *:!rounded-none [&>button]:hidden">
+        <DialogContent className="border border-black/5 bg-white rounded-[2rem] p-0 max-w-sm overflow-hidden shadow-[0_20px_60px_rgba(20, 20, 19,0.12)] *:!rounded-none [&>button]:hidden">
           <DialogHeader className="p-8 border-b border-zinc-100 bg-white">
-            <DialogTitle className="text-xl font-black tracking-tighter text-[#111] uppercase flex items-center gap-2">
+            <DialogTitle className="text-xl font-black tracking-tighter text-[#141413] uppercase flex items-center gap-2">
               <TrendingUp size={18} className="text-purple-500" />
               Adjust PS
             </DialogTitle>
@@ -1016,7 +1016,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                 placeholder="e.g. +50 or -100"
                 value={psDelta}
                 onChange={e => setPsDelta(e.target.value)}
-                className="w-full border-2 border-black rounded-xl px-4 py-3 text-lg font-black text-[#111] focus:outline-none focus:ring-2 focus:ring-purple-400"
+                className="w-full border-2 border-black rounded-xl px-4 py-3 text-lg font-black text-[#141413] focus:outline-none focus:ring-2 focus:ring-purple-400"
               />
             </div>
             <div>
@@ -1026,7 +1026,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                 placeholder="Reason for PS adjustment..."
                 value={psReason}
                 onChange={e => setPsReason(e.target.value)}
-                className="w-full border-2 border-black rounded-xl px-4 py-3 font-bold text-[#111] focus:outline-none focus:ring-2 focus:ring-purple-400"
+                className="w-full border-2 border-black rounded-xl px-4 py-3 font-bold text-[#141413] focus:outline-none focus:ring-2 focus:ring-purple-400"
               />
             </div>
             {psConfirming ? (
@@ -1045,7 +1045,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                 >
                   {psAdjustMutation.isPending ? "Applying…" : "Confirm"}
                 </button>
-                <button onClick={() => setPsConfirming(false)} className="w-full text-center text-xs font-bold text-zinc-400 hover:text-[#111] transition-colors py-1">← Go back</button>
+                <button onClick={() => setPsConfirming(false)} className="w-full text-center text-xs font-bold text-zinc-400 hover:text-[#141413] transition-colors py-1">← Go back</button>
               </div>
             ) : (
               <>
@@ -1056,7 +1056,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                 >
                   Review PS Adjustment
                 </button>
-                <button onClick={closeModal} className="w-full text-center text-xs font-bold text-zinc-400 hover:text-[#111] transition-colors py-1">Cancel</button>
+                <button onClick={closeModal} className="w-full text-center text-xs font-bold text-zinc-400 hover:text-[#141413] transition-colors py-1">Cancel</button>
               </>
             )}
           </div>
@@ -1065,9 +1065,9 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
 
       {/* Trust Status Dialog */}
       <Dialog open={!!selectedUser && modalType === 'trust'} onOpenChange={(open) => !open && closeModal()}>
-        <DialogContent className="border border-black/5 bg-white rounded-[2rem] p-0 max-w-md overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.12)] *:!rounded-none [&>button]:hidden">
+        <DialogContent className="border border-black/5 bg-white rounded-[2rem] p-0 max-w-md overflow-hidden shadow-[0_20px_60px_rgba(20, 20, 19,0.12)] *:!rounded-none [&>button]:hidden">
           <DialogHeader className="p-8 border-b border-zinc-100 bg-white">
-            <DialogTitle className="text-2xl font-black tracking-tighter text-[#111] uppercase">
+            <DialogTitle className="text-2xl font-black tracking-tighter text-[#141413] uppercase">
               Trust Status
             </DialogTitle>
             <DialogDescription className="text-zinc-500 font-bold text-[10px] tracking-widest mt-1 uppercase">
@@ -1093,8 +1093,8 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
                     }}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-zinc-50 transition-colors text-left cursor-pointer"
                   >
-                    <Checkbox checked={selectedTrustStatus === s} className="pointer-events-none border-zinc-300 data-[state=checked]:bg-[#111] data-[state=checked]:border-[#111]" />
-                    <span className="text-sm font-semibold text-[#111]">{s}</span>
+                    <Checkbox checked={selectedTrustStatus === s} className="pointer-events-none border-zinc-300 data-[state=checked]:bg-[#141413] data-[state=checked]:border-[#141413]" />
+                    <span className="text-sm font-semibold text-[#141413]">{s}</span>
                   </div>
                 ))}
               </div>
@@ -1106,7 +1106,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
               </Label>
               <Input
                 placeholder="Why is this status being set?"
-                className="rounded-full border border-zinc-200 focus:border-[#111] focus:ring-0 font-bold text-sm h-14 px-6 bg-white transition-colors"
+                className="rounded-full border border-zinc-200 focus:border-[#141413] focus:ring-0 font-bold text-sm h-14 px-6 bg-white transition-colors"
                 value={trustReason}
                 onChange={(e) => setTrustReason(e.target.value)}
               />
@@ -1115,7 +1115,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
 
           <DialogFooter className="p-8 pt-2 bg-white border-t border-zinc-100 flex-col gap-3 sm:flex-col sm:space-x-0">
             <Button
-              className="w-full h-14 rounded-2xl bg-[#111] text-white hover:bg-black font-black uppercase tracking-widest text-[11px] transition-colors shadow-sm"
+              className="w-full h-14 rounded-2xl bg-[#141413] text-white hover:bg-black font-black uppercase tracking-widest text-[11px] transition-colors shadow-sm"
               onClick={() => {
                 if (!selectedUser || !selectedTrustStatus || !trustReason.trim()) return;
                 setTrustStatusMutation.mutate({ userId: selectedUser.id, status: selectedTrustStatus, reason: trustReason.trim() });
@@ -1126,7 +1126,7 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
             </Button>
             <button
               onClick={closeModal}
-              className="w-full text-center text-xs font-bold text-zinc-400 hover:text-[#111] transition-colors py-1"
+              className="w-full text-center text-xs font-bold text-zinc-400 hover:text-[#141413] transition-colors py-1"
             >
               Cancel
             </button>
@@ -1136,15 +1136,15 @@ export function UserManager({ initialSearch = "" }: { initialSearch?: string }) 
 
       {/* Delete/Ban Dialog */}
       <Dialog open={!!selectedUser && modalType === 'delete'} onOpenChange={(open) => !open && closeModal()}>
-        <DialogContent className="border border-black/5 bg-white rounded-[2rem] p-0 max-w-md overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.12)] *:!rounded-none [&>button]:hidden">
+        <DialogContent className="border border-black/5 bg-white rounded-[2rem] p-0 max-w-md overflow-hidden shadow-[0_20px_60px_rgba(20, 20, 19,0.12)] *:!rounded-none [&>button]:hidden">
           <div className="p-8 text-center space-y-6">
             <div className="w-20 h-20 bg-red-500 border border-zinc-200 rounded-full flex items-center justify-center mx-auto shadow-[0_8px_20px_rgba(239,68,68,0.3)] animate-bounce">
               <Ban size={32} className="text-white" />
             </div>
             <div>
-              <h3 className="text-2xl font-black text-[#111] uppercase tracking-tighter">Terminate Node?</h3>
+              <h3 className="text-2xl font-black text-[#141413] uppercase tracking-tighter">Terminate Node?</h3>
               <p className="text-zinc-500 font-bold text-xs mt-2 leading-relaxed px-4">
-                You are about to permanently remove <span className="text-[#111]">{selectedUser?.firstName} {selectedUser?.lastName}</span> from the system. This action is irreversible.
+                You are about to permanently remove <span className="text-[#141413]">{selectedUser?.firstName} {selectedUser?.lastName}</span> from the system. This action is irreversible.
               </p>
             </div>
 

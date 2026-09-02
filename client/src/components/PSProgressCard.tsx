@@ -44,7 +44,7 @@ export function PSProgressCard({ performanceScore, userRankTier, streakDays = 0,
                       streakDays === 1 ? `+5 PS/day bonus active` : "Start a streak for PS bonus";
 
   return (
-    <div className={cn("group bg-white border-2 border-black rounded-2xl p-6 md:p-8 space-y-3 transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", className)}>
+    <div className={cn("group bg-white border-2 border-black rounded-2xl p-6 md:p-8 space-y-3 transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(20, 20, 19,1)]", className)}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <RankBadge rank={userRankTier} size="md" />

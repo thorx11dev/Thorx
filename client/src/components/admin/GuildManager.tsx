@@ -327,7 +327,7 @@ export function GuildManager() {
     <div className="space-y-6 pb-24 w-full animate-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-4xl font-black tracking-tighter uppercase text-[#111]">Guild Manager</h2>
+          <h2 className="text-4xl font-black tracking-tighter uppercase text-[#141413]">Guild Manager</h2>
           <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Moderate guilds, strikes, and weekly bonus cycles</p>
         </div>
         <Button
@@ -343,7 +343,7 @@ export function GuildManager() {
       <GuildKpiHeader />
 
       {/* ── GUILD CREATION REQUESTS ── */}
-      <div className="rounded-xl border-[1.5px] border-[#111] overflow-hidden">
+      <div className="rounded-xl border-[1.5px] border-[#141413] overflow-hidden">
         <button
           className="w-full flex items-center justify-between px-5 py-4 bg-white hover:bg-zinc-50 transition-colors"
           onClick={() => setRequestsOpen(o => !o)}
@@ -359,7 +359,7 @@ export function GuildManager() {
         </button>
 
         {requestsOpen && (
-          <div className="border-t border-[#111]/10 p-4 space-y-4 bg-zinc-50">
+          <div className="border-t border-[#141413]/10 p-4 space-y-4 bg-zinc-50">
             {/* Status filter */}
             <div className="flex gap-2">
               {["pending", "approved", "rejected", "all"].map(s => (
@@ -532,7 +532,7 @@ export function GuildManager() {
       )}
 
       {/* ── DORMANT GUILD WATCHLIST ── */}
-      <div className="rounded-xl border-[1.5px] border-[#111] overflow-hidden">
+      <div className="rounded-xl border-[1.5px] border-[#141413] overflow-hidden">
         <button
           className="w-full flex items-center justify-between px-5 py-4 bg-white hover:bg-zinc-50 transition-colors"
           onClick={() => setDormantOpen(o => !o)}
@@ -548,7 +548,7 @@ export function GuildManager() {
         </button>
 
         {dormantOpen && (
-          <div className="border-t border-[#111]/10 p-4 bg-zinc-50">
+          <div className="border-t border-[#141413]/10 p-4 bg-zinc-50">
             <div className="text-xs text-zinc-500 mb-3">
               Active guilds where every member — not just the captain — has been offline 7+ days. Good candidates for a nudge, a freeze, or disbanding if truly abandoned.
             </div>
@@ -566,7 +566,7 @@ export function GuildManager() {
                       <div className="flex items-center gap-2 min-w-0">
                         <Moon size={12} className="text-amber-500 shrink-0" />
                         <div className="min-w-0">
-                          <div className="text-xs font-black text-[#111] truncate">{g.name}</div>
+                          <div className="text-xs font-black text-[#141413] truncate">{g.name}</div>
                           <div className="text-[10px] text-zinc-500">
                             Captain: {g.captainName} · {g.activeMemberCount} member{g.activeMemberCount === 1 ? "" : "s"} · {achievementPct}% of weekly target ·{" "}
                             {offlineDays != null ? <span className="text-amber-600 font-bold">Quiet {offlineDays}d</span> : <span className="italic">Never active</span>}
@@ -596,10 +596,10 @@ export function GuildManager() {
       </div>
 
       {/* ── BULK WEEKLY TARGET ASSIGNER ── */}
-      <div className="rounded-xl bg-background border-[1.5px] border-[#111] p-5 space-y-4">
+      <div className="rounded-xl bg-background border-[1.5px] border-[#141413] p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Target size={16} className="text-zinc-500" />
-          <div className="font-black text-sm text-[#111] uppercase tracking-tight">Weekly Targets by Guild Rank</div>
+          <div className="font-black text-sm text-[#141413] uppercase tracking-tight">Weekly Targets by Guild Rank</div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {(['E-Rank', 'D-Rank', 'C-Rank', 'B-Rank', 'A-Rank', 'S-Rank'] as const).map(rank => (
@@ -637,7 +637,7 @@ export function GuildManager() {
 
       {/* ── BULK ACTIONS TOOLBAR ── */}
       {selectedGuildIds.size > 0 && (
-        <div className="rounded-xl border-[1.5px] border-[#111] bg-[#111] text-white p-4 flex flex-wrap items-center justify-between gap-3 sticky top-2 z-10">
+        <div className="rounded-xl border-[1.5px] border-[#141413] bg-[#141413] text-white p-4 flex flex-wrap items-center justify-between gap-3 sticky top-2 z-10">
           <div className="font-black text-sm flex items-center gap-2">
             <Users2 size={16} />
             {selectedGuildIds.size} guild{selectedGuildIds.size === 1 ? "" : "s"} selected
@@ -707,7 +707,7 @@ export function GuildManager() {
       {isLoading ? (
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-background border-[1.5px] border-[#111]/10 rounded-2xl p-5 md:p-6 flex flex-col gap-4">
+            <div key={i} className="bg-background border-[1.5px] border-[#141413]/10 rounded-2xl p-5 md:p-6 flex flex-col gap-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <Skeleton className="w-10 h-10 rounded-full" />
@@ -731,7 +731,7 @@ export function GuildManager() {
             <div className="text-center py-16 text-sm font-bold text-zinc-400 uppercase tracking-widest">No guilds found</div>
           )}
           {guildList.map((g) => (
-            <div key={g.id} className={cn("bg-background border-[1.5px] rounded-2xl p-5 md:p-6 flex flex-col gap-4", selectedGuildIds.has(g.id) ? "border-black ring-2 ring-black/10" : "border-[#111]")}>
+            <div key={g.id} className={cn("bg-background border-[1.5px] rounded-2xl p-5 md:p-6 flex flex-col gap-4", selectedGuildIds.has(g.id) ? "border-black ring-2 ring-black/10" : "border-[#141413]")}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <Checkbox
@@ -740,11 +740,11 @@ export function GuildManager() {
                     className="border-2 border-black data-[state=checked]:bg-black shrink-0"
                     aria-label={`Select ${g.name}`}
                   />
-                  <div className="w-10 h-10 bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center rounded-full">
+                  <div className="w-10 h-10 bg-white border-[1.5px] border-[#141413]/20 flex items-center justify-center rounded-full">
                     <Users2 className="w-5 h-5 text-zinc-500" />
                   </div>
                   <div>
-                    <div className="font-black text-lg text-[#111] flex items-center gap-2">
+                    <div className="font-black text-lg text-[#141413] flex items-center gap-2">
                       {g.name}
                       <RankOrUnknown rank={g.guildRank} />
                       {g.status === "frozen" && <span className="text-[9px] bg-red-500 text-white px-1.5 py-0.5 rounded-sm">FROZEN</span>}
@@ -907,7 +907,7 @@ export function GuildManager() {
             <DialogTitle className="font-black text-lg uppercase">Replace Captain</DialogTitle>
           </DialogHeader>
           <div className="px-1 py-2 space-y-4">
-            <div className="text-sm text-zinc-500">Guild: <span className="font-black text-[#111]">{replaceCaptainGuildName}</span></div>
+            <div className="text-sm text-zinc-500">Guild: <span className="font-black text-[#141413]">{replaceCaptainGuildName}</span></div>
             <div className="space-y-1.5">
               <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Select New Captain</Label>
               <select

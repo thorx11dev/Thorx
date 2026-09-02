@@ -87,7 +87,7 @@ export function ReferralTree({ currentUser, referrals }: ReferralTreeProps) {
         <div
             className="relative flex w-full flex-col items-center px-4 py-12 md:py-16"
             style={{
-                backgroundImage: "radial-gradient(rgba(0,0,0,0.08) 1px, transparent 1px)",
+                backgroundImage: "radial-gradient(rgba(20, 20, 19,0.08) 1px, transparent 1px)",
                 backgroundSize: "20px 20px",
             }}
             data-testid="referral-tree"
@@ -97,7 +97,7 @@ export function ReferralTree({ currentUser, referrals }: ReferralTreeProps) {
                 <div className="pointer-events-none absolute -top-10 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl md:h-48 md:w-48" aria-hidden="true" />
                 <TechnicalLabel text="YOU" className="relative mb-4 text-black/40" />
                 <div className="relative">
-                    <div className="h-24 w-24 overflow-hidden rounded-2xl border-2 border-black bg-black shadow-[0_16px_36px_rgba(0,0,0,0.18)] md:h-28 md:w-28">
+                    <div className="h-24 w-24 overflow-hidden rounded-2xl border-2 border-black bg-black shadow-[0_16px_36px_rgba(20, 20, 19,0.18)] md:h-28 md:w-28">
                         <img
                             src={rootAvatar}
                             alt={getDisplayName(currentUser)}
@@ -148,8 +148,8 @@ function ReferralCard({ user }: { user: NetworkUser }) {
     return (
         <div
             className={cn(
-                "group relative flex flex-col items-center rounded-2xl border border-black/15 bg-white px-3 pb-5 pt-6 shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-all duration-300",
-                "hover:-translate-y-1 hover:border-primary/50 hover:shadow-[0_12px_28px_rgba(0,0,0,0.1)]"
+                "group relative flex flex-col items-center rounded-2xl border border-black/15 bg-white px-3 pb-5 pt-6 shadow-[0_2px_10px_rgba(20, 20, 19,0.03)] transition-all duration-300",
+                "hover:-translate-y-1 hover:border-primary/50 hover:shadow-[0_12px_28px_rgba(20, 20, 19,0.1)]"
             )}
             data-testid={`referral-card-${user.id}`}
         >

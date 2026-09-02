@@ -92,7 +92,7 @@ export const DESTRUCTIVE_OUTLINE =
 export function AvatarStamp({ name, avatarUrl, size = "md", className }: { name?: string; avatarUrl?: string | null; size?: "sm" | "md" | "lg"; className?: string }) {
   const cls = size === "sm" ? "w-9 h-9 text-sm" : size === "lg" ? "w-14 h-14 text-xl" : "w-12 h-12 text-lg";
   return (
-    <div className={cn("relative border-2 border-black bg-[#EAE5DD] text-black flex items-center justify-center font-black shrink-0 overflow-hidden rounded-lg", cls, className)}>
+    <div className={cn("relative border-2 border-black bg-[#E8E5D8] text-black flex items-center justify-center font-black shrink-0 overflow-hidden rounded-lg", cls, className)}>
       <span className="absolute inset-0 flex items-center justify-center">{(name || "M")[0].toUpperCase()}</span>
       {avatarUrl && (
         <img src={avatarUrl} alt={name} onError={(e) => { e.currentTarget.style.display = "none"; }} className="absolute inset-0 w-full h-full object-cover" />
@@ -105,7 +105,7 @@ export function AvatarStamp({ name, avatarUrl, size = "md", className }: { name?
 export function EmptyState({ icon, chip, title, caption }: { icon: React.ReactNode; chip?: string; title: string; caption?: string }) {
   return (
     <div className="bg-white rounded-2xl border-2 md:border-[3px] border-black text-center py-14 px-6">
-      <div className="p-3 bg-[#EAE5DD] border-2 border-black/10 rounded-xl w-fit mx-auto mb-4">{icon}</div>
+      <div className="p-3 bg-[#E8E5D8] border-2 border-black/10 rounded-xl w-fit mx-auto mb-4">{icon}</div>
       {chip && <SectionChip className="mb-3">{chip}</SectionChip>}
       <p className="font-bold text-black">{title}</p>
       {caption && <p className="text-sm text-black/50 mt-1 font-medium">{caption}</p>}
@@ -213,7 +213,7 @@ export function DataCard({ children, className, onClick, interactive = true }: {
 export function QueryError({ message, onRetry }: { message?: string; onRetry: () => void }) {
   return (
     <div className="flex flex-col items-center gap-3 text-center py-8">
-      <div className="p-3 bg-[#EAE5DD] border-2 border-black/10 rounded-xl">
+      <div className="p-3 bg-[#E8E5D8] border-2 border-black/10 rounded-xl">
         <GiSpartanHelmet className="w-5 h-5 text-black/50" />
       </div>
       <p className="text-sm font-medium text-black/55">{message ?? "Failed to load."}</p>
@@ -318,7 +318,7 @@ export function GuildIdentityHeader({ guild, role, memberCount = 0, avatarUrl, w
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3 md:gap-4 min-w-0">
           {/* Ivory avatar stamp with letter fallback */}
-          <div className="relative w-12 h-12 md:w-14 md:h-14 rounded-lg border-2 border-black bg-[#EAE5DD] text-black flex items-center justify-center font-black text-lg md:text-xl shrink-0 overflow-hidden">
+          <div className="relative w-12 h-12 md:w-14 md:h-14 rounded-lg border-2 border-black bg-[#E8E5D8] text-black flex items-center justify-center font-black text-lg md:text-xl shrink-0 overflow-hidden">
             <span className="absolute inset-0 flex items-center justify-center">{(guild?.name || "G")[0].toUpperCase()}</span>
             {avatarUrl && (
               <img

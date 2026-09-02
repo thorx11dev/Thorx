@@ -171,13 +171,13 @@ function UserAvatar({ user, size = 9 }: { user: RiskCaseUser; size?: number }) {
   const dim = `w-${size} h-${size}`;
   if (src && !failed) {
     return (
-      <div className={cn("rounded-full border-[1.5px] border-[#111]/20 overflow-hidden bg-zinc-100 shrink-0", dim)}>
+      <div className={cn("rounded-full border-[1.5px] border-[#141413]/20 overflow-hidden bg-zinc-100 shrink-0", dim)}>
         <img src={src} alt="" className="w-full h-full object-cover" onError={() => setFailed(true)} />
       </div>
     );
   }
   return (
-    <div className={cn("rounded-full border-[1.5px] border-[#111]/20 bg-zinc-100 flex items-center justify-center shrink-0", dim)}>
+    <div className={cn("rounded-full border-[1.5px] border-[#141413]/20 bg-zinc-100 flex items-center justify-center shrink-0", dim)}>
       <User className="w-4 h-4 text-zinc-400" />
     </div>
   );
@@ -189,7 +189,7 @@ function SignalBar({ signal, maxPossible }: { signal: RiskSignal; maxPossible: n
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#111]">
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#141413]">
           <span className={cn("opacity-60", pct > 0 ? "opacity-100" : "")}>
             {SIGNAL_ICONS[signal.name] ?? <Activity size={14} />}
           </span>
@@ -239,7 +239,7 @@ function ScoreHistoryChart({ userId }: { userId: string }) {
             <div key={pt.snapshotAt} className="flex-1 flex flex-col items-center gap-0.5 group relative">
               <div className={cn("w-full rounded-sm transition-all", barColor)} style={{ height: `${h}px` }} />
               <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center z-10 pointer-events-none">
-                <div className="bg-[#111] text-white rounded-lg px-2 py-1 text-[9px] font-black whitespace-nowrap shadow-lg">
+                <div className="bg-[#141413] text-white rounded-lg px-2 py-1 text-[9px] font-black whitespace-nowrap shadow-lg">
                   Perf: {(parseFloat(pt.performanceScore ?? "0") || 0).toFixed(1)}<br />
                   Risk: {(parseFloat(pt.riskScore ?? "0") || 0).toFixed(1)}
                 </div>
@@ -375,14 +375,14 @@ function CaseDetailDrawer({
       />
 
       {/* Sliding panel — also starts below the header */}
-      <div className="fixed top-[84px] md:top-[100px] right-0 bottom-0 z-50 w-full max-w-[480px] flex flex-col bg-[#f5f0e8] border-l-4 border-[#111] shadow-2xl animate-in slide-in-from-right-8 duration-300">
+      <div className="fixed top-[84px] md:top-[100px] right-0 bottom-0 z-50 w-full max-w-[480px] flex flex-col bg-[#E8E5D8] border-l-4 border-[#141413] shadow-2xl animate-in slide-in-from-right-8 duration-300">
 
         {/* ── Panel Header ── */}
-        <div className="flex items-center justify-between px-5 py-4 border-b-2 border-[#111]/15 bg-white shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b-2 border-[#141413]/15 bg-white shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <UserAvatar user={riskCase.user} size={10} />
             <div className="min-w-0">
-              <p className="font-black text-sm text-[#111] uppercase tracking-tight truncate leading-none">
+              <p className="font-black text-sm text-[#141413] uppercase tracking-tight truncate leading-none">
                 {riskCase.user.firstName} {riskCase.user.lastName}
               </p>
               <p className="text-[10px] text-zinc-400 font-bold truncate mt-0.5">{riskCase.user.email}</p>
@@ -399,7 +399,7 @@ function CaseDetailDrawer({
           </div>
           <button
             onClick={onClose}
-            className="shrink-0 w-8 h-8 rounded-full border-2 border-[#111] bg-white hover:bg-[#111] hover:text-white text-[#111] flex items-center justify-center transition-all"
+            className="shrink-0 w-8 h-8 rounded-full border-2 border-[#141413] bg-white hover:bg-[#141413] hover:text-white text-[#141413] flex items-center justify-center transition-all"
             aria-label="Close"
           >
             <X size={14} />
@@ -410,7 +410,7 @@ function CaseDetailDrawer({
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
 
           {/* Composite Risk Score */}
-          <div className="bg-white border-2 border-[#111] rounded-2xl p-5 shadow-sm">
+          <div className="bg-white border-2 border-[#141413] rounded-2xl p-5 shadow-sm">
             <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-3">
               Composite Risk Score
             </p>
@@ -420,7 +420,7 @@ function CaseDetailDrawer({
               </span>
               <span className="text-zinc-400 font-bold text-sm mb-1">/ 100</span>
             </div>
-            <div className="mt-3 h-2 rounded-full bg-zinc-100 border border-[#111]/10 overflow-hidden">
+            <div className="mt-3 h-2 rounded-full bg-zinc-100 border border-[#141413]/10 overflow-hidden">
               <div
                 className={cn("h-full rounded-full transition-all duration-700", scoreBarColor)}
                 style={{ width: `${Math.min(100, score)}%` }}
@@ -432,7 +432,7 @@ function CaseDetailDrawer({
           </div>
 
           {/* Signal Breakdown */}
-          <div className="bg-white border-2 border-[#111] rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="bg-white border-2 border-[#141413] rounded-2xl p-5 shadow-sm space-y-4">
             <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Signal Breakdown</p>
             {Array.isArray(riskCase.signals) && riskCase.signals.length > 0 ? (
               riskCase.signals.map((sig) => (
@@ -444,12 +444,12 @@ function CaseDetailDrawer({
           </div>
 
           {/* Score History */}
-          <div className="bg-white border-2 border-[#111] rounded-2xl p-5 shadow-sm">
+          <div className="bg-white border-2 border-[#141413] rounded-2xl p-5 shadow-sm">
             <ScoreHistoryChart userId={riskCase.userId} />
           </div>
 
           {/* ── Collaboration: Case Ownership ── */}
-          <div className="bg-white border-2 border-[#111] rounded-2xl p-5 shadow-sm space-y-3">
+          <div className="bg-white border-2 border-[#141413] rounded-2xl p-5 shadow-sm space-y-3">
             <div className="flex items-center gap-2">
               <UserPlus size={13} className="text-zinc-400" />
               <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Case Owner</p>
@@ -461,7 +461,7 @@ function CaseDetailDrawer({
               value={assignedTo}
               onChange={(e) => handleAssign(e.target.value)}
               disabled={isPending}
-              className="w-full h-9 px-4 bg-[#f5f0e8] border-2 border-[#111]/20 rounded-full text-xs font-bold text-[#111] focus:outline-none focus:ring-2 focus:ring-[#111]/20 transition-all appearance-none cursor-pointer disabled:opacity-60"
+              className="w-full h-9 px-4 bg-[#E8E5D8] border-2 border-[#141413]/20 rounded-full text-xs font-bold text-[#141413] focus:outline-none focus:ring-2 focus:ring-[#141413]/20 transition-all appearance-none cursor-pointer disabled:opacity-60"
             >
               <option value="">— Unassigned —</option>
               {teamMembers.map((m) => (
@@ -479,7 +479,7 @@ function CaseDetailDrawer({
           </div>
 
           {/* ── Timeline ── */}
-          <div className="bg-white border-2 border-[#111] rounded-2xl p-5 shadow-sm space-y-3">
+          <div className="bg-white border-2 border-[#141413] rounded-2xl p-5 shadow-sm space-y-3">
             <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Timeline</p>
             <div className="space-y-2 text-[11px] text-zinc-600 font-bold">
               <div className="flex items-center gap-2">
@@ -505,7 +505,7 @@ function CaseDetailDrawer({
           </div>
 
           {/* ── Investigation Notes (shared, attributed) ── */}
-          <div className="bg-white border-2 border-[#111] rounded-2xl p-5 shadow-sm space-y-3">
+          <div className="bg-white border-2 border-[#141413] rounded-2xl p-5 shadow-sm space-y-3">
             <div className="flex items-center gap-2">
               <PenLine size={13} className="text-zinc-400" />
               <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Shared Investigation Notes</p>
@@ -530,7 +530,7 @@ function CaseDetailDrawer({
             )}
 
             <textarea
-              className="w-full h-28 bg-[#f5f0e8] border-2 border-[#111]/20 rounded-xl p-3 text-xs font-medium text-[#111] placeholder:text-zinc-400 resize-none focus:outline-none focus:ring-2 focus:ring-[#111]/20 transition-all"
+              className="w-full h-28 bg-[#E8E5D8] border-2 border-[#141413]/20 rounded-xl p-3 text-xs font-medium text-[#141413] placeholder:text-zinc-400 resize-none focus:outline-none focus:ring-2 focus:ring-[#141413]/20 transition-all"
               placeholder="Add investigation findings visible to all team members…"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -538,7 +538,7 @@ function CaseDetailDrawer({
             <Button
               onClick={handleSaveNotes}
               disabled={isPending}
-              className="h-8 bg-[#111] text-white font-black text-[9px] uppercase tracking-widest px-5 rounded-full hover:bg-zinc-700 transition-all"
+              className="h-8 bg-[#141413] text-white font-black text-[9px] uppercase tracking-widest px-5 rounded-full hover:bg-zinc-700 transition-all"
             >
               {isPending ? <RefreshCw size={12} className="animate-spin" /> : "Save Notes"}
             </Button>
@@ -546,13 +546,13 @@ function CaseDetailDrawer({
 
           {/* ── Resolution (open/investigating cases only) ── */}
           {(riskCase.status === "Open" || riskCase.status === "Investigating") && (
-            <div className="bg-white border-2 border-[#111] rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="bg-white border-2 border-[#141413] rounded-2xl p-5 shadow-sm space-y-4">
               <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Resolve Case</p>
 
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Resolution Reason</label>
                 <input
-                  className="w-full h-9 bg-[#f5f0e8] border-2 border-[#111]/20 rounded-full px-4 text-xs font-medium text-[#111] placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#111]/20 transition-all"
+                  className="w-full h-9 bg-[#E8E5D8] border-2 border-[#141413]/20 rounded-full px-4 text-xs font-medium text-[#141413] placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#141413]/20 transition-all"
                   placeholder="Why clearing or actioning this case…"
                   value={resolution}
                   onChange={(e) => setResolution(e.target.value)}
@@ -566,7 +566,7 @@ function CaseDetailDrawer({
                 <select
                   value={trustStatusOutcome}
                   onChange={(e) => setTrustStatusOutcome(e.target.value)}
-                  className="w-full h-9 px-4 bg-[#f5f0e8] border-2 border-[#111]/20 rounded-full text-xs font-bold text-[#111] focus:outline-none focus:ring-2 focus:ring-[#111]/20 transition-all appearance-none cursor-pointer"
+                  className="w-full h-9 px-4 bg-[#E8E5D8] border-2 border-[#141413]/20 rounded-full text-xs font-bold text-[#141413] focus:outline-none focus:ring-2 focus:ring-[#141413]/20 transition-all appearance-none cursor-pointer"
                 >
                   <option value="">Don't change trust status</option>
                   {TRUST_STATUSES.map((s) => (
@@ -582,7 +582,7 @@ function CaseDetailDrawer({
         </div>
 
         {/* ── Action Footer ── */}
-        <div className="px-5 py-4 border-t-2 border-[#111]/15 bg-white shrink-0 flex flex-wrap gap-2">
+        <div className="px-5 py-4 border-t-2 border-[#141413]/15 bg-white shrink-0 flex flex-wrap gap-2">
           {riskCase.status === "Open" && (
             <Button
               onClick={() => handleStatus("Investigating")}
@@ -614,7 +614,7 @@ function CaseDetailDrawer({
             <Button
               onClick={() => handleStatus("Open")}
               disabled={isPending}
-              className="flex-1 h-10 bg-[#111] text-white border-b-4 border-zinc-800 font-black text-[10px] uppercase tracking-widest rounded-full hover:bg-zinc-700 transition-all"
+              className="flex-1 h-10 bg-[#141413] text-white border-b-4 border-zinc-800 font-black text-[10px] uppercase tracking-widest rounded-full hover:bg-zinc-700 transition-all"
             >
               Reopen Case
             </Button>
@@ -664,7 +664,7 @@ function SignalAccuracyPanel() {
   // distinguish "no resolved cases yet" from "panel failed to load".
   if (!stats.length) {
     return (
-      <div className="bg-white border-[1.5px] border-[#111]/10 rounded-[1.5rem] p-5">
+      <div className="bg-white border-[1.5px] border-[#141413]/10 rounded-[1.5rem] p-5">
         <div className="flex items-center gap-2 mb-2">
           <ShieldQuestion size={16} className="text-zinc-300" />
           <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
@@ -679,7 +679,7 @@ function SignalAccuracyPanel() {
   }
 
   return (
-    <div className="bg-white border-[1.5px] border-[#111]/10 rounded-[1.5rem] p-5 space-y-3">
+    <div className="bg-white border-[1.5px] border-[#141413]/10 rounded-[1.5rem] p-5 space-y-3">
       <div className="flex items-center gap-2">
         <ShieldQuestion size={16} className="text-zinc-400" />
         <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
@@ -791,7 +791,7 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black tracking-tighter uppercase text-[#111]">Risk Watchlist</h2>
+          <h2 className="text-3xl font-black tracking-tighter uppercase text-[#141413]">Risk Watchlist</h2>
           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">
             Flagged case management · {data?.total ?? "—"} active cases · Sorted by risk score
           </p>
@@ -799,7 +799,7 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
         <Button
           onClick={() => scanMutation.mutate()}
           disabled={scanMutation.isPending}
-          className="h-10 bg-[#111] text-white border-[1.5px] border-[#111] font-black text-[10px] px-5 hover:bg-red-600 hover:border-red-600 rounded-full transition-all uppercase shadow-sm flex items-center gap-2"
+          className="h-10 bg-[#141413] text-white border-[1.5px] border-[#141413] font-black text-[10px] px-5 hover:bg-red-600 hover:border-red-600 rounded-full transition-all uppercase shadow-sm flex items-center gap-2"
         >
           {scanMutation.isPending
             ? <><Loader2 size={13} className="animate-spin" /> Scanning…</>
@@ -825,7 +825,7 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
                 "p-4 rounded-[1.5rem] border-[1.5px] text-left transition-all hover:shadow-md",
                 isActive
                   ? `${c.bg} ${c.border} ring-2 ${c.ring}`
-                  : "bg-white border-[#111]/10 hover:border-[#111]/20"
+                  : "bg-white border-[#141413]/10 hover:border-[#141413]/20"
               )}
             >
               <div className="flex items-center justify-between mb-2">
@@ -836,7 +836,7 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
                   {c.icon}
                 </span>
               </div>
-              <p className="text-2xl font-black tabular-nums text-[#111]">{count}</p>
+              <p className="text-2xl font-black tabular-nums text-[#141413]">{count}</p>
             </button>
           );
         })}
@@ -849,7 +849,7 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
           <input
             type="text"
             placeholder="Search by name or email…"
-            className="w-full h-10 pl-11 pr-4 bg-white border-[1.5px] border-[#111] rounded-full text-xs font-bold text-[#111] placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+            className="w-full h-10 pl-11 pr-4 bg-white border-[1.5px] border-[#141413] rounded-full text-xs font-bold text-[#141413] placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(0); }}
           />
@@ -857,7 +857,7 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
-          className="h-10 px-4 bg-white border-[1.5px] border-[#111] rounded-full text-xs font-bold text-[#111] focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all appearance-none cursor-pointer"
+          className="h-10 px-4 bg-white border-[1.5px] border-[#141413] rounded-full text-xs font-bold text-[#141413] focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all appearance-none cursor-pointer"
         >
           <option value="">All Statuses</option>
           <option value="Open">Open</option>
@@ -876,7 +876,7 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
       </div>
 
       {/* Case List */}
-      <div className="bg-white border-[1.5px] border-[#111] rounded-[2rem] overflow-hidden shadow-sm">
+      <div className="bg-white border-[1.5px] border-[#141413] rounded-[2rem] overflow-hidden shadow-sm">
         {isLoading ? (
           <div className="p-8 space-y-4">
             {[...Array(5)].map((_, i) => (
@@ -902,12 +902,12 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
           <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b-[1.5px] border-[#111]/10 bg-zinc-50">
+              <tr className="border-b-[1.5px] border-[#141413]/10 bg-zinc-50">
                 <th className="px-4 py-3 text-left text-[9px] font-black text-zinc-400 uppercase tracking-widest pl-6">User</th>
                 <th className="px-4 py-3 text-left text-[9px] font-black text-zinc-400 uppercase tracking-widest">
                   <button
                     onClick={toggleSort}
-                    className="flex items-center gap-1 hover:text-[#111] transition-colors"
+                    className="flex items-center gap-1 hover:text-[#141413] transition-colors"
                     aria-label={`Sort by risk score, currently ${sortDir === "desc" ? "highest first" : "lowest first"}`}
                     title={sortDir === "desc" ? "Highest risk first" : "Lowest risk first"}
                   >
@@ -934,7 +934,7 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
                   <tr
                     key={rc.id}
                     className={cn(
-                      "border-b border-[#111]/5 last:border-0 transition-colors cursor-pointer group",
+                      "border-b border-[#141413]/5 last:border-0 transition-colors cursor-pointer group",
                       rc.severity === "Critical" ? "hover:bg-red-50/60" :
                       rc.severity === "High"     ? "hover:bg-orange-50/60" : "hover:bg-zinc-50/80"
                     )}
@@ -944,7 +944,7 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
                       <div className="flex items-center gap-3">
                         <UserAvatar user={rc.user} size={9} />
                         <div className="min-w-0">
-                          <p className="font-black text-xs text-[#111] truncate">
+                          <p className="font-black text-xs text-[#141413] truncate">
                             {rc.user.firstName} {rc.user.lastName}
                           </p>
                           <p className="text-[10px] text-zinc-400 font-bold truncate max-w-[140px]">
@@ -1007,14 +1007,14 @@ export function RiskWatchlistPanel({ onViewUserInCRM }: { onViewUserInCRM?: (ema
             <Button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="h-9 w-9 p-0 bg-white border-[1.5px] border-[#111] rounded-full flex items-center justify-center hover:bg-zinc-50 disabled:opacity-40 transition-all"
+              className="h-9 w-9 p-0 bg-white border-[1.5px] border-[#141413] rounded-full flex items-center justify-center hover:bg-zinc-50 disabled:opacity-40 transition-all"
             >
               <ChevronLeft size={14} />
             </Button>
             <Button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
-              className="h-9 w-9 p-0 bg-white border-[1.5px] border-[#111] rounded-full flex items-center justify-center hover:bg-zinc-50 disabled:opacity-40 transition-all"
+              className="h-9 w-9 p-0 bg-white border-[1.5px] border-[#141413] rounded-full flex items-center justify-center hover:bg-zinc-50 disabled:opacity-40 transition-all"
             >
               <ChevronRight size={14} />
             </Button>

@@ -83,7 +83,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
-          <div className="max-w-md w-full border-2 border-black rounded-2xl p-8 bg-white shadow-[4px_4px_0px_#000]">
+          <div className="max-w-md w-full border-2 border-black rounded-2xl p-8 bg-white shadow-[4px_4px_0px_#141413]">
             <div className="flex items-center justify-center w-16 h-16 bg-red-100 border-2 border-red-500 rounded-full mx-auto mb-4">
               <AlertTriangle className="w-8 h-8 text-red-500" />
             </div>
@@ -101,14 +101,14 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={this.handleReset}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-black uppercase bg-primary text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-black uppercase bg-primary text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#141413] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
               >
                 <RefreshCw className="w-4 h-4" />
                 Try Again
               </button>
               <button
                 onClick={() => window.location.reload()}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-black uppercase bg-white text-zinc-900 rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-black uppercase bg-white text-zinc-900 rounded-lg border-2 border-black shadow-[2px_2px_0px_#141413] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
               >
                 Full Refresh
               </button>

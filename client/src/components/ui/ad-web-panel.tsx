@@ -242,7 +242,7 @@ export function AdWebPanel({
                                             <p className="text-[10px] md:text-xs font-bold text-zinc-400 uppercase tracking-widest mt-2 border-t border-zinc-100 pt-2">Please wait for the advertisement to initialize</p>
                                         </div>
 
-                                        <div className="border-4 border-black p-2 bg-black shadow-[8px_8px_0px_#000]">
+                                        <div className="border-4 border-black p-2 bg-black shadow-[8px_8px_0px_#141413]">
                                             <WaterfallAdPlayer
                                                 onComplete={() => {
                                                     setAdCompleted(true);

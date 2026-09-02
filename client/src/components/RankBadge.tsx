@@ -12,7 +12,7 @@ const RANK_CONFIG: Record<string, { hex: string; bg: string; label: string; useC
   "D-Rank": { hex: "#16a34a", bg: "#f0fdf4", label: "D", useCrown: false },
   "C-Rank": { hex: "#2563eb", bg: "#eff6ff", label: "C", useCrown: false },
   "B-Rank": { hex: "#7c3aed", bg: "#f5f3ff", label: "B", useCrown: false },
-  "A-Rank": { hex: "#ea580c", bg: "#fff7ed", label: "A", useCrown: true },
+  "A-Rank": { hex: "#D97757", bg: "#D97757", label: "A", useCrown: true },
   "S-Rank": { hex: "#dc2626", bg: "#fef2f2", label: "S", useCrown: true },
 };
 

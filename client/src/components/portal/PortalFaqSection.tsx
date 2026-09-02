@@ -116,7 +116,7 @@ export function PortalFaqSection({ onChatClick, onContactClick }: PortalFaqSecti
       </div>
 
       {/* Accordion */}
-      <div className="max-w-3xl mx-auto rounded-2xl border border-black/10 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] divide-y divide-black/[0.06] overflow-hidden">
+      <div className="max-w-3xl mx-auto rounded-2xl border border-black/10 bg-white shadow-[0_1px_3px_rgba(20, 20, 19,0.05)] divide-y divide-black/[0.06] overflow-hidden">
         {visibleItems.map((faq) => {
           const isOpen = openId === faq.id;
           return (

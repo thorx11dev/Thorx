@@ -29,7 +29,7 @@ export async function getDeviceFingerprint(): Promise<string> {
         ctx.textBaseline = 'top';
         ctx.font = '14px Arial';
         ctx.textBaseline = 'alphabetic';
-        ctx.fillStyle = '#f60';
+        ctx.fillStyle = '#D97757';
         ctx.fillRect(125, 1, 62, 20);
         ctx.fillStyle = '#069';
         ctx.fillText('THORX Fingerprint', 2, 15);

@@ -199,14 +199,14 @@ export default function FAQSection({ isActive }: FAQSectionProps) {
 
   return (
     <section
-      className={`cinematic-section ${isActive ? 'active' : ''} bg-[#EAE5DD] dark:bg-black pt-44 md:pt-[320px] pb-24 px-4 overflow-y-auto`}
+      className={`cinematic-section ${isActive ? 'active' : ''} bg-[#E8E5D8] dark:bg-black pt-44 md:pt-[320px] pb-24 px-4 overflow-y-auto`}
       data-testid="faq-section"
     >
       <div className="container mx-auto max-w-7xl">
         <div className="text-left mb-16 md:mb-24">
           <CinematicBlockReveal
             trigger={isActive}
-            blockColor="#ff6b00"
+            blockColor="#D97757"
           >
             <div className="py-2">
               <VariableFontHoverByRandomLetter

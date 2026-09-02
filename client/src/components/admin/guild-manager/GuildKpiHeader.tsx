@@ -47,12 +47,12 @@ export function GuildKpiHeader() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
       {CARDS.map(({ key, label, icon: Icon, format }) => (
-        <div key={key} className="rounded-xl border-[1.5px] border-[#111] bg-white p-3 flex flex-col gap-1">
+        <div key={key} className="rounded-xl border-[1.5px] border-[#141413] bg-white p-3 flex flex-col gap-1">
           <div className="flex items-center gap-1.5 text-zinc-400">
             <Icon size={12} />
             <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
           </div>
-          <div className="text-xl font-black text-[#111] tabular-nums truncate">
+          <div className="text-xl font-black text-[#141413] tabular-nums truncate">
             {format ? format(data) : data[key]}
           </div>
         </div>

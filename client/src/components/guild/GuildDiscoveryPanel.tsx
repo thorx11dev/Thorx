@@ -422,9 +422,9 @@ export function GuildDiscoveryPanel() {
               animate={isMobile ? { y: 0 } : { x: 0, transition: { duration: 0.45, ease: EASE } }}
               exit={isMobile ? { y: "100%" } : { x: "110%", transition: { duration: 0.35, ease: "easeIn" } }}
               className={cn(
-                "fixed z-[810] bg-[#F2EDE4] flex flex-col",
+                "fixed z-[810] bg-[#E8E5D8] flex flex-col",
                 // Desktop: floating window top-right — same spot as the notification panel
-                "md:top-6 md:right-6 md:bottom-auto md:left-auto md:w-[420px] md:h-[min(680px,calc(100vh-3rem))] md:rounded-2xl md:border-2 md:border-black md:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] md:overflow-hidden",
+                "md:top-6 md:right-6 md:bottom-auto md:left-auto md:w-[420px] md:h-[min(680px,calc(100vh-3rem))] md:rounded-2xl md:border-2 md:border-black md:shadow-[8px_8px_0px_0px_rgba(20, 20, 19,1)] md:overflow-hidden",
                 // Mobile: full screen
                 "top-0 right-0 bottom-0 left-0"
               )}
@@ -483,7 +483,7 @@ export function GuildDiscoveryPanel() {
                       data-testid="chip-recruiting"
                       className={cn(
                         "w-full bg-white border-2 border-black rounded-xl p-4 flex items-center justify-between gap-3 transition-all duration-200",
-                        recruitingOnly ? "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : "hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                        recruitingOnly ? "shadow-[4px_4px_0px_0px_rgba(20, 20, 19,1)]" : "hover:shadow-[4px_4px_0px_0px_rgba(20, 20, 19,1)]"
                       )}
                     >
                       <span className="flex items-center gap-3">
@@ -505,7 +505,7 @@ export function GuildDiscoveryPanel() {
                       data-testid="chip-war"
                       className={cn(
                         "w-full bg-white border-2 border-black rounded-xl p-4 flex items-center justify-between gap-3 transition-all duration-200",
-                        warOnly ? "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : "hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                        warOnly ? "shadow-[4px_4px_0px_0px_rgba(20, 20, 19,1)]" : "hover:shadow-[4px_4px_0px_0px_rgba(20, 20, 19,1)]"
                       )}
                     >
                       <span className="flex items-center gap-3">
@@ -556,7 +556,7 @@ export function GuildDiscoveryPanel() {
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="bg-white rounded-2xl border-2 border-black/10 overflow-hidden flex flex-col">
-                <div className="flex-1 min-h-[120px] bg-[#EAE5DD]" />
+                <div className="flex-1 min-h-[120px] bg-[#E8E5D8]" />
                 <div className="p-3 space-y-2 flex-1">
                   <Skeleton className="h-4 w-2/3 rounded bg-black/15" />
                   <Skeleton className="h-2.5 w-1/2 rounded bg-black/10" />
@@ -571,7 +571,7 @@ export function GuildDiscoveryPanel() {
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="bg-white rounded-2xl border-2 border-black/10 overflow-hidden flex">
-                <Skeleton className="w-1/2 aspect-square rounded-none bg-[#EAE5DD]" />
+                <Skeleton className="w-1/2 aspect-square rounded-none bg-[#E8E5D8]" />
                 <div className="w-1/2 p-3 md:p-4 space-y-2">
                   <Skeleton className="h-4 w-2/3 rounded bg-black/15" />
                   <Skeleton className="h-2.5 w-1/2 rounded bg-black/10" />
@@ -640,10 +640,10 @@ export function GuildDiscoveryPanel() {
                 animate="animate"
                 onClick={() => setExpandedCard(isExpandedCard ? null : guild.id)}
                 data-testid={`card-guild-${guild.id}`}
-                className="group bg-white rounded-2xl border-2 border-black/10 cursor-pointer flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-black hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]"
+                className="group bg-white rounded-2xl border-2 border-black/10 cursor-pointer flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-black hover:shadow-[5px_5px_0px_0px_rgba(20, 20, 19,1)]"
               >
                 {/* Media — even larger when closed (body shrinks) */}
-                <div className="relative flex-[1.6] min-h-[150px] bg-[#EAE5DD] overflow-hidden">
+                <div className="relative flex-[1.6] min-h-[150px] bg-[#E8E5D8] overflow-hidden">
                   <CornerPlus />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-5xl md:text-6xl font-black text-black/[0.07] select-none leading-none">{guild.name[0].toUpperCase()}</span>
@@ -713,7 +713,7 @@ export function GuildDiscoveryPanel() {
                         applied
                           ? "bg-emerald-50 text-emerald-700 border-emerald-300"
                           : inGuild || rankBlocked || !guild.recruitmentOpen
-                            ? "bg-[#EAE5DD] text-black/40 border-black/10"
+                            ? "bg-[#E8E5D8] text-black/40 border-black/10"
                             : "bg-primary text-white border-black hover:bg-black"
                       )}
                     >
@@ -744,7 +744,7 @@ export function GuildDiscoveryPanel() {
                 initial="initial"
                 animate="animate"
                 data-testid={`list-guild-${guild.id}`}
-                className="bg-white rounded-2xl border-2 border-black/10 overflow-hidden transition-all duration-200 hover:border-black hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]"
+                className="bg-white rounded-2xl border-2 border-black/10 overflow-hidden transition-all duration-200 hover:border-black hover:shadow-[5px_5px_0px_0px_rgba(20, 20, 19,1)]"
               >
                 {/* Row — 50% photo / 50% details; tap toggles expand */}
                 <button
@@ -752,7 +752,7 @@ export function GuildDiscoveryPanel() {
                   className="w-full flex text-left focus-visible:outline-none"
                 >
                   {/* Photo half */}
-                  <div className="relative w-1/2 aspect-square bg-[#EAE5DD] overflow-hidden shrink-0">
+                  <div className="relative w-1/2 aspect-square bg-[#E8E5D8] overflow-hidden shrink-0">
                     <CornerPlus />
                     <div className="absolute inset-0 flex items-center justify-center">
                       <span className="text-5xl font-black text-black/[0.07] select-none leading-none">{guild.name[0].toUpperCase()}</span>
@@ -822,7 +822,7 @@ export function GuildDiscoveryPanel() {
                         applied
                           ? "bg-emerald-50 text-emerald-700 border-emerald-300"
                           : inGuild || rankBlocked || !guild.recruitmentOpen
-                            ? "bg-[#EAE5DD] text-black/40 border-black/10"
+                            ? "bg-[#E8E5D8] text-black/40 border-black/10"
                             : "bg-primary text-white border-black hover:bg-black"
                       )}
                     >
@@ -911,11 +911,11 @@ export function GuildDiscoveryPanel() {
                 initial="initial"
                 animate="animate"
                 className={cn(
-                  "relative w-full sm:max-w-xl bg-[#F2EDE4] flex flex-col overflow-hidden",
+                  "relative w-full sm:max-w-xl bg-[#E8E5D8] flex flex-col overflow-hidden",
                   // Mobile: full screen — always completely visible
                   "h-full rounded-none border-0",
                   // Desktop: floating window with hard shadow
-                  "sm:h-auto sm:max-h-[88vh] sm:rounded-2xl sm:border-2 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+                  "sm:h-auto sm:max-h-[88vh] sm:rounded-2xl sm:border-2 sm:shadow-[8px_8px_0px_0px_rgba(20, 20, 19,1)]"
                 )}
               >
                 {/* ── Top bar (notification-panel twin) ── */}
@@ -1033,7 +1033,7 @@ export function GuildDiscoveryPanel() {
                         <div className="max-h-60 overflow-y-auto space-y-2 pr-0.5">
                           {guildMembers.map((m: any) => (
                             <div key={m.userId} className="bg-white border-2 border-black/10 hover:border-black rounded-xl transition-colors p-3 flex items-center gap-3">
-                              <div className="relative w-9 h-9 rounded-lg border-2 border-black bg-[#EAE5DD] flex items-center justify-center text-[11px] font-black shrink-0 overflow-hidden">
+                              <div className="relative w-9 h-9 rounded-lg border-2 border-black bg-[#E8E5D8] flex items-center justify-center text-[11px] font-black shrink-0 overflow-hidden">
                                 <span className="absolute inset-0 flex items-center justify-center text-black/30">{(m.firstName || m.identity || "M")[0].toUpperCase()}</span>
                                 {m.avatarUrl && (
                                   <img src={m.avatarUrl} alt="" loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; }} className="absolute inset-0 w-full h-full object-cover" />
@@ -1125,13 +1125,13 @@ export function GuildDiscoveryPanel() {
             variants={modalIn}
             initial="initial"
             animate="animate"
-            className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-2 border-black max-h-[92vh] sm:max-h-[90vh] overflow-y-auto sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+            className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-2 border-black max-h-[92vh] sm:max-h-[90vh] overflow-y-auto sm:shadow-[8px_8px_0px_0px_rgba(20, 20, 19,1)]"
           >
             {/* Header */}
             <div className="px-5 md:px-6 pt-5 pb-4 border-b-2 border-black">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="relative w-11 h-11 rounded-lg border-2 border-black bg-[#EAE5DD] text-black flex items-center justify-center font-black text-base shrink-0 overflow-hidden">
+                  <div className="relative w-11 h-11 rounded-lg border-2 border-black bg-[#E8E5D8] text-black flex items-center justify-center font-black text-base shrink-0 overflow-hidden">
                     <span className="absolute inset-0 flex items-center justify-center">{applyingTo.name[0]}</span>
                     {applyingTo.avatarUrl && <img src={applyingTo.avatarUrl} alt={applyingTo.name} onError={(e) => { e.currentTarget.style.display = "none"; }} className="absolute inset-0 w-full h-full object-cover" />}
                   </div>
@@ -1205,7 +1205,7 @@ export function GuildDiscoveryPanel() {
             variants={modalIn}
             initial="initial"
             animate="animate"
-            className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-2 border-black overflow-hidden max-h-[92vh] sm:max-h-[90vh] overflow-y-auto sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+            className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-2 border-black overflow-hidden max-h-[92vh] sm:max-h-[90vh] overflow-y-auto sm:shadow-[8px_8px_0px_0px_rgba(20, 20, 19,1)]"
           >
             <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b-2 border-black">
               <div>

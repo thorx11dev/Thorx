@@ -26,7 +26,7 @@ export default function TextBlockAnimation({
     animateOnScroll = true,
     trigger,
     delay = 0,
-    blockColor = "#000",
+    blockColor = "#141413",
     stagger = 0.1,
     duration = 0.6,
     className

@@ -69,8 +69,8 @@ export function AuditFilterBar({ category, filters, onChange, onReset }: AuditFi
               className={cn(
                 "px-5 py-2 rounded-full border-[1.5px] font-black text-[10px] uppercase tracking-widest transition-all whitespace-nowrap shadow-sm",
                 isActive
-                  ? "bg-[#111] text-white border-[#111]"
-                  : "bg-white text-[#111] border-[#111]/10 hover:border-[#111]"
+                  ? "bg-[#141413] text-white border-[#141413]"
+                  : "bg-white text-[#141413] border-[#141413]/10 hover:border-[#141413]"
               )}
             >
               {p.label}
@@ -84,14 +84,14 @@ export function AuditFilterBar({ category, filters, onChange, onReset }: AuditFi
           className={cn(
             "ml-auto flex items-center gap-1.5 px-5 py-2 rounded-full border-[1.5px] font-black text-[10px] uppercase tracking-widest transition-all whitespace-nowrap shadow-sm",
             hasAdvancedFilter || advancedOpen
-              ? "bg-[#111] text-white border-[#111]"
-              : "bg-white text-[#111] border-[#111]/10 hover:border-[#111]"
+              ? "bg-[#141413] text-white border-[#141413]"
+              : "bg-white text-[#141413] border-[#141413]/10 hover:border-[#141413]"
           )}
         >
           <Filter size={11} />
           Filters
           {hasAdvancedFilter && (
-            <span className="ml-1 w-4 h-4 rounded-full bg-white text-[#111] text-[8px] font-black flex items-center justify-center">
+            <span className="ml-1 w-4 h-4 rounded-full bg-white text-[#141413] text-[8px] font-black flex items-center justify-center">
               {[filters.action !== "ALL" && filters.action, filters.actorId, filters.ipAddress, dateRangeActive].filter(Boolean).length}
             </span>
           )}
@@ -111,7 +111,7 @@ export function AuditFilterBar({ category, filters, onChange, onReset }: AuditFi
 
       {/* Advanced panel */}
       {advancedOpen && (
-        <div className="bg-white border-[1.5px] border-[#111] rounded-[1.5rem] p-5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="bg-white border-[1.5px] border-[#141413] rounded-[1.5rem] p-5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
             {/* Date range from */}
@@ -121,7 +121,7 @@ export function AuditFilterBar({ category, filters, onChange, onReset }: AuditFi
                 type="date"
                 value={filters.dateFrom}
                 onChange={(e) => onChange({ dateFrom: e.target.value })}
-                className="w-full h-9 px-3 bg-white border-[1.5px] border-[#111]/20 rounded-lg font-bold text-xs focus:outline-none focus:border-[#111] transition-colors text-[#111]"
+                className="w-full h-9 px-3 bg-white border-[1.5px] border-[#141413]/20 rounded-lg font-bold text-xs focus:outline-none focus:border-[#141413] transition-colors text-[#141413]"
               />
             </div>
 
@@ -132,7 +132,7 @@ export function AuditFilterBar({ category, filters, onChange, onReset }: AuditFi
                 type="date"
                 value={filters.dateTo}
                 onChange={(e) => onChange({ dateTo: e.target.value })}
-                className="w-full h-9 px-3 bg-white border-[1.5px] border-[#111]/20 rounded-lg font-bold text-xs focus:outline-none focus:border-[#111] transition-colors text-[#111]"
+                className="w-full h-9 px-3 bg-white border-[1.5px] border-[#141413]/20 rounded-lg font-bold text-xs focus:outline-none focus:border-[#141413] transition-colors text-[#141413]"
               />
             </div>
 
@@ -142,7 +142,7 @@ export function AuditFilterBar({ category, filters, onChange, onReset }: AuditFi
               <select
                 value={filters.action}
                 onChange={(e) => onChange({ action: e.target.value })}
-                className="w-full h-9 px-3 bg-white border-[1.5px] border-[#111]/20 rounded-lg font-bold text-xs focus:outline-none focus:border-[#111] transition-colors cursor-pointer text-[#111]"
+                className="w-full h-9 px-3 bg-white border-[1.5px] border-[#141413]/20 rounded-lg font-bold text-xs focus:outline-none focus:border-[#141413] transition-colors cursor-pointer text-[#141413]"
               >
                 <option value="ALL">All Actions</option>
                 {actionOptions.map((a) => (
@@ -161,7 +161,7 @@ export function AuditFilterBar({ category, filters, onChange, onReset }: AuditFi
                 value={filters.actorId}
                 onChange={(e) => onChange({ actorId: e.target.value })}
                 placeholder="User ID…"
-                className="w-full h-9 px-3 bg-white border-[1.5px] border-[#111]/20 rounded-lg font-bold text-xs focus:outline-none focus:border-[#111] transition-colors text-[#111] placeholder:text-zinc-300"
+                className="w-full h-9 px-3 bg-white border-[1.5px] border-[#141413]/20 rounded-lg font-bold text-xs focus:outline-none focus:border-[#141413] transition-colors text-[#141413] placeholder:text-zinc-300"
               />
             </div>
 
@@ -173,7 +173,7 @@ export function AuditFilterBar({ category, filters, onChange, onReset }: AuditFi
                 value={filters.ipAddress}
                 onChange={(e) => onChange({ ipAddress: e.target.value })}
                 placeholder="e.g. 192.168.1.1"
-                className="w-full h-9 px-3 bg-white border-[1.5px] border-[#111]/20 rounded-lg font-bold text-xs focus:outline-none focus:border-[#111] transition-colors text-[#111] placeholder:text-zinc-300 font-mono"
+                className="w-full h-9 px-3 bg-white border-[1.5px] border-[#141413]/20 rounded-lg font-bold text-xs focus:outline-none focus:border-[#141413] transition-colors text-[#141413] placeholder:text-zinc-300 font-mono"
               />
             </div>
 

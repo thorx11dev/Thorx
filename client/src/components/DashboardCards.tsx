@@ -34,7 +34,7 @@ function CardShell({ children, className, testId }: { children: React.ReactNode;
     <div
       data-testid={testId}
       className={cn(
-        "group bg-white border-2 border-black rounded-2xl p-6 md:p-8 text-left transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+        "group bg-white border-2 border-black rounded-2xl p-6 md:p-8 text-left transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(20, 20, 19,1)]",
         className
       )}
     >

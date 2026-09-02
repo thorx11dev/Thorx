@@ -74,7 +74,7 @@ function MetricCard({
   delay?: number;
 }) {
   const styles: Record<string, string> = {
-    accent: "bg-[#111] text-white border-[#111]",
+    accent: "bg-[#141413] text-white border-[#141413]",
     dark:   "bg-zinc-900 text-white border-zinc-800",
     white:  "bg-white text-foreground border-zinc-200",
     warning:"bg-amber-50 text-foreground border-amber-200",
@@ -503,7 +503,7 @@ export function AdminDashboard() {
         <SectionLabel text={`Engine Revenue · ${rangeLabel}`} />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {([
-            { key: "Engine_A" as const, label: "Engine A · Video Ads",   color: "#f97316", sub: "User earnings via ad views" },
+            { key: "Engine_A" as const, label: "Engine A · Video Ads",   color: "#D97757", sub: "User earnings via ad views" },
             { key: "Engine_B" as const, label: "Engine B · Surveys",     color: "#7c3aed", sub: "C-Rank+ survey completions" },
             { key: "Engine_C" as const, label: "Engine C · Guild Tasks", color: "#16a34a", sub: "Guild weekly task pool" },
           ]).map(({ key, label, color, sub }) => {
@@ -522,10 +522,10 @@ export function AdminDashboard() {
                 key={key}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white border-[1.5px] border-[#111] p-5 rounded-[2rem] shadow-sm space-y-2"
+                className="bg-white border-[1.5px] border-[#141413] p-5 rounded-[2rem] shadow-sm space-y-2"
               >
                 <div className="text-[9px] font-black uppercase tracking-widest" style={{ color }}>{label}</div>
-                <div className="text-2xl font-black text-[#111]">
+                <div className="text-2xl font-black text-[#141413]">
                   {rev === null ? <span className="text-sm text-zinc-300">—</span> : `₨${rev.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
                 </div>
                 <div className="flex items-center justify-between">
@@ -544,7 +544,7 @@ export function AdminDashboard() {
         {engineRevenue && (
           <div className="flex items-center justify-end gap-2">
             <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total user earnings {rangeLabel}:</span>
-            <span className="text-sm font-black text-[#111]">
+            <span className="text-sm font-black text-[#141413]">
               ₨{new Decimal(engineRevenue.Engine_A ?? "0").plus(engineRevenue.Engine_B ?? "0").plus(engineRevenue.Engine_C ?? "0")
                 .toNumber().toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </span>
@@ -562,19 +562,19 @@ export function AdminDashboard() {
               <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
                 <defs>
                   <linearGradient id="colorReg" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#D97757" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#D97757" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.1} />
-                <XAxis dataKey="name" fontSize={9} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontWeight: 700 }} />
-                <YAxis fontSize={9} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontWeight: 700 }} allowDecimals={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--muted-foreground)" strokeOpacity={0.1} />
+                <XAxis dataKey="name" fontSize={9} tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontWeight: 700 }} />
+                <YAxis fontSize={9} tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontWeight: 700 }} allowDecimals={false} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#fff", border: "1px solid #e4e4e7", borderRadius: "12px", fontSize: "11px", fontWeight: "bold" }}
+                  contentStyle={{ backgroundColor: "#FAF9F5", border: "1px solid #e4e4e7", borderRadius: "12px", fontSize: "11px", fontWeight: "bold" }}
                   labelStyle={{ fontWeight: 900 }}
                   formatter={(v: any) => [v, "Registrations"]}
                 />
-                <Area type="monotone" dataKey="registrations" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#colorReg)" dot={false} activeDot={{ r: 4 }} />
+                <Area type="monotone" dataKey="registrations" stroke="#D97757" strokeWidth={2} fill="url(#colorReg)" dot={false} activeDot={{ r: 4 }} />
               </AreaChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -582,17 +582,17 @@ export function AdminDashboard() {
           <ChartCard title="Platform Revenue (₨)" icon={DollarSign}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.1} />
-                <XAxis dataKey="name" fontSize={9} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontWeight: 700 }} />
-                <YAxis fontSize={9} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontWeight: 700 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--muted-foreground)" strokeOpacity={0.1} />
+                <XAxis dataKey="name" fontSize={9} tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontWeight: 700 }} />
+                <YAxis fontSize={9} tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontWeight: 700 }} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#fff", border: "1px solid #e4e4e7", borderRadius: "12px", fontSize: "11px", fontWeight: "bold" }}
+                  contentStyle={{ backgroundColor: "#FAF9F5", border: "1px solid #e4e4e7", borderRadius: "12px", fontSize: "11px", fontWeight: "bold" }}
                   labelStyle={{ fontWeight: 900 }}
                   formatter={(v: any) => [`₨${Number(v).toLocaleString()}`, "Revenue"]}
                 />
                 <Bar dataKey="revenue" radius={[6, 6, 0, 0]}>
                   {chartData.map((_: any, i: number) => (
-                    <Cell key={i} fill={i % 2 === 0 ? "hsl(var(--primary))" : "hsl(var(--primary) / 0.55)"} />
+                    <Cell key={i} fill={i % 2 === 0 ? "#D97757" : "#D977578C"} />
                   ))}
                 </Bar>
               </BarChart>

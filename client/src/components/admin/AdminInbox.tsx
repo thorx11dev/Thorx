@@ -129,7 +129,7 @@ export function AdminInbox() {
     <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-4xl font-black tracking-tighter uppercase text-[#111]">INBOX</h2>
+          <h2 className="text-4xl font-black tracking-tighter uppercase text-[#141413]">INBOX</h2>
         </div>
 
         <div className="flex items-center gap-4">
@@ -138,7 +138,7 @@ export function AdminInbox() {
             <input 
               type="text" 
               placeholder="Search correspondence..."
-              className="h-10 pl-11 pr-4 bg-white border-[1.5px] border-[#111] rounded-full focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-xs font-bold w-64 text-[#111] placeholder:text-zinc-400"
+              className="h-10 pl-11 pr-4 bg-white border-[1.5px] border-[#141413] rounded-full focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-xs font-bold w-64 text-[#141413] placeholder:text-zinc-400"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -148,11 +148,11 @@ export function AdminInbox() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-250px)]">
         {/* Message List */}
-        <div className="lg:col-span-4 bg-background border-[1.5px] border-[#111] rounded-[2rem] flex flex-col overflow-hidden shadow-sm">
-          <div className="p-6 bg-white border-b-[1.5px] border-[#111]/10 flex flex-col gap-4">
+        <div className="lg:col-span-4 bg-background border-[1.5px] border-[#141413] rounded-[2rem] flex flex-col overflow-hidden shadow-sm">
+          <div className="p-6 bg-white border-b-[1.5px] border-[#141413]/10 flex flex-col gap-4">
             {/* Filter Tabs & Sorting */}
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-1 bg-[#111]/5 p-1 rounded-full">
+              <div className="flex items-center gap-1 bg-[#141413]/5 p-1 rounded-full">
                 {(['active', 'archived'] as const).map((f) => (
                   <button
                     key={f}
@@ -175,8 +175,8 @@ export function AdminInbox() {
                     className={cn(
                       "flex-1 py-1.5 border-[1.5px] text-[8px] font-black uppercase tracking-widest transition-all",
                       sortType === s 
-                        ? "bg-[#111] text-white border-black" 
-                        : "bg-transparent border-[#111]/10 text-zinc-400 hover:bg-black/5 hover:border-[#111]/30"
+                        ? "bg-[#141413] text-white border-black" 
+                        : "bg-transparent border-[#141413]/10 text-zinc-400 hover:bg-black/5 hover:border-[#141413]/30"
                     )}
                   >
                     {s.split(' ')[0]}
@@ -186,7 +186,7 @@ export function AdminInbox() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y-4 divide-[#111]">
+          <div className="flex-1 overflow-y-auto divide-y-4 divide-[#141413]">
             {filtered.map((email, idx) => (
               <button
                 key={email.id}
@@ -199,13 +199,13 @@ export function AdminInbox() {
                 }}
                 className={cn(
                   "w-full p-6 text-left transition-all duration-300 ease-out group flex gap-6 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
-                  selectedMessage?.id === email.id ? "bg-[#111]/5" : "hover:bg-white",
+                  selectedMessage?.id === email.id ? "bg-[#141413]/5" : "hover:bg-white",
                   email.status === 'sent' && email.type === 'inbound' && "bg-primary/5"
                 )}
               >
                 {/* Visual Numbering Vertical Divider */}
-                <div className="flex flex-col items-center justify-center pr-6 border-r-2 border-[#111]/10 min-w-[60px]">
-                   <span className="text-2xl font-black text-[#111]/30 group-hover:text-primary transition-colors italic leading-none">
+                <div className="flex flex-col items-center justify-center pr-6 border-r-2 border-[#141413]/10 min-w-[60px]">
+                   <span className="text-2xl font-black text-[#141413]/30 group-hover:text-primary transition-colors italic leading-none">
                      {(idx + 1).toString().padStart(2, '0')}
                    </span>
                 </div>
@@ -227,11 +227,11 @@ export function AdminInbox() {
                     <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{new Date(email.createdAt).toLocaleDateString()}</span>
                   </div>
                   <div>
-                    <div className="font-black text-sm group-hover:text-primary transition-colors truncate uppercase text-[#111] leading-tight mb-0.5">
+                    <div className="font-black text-sm group-hover:text-primary transition-colors truncate uppercase text-[#141413] leading-tight mb-0.5">
                       {email.subject.replace(/Contact message from /i, '')}
                     </div>
                     <div className="text-[10px] font-bold text-zinc-500 truncate uppercase tracking-widest flex items-center gap-2">
-                      <span className="text-[#111]/60">{email.fromEmail}</span>
+                      <span className="text-[#141413]/60">{email.fromEmail}</span>
                       {email.fromUserRank && (
                         <>
                           <span className="w-1.5 h-[1.5px] bg-zinc-300" />
@@ -253,14 +253,14 @@ export function AdminInbox() {
         </div>
 
         {/* Message View */}
-        <div className="lg:col-span-8 bg-background border-[1.5px] border-[#111] rounded-[2rem] flex flex-col overflow-hidden shadow-sm">
+        <div className="lg:col-span-8 bg-background border-[1.5px] border-[#141413] rounded-[2rem] flex flex-col overflow-hidden shadow-sm">
           {selectedMessage ? (
             <>
-              <div className="p-8 border-b-[1.5px] border-[#111]/10 flex items-start justify-between bg-white relative">
+              <div className="p-8 border-b-[1.5px] border-[#141413]/10 flex items-start justify-between bg-white relative">
                 <div className="space-y-6">
                   <div>
                     <TechnicalLabel text="SUBJECT" className="text-zinc-400 mb-2 text-[9px] tracking-widest" />
-                    <h3 className="text-2xl font-black tracking-tight uppercase text-[#111]">
+                    <h3 className="text-2xl font-black tracking-tight uppercase text-[#141413]">
                       {selectedMessage.subject.replace(/Contact message from /i, '')}
                     </h3>
                   </div>
@@ -325,7 +325,7 @@ export function AdminInbox() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-10 font-mono text-[14px] leading-relaxed bg-transparent text-[#111]">
+              <div className="flex-1 overflow-y-auto p-10 font-mono text-[14px] leading-relaxed bg-transparent text-[#141413]">
                 <div className="max-w-3xl whitespace-pre-wrap">
                   {selectedMessage.content.includes("Message:") 
                     ? selectedMessage.content.split("Message:")[1].trim() 
@@ -335,8 +335,8 @@ export function AdminInbox() {
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-transparent">
-              <Inbox className="w-16 h-16 mb-6 text-[#111]/10" />
-              <div className="text-2xl font-black tracking-tighter mb-2 text-[#111]/40 uppercase">Awaiting Selection</div>
+              <Inbox className="w-16 h-16 mb-6 text-[#141413]/10" />
+              <div className="text-2xl font-black tracking-tighter mb-2 text-[#141413]/40 uppercase">Awaiting Selection</div>
               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Select correspondence to initialize review protocol</p>
             </div>
           )}

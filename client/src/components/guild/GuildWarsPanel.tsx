@@ -134,9 +134,9 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
           <span className="text-[10px] font-mono font-bold tracking-[0.3em] text-black/45 uppercase">Loading war status…</span>
         </div>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-2">
-          <div className="aspect-square rounded-2xl bg-[#EAE5DD] border-2 border-black/10" />
+          <div className="aspect-square rounded-2xl bg-[#E8E5D8] border-2 border-black/10" />
           <div className="w-10 h-10 rounded-xl bg-black/5 border-2 border-black/10" />
-          <div className="aspect-square rounded-2xl bg-[#EAE5DD] border-2 border-black/10" />
+          <div className="aspect-square rounded-2xl bg-[#E8E5D8] border-2 border-black/10" />
         </div>
         <div className="bg-white border-2 border-black/10 rounded-2xl p-5 space-y-3">
           <div className="h-2.5 rounded-full bg-black/10" />
@@ -150,7 +150,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
   if (isError) {
     return (
       <PremiumCard className="p-8 md:p-10 flex flex-col items-center gap-4 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-[#EAE5DD] border-2 border-black/10 flex items-center justify-center">
+        <div className="w-14 h-14 rounded-2xl bg-[#E8E5D8] border-2 border-black/10 flex items-center justify-center">
           <GiCrossedSwords className="w-6 h-6 text-black/25" />
         </div>
         <div>
@@ -212,7 +212,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
       {!war && (
         <PremiumCard interactive={false} className="p-5 md:p-7 space-y-5">
           {/* Ivory media block — corner plus marks + monogram */}
-          <div className="relative min-h-[120px] md:min-h-[140px] rounded-2xl bg-[#EAE5DD] overflow-hidden flex items-center justify-center">
+          <div className="relative min-h-[120px] md:min-h-[140px] rounded-2xl bg-[#E8E5D8] overflow-hidden flex items-center justify-center">
             <CornerPlus />
             <GiCrossedSwords className="w-10 h-10 md:w-12 md:h-12 text-black/15" />
           </div>
@@ -240,7 +240,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
                   <span className="text-[10px] font-mono font-bold tracking-[0.2em] text-black/45 uppercase">Loading eligible opponents…</span>
                 </div>
               ) : opponentsData.opponents?.length === 0 ? (
-                <div className="rounded-2xl bg-[#EAE5DD]/40 border-2 border-black/10 p-4">
+                <div className="rounded-2xl bg-[#E8E5D8]/40 border-2 border-black/10 p-4">
                   <p className="text-sm font-medium text-black/55">
                     No eligible opponents right now.
                   </p>
@@ -255,8 +255,8 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
                         className={cn(
                           "w-full text-left rounded-2xl border-2 p-3.5 flex items-center justify-between transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                           selected
-                            ? "border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                            : "border-black/10 bg-white hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                            ? "border-black bg-white shadow-[4px_4px_0px_0px_rgba(20, 20, 19,1)]"
+                            : "border-black/10 bg-white hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(20, 20, 19,1)]"
                         )}
                         onClick={() => setSelectedOpponent(g)}
                       >
@@ -329,7 +329,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
               <div className="min-w-0">
                 <div
                   className={cn(
-                    "relative aspect-square rounded-2xl border-2 overflow-hidden bg-[#EAE5DD]",
+                    "relative aspect-square rounded-2xl border-2 overflow-hidden bg-[#E8E5D8]",
                     myGuildIsChallenger ? "border-primary" : "border-black/10"
                   )}
                 >
@@ -363,7 +363,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
               <div className="min-w-0">
                 <div
                   className={cn(
-                    "relative aspect-square rounded-2xl border-2 overflow-hidden bg-[#EAE5DD]",
+                    "relative aspect-square rounded-2xl border-2 overflow-hidden bg-[#E8E5D8]",
                     myGuildIsChallenged ? "border-primary" : "border-black/10"
                   )}
                 >
@@ -523,7 +523,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
 
             {/* Waiting for other guild to vote */}
             {war.status === "pending_challenged_approval" && myGuildIsChallenger && (
-              <div className="rounded-2xl bg-[#EAE5DD]/40 border-2 border-black/10 p-4 flex items-center gap-3">
+              <div className="rounded-2xl bg-[#E8E5D8]/40 border-2 border-black/10 p-4 flex items-center gap-3">
                 <span className="w-9 h-9 bg-white border-2 border-black/10 rounded-lg flex items-center justify-center shrink-0">
                   <GiPocketWatch size={14} className="text-black/45" />
                 </span>
@@ -535,7 +535,7 @@ export function GuildWarsPanel({ guildId, isCaptain = false }: GuildWarsPanelPro
 
             {/* Active war info */}
             {war.status === "active" && (
-              <div className="rounded-2xl bg-[#EAE5DD]/40 border-2 border-black/10 p-4 flex items-center gap-3">
+              <div className="rounded-2xl bg-[#E8E5D8]/40 border-2 border-black/10 p-4 flex items-center gap-3">
                 <span className="w-9 h-9 bg-white border-2 border-black/10 rounded-lg flex items-center justify-center shrink-0">
                   <GiPocketWatch size={14} className="text-black/45" />
                 </span>

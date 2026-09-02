@@ -191,7 +191,7 @@ export function AuditLogViewer() {
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-5xl font-black tracking-tighter uppercase text-[#111]">Audit Logs</h2>
+          <h2 className="text-5xl font-black tracking-tighter uppercase text-[#141413]">Audit Logs</h2>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mt-1">
             Operational ledger — every action, every actor
           </p>
@@ -204,7 +204,7 @@ export function AuditLogViewer() {
             <input
               type="text"
               placeholder="Search logs…"
-              className="h-10 pl-11 pr-4 bg-white border-[1.5px] border-[#111] rounded-full focus:outline-none focus:ring-2 focus:ring-[#111]/20 transition-all text-xs font-bold w-56 text-[#111] placeholder:text-zinc-400"
+              className="h-10 pl-11 pr-4 bg-white border-[1.5px] border-[#141413] rounded-full focus:outline-none focus:ring-2 focus:ring-[#141413]/20 transition-all text-xs font-bold w-56 text-[#141413] placeholder:text-zinc-400"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -214,7 +214,7 @@ export function AuditLogViewer() {
           </div>
 
           {/* Format toggle */}
-          <div className="flex items-center border-[1.5px] border-[#111] rounded-full overflow-hidden">
+          <div className="flex items-center border-[1.5px] border-[#141413] rounded-full overflow-hidden">
             {(["csv", "pdf"] as const).map((fmt) => (
               <button
                 key={fmt}
@@ -222,8 +222,8 @@ export function AuditLogViewer() {
                 className={cn(
                   "h-10 px-4 font-black text-[10px] uppercase tracking-widest transition-all",
                   exportFormat === fmt
-                    ? "bg-[#111] text-white"
-                    : "bg-white text-[#111] hover:bg-black/5"
+                    ? "bg-[#141413] text-white"
+                    : "bg-white text-[#141413] hover:bg-black/5"
                 )}
               >
                 {fmt}
@@ -232,13 +232,13 @@ export function AuditLogViewer() {
           </div>
 
           <Button
-            className="h-10 bg-white border-[1.5px] border-[#111] text-[#111] font-black text-xs px-6 hover:bg-[#111] hover:text-white rounded-full transition-all uppercase shadow-sm flex items-center gap-2"
+            className="h-10 bg-white border-[1.5px] border-[#141413] text-[#141413] font-black text-xs px-6 hover:bg-[#141413] hover:text-white rounded-full transition-all uppercase shadow-sm flex items-center gap-2"
             onClick={handleExport}
           >
             <Download size={13} />
             Export
             {selectedIds.length > 0 && (
-              <span className="ml-1 bg-[#111] text-white rounded-full w-4 h-4 text-[8px] font-black flex items-center justify-center group-hover:bg-white group-hover:text-[#111]">
+              <span className="ml-1 bg-[#141413] text-white rounded-full w-4 h-4 text-[8px] font-black flex items-center justify-center group-hover:bg-white group-hover:text-[#141413]">
                 {selectedIds.length}
               </span>
             )}
@@ -249,12 +249,12 @@ export function AuditLogViewer() {
       {/* Tabs */}
       <Tabs value={activeCategory} onValueChange={handleTabChange}>
         <div className="flex flex-col gap-4">
-          <TabsList className="bg-zinc-100 border-[1.5px] border-[#111]/10 rounded-full p-1 h-auto self-start">
+          <TabsList className="bg-zinc-100 border-[1.5px] border-[#141413]/10 rounded-full p-1 h-auto self-start">
             {TAB_CATEGORIES.map((tab) => (
               <TabsTrigger
                 key={tab.id}
                 value={tab.id}
-                className="rounded-full px-5 py-2 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-[#111] data-[state=active]:text-white transition-all"
+                className="rounded-full px-5 py-2 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-[#141413] data-[state=active]:text-white transition-all"
               >
                 {tab.label}
               </TabsTrigger>
@@ -275,15 +275,15 @@ export function AuditLogViewer() {
               {/* Table container */}
               <div
                 className={cn(
-                  "bg-background border-[1.5px] border-[#111] rounded-[2rem] overflow-hidden shadow-sm transition-opacity duration-200",
+                  "bg-background border-[1.5px] border-[#141413] rounded-[2rem] overflow-hidden shadow-sm transition-opacity duration-200",
                   isFetching && !isLoading && "opacity-70"
                 )}
               >
                 {/* Table header row */}
-                <div className="bg-white px-8 py-5 flex items-center justify-between border-b-[1.5px] border-[#111]/10">
+                <div className="bg-white px-8 py-5 flex items-center justify-between border-b-[1.5px] border-[#141413]/10">
                   <TechnicalLabel
                     text={`${tab.label} Ledger`}
-                    className="text-[#111] font-black uppercase"
+                    className="text-[#141413] font-black uppercase"
                   />
                   <div className="flex items-center gap-3">
                     {isFetching && !isLoading && (
@@ -299,7 +299,7 @@ export function AuditLogViewer() {
 
                 {/* Selection banner */}
                 {selectedIds.length > 0 && (
-                  <div className="bg-[#111] px-8 py-3 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+                  <div className="bg-[#141413] px-8 py-3 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
                     <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
                       {selectedIds.length}{" "}
                       {selectedIds.length === 1 ? "entry" : "entries"} selected — ready for export
@@ -316,39 +316,39 @@ export function AuditLogViewer() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-white/50 border-b-[1.5px] border-[#111]/10">
+                      <tr className="bg-white/50 border-b-[1.5px] border-[#141413]/10">
                         <th className="p-5 w-12 text-center align-middle">
                           <Checkbox
                             checked={allOnPageSelected}
                             onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                            className="border-[#111] data-[state=checked]:bg-[#111] data-[state=checked]:text-white"
+                            className="border-[#141413] data-[state=checked]:bg-[#141413] data-[state=checked]:text-white"
                           />
                         </th>
-                        <th className="p-5 font-black text-[10px] tracking-widest text-[#111]/50 uppercase whitespace-nowrap">
+                        <th className="p-5 font-black text-[10px] tracking-widest text-[#141413]/50 uppercase whitespace-nowrap">
                           Actor
                         </th>
-                        <th className="p-5 font-black text-[10px] tracking-widest text-[#111]/50 uppercase whitespace-nowrap">
+                        <th className="p-5 font-black text-[10px] tracking-widest text-[#141413]/50 uppercase whitespace-nowrap">
                           Event
                         </th>
-                        <th className="p-5 font-black text-[10px] tracking-widest text-[#111]/50 uppercase whitespace-nowrap hidden lg:table-cell">
+                        <th className="p-5 font-black text-[10px] tracking-widest text-[#141413]/50 uppercase whitespace-nowrap hidden lg:table-cell">
                           Target
                         </th>
-                        <th className="p-5 font-black text-[10px] tracking-widest text-[#111]/50 uppercase whitespace-nowrap hidden xl:table-cell">
+                        <th className="p-5 font-black text-[10px] tracking-widest text-[#141413]/50 uppercase whitespace-nowrap hidden xl:table-cell">
                           Context
                         </th>
-                        <th className="p-5 font-black text-[10px] tracking-widest text-[#111]/50 uppercase whitespace-nowrap">
+                        <th className="p-5 font-black text-[10px] tracking-widest text-[#141413]/50 uppercase whitespace-nowrap">
                           Time
                         </th>
                         <th className="p-5 w-12" />
                       </tr>
                     </thead>
-                    <tbody className="divide-y-[1.5px] divide-[#111]/5">
+                    <tbody className="divide-y-[1.5px] divide-[#141413]/5">
                       <AnimatePresence mode="popLayout">
                         {isLoading ? (
                           Array(ITEMS_PER_PAGE)
                             .fill(0)
                             .map((_, i) => (
-                              <tr key={i} className="border-b-[1.5px] border-[#111]/5">
+                              <tr key={i} className="border-b-[1.5px] border-[#141413]/5">
                                 <td className="p-5">
                                   <Skeleton className="h-4 w-4 rounded" />
                                 </td>
@@ -404,24 +404,24 @@ export function AuditLogViewer() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between pt-6 border-t-[1.5px] border-[#111]/10 px-6 pb-6 bg-white">
+                  <div className="flex items-center justify-between pt-6 border-t-[1.5px] border-[#141413]/10 px-6 pb-6 bg-white">
                     <div className="text-[10px] font-black tracking-widest uppercase text-zinc-400">
                       Trace{" "}
-                      <span className="text-[#111]">
+                      <span className="text-[#141413]">
                         {(currentPage - 1) * ITEMS_PER_PAGE + 1}
                       </span>{" "}
                       to{" "}
-                      <span className="text-[#111]">
+                      <span className="text-[#141413]">
                         {Math.min(currentPage * ITEMS_PER_PAGE, totalCount)}
                       </span>{" "}
-                      of <span className="text-[#111]">{totalCount}</span>
+                      of <span className="text-[#141413]">{totalCount}</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <Button
                         variant="ghost"
                         disabled={currentPage === 1}
                         onClick={() => handlePageChange(currentPage - 1)}
-                        className="h-10 px-5 border-[1.5px] border-[#111] rounded-full font-black text-xs uppercase hover:bg-[#111] hover:text-white transition-all disabled:opacity-30"
+                        className="h-10 px-5 border-[1.5px] border-[#141413] rounded-full font-black text-xs uppercase hover:bg-[#141413] hover:text-white transition-all disabled:opacity-30"
                       >
                         Retrace
                       </Button>
@@ -445,7 +445,7 @@ export function AuditLogViewer() {
                               onClick={() => handlePageChange(page)}
                               className={cn(
                                 "h-1.5 rounded-full transition-all",
-                                i === closestIdx ? "w-6 bg-[#111]" : "w-1.5 bg-[#111]/20 hover:bg-[#111]/40"
+                                i === closestIdx ? "w-6 bg-[#141413]" : "w-1.5 bg-[#141413]/20 hover:bg-[#141413]/40"
                               )}
                               title={`Page ${page}`}
                             />
@@ -456,7 +456,7 @@ export function AuditLogViewer() {
                         variant="ghost"
                         disabled={currentPage === totalPages}
                         onClick={() => handlePageChange(currentPage + 1)}
-                        className="h-10 px-5 border-[1.5px] border-[#111] rounded-full font-black text-xs uppercase hover:bg-[#111] hover:text-white transition-all disabled:opacity-30"
+                        className="h-10 px-5 border-[1.5px] border-[#141413] rounded-full font-black text-xs uppercase hover:bg-[#141413] hover:text-white transition-all disabled:opacity-30"
                       >
                         Forward
                       </Button>
@@ -508,19 +508,19 @@ function AuditLogRow({ log, idx, selected, onSelect, onDetail }: AuditLogRowProp
         <Checkbox
           checked={selected}
           onCheckedChange={(checked) => onSelect(!!checked)}
-          className="border-[#111] data-[state=checked]:bg-[#111] data-[state=checked]:text-white"
+          className="border-[#141413] data-[state=checked]:bg-[#141413] data-[state=checked]:text-white"
         />
       </td>
 
       {/* Actor */}
       <td className="p-5">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-full bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center shrink-0">
-            <Shield size={13} className="text-[#111]" />
+          <div className="w-8 h-8 rounded-full bg-white border-[1.5px] border-[#141413]/20 flex items-center justify-center shrink-0">
+            <Shield size={13} className="text-[#141413]" />
           </div>
           <div className="min-w-0">
             <div
-              className="text-[11px] font-black uppercase text-[#111] tracking-tight overflow-hidden text-ellipsis whitespace-nowrap max-w-[130px]"
+              className="text-[11px] font-black uppercase text-[#141413] tracking-tight overflow-hidden text-ellipsis whitespace-nowrap max-w-[130px]"
               title={actor}
             >
               {actor}
@@ -541,10 +541,10 @@ function AuditLogRow({ log, idx, selected, onSelect, onDetail }: AuditLogRowProp
       {/* Event: description (primary) + action code (secondary badge) */}
       <td className="p-5 max-w-[260px]">
         <div className="space-y-1.5">
-          <p className="text-xs font-bold text-[#111] leading-snug line-clamp-2">
+          <p className="text-xs font-bold text-[#141413] leading-snug line-clamp-2">
             {log.description}
           </p>
-          <span className="inline-flex px-2 py-0.5 rounded-sm border border-[#111]/20 bg-zinc-100 text-[8px] font-black uppercase tracking-widest text-zinc-500">
+          <span className="inline-flex px-2 py-0.5 rounded-sm border border-[#141413]/20 bg-zinc-100 text-[8px] font-black uppercase tracking-widest text-zinc-500">
             {log.action}
           </span>
         </div>
@@ -553,17 +553,17 @@ function AuditLogRow({ log, idx, selected, onSelect, onDetail }: AuditLogRowProp
       {/* Target */}
       <td className="p-5 hidden lg:table-cell">
         <div className="space-y-0.5">
-          <div className="text-[10px] font-black uppercase tracking-widest text-[#111]">
+          <div className="text-[10px] font-black uppercase tracking-widest text-[#141413]">
             {log.targetType || "—"}
           </div>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="text-[9px] font-mono font-bold text-zinc-400 hover:text-[#111] transition-colors bg-[#111]/5 px-1.5 py-0.5 rounded cursor-help">
+                <span className="text-[9px] font-mono font-bold text-zinc-400 hover:text-[#141413] transition-colors bg-[#141413]/5 px-1.5 py-0.5 rounded cursor-help">
                   {log.targetId ? `${log.targetId.substring(0, 8)}…` : "—"}
                 </span>
               </TooltipTrigger>
-              <TooltipContent className="bg-[#111] text-white border-[1.5px] border-[#111] font-mono text-[10px]">
+              <TooltipContent className="bg-[#141413] text-white border-[1.5px] border-[#141413] font-mono text-[10px]">
                 {log.targetId || "—"}
               </TooltipContent>
             </Tooltip>
@@ -594,7 +594,7 @@ function AuditLogRow({ log, idx, selected, onSelect, onDetail }: AuditLogRowProp
                 {relativeTime(log.createdAt)}
               </div>
             </TooltipTrigger>
-            <TooltipContent className="bg-[#111] text-white border-[1.5px] border-[#111] font-mono text-[10px]">
+            <TooltipContent className="bg-[#141413] text-white border-[1.5px] border-[#141413] font-mono text-[10px]">
               {formatTimestamp(log.createdAt)}
             </TooltipContent>
           </Tooltip>
@@ -606,7 +606,7 @@ function AuditLogRow({ log, idx, selected, onSelect, onDetail }: AuditLogRowProp
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-full hover:bg-black hover:text-white transition-all border-[1.5px] border-transparent hover:border-[#111] opacity-0 group-hover:opacity-100"
+          className="h-8 w-8 rounded-full hover:bg-black hover:text-white transition-all border-[1.5px] border-transparent hover:border-[#141413] opacity-0 group-hover:opacity-100"
           onClick={onDetail}
           title="View details"
         >

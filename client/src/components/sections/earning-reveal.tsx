@@ -63,7 +63,7 @@ const PlusCard: React.FC<{
                 "relative rounded-2xl border border-black/15 dark:border-zinc-700/50 p-6 md:p-8 bg-white dark:bg-zinc-950 min-h-[200px] md:min-h-[240px]",
                 "flex flex-col justify-between group transition-all duration-500 ease-out",
                 "hover:-translate-y-2 hover:border-black dark:hover:border-white",
-                "hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.1)]",
+                "hover:shadow-[6px_6px_0px_0px_rgba(20, 20, 19,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(250, 249, 245,0.1)]",
                 className
             )}
         >
@@ -76,7 +76,7 @@ const PlusCard: React.FC<{
                     <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                         {title}
                     </h3>
-                    <TextBlockAnimation blockColor="#ff6b00" duration={0.4} delay={0.2} animateOnScroll={false} trigger={isActive}>
+                    <TextBlockAnimation blockColor="#D97757" duration={0.4} delay={0.2} animateOnScroll={false} trigger={isActive}>
                         <p className="text-gray-700 dark:text-gray-400 leading-relaxed text-sm md:text-base font-medium">
                             {description}
                         </p>
@@ -90,7 +90,7 @@ const PlusCard: React.FC<{
 export default function EarningReveal({ isActive, onAdvance }: { isActive: boolean; onAdvance: () => void }) {
     return (
         <section
-            className={`cinematic-section ${isActive ? 'active' : ''} bg-[#EAE5DD] dark:bg-black pt-44 md:pt-[320px] pb-24 px-4`}
+            className={`cinematic-section ${isActive ? 'active' : ''} bg-[#E8E5D8] dark:bg-black pt-44 md:pt-[320px] pb-24 px-4`}
             data-section="2"
             data-testid="earning-reveal-section"
         >
@@ -98,7 +98,7 @@ export default function EarningReveal({ isActive, onAdvance }: { isActive: boole
                 <div className="mb-12 md:mb-16 text-left">
                     <CinematicBlockReveal
                         trigger={isActive}
-                        blockColor="#000"
+                        blockColor="#141413"
                     >
                         <div className="py-2">
                             <VariableFontHoverByRandomLetter

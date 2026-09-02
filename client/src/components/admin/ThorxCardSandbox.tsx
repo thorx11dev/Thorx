@@ -37,7 +37,7 @@ interface LiveConfig {
 }
 
 const ENGINE_COLORS: Record<string, string> = {
-  Engine_A: "#f97316",
+  Engine_A: "#D97757",
   Engine_B: "#7c3aed",
   Engine_C: "#16a34a",
 };
@@ -134,7 +134,7 @@ export function ThorxCardSandbox() {
     URL.revokeObjectURL(url);
   };
 
-  const color = ENGINE_COLORS[engineType] ?? "#f97316";
+  const color = ENGINE_COLORS[engineType] ?? "#D97757";
   const isEngineC = shortEngine === "C";
 
   const avg = results.length > 0

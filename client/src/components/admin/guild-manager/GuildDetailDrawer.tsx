@@ -46,7 +46,7 @@ function OverviewStat({ label, value, icon: Icon }: { label: string; value: stri
         <Icon size={11} />
         <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
       </div>
-      <div className="text-sm font-black text-[#111]">{value}</div>
+      <div className="text-sm font-black text-[#141413]">{value}</div>
     </div>
   );
 }
@@ -247,7 +247,7 @@ function GuildDetailDrawerBody({ guild }: { guild: AdminGuild }) {
               </div>
             )}
 
-            <div className="rounded-xl border-[1.5px] border-[#111] p-4 space-y-2">
+            <div className="rounded-xl border-[1.5px] border-[#141413] p-4 space-y-2">
               <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-400">
                 <Target size={12} /> Target Difficulty (admin-only)
               </div>

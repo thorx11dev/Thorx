@@ -62,7 +62,7 @@ function UserAvatar({ user, size = 10 }: { user: any; size?: number }) {
 
   if (src && !failed) {
     return (
-      <div className={cn("rounded-full border-[1.5px] border-[#111]/20 overflow-hidden bg-zinc-100 shrink-0", dim)}>
+      <div className={cn("rounded-full border-[1.5px] border-[#141413]/20 overflow-hidden bg-zinc-100 shrink-0", dim)}>
         <img
           src={src}
           alt="User avatar"
@@ -73,7 +73,7 @@ function UserAvatar({ user, size = 10 }: { user: any; size?: number }) {
     );
   }
   return (
-    <div className={cn("rounded-full border-[1.5px] border-[#111]/20 bg-zinc-100 flex items-center justify-center shrink-0", dim)}>
+    <div className={cn("rounded-full border-[1.5px] border-[#141413]/20 bg-zinc-100 flex items-center justify-center shrink-0", dim)}>
       <User className="w-4 h-4 text-zinc-400" />
     </div>
   );
@@ -267,7 +267,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-4xl font-black tracking-tighter uppercase text-[#111]">Rankings</h2>
+          <h2 className="text-4xl font-black tracking-tighter uppercase text-[#141413]">Rankings</h2>
           {insights?.lastUpdated && (
             <div className="flex items-center gap-2 mt-1">
               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
@@ -289,7 +289,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
           {selectedIds.size > 0 && (
             <Button
               onClick={() => downloadAsCSV(selectedRows, `thorx-rankings-${Date.now()}.csv`)}
-              className="h-10 bg-primary text-white border-[1.5px] border-[#111] font-black text-[10px] px-5 hover:bg-primary/80 rounded-full transition-all uppercase shadow-sm flex items-center gap-2"
+              className="h-10 bg-primary text-white border-[1.5px] border-[#141413] font-black text-[10px] px-5 hover:bg-primary/80 rounded-full transition-all uppercase shadow-sm flex items-center gap-2"
             >
               <Download size={13} />
               Export {selectedIds.size} Selected
@@ -298,7 +298,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
           <Button
             onClick={() => forceSyncMutation.mutate()}
             disabled={forceSyncMutation.isPending}
-            className="h-10 bg-[#111] text-white border-[1.5px] border-[#111] font-black text-[10px] px-5 hover:bg-primary hover:text-white rounded-full transition-all uppercase shadow-sm flex items-center gap-2"
+            className="h-10 bg-[#141413] text-white border-[1.5px] border-[#141413] font-black text-[10px] px-5 hover:bg-primary hover:text-white rounded-full transition-all uppercase shadow-sm flex items-center gap-2"
           >
             <RefreshCw size={13} className={forceSyncMutation.isPending ? "animate-spin" : ""} />
             {forceSyncMutation.isPending ? "Updating..." : "Refresh Rankings"}
@@ -314,12 +314,12 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
           { label: "Top Referrer", value: insights?.topReferrers?.[0] ? `${insights.topReferrers[0].level1Count || 0} direct` : "—", icon: <Trophy size={18} /> },
           { label: "Watchlist", value: insights?.anomalies?.length ?? 0, icon: <AlertTriangle size={18} /> },
         ].map((stat) => (
-          <div key={stat.label} className="bg-white border-[1.5px] border-[#111] p-5 rounded-[2rem] shadow-sm flex items-center justify-between group hover:shadow-md transition-all">
+          <div key={stat.label} className="bg-white border-[1.5px] border-[#141413] p-5 rounded-[2rem] shadow-sm flex items-center justify-between group hover:shadow-md transition-all">
             <div>
               <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-2">{stat.label}</p>
-              <p className="text-xl font-black tabular-nums text-[#111]">{stat.value}</p>
+              <p className="text-xl font-black tabular-nums text-[#141413]">{stat.value}</p>
             </div>
-            <div className="w-10 h-10 border-[1.5px] border-[#111] rounded-2xl flex items-center justify-center bg-white shadow-sm group-hover:rotate-12 transition-transform duration-500 shrink-0">
+            <div className="w-10 h-10 border-[1.5px] border-[#141413] rounded-2xl flex items-center justify-center bg-white shadow-sm group-hover:rotate-12 transition-transform duration-500 shrink-0">
               {stat.icon}
             </div>
           </div>
@@ -329,14 +329,14 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <TabsList className="bg-zinc-100 border-[1.5px] border-[#111]/10 rounded-full p-1 h-auto">
-            <TabsTrigger value="global" className="rounded-full px-5 py-2 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-[#111] data-[state=active]:text-white transition-all">
+          <TabsList className="bg-zinc-100 border-[1.5px] border-[#141413]/10 rounded-full p-1 h-auto">
+            <TabsTrigger value="global" className="rounded-full px-5 py-2 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-[#141413] data-[state=active]:text-white transition-all">
               All Members
             </TabsTrigger>
-            <TabsTrigger value="referrers" className="rounded-full px-5 py-2 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-[#111] data-[state=active]:text-white transition-all">
+            <TabsTrigger value="referrers" className="rounded-full px-5 py-2 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-[#141413] data-[state=active]:text-white transition-all">
               Top Recruiters
             </TabsTrigger>
-            <TabsTrigger value="watchlist" className="rounded-full px-5 py-2 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-[#111] data-[state=active]:text-white transition-all flex items-center gap-1.5">
+            <TabsTrigger value="watchlist" className="rounded-full px-5 py-2 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-[#141413] data-[state=active]:text-white transition-all flex items-center gap-1.5">
               <ShieldAlert size={11} />
               Risk Watchlist
             </TabsTrigger>
@@ -347,7 +347,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
             <input
               type="text"
               placeholder="Search members..."
-              className="h-10 pl-11 pr-4 bg-white border-[1.5px] border-[#111] rounded-full focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-xs font-bold w-64 text-[#111] placeholder:text-zinc-400"
+              className="h-10 pl-11 pr-4 bg-white border-[1.5px] border-[#141413] rounded-full focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-xs font-bold w-64 text-[#141413] placeholder:text-zinc-400"
               value={activeTab === "referrers" ? referrersSearchTerm : globalSearchTerm}
               onChange={(e) => {
                 if (activeTab === "referrers") setReferrersSearchTerm(e.target.value);
@@ -359,38 +359,38 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
 
         {/* All Members Tab */}
         <TabsContent value="global" className="mt-4">
-          <div className="bg-background border-[1.5px] border-[#111] rounded-[2rem] overflow-hidden shadow-sm">
+          <div className="bg-background border-[1.5px] border-[#141413] rounded-[2rem] overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-white/50 border-b-[1.5px] border-[#111]/10">
+                  <tr className="bg-white/50 border-b-[1.5px] border-[#141413]/10">
                     <th className="p-5 w-12">
                       <button
                         onClick={() => {
                           if (selectedIds.size === filtered.length) setSelectedIds(new Set());
                           else setSelectedIds(new Set(filtered.map(u => u.id)));
                         }}
-                        className="text-zinc-400 hover:text-[#111] transition-colors"
+                        className="text-zinc-400 hover:text-[#141413] transition-colors"
                       >
                         {selectedIds.size === filtered.length && filtered.length > 0 
                           ? <CheckSquare size={16} /> 
                           : <Square size={16} />}
                       </button>
                     </th>
-                    <th className="p-5 font-black text-[10px] tracking-widest text-[#111]/40 uppercase">Rank</th>
-                    <th className="p-5 font-black text-[10px] tracking-widest text-[#111]/40 uppercase">Member</th>
-                    <th className="p-5 font-black text-[10px] tracking-widest text-[#111]/40 uppercase">Status</th>
-                    <th className="p-5 font-black text-[10px] tracking-widest text-[#111]/40 uppercase cursor-pointer select-none" onClick={() => handleSort("totalEarnings")}>
+                    <th className="p-5 font-black text-[10px] tracking-widest text-[#141413]/40 uppercase">Rank</th>
+                    <th className="p-5 font-black text-[10px] tracking-widest text-[#141413]/40 uppercase">Member</th>
+                    <th className="p-5 font-black text-[10px] tracking-widest text-[#141413]/40 uppercase">Status</th>
+                    <th className="p-5 font-black text-[10px] tracking-widest text-[#141413]/40 uppercase cursor-pointer select-none" onClick={() => handleSort("totalEarnings")}>
                       <div className="flex items-center gap-1.5">Total Earned <ArrowUpDown size={11} /></div>
                     </th>
-                    <th className="p-5 font-black text-[10px] tracking-widest text-[#111]/40 uppercase">Team Size</th>
-                    <th className="p-5 font-black text-[10px] tracking-widest text-[#111]/40 uppercase cursor-pointer select-none" onClick={() => handleSort("performanceScore")}>
+                    <th className="p-5 font-black text-[10px] tracking-widest text-[#141413]/40 uppercase">Team Size</th>
+                    <th className="p-5 font-black text-[10px] tracking-widest text-[#141413]/40 uppercase cursor-pointer select-none" onClick={() => handleSort("performanceScore")}>
                       <div className="flex items-center gap-1.5">Score <ArrowUpDown size={11} /></div>
                     </th>
-                    <th className="p-5 font-black text-[10px] tracking-widest text-[#111]/40 uppercase text-right">Actions</th>
+                    <th className="p-5 font-black text-[10px] tracking-widest text-[#141413]/40 uppercase text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y-[1.5px] divide-[#111]/10">
+                <tbody className="divide-y-[1.5px] divide-[#141413]/10">
                   {isLoading
                     ? Array.from({ length: 5 }).map((_, i) => (
                         <tr key={i}>
@@ -404,7 +404,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
                           <td className="p-5">
                             <button
                               onClick={() => toggleSelect(user.id)}
-                              className="text-zinc-300 hover:text-[#111] transition-colors"
+                              className="text-zinc-300 hover:text-[#141413] transition-colors"
                             >
                               {selectedIds.has(user.id) ? <CheckSquare size={16} className="text-primary" /> : <Square size={16} />}
                             </button>
@@ -415,7 +415,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
                               idx === 0 ? "bg-yellow-400 border-yellow-500 text-yellow-900" :
                               idx === 1 ? "bg-zinc-200 border-zinc-300 text-zinc-700" :
                               idx === 2 ? "bg-amber-100 border-amber-300 text-amber-800" :
-                              "bg-white border-[#111]/10 text-zinc-500"
+                              "bg-white border-[#141413]/10 text-zinc-500"
                             )}>
                               {user.globalRank || idx + 1}
                             </span>
@@ -424,7 +424,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
                             <div className="flex items-center gap-3">
                               <UserAvatar user={user} size={10} />
                               <div>
-                                <div className="font-black text-sm uppercase text-[#111] tracking-tight">
+                                <div className="font-black text-sm uppercase text-[#141413] tracking-tight">
                                   {user.firstName} {user.lastName}
                                 </div>
                                 <div className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider">{user.email}</div>
@@ -435,7 +435,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
                             <div className="flex flex-col gap-1.5">
                               {user.userRankTier
                                 ? <RankBadge rank={user.userRankTier} size="sm" />
-                                : <span className="inline-flex items-center gap-1 px-2 py-0.5 border-[1px] border-[#111]/20 bg-zinc-100 rounded-full font-black text-[8px] tracking-widest uppercase text-[#111]">{user.rank || "—"}</span>
+                                : <span className="inline-flex items-center gap-1 px-2 py-0.5 border-[1px] border-[#141413]/20 bg-zinc-100 rounded-full font-black text-[8px] tracking-widest uppercase text-[#141413]">{user.rank || "—"}</span>
                               }
                               <span className={cn(
                                 "inline-flex items-center gap-1 px-2 py-0.5 border-[1px] rounded-full font-black text-[8px] tracking-widest uppercase",
@@ -446,7 +446,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
                             </div>
                           </td>
                           <td className="p-5">
-                            <span className="font-black text-sm tabular-nums text-[#111]">
+                            <span className="font-black text-sm tabular-nums text-[#141413]">
                               PKR {new Decimal(user.totalEarnings || "0").toFixed(2)}
                             </span>
                           </td>
@@ -454,14 +454,14 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
                             <div className="space-y-1">
                               {/* THORX v3: L1-only — L2 writes are frozen */}
                               <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-                                L1: <span className="text-[#111]">{user.level1Count || 0}</span>
+                                L1: <span className="text-[#141413]">{user.level1Count || 0}</span>
                               </div>
                             </div>
                           </td>
                           <td className="p-5">
                             {/* PS column — raw performance score with rank indicator */}
                             <div className="flex flex-col gap-0.5">
-                              <span className="font-black text-sm tabular-nums text-[#111]">{Number(user.performanceScore || 0).toLocaleString()}</span>
+                              <span className="font-black text-sm tabular-nums text-[#141413]">{Number(user.performanceScore || 0).toLocaleString()}</span>
                               <span className="text-[9px] text-zinc-400 uppercase tracking-widest">PS</span>
                             </div>
                           </td>
@@ -469,7 +469,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-9 w-9 border-[1.5px] border-[#111]/20 hover:border-[#111] hover:bg-black/5 rounded-full transition-all text-zinc-400 hover:text-[#111]"
+                              className="h-9 w-9 border-[1.5px] border-[#141413]/20 hover:border-[#141413] hover:bg-black/5 rounded-full transition-all text-zinc-400 hover:text-[#141413]"
                               onClick={() => { setSelectedUser(user); setIsInspectorOpen(true); }}
                             >
                               <Eye size={14} />
@@ -491,7 +491,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="p-4 border-t-[1.5px] border-[#111]/10 flex items-center justify-between">
+              <div className="p-4 border-t-[1.5px] border-[#141413]/10 flex items-center justify-between">
                 <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">
                   Page {page + 1} of {totalPages}
                 </span>
@@ -501,7 +501,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
                     variant="ghost"
                     disabled={page === 0}
                     onClick={() => setPage(p => p - 1)}
-                    className="h-8 w-8 rounded-full border-[1.5px] border-[#111]/20 hover:border-[#111]"
+                    className="h-8 w-8 rounded-full border-[1.5px] border-[#141413]/20 hover:border-[#141413]"
                   >
                     <ChevronLeft size={14} />
                   </Button>
@@ -510,7 +510,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
                     variant="ghost"
                     disabled={page >= totalPages - 1}
                     onClick={() => setPage(p => p + 1)}
-                    className="h-8 w-8 rounded-full border-[1.5px] border-[#111]/20 hover:border-[#111]"
+                    className="h-8 w-8 rounded-full border-[1.5px] border-[#141413]/20 hover:border-[#141413]"
                   >
                     <ChevronRight size={14} />
                   </Button>
@@ -522,24 +522,24 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
 
         {/* Top Recruiters Tab */}
         <TabsContent value="referrers" className="mt-4">
-          <div className="bg-background border-[1.5px] border-[#111] rounded-[2rem] overflow-hidden shadow-sm">
+          <div className="bg-background border-[1.5px] border-[#141413] rounded-[2rem] overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-white/50 border-b-[1.5px] border-[#111]/10">
-                    <th className="p-5 font-black text-[10px] tracking-widest text-[#111]/40 uppercase">Rank</th>
-                    <th className="p-5 font-black text-[10px] tracking-widest text-[#111]/40 uppercase">Member</th>
-                    <th className="p-5 font-black text-[10px] tracking-widest text-[#111]/40 uppercase cursor-pointer select-none" onClick={() => handleReferrerSort("level1Count")}>
+                  <tr className="bg-white/50 border-b-[1.5px] border-[#141413]/10">
+                    <th className="p-5 font-black text-[10px] tracking-widest text-[#141413]/40 uppercase">Rank</th>
+                    <th className="p-5 font-black text-[10px] tracking-widest text-[#141413]/40 uppercase">Member</th>
+                    <th className="p-5 font-black text-[10px] tracking-widest text-[#141413]/40 uppercase cursor-pointer select-none" onClick={() => handleReferrerSort("level1Count")}>
                       <div className="flex items-center gap-1.5">Direct Referrals (L1) <ArrowUpDown size={11} /></div>
                     </th>
                     {/* THORX v3: L2 column removed — 1-tier referral only (Appendix A #4) */}
-                    <th className="p-5 font-black text-[10px] tracking-widest text-[#111]/40 uppercase cursor-pointer select-none" onClick={() => handleReferrerSort("totalEarnings")}>
+                    <th className="p-5 font-black text-[10px] tracking-widest text-[#141413]/40 uppercase cursor-pointer select-none" onClick={() => handleReferrerSort("totalEarnings")}>
                       <div className="flex items-center gap-1.5">Total Earned <ArrowUpDown size={11} /></div>
                     </th>
-                    <th className="p-5 font-black text-[10px] tracking-widest text-[#111]/40 uppercase text-right">View</th>
+                    <th className="p-5 font-black text-[10px] tracking-widest text-[#141413]/40 uppercase text-right">View</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y-[1.5px] divide-[#111]/10">
+                <tbody className="divide-y-[1.5px] divide-[#141413]/10">
                   {isLoading
                     ? Array.from({ length: 5 }).map((_, i) => (
                         <tr key={i}>
@@ -556,7 +556,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
                               idx === 0 ? "bg-yellow-400 border-yellow-500 text-yellow-900" :
                               idx === 1 ? "bg-zinc-200 border-zinc-300 text-zinc-700" :
                               idx === 2 ? "bg-amber-100 border-amber-300 text-amber-800" :
-                              "bg-white border-[#111]/10 text-zinc-500"
+                              "bg-white border-[#141413]/10 text-zinc-500"
                             )}>
                               {idx + 1}
                             </span>
@@ -565,7 +565,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
                             <div className="flex items-center gap-3">
                               <UserAvatar user={user} size={10} />
                               <div>
-                                <div className="font-black text-sm uppercase text-[#111] tracking-tight">
+                                <div className="font-black text-sm uppercase text-[#141413] tracking-tight">
                                   {user.firstName} {user.lastName}
                                 </div>
                                 <div className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider">{user.email}</div>
@@ -580,12 +580,12 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
                                   style={{ width: `${Math.min(((user.level1Count || 0) / maxLevel1Count) * 100, 100)}%` }}
                                 />
                               </div>
-                              <span className="font-black text-sm tabular-nums text-[#111]">{user.level1Count || 0}</span>
+                              <span className="font-black text-sm tabular-nums text-[#141413]">{user.level1Count || 0}</span>
                             </div>
                           </td>
                           {/* L2 cell removed */}
                           <td className="p-5">
-                            <span className="font-black text-sm tabular-nums text-[#111]">
+                            <span className="font-black text-sm tabular-nums text-[#141413]">
                               PKR {new Decimal(user.totalEarnings || "0").toFixed(2)}
                             </span>
                           </td>
@@ -593,7 +593,7 @@ export function LeaderboardInsights({ onViewUserInCRM }: { onViewUserInCRM?: (em
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-9 w-9 border-[1.5px] border-[#111]/20 hover:border-[#111] hover:bg-black/5 rounded-full transition-all text-zinc-400 hover:text-[#111]"
+                              className="h-9 w-9 border-[1.5px] border-[#141413]/20 hover:border-[#141413] hover:bg-black/5 rounded-full transition-all text-zinc-400 hover:text-[#141413]"
                               onClick={() => { setSelectedUser(user); setIsInspectorOpen(true); }}
                             >
                               <Eye size={14} />

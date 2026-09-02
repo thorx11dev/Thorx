@@ -127,7 +127,7 @@ export function GuildProfileWizard({ guildId, guildName, onDone, mode = "wizard"
   if (isError) {
     return (
       <div className="border-2 border-black/10 bg-white rounded-2xl p-8 flex flex-col items-center gap-3 text-center">
-        <div className="w-14 h-14 bg-[#EAE5DD] border-2 border-black/10 rounded-2xl flex items-center justify-center">
+        <div className="w-14 h-14 bg-[#E8E5D8] border-2 border-black/10 rounded-2xl flex items-center justify-center">
           <GiPortrait className="w-6 h-6 text-black/25" />
         </div>
         <div>
@@ -147,7 +147,7 @@ export function GuildProfileWizard({ guildId, guildName, onDone, mode = "wizard"
           the ME heading, so edit mode needs no extra header. */}
       {mode === "wizard" && (
         <div className="text-center space-y-2 pb-1">
-          <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-[#EAE5DD] border-2 border-black/10 flex items-center justify-center mx-auto">
+          <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-[#E8E5D8] border-2 border-black/10 flex items-center justify-center mx-auto">
             <GiPortrait size={24} className="text-primary" />
           </div>
           <div>
@@ -195,7 +195,7 @@ export function GuildProfileWizard({ guildId, guildName, onDone, mode = "wizard"
         <div className="space-y-2">
           {form.links.map((link, idx) => (
             <div key={idx} className="flex items-center gap-3 border-2 border-black/10 rounded-xl px-3.5 py-2.5 bg-white transition-colors hover:border-black">
-              <span className="w-8 h-8 rounded-lg bg-[#EAE5DD] border-2 border-black/10 flex items-center justify-center shrink-0">
+              <span className="w-8 h-8 rounded-lg bg-[#E8E5D8] border-2 border-black/10 flex items-center justify-center shrink-0">
                 <Link2 size={13} className="text-black/45" />
               </span>
               <div className="flex-1 min-w-0">

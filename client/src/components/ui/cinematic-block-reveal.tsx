@@ -17,7 +17,7 @@ const CinematicBlockReveal: React.FC<CinematicBlockRevealProps> = ({
     children,
     trigger = false,
     delay = 0,
-    blockColor = "#ff6b00",
+    blockColor = "#D97757",
     className,
     duration = 0.5
 }) => {

@@ -211,7 +211,7 @@ export function GuildWarsAdmin() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-4xl font-black tracking-tighter uppercase text-[#111]">Guild Wars</h2>
+          <h2 className="text-4xl font-black tracking-tighter uppercase text-[#141413]">Guild Wars</h2>
           <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Manage seasons, matchmaking, and war resolution</p>
         </div>
         <div className="flex gap-2">
@@ -266,7 +266,7 @@ export function GuildWarsAdmin() {
               return (
                 <div key={s.id} className={cn(
                   "rounded-xl border-[1.5px] p-4 flex items-center gap-4",
-                  isActive ? "border-blue-400 bg-blue-50" : "border-[#111]/10 bg-white"
+                  isActive ? "border-blue-400 bg-blue-50" : "border-[#141413]/10 bg-white"
                 )}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -312,7 +312,7 @@ export function GuildWarsAdmin() {
         ) : (
           <div className="space-y-2">
             {wars.map((w: AdminWar) => (
-              <div key={w.id} className="rounded-xl border-[1.5px] border-[#111] bg-white p-4">
+              <div key={w.id} className="rounded-xl border-[1.5px] border-[#141413] bg-white p-4">
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">

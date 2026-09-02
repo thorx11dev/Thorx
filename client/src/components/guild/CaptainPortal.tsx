@@ -23,7 +23,7 @@ import {
   AvatarStamp, EmptyState, SelectField, SegmentedToggle, ChatComposer,
   PanelSkeleton, SkeletonBlock,
 } from "./GuildPanelShell";
-import { Inbox, Users, ListChecks, MessagesSquare, MessageCircle, Swords, Search, BarChart3, Settings, Menu, ArrowRight, ArrowLeft, Megaphone, Shield, ImagePlus, ChevronDown, BellRing, Trophy, X, Loader2, UserMinus } from "lucide-react";
+import { Inbox, Users, ListChecks, MessagesSquare, MessageCircle, Swords, Search, BarChart3, Settings, Menu, ArrowRight, ArrowLeft, Megaphone, Shield, ImagePlus, ChevronDown, BellRing, Glasses, X, Loader2, UserMinus } from "lucide-react";
 import { InteractiveDivider } from "@/features/user-portal/shared";
 import { GuildNavDrawer } from "./GuildNavDrawer";
 import { EmblemBirds } from "./EmblemBirds";
@@ -541,7 +541,7 @@ export function CaptainPortal() {
         <div className="p-5 border-b-2 border-black shrink-0">
           <TechnicalLabel text="GUILD PROFILE" className="text-black/40 text-[9px] mb-4" />
           <div className="flex items-center gap-3.5 min-w-0">
-            <div className="relative w-14 h-14 rounded-xl border-2 border-black bg-[#EAE5DD] flex items-center justify-center font-black text-xl shrink-0 overflow-hidden">
+            <div className="relative w-14 h-14 rounded-xl border-2 border-black bg-[#E8E5D8] flex items-center justify-center font-black text-xl shrink-0 overflow-hidden">
               <span className="absolute inset-0 flex items-center justify-center text-black/25">{(guild.name || "G")[0].toUpperCase()}</span>
               {guild.avatarUrl && (
                 <img src={guild.avatarUrl} alt={guild.name} onError={(e) => { e.currentTarget.style.display = "none"; }} className="absolute inset-0 w-full h-full object-cover" />
@@ -555,11 +555,11 @@ export function CaptainPortal() {
 
           {/* Stats */}
           <div className="mt-4 grid grid-cols-2 gap-2">
-            <div className="rounded-xl border-2 border-black/10 bg-[#EAE5DD]/30 px-3 py-2.5">
+            <div className="rounded-xl border-2 border-black/10 bg-[#E8E5D8]/30 px-3 py-2.5">
               <TechnicalLabel text="MEMBERS" className="text-black/40 text-[8px]" />
               <div className="font-black text-lg tabular-nums leading-tight mt-0.5">{active.length}</div>
             </div>
-            <div className="rounded-xl border-2 border-black/10 bg-[#EAE5DD]/30 px-3 py-2.5">
+            <div className="rounded-xl border-2 border-black/10 bg-[#E8E5D8]/30 px-3 py-2.5">
               <TechnicalLabel text="GPS" className="text-black/40 text-[8px]" />
               <div className="font-black text-lg tabular-nums text-primary leading-tight mt-0.5">{gpsScore.toLocaleString()}</div>
             </div>
@@ -617,7 +617,7 @@ export function CaptainPortal() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-3.5 min-w-0 py-2">
-            <div className="relative w-14 h-14 rounded-xl border-2 border-black bg-[#EAE5DD] flex items-center justify-center font-black text-xl shrink-0 overflow-hidden">
+            <div className="relative w-14 h-14 rounded-xl border-2 border-black bg-[#E8E5D8] flex items-center justify-center font-black text-xl shrink-0 overflow-hidden">
               <span className="absolute inset-0 flex items-center justify-center text-black/25">{(guild.name || "G")[0].toUpperCase()}</span>
               {guild.avatarUrl && (
                 <img src={guild.avatarUrl} alt={guild.name} onError={(e) => { e.currentTarget.style.display = "none"; }} className="absolute inset-0 w-full h-full object-cover" />
@@ -653,7 +653,7 @@ export function CaptainPortal() {
                 src={`/guild/emblem-${EMBLEM_INDEX}.webp`}
                 alt=""
                 draggable={false}
-                className="w-full h-full object-contain drop-shadow-[2px_2px_0px_rgba(0,0,0,0.22)]"
+                className="w-full h-full object-contain drop-shadow-[2px_2px_0px_rgba(20, 20, 19,0.22)]"
               />
             </button>
           </div>
@@ -1025,7 +1025,7 @@ export function CaptainPortal() {
               )}
 
               {!isChatError && (
-                <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-2.5 bg-[#F2EDE4]/40">
+                <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-2.5 bg-[#E8E5D8]/40">
                   {chatMessages.length === 0 ? (
                     <div className="text-center py-16">
                       <div className="w-14 h-14 rounded-2xl border-2 border-black/10 bg-white flex items-center justify-center mx-auto mb-4">
@@ -1050,12 +1050,12 @@ export function CaptainPortal() {
                           return (
                             <div key={msg.id ?? `${dayLabel}-${i}`} className={cn("flex items-end gap-2", isMe ? "justify-end" : "justify-start")}>
                               {!isMe && (
-                                <div className="w-7 h-7 rounded-lg border-2 border-black bg-[#EAE5DD] flex items-center justify-center text-[10px] font-black shrink-0 overflow-hidden">
+                                <div className="w-7 h-7 rounded-lg border-2 border-black bg-[#E8E5D8] flex items-center justify-center text-[10px] font-black shrink-0 overflow-hidden">
                                   <span className="text-black/35">{(msg.senderName || msg.firstName || "M")[0].toUpperCase()}</span>
                                 </div>
                               )}
                               <div className={cn(
-                                "max-w-[72%] rounded-2xl px-4 py-2.5 text-sm border-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)]",
+                                "max-w-[72%] rounded-2xl px-4 py-2.5 text-sm border-2 shadow-[2px_2px_0px_0px_rgba(20, 20, 19,0.08)]",
                                 isMe
                                   ? "bg-black text-white border-black rounded-br-md"
                                   : "bg-white text-black border-black rounded-bl-md",
@@ -1127,7 +1127,7 @@ export function CaptainPortal() {
                     {active.filter((m: any) => m.userId !== user?.id).map((m: any) => (
                       <button
                         key={m.id}
-                        className="group w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border-2 border-black/10 bg-white text-left transition-all duration-200 hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        className="group w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border-2 border-black/10 bg-white text-left transition-all duration-200 hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(20, 20, 19,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         onClick={() => setSelectedDmMember(m.userId)}
                       >
                         <AvatarStamp name={m.firstName || m.identity} avatarUrl={m.avatarUrl} size="sm" />
@@ -1177,7 +1177,7 @@ export function CaptainPortal() {
                   )}
 
                   {!isDmError && (
-                    <div className="flex-1 overflow-y-auto p-4 space-y-2.5 bg-[#F2EDE4]/40">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-2.5 bg-[#E8E5D8]/40">
                       {dmMessages.length === 0 ? (
                         <div className="text-center py-16">
                           <div className="w-14 h-14 rounded-2xl border-2 border-black/10 bg-white flex items-center justify-center mx-auto mb-4">
@@ -1188,7 +1188,7 @@ export function CaptainPortal() {
                       ) : dmMessages.map((msg: any, i) => (
                         <div key={msg.id ?? i} className={cn("flex items-end", msg.fromUserId === user?.id ? "justify-end" : "justify-start")}>
                           <div className={cn(
-                            "max-w-[72%] rounded-2xl px-4 py-2.5 text-sm border-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)]",
+                            "max-w-[72%] rounded-2xl px-4 py-2.5 text-sm border-2 shadow-[2px_2px_0px_0px_rgba(20, 20, 19,0.08)]",
                             msg.fromUserId === user?.id
                               ? "bg-black text-white border-black rounded-br-md"
                               : "bg-white text-black border-black rounded-bl-md"
@@ -1335,7 +1335,7 @@ export function CaptainPortal() {
                 className={cn(
                   "flex-1 h-12 rounded-xl text-xs font-black uppercase tracking-[0.25em] transition-all duration-200",
                   settingsView === m.id
-                    ? "bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,0.2)]"
+                    ? "bg-black text-white shadow-[3px_3px_0px_0px_rgba(20, 20, 19,0.2)]"
                     : "text-black/45 hover:text-black"
                 )}
               >
@@ -1381,8 +1381,8 @@ export function CaptainPortal() {
               {/* Guild profile picture — round preview, stacked on mobile */}
               <div>
                 <FieldLabel>Profile Picture</FieldLabel>
-                <div className="rounded-2xl bg-[#EAE5DD]/30 border-2 border-black/10 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
-                  <div className="w-20 h-20 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-black bg-[#EAE5DD] flex items-center justify-center shrink-0 mx-auto sm:mx-0">
+                <div className="rounded-2xl bg-[#E8E5D8]/30 border-2 border-black/10 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="w-20 h-20 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-black bg-[#E8E5D8] flex items-center justify-center shrink-0 mx-auto sm:mx-0">
                     {settingsForm.avatarUrl ? (
                       <img src={settingsForm.avatarUrl} alt="Guild profile preview" className="w-full h-full object-cover" />
                     ) : (
@@ -1436,7 +1436,7 @@ export function CaptainPortal() {
                   </div>
                   <div className="text-[9px] font-mono font-bold tracking-[0.3em] text-black/40 uppercase mt-1.5">PTS / WEEK</div>
                 </div>
-                <span className="shrink-0 inline-flex items-center px-2.5 py-1 rounded-md bg-[#EAE5DD] border-2 border-black/10 text-black/50 font-black uppercase tracking-[0.2em] text-[9px]">
+                <span className="shrink-0 inline-flex items-center px-2.5 py-1 rounded-md bg-[#E8E5D8] border-2 border-black/10 text-black/50 font-black uppercase tracking-[0.2em] text-[9px]">
                   Set by admin
                 </span>
               </div>

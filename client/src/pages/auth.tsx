@@ -570,7 +570,7 @@ export default function Auth() {
                 <div className="max-w-[480px] mx-auto w-full space-y-6 md:space-y-8">
                   <div className="text-center space-y-3">
                     <div className="w-16 h-16 mx-auto bg-black rounded-2xl flex items-center justify-center border-2 border-black">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8L12 2 3 8v8l9 6 9-6z"/><path d="m3 8 9 6 9-6"/><path d="M12 2v12"/></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FAF9F5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8L12 2 3 8v8l9 6 9-6z"/><path d="m3 8 9 6 9-6"/><path d="M12 2v12"/></svg>
                     </div>
                     <h2 className="text-2xl md:text-3xl font-black tracking-tight">VERIFY EMAIL</h2>
                     <p className="text-sm text-muted-foreground max-w-sm mx-auto">
@@ -599,7 +599,7 @@ export default function Auth() {
                             handleOtpSubmit(pasted);
                           }
                         }}
-                        className="w-11 h-14 md:w-14 md:h-16 text-center text-2xl md:text-3xl font-black border-2 border-black/15 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all bg-[#F5F5F3]"
+                        className="w-11 h-14 md:w-14 md:h-16 text-center text-2xl md:text-3xl font-black border-2 border-black/15 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all bg-[#FAF9F5]"
                         data-testid={`otp-input-${i}`}
                         autoFocus={i === 0}
                       />
@@ -1028,7 +1028,7 @@ export default function Auth() {
                           <div className="w-full border-t-2 border-black/10"></div>
                         </div>
                         <div className="relative flex justify-center">
-                          <span className="bg-[#F5F5F3] px-2 text-[10px] font-black tracking-[0.2em] text-black/20 uppercase">OPTIONAL</span>
+                          <span className="bg-[#FAF9F5] px-2 text-[10px] font-black tracking-[0.2em] text-black/20 uppercase">OPTIONAL</span>
                         </div>
                       </div>
 
@@ -1246,7 +1246,7 @@ export default function Auth() {
 
                         {/* 2FA code — revealed when the server answers TOTP_REQUIRED */}
                         {totpRequired && (
-                          <div className="space-y-2 border-2 border-black bg-[#FF6B35]/10 p-4 rounded-lg">
+                          <div className="space-y-2 border-2 border-black bg-[#D97757]/10 p-4 rounded-lg">
                             <FieldTag>Authenticator Code</FieldTag>
                             <Input
                               value={totpCode}

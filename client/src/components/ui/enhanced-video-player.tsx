@@ -185,7 +185,7 @@ function AreaPlayer({
             : 'w-full border-2 border-black rounded-2xl'
         }`}
       style={{
-        backgroundColor: "#0a0a0a",
+        backgroundColor: "#141413",
         ...(isFullscreen ? {} : isMobileDevice
           ? { aspectRatio: '9/16', maxHeight: '75vh' }
           : { aspectRatio: '16/9' })

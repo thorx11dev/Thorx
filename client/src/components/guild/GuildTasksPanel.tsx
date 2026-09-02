@@ -84,7 +84,7 @@ export function GuildTasksPanel() {
   if (weeklyTasks.length === 0) {
     return (
       <PremiumCard interactive={false} className="text-center py-14">
-        <div className="p-3 bg-[#EAE5DD] border-2 border-black/10 rounded-xl w-fit mx-auto mb-4">
+        <div className="p-3 bg-[#E8E5D8] border-2 border-black/10 rounded-xl w-fit mx-auto mb-4">
           <GiWarhammer size={22} className="text-black/40" />
         </div>
         <SectionChip className="mb-3">ENGINE C · TASKS</SectionChip>

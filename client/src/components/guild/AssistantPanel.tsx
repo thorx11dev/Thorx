@@ -23,7 +23,7 @@ import {
 } from "./GuildPanelShell";
 import {
   GiSpartanHelmet, GiKnightBanner, GiHuntingHorn, GiLaurelsTrophy, GiRoundShield, GiShield,
-  GiSkullCrossedBones, GiCrossedAxes, GiPadlock, GiWarhammer, GiMagnifyingGlass,
+  GiSkullCrossedBones, GiCrossedAxes, GiPadlock, GiWarhammer, GiMagnifyingGlass, GiSpectacles,
 } from "./guild-icons";
 import { GuildTasksPanel } from "./GuildTasksPanel";
 import { GuildDiscoveryPanel } from "./GuildDiscoveryPanel";
@@ -185,7 +185,7 @@ export function AssistantPanel() {
   if (isGuildError && !guild) {
     return (
       <PremiumCard className="p-6 md:p-8 flex flex-col items-center gap-4 text-center">
-        <div className="p-3 bg-[#EAE5DD] border-2 border-black/10 rounded-xl"><GiSpartanHelmet className="w-6 h-6 text-black/50" /></div>
+        <div className="p-3 bg-[#E8E5D8] border-2 border-black/10 rounded-xl"><GiSpartanHelmet className="w-6 h-6 text-black/50" /></div>
         <div>
           <p className="font-bold text-foreground">Could not load guild data</p>
           <p className="text-sm font-medium text-black/50 mt-1">There was a problem reaching the server.</p>
@@ -432,7 +432,7 @@ export function AssistantPanel() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <p className="text-sm font-bold truncate">{m.firstName || m.identity || "Member"}</p>
-                        {m.isMvp && <GiLaurelsTrophy size={12} className="text-primary shrink-0" />}
+                        {m.isMvp && <GiSpectacles size={12} className="text-primary shrink-0" />}
                       </div>
                       <p className="text-[10px] font-black uppercase tracking-wider text-black/40">{(m.weeklyPointsContributed || 0).toLocaleString()} PTS</p>
                     </div>
@@ -479,7 +479,7 @@ export function AssistantPanel() {
                       <div className="flex items-center gap-1.5">
                         <p className="text-sm font-bold truncate">{isSelf ? "You" : (m.firstName || m.identity || "Member")}</p>
                         {isCaptain && <GiSpartanHelmet size={12} className="text-primary shrink-0" />}
-                        {m.isMvp && <GiLaurelsTrophy size={12} className="text-primary shrink-0" />}
+                        {m.isMvp && <GiSpectacles size={12} className="text-primary shrink-0" />}
                       </div>
                       <p className="text-[10px] font-black uppercase tracking-wider text-black/40">{m.userRankTier ? `${m.userRankTier} · ` : ""}{(m.weeklyPointsContributed || 0).toLocaleString()} PTS</p>
                     </div>

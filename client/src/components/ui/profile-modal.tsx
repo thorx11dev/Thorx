@@ -263,7 +263,7 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
 
           {/* ── Left: Preview + Rank Card ── */}
           <div className="lg:col-span-5">
-            <div className="rounded-3xl bg-white/[0.04] border border-white/10 p-6 md:p-8 relative overflow-hidden transition-colors duration-300 hover:bg-white/[0.06] h-full shadow-[0_25px_60px_-25px_rgba(0,0,0,0.8)]">
+            <div className="rounded-3xl bg-white/[0.04] border border-white/10 p-6 md:p-8 relative overflow-hidden transition-colors duration-300 hover:bg-white/[0.06] h-full shadow-[0_25px_60px_-25px_rgba(20, 20, 19,0.8)]">
 
               {/* Avatar + name row */}
               <div className="flex items-center gap-5">

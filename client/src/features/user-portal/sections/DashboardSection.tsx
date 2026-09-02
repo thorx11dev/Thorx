@@ -61,7 +61,7 @@ export function DashboardSection(props: DashboardSectionProps) {
             animate: { opacity: 1, y: 0 }
           }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-white border-2 md:border-[3px] border-black rounded-2xl p-6 md:p-12 mb-12 relative overflow-hidden group transition-all duration-500 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+          className="bg-white border-2 md:border-[3px] border-black rounded-2xl p-6 md:p-12 mb-12 relative overflow-hidden group transition-all duration-500 hover:shadow-[6px_6px_0px_0px_rgba(20, 20, 19,1)]"
         >
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8 relative z-10">
             {/* Avatar */}
@@ -106,7 +106,7 @@ export function DashboardSection(props: DashboardSectionProps) {
               animate: { opacity: 1, y: 0 }
             }}
             whileHover={{ scale: 1.01 }}
-            className="group bg-white border-2 border-black rounded-2xl transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden"
+            className="group bg-white border-2 border-black rounded-2xl transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(20, 20, 19,1)] overflow-hidden"
           >
             <CardHeader className="border-b-2 border-black p-3 md:p-6 bg-white">
               <CardTitle className="flex items-center justify-between">
@@ -121,50 +121,50 @@ export function DashboardSection(props: DashboardSectionProps) {
                 <AreaChart data={earningsChartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                   <defs>
                     <linearGradient id="earningsGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.1} />
+                      <stop offset="5%" stopColor="#D97757" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#D97757" stopOpacity={0.1} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="2 2" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.2} />
+                  <CartesianGrid strokeDasharray="2 2" stroke="var(--muted-foreground)" strokeOpacity={0.2} />
                   <XAxis
                     dataKey="date"
-                    stroke="hsl(var(--muted-foreground))"
+                    stroke="var(--muted-foreground)"
                     fontSize={isMobile ? 8 : 10}
                     fontFamily="var(--font-sans)"
                     tickLine={false}
                     axisLine={false}
                     hide={isMobile}
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fill: 'var(--muted-foreground)' }}
                   />
                   <YAxis
-                    stroke="hsl(var(--muted-foreground))"
+                    stroke="var(--muted-foreground)"
                     fontSize={isMobile ? 8 : 10}
                     fontFamily="var(--font-sans)"
                     tickFormatter={(value) => isMobile ? `${value}` : `${value} pts`}
                     tickLine={false}
                     axisLine={false}
                     hide={isMobile}
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fill: 'var(--muted-foreground)' }}
                   />
                   <Tooltip
                     formatter={(value) => [`${value} pts`, 'TX-Points']}
                     labelFormatter={(label) => `Day: ${label}`}
                     contentStyle={{
-                      backgroundColor: 'hsl(var(--background))',
-                      border: '2px solid hsl(var(--primary))',
+                      backgroundColor: 'var(--background)',
+                      border: '2px solid #D97757',
                       borderRadius: '4px',
-                      color: 'hsl(var(--primary))',
+                      color: '#D97757',
                       fontFamily: 'var(--font-sans)',
                       fontSize: isMobile ? '10px' : '12px',
                       fontWeight: 'bold',
-                      boxShadow: '0 4px 12px hsl(var(--primary)/0.25)'
+                      boxShadow: '0 4px 12px #D9775740'
                     }}
-                    labelStyle={{ color: 'hsl(var(--primary))' }}
+                    labelStyle={{ color: '#D97757' }}
                   />
                   <Area
                     type="monotone"
                     dataKey="earnings"
-                    stroke="hsl(var(--primary))"
+                    stroke="#D97757"
                     strokeWidth={isMobile ? 2 : 3}
                     fill="url(#earningsGradient)"
                   />
@@ -180,7 +180,7 @@ export function DashboardSection(props: DashboardSectionProps) {
               animate: { opacity: 1, y: 0 }
             }}
             whileHover={{ scale: 1.01 }}
-            className="group bg-white border-2 border-black rounded-2xl transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden"
+            className="group bg-white border-2 border-black rounded-2xl transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(20, 20, 19,1)] overflow-hidden"
           >
             <CardHeader className="border-b-2 border-black p-3 md:p-6 bg-white">
               <CardTitle className="flex items-center justify-between">
@@ -197,7 +197,7 @@ export function DashboardSection(props: DashboardSectionProps) {
                   <ResponsiveContainer width="100%" height={isMobile ? 180 : 280} minHeight={isMobile ? 160 : 250}>
                     <RechartsPieChart margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                       <Pie
-                        data={hasEarningsBreakdownData ? earningTypesData : [{ name: 'No earnings yet', value: 1, color: '#E8DCC4' }]}
+                        data={hasEarningsBreakdownData ? earningTypesData : [{ name: 'No earnings yet', value: 1, color: '#E8E5D8' }]}
                         cx="50%"
                         cy="50%"
                         outerRadius={isMobile ? 60 : 90}
@@ -207,7 +207,7 @@ export function DashboardSection(props: DashboardSectionProps) {
                         strokeWidth={2}
                         label={false}
                       >
-                        {(hasEarningsBreakdownData ? earningTypesData : [{ name: 'No earnings yet', value: 1, color: '#E8DCC4' }]).map((entry, index) => (
+                        {(hasEarningsBreakdownData ? earningTypesData : [{ name: 'No earnings yet', value: 1, color: '#E8E5D8' }]).map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
                             fill={entry.color}
@@ -227,7 +227,7 @@ export function DashboardSection(props: DashboardSectionProps) {
                             fontFamily: 'var(--font-sans)',
                             fontSize: isMobile ? '10px' : '13px',
                             fontWeight: '900',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
+                            boxShadow: '0 4px 12px rgba(20, 20, 19,0.25)'
                           }}
                           labelStyle={{
                             color: 'var(--foreground)',

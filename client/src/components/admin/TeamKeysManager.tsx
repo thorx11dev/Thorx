@@ -176,7 +176,7 @@ export function TeamKeysManager() {
     <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-4xl font-black tracking-tighter uppercase text-[#111]">Team</h2>
+          <h2 className="text-4xl font-black tracking-tighter uppercase text-[#141413]">Team</h2>
         </div>
 
         <div className="flex items-center gap-4">
@@ -185,7 +185,7 @@ export function TeamKeysManager() {
             <input 
               type="text" 
               placeholder="Search staff members..."
-              className="h-10 pl-11 pr-4 bg-white border-[1.5px] border-[#111] rounded-full focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-xs font-bold w-64 text-[#111] placeholder:text-zinc-400"
+              className="h-10 pl-11 pr-4 bg-white border-[1.5px] border-[#141413] rounded-full focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-xs font-bold w-64 text-[#141413] placeholder:text-zinc-400"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -203,23 +203,23 @@ export function TeamKeysManager() {
             }}
           >
             <DialogTrigger asChild>
-              <Button className="h-10 bg-[#111] text-white border-[1.5px] border-[#111] font-black text-xs px-6 hover:bg-primary hover:text-white rounded-full transition-all uppercase shadow-sm">
+              <Button className="h-10 bg-[#141413] text-white border-[1.5px] border-[#141413] font-black text-xs px-6 hover:bg-primary hover:text-white rounded-full transition-all uppercase shadow-sm">
                 Add Member
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-background border-[#111] border-[1.5px] rounded-[2rem] p-8 max-w-md">
+            <DialogContent className="bg-background border-[#141413] border-[1.5px] rounded-[2rem] p-8 max-w-md">
               <DialogHeader>
-                <DialogTitle className="text-3xl font-black tracking-tighter uppercase text-[#111]">
+                <DialogTitle className="text-3xl font-black tracking-tighter uppercase text-[#141413]">
                   {pendingInvite ? "Invite Ready" : "Add Member"}
                 </DialogTitle>
               </DialogHeader>
 
               {pendingInvite ? (
                 <div className="space-y-6 mt-4">
-                  <div className="flex items-start gap-3 p-4 border-2 border-[#111]/10 rounded-2xl bg-zinc-50">
+                  <div className="flex items-start gap-3 p-4 border-2 border-[#141413]/10 rounded-2xl bg-zinc-50">
                     <Mail className="w-5 h-5 text-zinc-400 mt-0.5 shrink-0" />
                     <p className="text-xs font-bold text-zinc-600 leading-relaxed">
-                      <span className="text-[#111]">{pendingInvite.email}</span> has no THORX account yet, and no
+                      <span className="text-[#141413]">{pendingInvite.email}</span> has no THORX account yet, and no
                       email provider is configured to deliver invitations automatically. Share this activation
                       link with them manually — it expires in 48 hours.
                     </p>
@@ -231,7 +231,7 @@ export function TeamKeysManager() {
                         readOnly
                         value={pendingInvite.url}
                         onFocus={(e) => e.currentTarget.select()}
-                        className="flex-1 h-12 px-4 bg-white border-[1.5px] border-[#111] rounded-full font-mono text-[11px] text-[#111] outline-none"
+                        className="flex-1 h-12 px-4 bg-white border-[1.5px] border-[#141413] rounded-full font-mono text-[11px] text-[#141413] outline-none"
                         data-testid="input-invite-link"
                       />
                       <Button
@@ -247,7 +247,7 @@ export function TeamKeysManager() {
                           setLinkCopied(true);
                           setTimeout(() => setLinkCopied(false), 2000);
                         }}
-                        className="h-12 w-12 shrink-0 bg-[#111] text-white border-[1.5px] border-[#111] rounded-full hover:bg-primary transition-all"
+                        className="h-12 w-12 shrink-0 bg-[#141413] text-white border-[1.5px] border-[#141413] rounded-full hover:bg-primary transition-all"
                         data-testid="button-copy-invite-link"
                       >
                         {linkCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -262,7 +262,7 @@ export function TeamKeysManager() {
                       setLinkCopied(false);
                       setIsDialogOpen(false);
                     }}
-                    className="w-full h-12 bg-primary text-white border-[1.5px] border-[#111] font-black text-xs rounded-full hover:bg-primary/80 transition-colors uppercase"
+                    className="w-full h-12 bg-primary text-white border-[1.5px] border-[#141413] font-black text-xs rounded-full hover:bg-primary/80 transition-colors uppercase"
                   >
                     Done
                   </Button>
@@ -275,7 +275,7 @@ export function TeamKeysManager() {
                     placeholder="user@thorx.com" 
                     value={newMemberEmail}
                     onChange={(e) => setNewMemberEmail(e.target.value)}
-                    className="bg-white border-[1.5px] border-[#111] rounded-full font-bold h-12 px-4 focus-visible:ring-primary" 
+                    className="bg-white border-[1.5px] border-[#141413] rounded-full font-bold h-12 px-4 focus-visible:ring-primary" 
                   />
                 </div>
                 <div className="space-y-2">
@@ -283,7 +283,7 @@ export function TeamKeysManager() {
                   <select 
                     value={newMemberRole}
                     onChange={(e) => setNewMemberRole(e.target.value)}
-                    className="flex h-12 w-full items-center justify-between rounded-full border-2 border-[#111] bg-zinc-200 px-4 text-sm font-black uppercase text-[#111] outline-none focus:ring-0 cursor-pointer shadow-sm hover:bg-zinc-300 transition-colors"
+                    className="flex h-12 w-full items-center justify-between rounded-full border-2 border-[#141413] bg-zinc-200 px-4 text-sm font-black uppercase text-[#141413] outline-none focus:ring-0 cursor-pointer shadow-sm hover:bg-zinc-300 transition-colors"
                   >
                     <option value="team">Regular</option>
                     <option value="admin">Admin</option>
@@ -298,15 +298,15 @@ export function TeamKeysManager() {
                           key={section.id} 
                           className={cn(
                             "flex items-center gap-2 p-2 border-2 rounded-lg cursor-pointer transition-colors",
-                            newMemberPermissions.includes(section.id) ? "border-[#111] bg-black/5" : "border-[#111]/20 hover:border-[#111]"
+                            newMemberPermissions.includes(section.id) ? "border-[#141413] bg-black/5" : "border-[#141413]/20 hover:border-[#141413]"
                           )}
                           onClick={() => setNewMemberPermissions(prev => prev.includes(section.id) ? prev.filter(p => p !== section.id) : [...prev, section.id])}
                         >
                            <Checkbox 
                              checked={newMemberPermissions.includes(section.id)}
-                             className="border-2 border-[#111] data-[state=checked]:bg-[#111] data-[state=checked]:text-zinc-200 data-[state=checked]:border-[#111]"
+                             className="border-2 border-[#141413] data-[state=checked]:bg-[#141413] data-[state=checked]:text-zinc-200 data-[state=checked]:border-[#141413]"
                            />
-                           <label className="text-[9px] font-black text-[#111] uppercase tracking-tight pointer-events-none">
+                           <label className="text-[9px] font-black text-[#141413] uppercase tracking-tight pointer-events-none">
                              {section.name}
                            </label>
                         </div>
@@ -317,7 +317,7 @@ export function TeamKeysManager() {
                 <Button 
                   disabled={addMemberMutation.isPending || !newMemberEmail.trim()}
                   onClick={() => addMemberMutation.mutate({ email: newMemberEmail, role: newMemberRole, permissions: newMemberRole === 'team' ? newMemberPermissions : [] })}
-                  className="w-full h-12 bg-primary text-white border-[1.5px] border-[#111] font-black text-xs rounded-full hover:bg-primary/80 transition-colors uppercase disabled:opacity-50"
+                  className="w-full h-12 bg-primary text-white border-[1.5px] border-[#141413] font-black text-xs rounded-full hover:bg-primary/80 transition-colors uppercase disabled:opacity-50"
                 >
                   {addMemberMutation.isPending
                     ? <span className="flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" />Processing…</span>
@@ -330,28 +330,28 @@ export function TeamKeysManager() {
         </div>
       </div>
 
-      <div className="bg-background border-[1.5px] border-[#111] rounded-[2rem] overflow-hidden shadow-sm">
+      <div className="bg-background border-[1.5px] border-[#141413] rounded-[2rem] overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white/50 border-b-[1.5px] border-[#111]/10">
-                <th className="p-6 font-black text-[10px] tracking-widest text-[#111]/40 uppercase">MEMBER</th>
-                <th className="p-6 font-black text-[10px] tracking-widest text-[#111]/40 uppercase text-center w-20">ACCESS</th>
-                <th className="p-6 font-black text-[10px] tracking-widest text-[#111]/40 uppercase">RANK</th>
-                <th className="p-6 font-black text-[10px] tracking-widest text-[#111]/40 uppercase">LAST SEEN</th>
-                <th className="p-6 font-black text-[10px] tracking-widest text-[#111]/40 uppercase text-right">ACTIONS</th>
+              <tr className="bg-white/50 border-b-[1.5px] border-[#141413]/10">
+                <th className="p-6 font-black text-[10px] tracking-widest text-[#141413]/40 uppercase">MEMBER</th>
+                <th className="p-6 font-black text-[10px] tracking-widest text-[#141413]/40 uppercase text-center w-20">ACCESS</th>
+                <th className="p-6 font-black text-[10px] tracking-widest text-[#141413]/40 uppercase">RANK</th>
+                <th className="p-6 font-black text-[10px] tracking-widest text-[#141413]/40 uppercase">LAST SEEN</th>
+                <th className="p-6 font-black text-[10px] tracking-widest text-[#141413]/40 uppercase text-right">ACTIONS</th>
               </tr>
             </thead>
-            <tbody className="divide-y-[1.5px] divide-[#111]/10">
+            <tbody className="divide-y-[1.5px] divide-[#141413]/10">
               {filtered.map((member) => [
                   <tr key={`${member.id}-row`} className="hover:bg-black/5 transition-colors group">
                     <td className="p-6">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center rounded-full group-hover:bg-primary/20 group-hover:border-primary transition-colors shadow-sm">
+                        <div className="w-10 h-10 bg-white border-[1.5px] border-[#141413]/20 flex items-center justify-center rounded-full group-hover:bg-primary/20 group-hover:border-primary transition-colors shadow-sm">
                           <User className="w-5 h-5 text-zinc-400 group-hover:text-primary transition-colors" />
                         </div>
                         <div>
-                          <div className="font-black text-sm uppercase text-[#111] tracking-tight mb-0.5">{member.name}</div>
+                          <div className="font-black text-sm uppercase text-[#141413] tracking-tight mb-0.5">{member.name}</div>
                           <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{member.email}</div>
                         </div>
                       </div>
@@ -362,7 +362,7 @@ export function TeamKeysManager() {
                         size="icon"
                         className={cn(
                           "h-10 w-10 border-[1.5px] rounded-full transition-all",
-                          expandedMemberId === member.id ? "bg-primary border-[#111] text-white" : "border-[#111]/20 text-zinc-400"
+                          expandedMemberId === member.id ? "bg-primary border-[#141413] text-white" : "border-[#141413]/20 text-zinc-400"
                         )}
                         onClick={() => setExpandedMemberId(expandedMemberId === member.id ? null : member.id)}
                       >
@@ -371,7 +371,7 @@ export function TeamKeysManager() {
                     </td>
                     <td className="p-6">
                       {member.accessLevel === 'founder' ? (
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1 border-2 border-[#111] bg-zinc-200 rounded-full font-black text-[9px] tracking-widest uppercase shadow-sm text-[#111]">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 border-2 border-[#141413] bg-zinc-200 rounded-full font-black text-[9px] tracking-widest uppercase shadow-sm text-[#141413]">
                           <Shield size={12} />
                           Founder
                         </div>
@@ -382,19 +382,19 @@ export function TeamKeysManager() {
                             onChange={(e) => updateRoleMutation.mutate({ id: member.id, accessLevel: e.target.value })}
                             disabled={member.id === currentUser?.id || updateRoleMutation.isPending}
                             className={cn(
-                              "appearance-none inline-flex items-center gap-1.5 px-3 py-1 border-2 border-[#111] bg-zinc-200 rounded-full font-black text-[9px] tracking-widest uppercase shadow-sm text-[#111] outline-none cursor-pointer hover:bg-zinc-300 transition-colors pr-6"
+                              "appearance-none inline-flex items-center gap-1.5 px-3 py-1 border-2 border-[#141413] bg-zinc-200 rounded-full font-black text-[9px] tracking-widest uppercase shadow-sm text-[#141413] outline-none cursor-pointer hover:bg-zinc-300 transition-colors pr-6"
                             )}
                           >
                             <option value="admin">Admin</option>
                             <option value="team">Regular</option>
                           </select>
-                          <ChevronDown size={10} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[#111]" />
+                          <ChevronDown size={10} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[#141413]" />
                         </div>
                       )}
                     </td>
                     <td className="p-6">
                        <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">
-                        <Clock size={12} className="text-[#111]/30" />
+                        <Clock size={12} className="text-[#141413]/30" />
                         {member.lastUsed ? (
                           <span>{new Date(member.lastUsed).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                         ) : 'Never'}
@@ -402,13 +402,13 @@ export function TeamKeysManager() {
                     </td>
                     <td className="p-6 text-right">
                       <div className="flex items-center justify-end gap-3">
-                         <div className={cn("inline-flex items-center gap-1.5 px-3 py-1 border-2 border-[#111] bg-zinc-200 rounded-full font-black text-[9px] tracking-widest uppercase shadow-sm text-[#111] mr-2", !member.isActive && "opacity-50 line-through")}>
+                         <div className={cn("inline-flex items-center gap-1.5 px-3 py-1 border-2 border-[#141413] bg-zinc-200 rounded-full font-black text-[9px] tracking-widest uppercase shadow-sm text-[#141413] mr-2", !member.isActive && "opacity-50 line-through")}>
                           {member.isActive ? 'ACTIVE' : 'NOT ACTIVE'}
                         </div>
                         <Button 
                           size="icon" 
                           variant="ghost" 
-                          className="h-10 w-10 border-[1.5px] border-[#111] hover:bg-black/5 rounded-full transition-all text-[#111]"
+                          className="h-10 w-10 border-[1.5px] border-[#141413] hover:bg-black/5 rounded-full transition-all text-[#141413]"
                           onClick={() => updateStatusMutation.mutate({ id: member.id, isActive: !member.isActive })}
                           disabled={member.id === currentUser?.id}
                         >
@@ -417,7 +417,7 @@ export function TeamKeysManager() {
                         <Button 
                           size="icon" 
                           variant="ghost" 
-                          className="h-10 w-10 border-[1.5px] border-[#111] hover:bg-red-500 hover:text-white hover:border-red-600 rounded-full transition-all text-[#111] shadow-sm"
+                          className="h-10 w-10 border-[1.5px] border-[#141413] hover:bg-red-500 hover:text-white hover:border-red-600 rounded-full transition-all text-[#141413] shadow-sm"
                           onClick={() => {
                             if (confirm("Permanently destroy node and revoke key?")) deleteMemberMutation.mutate(member.id);
                           }}
@@ -429,12 +429,12 @@ export function TeamKeysManager() {
                     </td>
                   </tr>,
                   expandedMemberId === member.id && (
-                    <tr key={`${member.id}-expanded`} className="bg-black/[0.02] border-b-[1.5px] border-[#111]/10 animate-in slide-in-from-top-2 duration-200">
+                    <tr key={`${member.id}-expanded`} className="bg-black/[0.02] border-b-[1.5px] border-[#141413]/10 animate-in slide-in-from-top-2 duration-200">
                       <td colSpan={5} className="p-8">
                         <div className="max-w-4xl mx-auto">
                           <div className="flex items-center justify-between mb-6">
                             <div>
-                              <h3 className="text-xl font-black uppercase text-[#111] tracking-tight">{member.name}</h3>
+                              <h3 className="text-xl font-black uppercase text-[#141413] tracking-tight">{member.name}</h3>
                             </div>
                             
                             <div className="flex items-center gap-3">
@@ -442,7 +442,7 @@ export function TeamKeysManager() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="inline-flex items-center gap-1.5 px-4 py-1 border-2 border-[#111] bg-zinc-200 rounded-full font-black text-[9px] tracking-widest uppercase shadow-sm text-[#111] hover:bg-zinc-300 transition-all h-8"
+                                  className="inline-flex items-center gap-1.5 px-4 py-1 border-2 border-[#141413] bg-zinc-200 rounded-full font-black text-[9px] tracking-widest uppercase shadow-sm text-[#141413] hover:bg-zinc-300 transition-all h-8"
                                   onClick={() => handleToggleAllPermissions(member, true)}
                                   disabled={updatePermissionsMutation.isPending || member.accessLevel !== 'team' || currentUser?.role !== 'founder'}
                                 >
@@ -451,7 +451,7 @@ export function TeamKeysManager() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="inline-flex items-center gap-1.5 px-4 py-1 border-2 border-[#111] bg-zinc-200 rounded-full font-black text-[9px] tracking-widest uppercase shadow-sm text-[#111] hover:bg-zinc-300 transition-all h-8"
+                                  className="inline-flex items-center gap-1.5 px-4 py-1 border-2 border-[#141413] bg-zinc-200 rounded-full font-black text-[9px] tracking-widest uppercase shadow-sm text-[#141413] hover:bg-zinc-300 transition-all h-8"
                                   onClick={() => handleToggleAllPermissions(member, false)}
                                   disabled={updatePermissionsMutation.isPending || member.accessLevel !== 'team' || currentUser?.role !== 'founder'}
                                 >
@@ -464,12 +464,12 @@ export function TeamKeysManager() {
                           {member.accessLevel === 'team' ? (
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                               {/* Always Active Dashboard Protocol */}
-                              <div className="p-4 border-[1.5px] rounded-2xl flex items-center justify-between transition-all bg-zinc-50 border-[#111]/10 opacity-60">
+                              <div className="p-4 border-[1.5px] rounded-2xl flex items-center justify-between transition-all bg-zinc-50 border-[#141413]/10 opacity-60">
                                 <div className="flex items-center gap-3">
                                   <div className="w-8 h-8 rounded-full flex items-center justify-center bg-zinc-200 text-zinc-500">
                                     <LayoutDashboard size={14} />
                                   </div>
-                                  <span className="text-[11px] font-black uppercase tracking-tight text-[#111]">Dashboard Sync</span>
+                                  <span className="text-[11px] font-black uppercase tracking-tight text-[#141413]">Dashboard Sync</span>
                                 </div>
                                 <div className="px-2 py-0.5 bg-zinc-200 text-zinc-600 rounded font-black text-[7px] tracking-widest uppercase">Fundamental</div>
                               </div>
@@ -481,7 +481,7 @@ export function TeamKeysManager() {
                                     "p-4 border-[1.5px] rounded-2xl flex items-center justify-between transition-all cursor-pointer group/perm",
                                     member.permissions?.includes(section.id) 
                                       ? "bg-white border-primary shadow-md" 
-                                      : "bg-white/50 border-[#111]/10 opacity-70 hover:opacity-100 hover:border-[#111]/20"
+                                      : "bg-white/50 border-[#141413]/10 opacity-70 hover:opacity-100 hover:border-[#141413]/20"
                                   )}
                                   onClick={() => currentUser?.role === 'founder' && handlePermissionToggle(member, section.id)}
                                 >
@@ -492,21 +492,21 @@ export function TeamKeysManager() {
                                     )}>
                                       <Activity size={14} />
                                     </div>
-                                    <span className="text-[11px] font-black uppercase tracking-tight text-[#111]">{section.name}</span>
+                                    <span className="text-[11px] font-black uppercase tracking-tight text-[#141413]">{section.name}</span>
                                   </div>
                                     <Checkbox 
                                       checked={member.permissions?.includes(section.id)}
                                       disabled={currentUser?.role !== 'founder'}
-                                      className="border-2 border-[#111] data-[state=checked]:bg-[#111] data-[state=checked]:text-zinc-200 data-[state=checked]:border-[#111]"
+                                      className="border-2 border-[#141413] data-[state=checked]:bg-[#141413] data-[state=checked]:text-zinc-200 data-[state=checked]:border-[#141413]"
                                     />
                                 </div>
                               ))}
                             </div>
                           ) : (
-                                <div className="p-12 border-2 border-[#111] rounded-3xl flex flex-col items-center justify-center text-center bg-zinc-200 shadow-sm">
-                                 <Shield size={48} className="text-[#111] mb-4" />
-                                 <div className="text-sm font-black uppercase tracking-tight text-[#111] mb-2">Full Access</div>
-                                 <p className="text-[10px] font-bold text-[#111]/70 uppercase tracking-widest max-w-sm leading-relaxed">
+                                <div className="p-12 border-2 border-[#141413] rounded-3xl flex flex-col items-center justify-center text-center bg-zinc-200 shadow-sm">
+                                 <Shield size={48} className="text-[#141413] mb-4" />
+                                 <div className="text-sm font-black uppercase tracking-tight text-[#141413] mb-2">Full Access</div>
+                                 <p className="text-[10px] font-bold text-[#141413]/70 uppercase tracking-widest max-w-sm leading-relaxed">
                                    Founder nodes have full access to all functions and features of THORX.
                                  </p>
                                 </div>

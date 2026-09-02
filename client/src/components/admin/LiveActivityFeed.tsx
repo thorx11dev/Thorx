@@ -32,7 +32,7 @@ interface FeedEvent {
 }
 
 const ENGINE_COLORS: Record<string, string> = {
-  Engine_A: "#f97316",
+  Engine_A: "#D97757",
   Engine_B: "#7c3aed",
   Engine_C: "#16a34a",
   Indirect:  "#6b7280",

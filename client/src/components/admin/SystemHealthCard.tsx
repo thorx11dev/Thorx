@@ -272,7 +272,7 @@ export function SystemHealthCard() {
 
       {/* Full Report Dialog */}
       <Dialog open={showReport} onOpenChange={setShowReport}>
-        <DialogContent className="border border-black/10 bg-white rounded-[2rem] p-0 max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.15)] [&>button]:hidden">
+        <DialogContent className="border border-black/10 bg-white rounded-[2rem] p-0 max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-[0_20px_60px_rgba(20, 20, 19,0.15)] [&>button]:hidden">
           <DialogHeader className="p-6 border-b border-zinc-100 flex-row items-center justify-between space-y-0">
             <div className="flex items-center gap-3">
               <Zap className={cn("w-5 h-5", isLoading ? "text-zinc-400" : scoreColor(overall))} />

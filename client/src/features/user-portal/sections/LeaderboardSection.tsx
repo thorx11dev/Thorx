@@ -72,11 +72,11 @@ export default function LeaderboardSection() {
         onClick={() => setIsRanksHeroToggled((v) => !v)}
         initial={false}
         animate={{
-          backgroundColor: isRanksHeroToggled ? "#ffffff" : "#000000",
-          borderColor: isRanksHeroToggled ? "#000000" : "#ffffff",
+          backgroundColor: isRanksHeroToggled ? "#FAF9F5" : "#141413",
+          borderColor: isRanksHeroToggled ? "#141413" : "#FAF9F5",
           boxShadow: isRanksHeroToggled
-            ? "0 4px 20px rgba(0,0,0,0.06)"
-            : "0 8px 30px rgba(0,0,0,0.12)"
+            ? "0 4px 20px rgba(20, 20, 19,0.06)"
+            : "0 8px 30px rgba(20, 20, 19,0.12)"
         }}
         transition={{
           backgroundColor: { duration: 0.4 },
@@ -203,7 +203,7 @@ export default function LeaderboardSection() {
               <motion.div
                 key={entry.rank}
                 variants={itemVariants}
-                className="flex items-center gap-3.5 rounded-2xl border-2 border-black bg-[#FFF7ED] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+                className="flex items-center gap-3.5 rounded-2xl border-2 border-black bg-[#D97757] p-4 shadow-[0_4px_16px_rgba(20, 20, 19,0.08)]"
               >
                 <div className="relative shrink-0">
                   <img
@@ -212,7 +212,7 @@ export default function LeaderboardSection() {
                     className="h-14 w-14 rounded-xl border-2 border-black object-cover"
                     onError={(e) => ((e.target as HTMLImageElement).src = "/avatars/avatar-1.png")}
                   />
-                  <span className="absolute -bottom-2 -right-2 rounded-md border-2 border-[#FFF7ED] bg-primary px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white">
+                  <span className="absolute -bottom-2 -right-2 rounded-md border-2 border-[#D97757] bg-primary px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white">
                     #1
                   </span>
                 </div>
@@ -273,8 +273,8 @@ export default function LeaderboardSection() {
                 className={cn(
                   "relative rounded-2xl border p-4 md:p-6 pt-6 md:pt-8 text-center transition-all duration-500 ease-out",
                   entry.rank === 1
-                    ? "border-black bg-[#FFF7ED] hover:-translate-y-1.5 hover:shadow-[6px_6px_0px_0px_rgba(255,107,53,1)]"
-                    : "border-black/15 bg-white hover:-translate-y-1.5 hover:border-black hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+                    ? "border-black bg-[#D97757] hover:-translate-y-1.5 hover:shadow-[6px_6px_0px_0px_rgba(217, 119, 87,1)]"
+                    : "border-black/15 bg-white hover:-translate-y-1.5 hover:border-black hover:shadow-[6px_6px_0px_0px_rgba(20, 20, 19,1)]"
                 )}
               >
                 <div
@@ -383,7 +383,7 @@ export default function LeaderboardSection() {
           {data.me && (
             <motion.div
               variants={itemVariants}
-              className="relative overflow-hidden rounded-2xl bg-black text-white p-6 md:p-10 mt-4 md:mt-8 shadow-[0_12px_40px_rgba(0,0,0,0.25)] flex items-center justify-between"
+              className="relative overflow-hidden rounded-2xl bg-black text-white p-6 md:p-10 mt-4 md:mt-8 shadow-[0_12px_40px_rgba(20, 20, 19,0.25)] flex items-center justify-between"
             >
               <span className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary" />
               <div className="pl-2 md:pl-3">

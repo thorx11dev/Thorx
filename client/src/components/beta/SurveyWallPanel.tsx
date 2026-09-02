@@ -85,7 +85,7 @@ export default function SurveyWallPanel() {
           </div>
         ) : capReached ? (
           /* Daily cap reached */
-          <div className="rounded-xl border-2 border-black/15 bg-[#FAF9F6] py-8 px-6 text-center">
+          <div className="rounded-xl border-2 border-black/15 bg-[#FAF9F5] py-8 px-6 text-center">
             <Clock3 className="w-6 h-6 text-primary mx-auto mb-3" />
             <p className="font-black text-sm uppercase tracking-wide text-black">Daily limit reached</p>
             <p className="text-xs font-medium text-black/50 mt-1">
@@ -127,7 +127,7 @@ export default function SurveyWallPanel() {
                     whileHover={{ y: -3 }}
                     className={cn(
                       "group flex items-center justify-between gap-3 rounded-2xl border-2 p-4 transition-all",
-                      "border-black/15 hover:border-black hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+                      "border-black/15 hover:border-black hover:shadow-[6px_6px_0px_0px_rgba(20, 20, 19,1)]"
                     )}
                     data-testid={`survey-wall-${network.networkId}`}
                   >

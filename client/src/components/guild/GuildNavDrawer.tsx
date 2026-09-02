@@ -69,7 +69,7 @@ export function GuildNavDrawer({
           animate={{ x: 0 }}
           exit={{ x: "-100%" }}
           transition={{ duration: 0.45, ease: PANEL_EASE }}
-          className="fixed inset-0 z-[200] bg-[#F2EDE4] text-black flex flex-col lg:hidden pt-[env(safe-area-inset-top)] will-change-transform"
+          className="fixed inset-0 z-[200] bg-[#E8E5D8] text-black flex flex-col lg:hidden pt-[env(safe-area-inset-top)] will-change-transform"
           role="dialog"
           aria-modal="true"
           aria-label="Guild navigation"
@@ -98,7 +98,7 @@ export function GuildNavDrawer({
               whileTap={{ scale: 0.9 }}
               aria-label="Close guild menu"
               data-testid="button-close-guild-menu"
-              className="w-11 h-11 rounded-lg border-2 border-black bg-[#F2EDE4] text-black flex items-center justify-center transition-colors duration-300 hover:bg-black hover:text-white"
+              className="w-11 h-11 rounded-lg border-2 border-black bg-[#E8E5D8] text-black flex items-center justify-center transition-colors duration-300 hover:bg-black hover:text-white"
             >
               <X className="w-5 h-5" strokeWidth={2} />
             </motion.button>

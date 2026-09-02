@@ -166,9 +166,9 @@ export function NotificationModal({
                         exit={{ x: "100%", y: 0 }}
                         transition={{ type: "spring", damping: 30, stiffness: 300 }}
                         className={cn(
-                            "fixed z-[810] bg-[#F2EDE4] flex flex-col",
+                            "fixed z-[810] bg-[#E8E5D8] flex flex-col",
                             // Desktop: floating, draggable window (no longer pinned to the right edge)
-                            "md:top-6 md:right-6 md:bottom-auto md:left-auto md:w-[420px] md:h-[min(720px,calc(100vh-3rem))] md:rounded-2xl md:border-2 md:border-black md:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] md:overflow-hidden",
+                            "md:top-6 md:right-6 md:bottom-auto md:left-auto md:w-[420px] md:h-[min(720px,calc(100vh-3rem))] md:rounded-2xl md:border-2 md:border-black md:shadow-[8px_8px_0px_0px_rgba(20, 20, 19,1)] md:overflow-hidden",
                             // Mobile: full screen (longhand so it doesn't fight the desktop overrides above on specificity)
                             "top-0 right-0 bottom-0 left-0"
                         )}
@@ -309,7 +309,7 @@ function CommissionCard({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.04, duration: 0.25 }}
-            className="group bg-white border-2 border-black rounded-xl p-4 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 cursor-default"
+            className="group bg-white border-2 border-black rounded-xl p-4 hover:shadow-[4px_4px_0px_0px_rgba(20, 20, 19,1)] transition-all duration-200 cursor-default"
         >
             <div className="flex items-start gap-4">
                 {/* Icon */}
@@ -375,7 +375,7 @@ function FinancialCard({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.04, duration: 0.25 }}
-            className="group bg-white border-2 border-black rounded-xl p-4 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 cursor-default"
+            className="group bg-white border-2 border-black rounded-xl p-4 hover:shadow-[4px_4px_0px_0px_rgba(20, 20, 19,1)] transition-all duration-200 cursor-default"
         >
             {/* Row 1: icon + title + time */}
             <div className="flex items-start gap-3">

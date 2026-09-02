@@ -83,19 +83,19 @@ export default function TeamPortal() {
       const perms = user.permissions || [];
       if (!perms.includes(activeSection)) {
         return (
-          <div className="flex flex-col items-center justify-center py-20 px-8 text-center bg-black/5 rounded-3xl border-4 border-dashed border-[#111]/10">
+          <div className="flex flex-col items-center justify-center py-20 px-8 text-center bg-black/5 rounded-3xl border-4 border-dashed border-[#141413]/10">
             <div className="w-20 h-20 bg-black border-4 border-primary rounded-full flex items-center justify-center mb-6 animate-pulse">
               <Lock className="text-primary w-10 h-10" />
             </div>
-            <h2 className="text-xl sm:text-3xl font-black uppercase text-[#111] mb-4 tracking-tighter">Secure Matrix Blocked</h2>
+            <h2 className="text-xl sm:text-3xl font-black uppercase text-[#141413] mb-4 tracking-tighter">Secure Matrix Blocked</h2>
             <p className="max-w-md text-sm font-bold text-zinc-500 uppercase tracking-widest leading-relaxed mb-8">
-              Structural integrity check failed. Your current administrative node does not possess the cryptographic clearance required to synchronize with the <span className="text-[#111] font-black">{activeSection.toUpperCase()}</span> protocol.
+              Structural integrity check failed. Your current administrative node does not possess the cryptographic clearance required to synchronize with the <span className="text-[#141413] font-black">{activeSection.toUpperCase()}</span> protocol.
             </p>
             <div className="flex items-center gap-4">
-              <div className="px-4 py-2 border-2 border-[#111] rounded-xl font-black text-[10px] tracking-widest uppercase bg-white">
+              <div className="px-4 py-2 border-2 border-[#141413] rounded-xl font-black text-[10px] tracking-widest uppercase bg-white">
                 Error Code: E-MATRIX-UNAUTH
               </div>
-              <div className="px-4 py-2 bg-[#111] text-primary rounded-xl font-black text-[10px] tracking-widest uppercase">
+              <div className="px-4 py-2 bg-[#141413] text-primary rounded-xl font-black text-[10px] tracking-widest uppercase">
                 Contact Founder Nodes
               </div>
             </div>

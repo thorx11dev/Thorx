@@ -73,11 +73,11 @@ export function WorkSection(props: WorkSectionProps) {
         <motion.div
           initial={false}
           animate={{
-            backgroundColor: isWorkHeroToggled ? "#ffffff" : "#000000",
-            borderColor: isWorkHeroToggled ? "#000000" : "#ffffff",
+            backgroundColor: isWorkHeroToggled ? "#FAF9F5" : "#141413",
+            borderColor: isWorkHeroToggled ? "#141413" : "#FAF9F5",
             boxShadow: isWorkHeroToggled
-              ? "0 4px 20px rgba(0,0,0,0.06)"
-              : "0 8px 30px rgba(0,0,0,0.12)"
+              ? "0 4px 20px rgba(20, 20, 19,0.06)"
+              : "0 8px 30px rgba(20, 20, 19,0.12)"
           }}
           transition={{
             backgroundColor: { duration: 0.4 },

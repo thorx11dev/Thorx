@@ -21,7 +21,7 @@ interface ThorxCardProps {
 }
 
 const ENGINE_COLORS: Record<string, string> = {
-  Engine_A: "#f97316",
+  Engine_A: "#D97757",
   Engine_B: "#7c3aed",
   Engine_C: "#16a34a",
   Indirect:  "#6b7280",
@@ -40,7 +40,7 @@ export function ThorxCard({ payload, onClaim }: ThorxCardProps) {
 
   if (!payload) return null;
 
-  const accentColor = ENGINE_COLORS[payload.engineType] ?? "#f97316";
+  const accentColor = ENGINE_COLORS[payload.engineType] ?? "#D97757";
   const engineLabel = ENGINE_LABELS[payload.engineType] ?? payload.engineType;
 
   const handleReveal = () => setRevealed(true);
@@ -63,7 +63,7 @@ export function ThorxCard({ payload, onClaim }: ThorxCardProps) {
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.85, y: 40 }}
             className="relative w-full max-w-sm rounded-2xl overflow-hidden border-2 border-black"
-            style={{ perspective: 600, boxShadow: "8px 8px 0px 0px rgba(0,0,0,1)" }}
+            style={{ perspective: 600, boxShadow: "8px 8px 0px 0px rgba(20, 20, 19,1)" }}
           >
             {/* Card face-down state */}
             <AnimatePresence mode="wait">

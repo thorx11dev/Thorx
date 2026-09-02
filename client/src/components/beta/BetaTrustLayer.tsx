@@ -145,7 +145,7 @@ export default function BetaTrustLayer({ user }: { user?: BetaTrustUser | null }
               transition={{ duration: 0.5, ease: GATE_EASE }}
               className="min-h-full flex items-center justify-center"
             >
-              <div className="relative w-full max-w-[420px] bg-white rounded-2xl sm:rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.3)] overflow-hidden my-auto">
+              <div className="relative w-full max-w-[420px] bg-white rounded-2xl sm:rounded-3xl shadow-[0_24px_80px_rgba(20, 20, 19,0.3)] overflow-hidden my-auto">
                 {/* 5-second auto-dismiss progress */}
                 <motion.div
                   initial={{ scaleX: 0 }}
@@ -267,7 +267,7 @@ function FeedbackDock() {
         transition={{ delay: 1.2 }}
         onClick={() => setOpen(true)}
         aria-label="Send feedback to THORX team"
-        className="feedback-dock fixed bottom-5 right-5 z-profile h-12 pl-4 pr-5 rounded-full bg-black text-white border-2 border-black font-black uppercase tracking-wider text-[10px] flex items-center gap-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.25)] hover:bg-primary hover:border-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="feedback-dock fixed bottom-5 right-5 z-profile h-12 pl-4 pr-5 rounded-full bg-black text-white border-2 border-black font-black uppercase tracking-wider text-[10px] flex items-center gap-2 shadow-[4px_4px_0px_0px_rgba(20, 20, 19,0.25)] hover:bg-primary hover:border-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         <Megaphone size={15} />
         <span className="hidden sm:inline">Feedback</span>
@@ -292,7 +292,7 @@ function FeedbackDock() {
               className="min-h-full flex items-end sm:items-center justify-center"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="relative w-full max-w-md bg-white border border-black/15 rounded-t-2xl sm:rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.3)] overflow-hidden">
+              <div className="relative w-full max-w-md bg-white border border-black/15 rounded-t-2xl sm:rounded-2xl shadow-[0_24px_80px_rgba(20, 20, 19,0.3)] overflow-hidden">
                 {/* Soft orange glow accent — matches the drawer / section heroes */}
                 <div className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 bg-primary/[0.07] rounded-full blur-3xl" />
 
@@ -359,7 +359,7 @@ function FeedbackDock() {
                       onChange={(e) => setMessage(e.target.value.slice(0, 2000))}
                       rows={4}
                       placeholder="Tell the team what happened — ad not credited, survey problem, payout question…"
-                      className="w-full rounded-xl border border-black/15 bg-[#FAF9F6] px-3 py-2.5 text-sm font-medium text-black placeholder:text-black/25 focus:border-black focus:outline-none focus:ring-0 resize-none transition-colors"
+                      className="w-full rounded-xl border border-black/15 bg-[#FAF9F5] px-3 py-2.5 text-sm font-medium text-black placeholder:text-black/25 focus:border-black focus:outline-none focus:ring-0 resize-none transition-colors"
                     />
                   </motion.div>
 
@@ -386,7 +386,7 @@ function FeedbackDock() {
                       <div className="font-mono text-[9px] font-bold tracking-[0.3em] text-black/35 uppercase mb-2">Your Recent Reports</div>
                       <div className="space-y-2 max-h-44 overflow-y-auto pr-1 custom-scrollbar">
                         {recent.map((row) => (
-                          <div key={row.id} className="rounded-xl border border-black/10 bg-[#FAF9F6] p-3">
+                          <div key={row.id} className="rounded-xl border border-black/10 bg-[#FAF9F5] p-3">
                             <div className="flex items-center justify-between gap-2 mb-1">
                               <span className="font-mono text-[9px] font-bold tracking-[0.2em] uppercase text-black/40 truncate">
                                 {FEEDBACK_CATEGORIES.find((c) => c.key === row.category)?.label ?? row.category}

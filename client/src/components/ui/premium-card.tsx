@@ -34,7 +34,7 @@ export function PremiumCard({
       data-testid={testId}
       className={cn(
         "bg-white border-2 border-black rounded-2xl p-5 md:p-6 transition-all duration-300",
-        interactive && "hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+        interactive && "hover:shadow-[6px_6px_0px_0px_rgba(20, 20, 19,1)]",
         className
       )}
     >

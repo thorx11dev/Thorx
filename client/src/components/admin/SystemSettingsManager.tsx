@@ -113,8 +113,8 @@ export function SystemSettingsManager() {
   if (isLoading) {
     return (
       <div className="p-20 text-center animate-in fade-in duration-500">
-        <div className="w-10 h-10 border-[3px] border-[#111] border-t-transparent rounded-full animate-spin mx-auto mb-6" />
-        <p className="font-bold text-xs uppercase tracking-[0.2em] text-[#111]/40">Accessing Core Config...</p>
+        <div className="w-10 h-10 border-[3px] border-[#141413] border-t-transparent rounded-full animate-spin mx-auto mb-6" />
+        <p className="font-bold text-xs uppercase tracking-[0.2em] text-[#141413]/40">Accessing Core Config...</p>
       </div>
     );
   }
@@ -125,24 +125,24 @@ export function SystemSettingsManager() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-4xl font-black tracking-tighter uppercase text-[#111]">System Protocol</h2>
+          <h2 className="text-4xl font-black tracking-tighter uppercase text-[#141413]">System Protocol</h2>
         </div>
       </div>
 
       {/* ─── ENGINE PROFIT SLIDERS ─── */}
-      <div className="bg-background border-[1.5px] border-[#111] rounded-[2rem] p-8 shadow-sm">
+      <div className="bg-background border-[1.5px] border-[#141413] rounded-[2rem] p-8 shadow-sm">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center rounded-full shadow-sm">
+          <div className="w-10 h-10 bg-white border-[1.5px] border-[#141413]/20 flex items-center justify-center rounded-full shadow-sm">
             <Zap className="w-5 h-5 text-zinc-500" />
           </div>
           <div>
-            <h3 className="font-black text-xl uppercase text-[#111] tracking-tight">Engine Profit Configuration</h3>
+            <h3 className="font-black text-xl uppercase text-[#141413] tracking-tight">Engine Profit Configuration</h3>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">Platform cut per earning engine — live on every transaction</p>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { label: "Engine A — Video Ads", cutKey: "ENGINE_A_THORX_CUT_PCT", min: 20, max: 70, color: "#f97316", isEngineC: false },
+            { label: "Engine A — Video Ads", cutKey: "ENGINE_A_THORX_CUT_PCT", min: 20, max: 70, color: "#D97757", isEngineC: false },
             { label: "Engine B — Surveys", cutKey: "ENGINE_B_THORX_CUT_PCT", min: 20, max: 70, color: "#7c3aed", isEngineC: false },
             { label: "Engine C — Guild Tasks", cutKey: "ENGINE_C_THORX_CUT_PCT", min: 10, max: 40, color: "#16a34a", isEngineC: true },
           ].map(({ label, cutKey, min, max, color, isEngineC }) => {
@@ -156,11 +156,11 @@ export function SystemSettingsManager() {
             const bonus = isEngineC ? Number(localConfigs["ENGINE_C_BONUS_PCT"] ?? 5) : 0;
             const userGets = isEngineC ? 0 : 100 - cut;
             return (
-              <div key={cutKey} className="p-4 bg-white border-[1.5px] border-[#111]/10 rounded-2xl space-y-3">
+              <div key={cutKey} className="p-4 bg-white border-[1.5px] border-[#141413]/10 rounded-2xl space-y-3">
                 <div className="text-[10px] font-black uppercase tracking-widest" style={{ color }}>{label}</div>
                 <div className="space-y-1">
                   <div className="flex justify-between text-[10px] font-bold text-zinc-500">
-                    <span>Thorx Cut</span><span className="font-black text-[#111]">{cut}%</span>
+                    <span>Thorx Cut</span><span className="font-black text-[#141413]">{cut}%</span>
                   </div>
                   <input type="range" min={min} max={max} value={cut}
                     onChange={e => updateValue(cutKey, parseInt(e.target.value, 10))}
@@ -172,7 +172,7 @@ export function SystemSettingsManager() {
                   <>
                     <div className="space-y-1">
                       <div className="flex justify-between text-[10px] font-bold text-zinc-500">
-                        <span>Guild Pool (Sunday payout)</span><span className="font-black text-[#111]">{pool}%</span>
+                        <span>Guild Pool (Sunday payout)</span><span className="font-black text-[#141413]">{pool}%</span>
                       </div>
                       <input type="range" min={20} max={90} value={pool}
                         onChange={e => updateValue("ENGINE_C_GUILD_POOL_PCT", parseInt(e.target.value, 10))}
@@ -182,7 +182,7 @@ export function SystemSettingsManager() {
                     </div>
                     <div className="space-y-1">
                       <div className="flex justify-between text-[10px] font-bold text-zinc-500">
-                        <span>Bonus Pool (on target hit)</span><span className="font-black text-[#111]">{bonus}%</span>
+                        <span>Bonus Pool (on target hit)</span><span className="font-black text-[#141413]">{bonus}%</span>
                       </div>
                       <input type="range" min={0} max={20} value={bonus}
                         onChange={e => updateValue("ENGINE_C_BONUS_PCT", parseInt(e.target.value, 10))}
@@ -221,13 +221,13 @@ export function SystemSettingsManager() {
       </div>
 
       {/* ─── THORX CARD VARIANCE CONTROLS ─── */}
-      <div className="bg-background border-[1.5px] border-[#111] rounded-[2rem] p-8 shadow-sm">
+      <div className="bg-background border-[1.5px] border-[#141413] rounded-[2rem] p-8 shadow-sm">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center rounded-full shadow-sm">
+          <div className="w-10 h-10 bg-white border-[1.5px] border-[#141413]/20 flex items-center justify-center rounded-full shadow-sm">
             <Activity className="w-5 h-5 text-zinc-500" />
           </div>
           <div>
-            <h3 className="font-black text-xl uppercase text-[#111] tracking-tight">Thorx Card Randomness</h3>
+            <h3 className="font-black text-xl uppercase text-[#141413] tracking-tight">Thorx Card Randomness</h3>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">Multiplier range for the randomized reward card draw</p>
           </div>
         </div>
@@ -253,7 +253,7 @@ export function SystemSettingsManager() {
                 <div key={key} className="space-y-1">
                   <div className="flex justify-between text-[10px] font-bold text-zinc-500">
                     <span>{label}</span>
-                    <span className="font-black text-[#111]">±{val}%</span>
+                    <span className="font-black text-[#141413]">±{val}%</span>
                   </div>
                   <input type="range" min={0} max={50} step={1} value={val}
                     onChange={e => updateValue(key, parseInt(e.target.value, 10))}
@@ -275,7 +275,7 @@ export function SystemSettingsManager() {
                 <div key={key} className="space-y-1">
                   <div className="flex justify-between text-[10px] font-bold text-zinc-500">
                     <span>{label}</span>
-                    <span className="font-black text-[#111]">{val}%</span>
+                    <span className="font-black text-[#141413]">{val}%</span>
                   </div>
                   <input type="range" min={min} max={max} step={1} value={val}
                     onChange={e => updateValue(key, parseInt(e.target.value, 10))}
@@ -291,7 +291,7 @@ export function SystemSettingsManager() {
               { label: "Standard (±20%)", pct: 20 },
               { label: "Jackpot (±50%)", pct: 50 },
             ].map(({ label, pct }) => (
-              <Button key={label} variant="outline" className="w-full h-9 text-xs font-black border-[1.5px] border-[#111] justify-start"
+              <Button key={label} variant="outline" className="w-full h-9 text-xs font-black border-[1.5px] border-[#141413] justify-start"
                 onClick={() => {
                   (["ENGINE_A_ILLUSION_VARIANCE_PCT", "ENGINE_B_ILLUSION_VARIANCE_PCT", "ENGINE_C_ILLUSION_VARIANCE_PCT"] as const).forEach(key => {
                     updateValue(key, pct);
@@ -308,13 +308,13 @@ export function SystemSettingsManager() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Economic Constants */}
-        <div className="bg-background border-[1.5px] border-[#111] rounded-[2rem] p-8 overflow-hidden shadow-sm hover:shadow-md transition-shadow relative group flex flex-col">
+        <div className="bg-background border-[1.5px] border-[#141413] rounded-[2rem] p-8 overflow-hidden shadow-sm hover:shadow-md transition-shadow relative group flex flex-col">
           <div className="flex items-center gap-4 mb-8">
-            <div className="w-10 h-10 bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center rounded-full shadow-sm group-hover:border-primary transition-colors">
+            <div className="w-10 h-10 bg-white border-[1.5px] border-[#141413]/20 flex items-center justify-center rounded-full shadow-sm group-hover:border-primary transition-colors">
               <DollarSign className="w-5 h-5 text-zinc-500 group-hover:text-primary transition-colors" />
             </div>
             <div>
-              <h3 className="font-black text-xl uppercase text-[#111] tracking-tight">Economic Thresholds</h3>
+              <h3 className="font-black text-xl uppercase text-[#141413] tracking-tight">Economic Thresholds</h3>
               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">Platform-wide financial variables</p>
             </div>
           </div>
@@ -364,25 +364,25 @@ export function SystemSettingsManager() {
         </div>
 
         {/* Global Settings */}
-        <div className="bg-background border-[1.5px] border-[#111] rounded-[2rem] p-8 overflow-hidden shadow-sm hover:shadow-md transition-shadow relative flex flex-col group">
+        <div className="bg-background border-[1.5px] border-[#141413] rounded-[2rem] p-8 overflow-hidden shadow-sm hover:shadow-md transition-shadow relative flex flex-col group">
           <div className="flex items-center gap-4 mb-8">
-            <div className="w-10 h-10 bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center rounded-full shadow-sm group-hover:border-primary transition-colors">
+            <div className="w-10 h-10 bg-white border-[1.5px] border-[#141413]/20 flex items-center justify-center rounded-full shadow-sm group-hover:border-primary transition-colors">
               <Settings className="w-5 h-5 text-zinc-500 group-hover:text-primary transition-colors" />
             </div>
             <div>
-              <h3 className="font-black text-xl uppercase text-[#111] tracking-tight">Core Integration</h3>
+              <h3 className="font-black text-xl uppercase text-[#141413] tracking-tight">Core Integration</h3>
               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">Platform localization & identity</p>
             </div>
           </div>
 
           <div className="space-y-6 flex-1 flex flex-col justify-between">
-            <div className="p-6 border-[1.5px] border-[#111]/10 bg-white/50 rounded-[1.5rem]">
-              <TechnicalLabel text="CURRENCY SYMBOL" className="text-[#111]/50 mb-3 font-black text-[9px] uppercase tracking-widest" />
+            <div className="p-6 border-[1.5px] border-[#141413]/10 bg-white/50 rounded-[1.5rem]">
+              <TechnicalLabel text="CURRENCY SYMBOL" className="text-[#141413]/50 mb-3 font-black text-[9px] uppercase tracking-widest" />
               <div className="flex gap-3">
                 <Input 
                   value="PKR" 
                   disabled 
-                  className="flex-1 h-10 bg-white border-[1.5px] border-[#111]/20 focus-visible:ring-0 font-bold text-sm rounded-full tracking-tight text-[#111]" 
+                  className="flex-1 h-10 bg-white border-[1.5px] border-[#141413]/20 focus-visible:ring-0 font-bold text-sm rounded-full tracking-tight text-[#141413]" 
                 />
                 <div className="bg-zinc-100 border-[1.5px] border-zinc-200 text-zinc-400 px-5 flex items-center justify-center font-black text-[10px] rounded-full uppercase tracking-widest">
                   Locked
@@ -391,9 +391,9 @@ export function SystemSettingsManager() {
               <p className="text-[9px] font-bold text-zinc-400 mt-3 uppercase tracking-widest">Currency is locked to Pakistani Rupee (PKR).</p>
             </div>
 
-            <div className="p-6 border-[1.5px] border-[#111]/10 bg-white/50 rounded-[1.5rem] opacity-70">
-              <TechnicalLabel text="API ENDPOINT SECURITY" className="text-[#111]/50 mb-3 font-black text-[9px] uppercase tracking-widest" />
-              <div className="h-10 bg-zinc-100 border-[1.5px] border-dashed border-[#111]/20 rounded-full flex items-center justify-center font-black text-[9px] uppercase tracking-widest text-[#111]/30">
+            <div className="p-6 border-[1.5px] border-[#141413]/10 bg-white/50 rounded-[1.5rem] opacity-70">
+              <TechnicalLabel text="API ENDPOINT SECURITY" className="text-[#141413]/50 mb-3 font-black text-[9px] uppercase tracking-widest" />
+              <div className="h-10 bg-zinc-100 border-[1.5px] border-dashed border-[#141413]/20 rounded-full flex items-center justify-center font-black text-[9px] uppercase tracking-widest text-[#141413]/30">
                 Encrypted Connection Active
               </div>
             </div>
@@ -401,57 +401,57 @@ export function SystemSettingsManager() {
         </div>
 
         {/* ─── Survey Economy (Engine B) ─────────────────────────────── */}
-        <div className="lg:col-span-2 bg-background border-[1.5px] border-[#111] rounded-[2rem] p-8 shadow-sm">
+        <div className="lg:col-span-2 bg-background border-[1.5px] border-[#141413] rounded-[2rem] p-8 shadow-sm">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-10 h-10 bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center rounded-full shadow-sm">
+            <div className="w-10 h-10 bg-white border-[1.5px] border-[#141413]/20 flex items-center justify-center rounded-full shadow-sm">
               <Activity className="w-5 h-5 text-zinc-500" />
             </div>
             <div>
-              <h3 className="font-black text-xl uppercase text-[#111] tracking-tight">Survey Economy</h3>
+              <h3 className="font-black text-xl uppercase text-[#141413] tracking-tight">Survey Economy</h3>
               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">Engine B payout rate, daily limits & rank gate</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-5 border-[1.5px] border-[#111]/10 bg-white/50 rounded-3xl space-y-3">
-              <TechnicalLabel text="USD → PKR RATE" className="text-[#111]/50 font-black text-[9px] uppercase tracking-widest" />
+            <div className="p-5 border-[1.5px] border-[#141413]/10 bg-white/50 rounded-3xl space-y-3">
+              <TechnicalLabel text="USD → PKR RATE" className="text-[#141413]/50 font-black text-[9px] uppercase tracking-widest" />
               <Input
                 type="number"
                 value={localConfigs["SURVEY_USD_TO_PKR_RATE"] ?? "278"}
                 onChange={(e) => updateValue("SURVEY_USD_TO_PKR_RATE", Number(e.target.value))}
-                className="h-10 bg-white border-[1.5px] border-[#111]/20 font-bold text-sm rounded-full text-[#111]"
+                className="h-10 bg-white border-[1.5px] border-[#141413]/20 font-bold text-sm rounded-full text-[#141413]"
               />
               <Button
                 onClick={() => handleSave("SURVEY_USD_TO_PKR_RATE")}
                 disabled={saveMutation.isPending && saveMutation.variables?.key === "SURVEY_USD_TO_PKR_RATE"}
-                className="w-full h-9 bg-[#111] text-white hover:bg-primary hover:text-black rounded-full text-[10px] font-black uppercase tracking-widest"
+                className="w-full h-9 bg-[#141413] text-white hover:bg-primary hover:text-black rounded-full text-[10px] font-black uppercase tracking-widest"
               >
                 <Save className="w-3 h-3 mr-1.5" /> Save Rate
               </Button>
               <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">PKR credited per $1 publisher payout</p>
             </div>
-            <div className="p-5 border-[1.5px] border-[#111]/10 bg-white/50 rounded-3xl space-y-3">
-              <TechnicalLabel text="MAX SURVEYS / USER / DAY" className="text-[#111]/50 font-black text-[9px] uppercase tracking-widest" />
+            <div className="p-5 border-[1.5px] border-[#141413]/10 bg-white/50 rounded-3xl space-y-3">
+              <TechnicalLabel text="MAX SURVEYS / USER / DAY" className="text-[#141413]/50 font-black text-[9px] uppercase tracking-widest" />
               <Input
                 type="number"
                 value={localConfigs["SURVEY_MAX_PER_DAY"] ?? "20"}
                 onChange={(e) => updateValue("SURVEY_MAX_PER_DAY", Number(e.target.value))}
-                className="h-10 bg-white border-[1.5px] border-[#111]/20 font-bold text-sm rounded-full text-[#111]"
+                className="h-10 bg-white border-[1.5px] border-[#141413]/20 font-bold text-sm rounded-full text-[#141413]"
               />
               <Button
                 onClick={() => handleSave("SURVEY_MAX_PER_DAY")}
                 disabled={saveMutation.isPending && saveMutation.variables?.key === "SURVEY_MAX_PER_DAY"}
-                className="w-full h-9 bg-[#111] text-white hover:bg-primary hover:text-black rounded-full text-[10px] font-black uppercase tracking-widest"
+                className="w-full h-9 bg-[#141413] text-white hover:bg-primary hover:text-black rounded-full text-[10px] font-black uppercase tracking-widest"
               >
                 <Save className="w-3 h-3 mr-1.5" /> Save Limit
               </Button>
               <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Quality guard — keeps approval rates high</p>
             </div>
-            <div className="p-5 border-[1.5px] border-[#111]/10 bg-white/50 rounded-3xl space-y-3">
-              <TechnicalLabel text="MINIMUM RANK FOR SURVEYS" className="text-[#111]/50 font-black text-[9px] uppercase tracking-widest" />
+            <div className="p-5 border-[1.5px] border-[#141413]/10 bg-white/50 rounded-3xl space-y-3">
+              <TechnicalLabel text="MINIMUM RANK FOR SURVEYS" className="text-[#141413]/50 font-black text-[9px] uppercase tracking-widest" />
               <select
                 value={localConfigs["SURVEY_MIN_RANK"] ?? "E-Rank"}
                 onChange={(e) => updateValue("SURVEY_MIN_RANK", e.target.value)}
-                className="h-10 w-full bg-white border-[1.5px] border-[#111]/20 rounded-full px-4 font-bold text-sm text-[#111] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                className="h-10 w-full bg-white border-[1.5px] border-[#141413]/20 rounded-full px-4 font-bold text-sm text-[#141413] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 {["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"].map((r) => (
                   <option key={r} value={r}>{r}</option>
@@ -460,7 +460,7 @@ export function SystemSettingsManager() {
               <Button
                 onClick={() => handleSave("SURVEY_MIN_RANK")}
                 disabled={saveMutation.isPending && saveMutation.variables?.key === "SURVEY_MIN_RANK"}
-                className="w-full h-9 bg-[#111] text-white hover:bg-primary hover:text-black rounded-full text-[10px] font-black uppercase tracking-widest"
+                className="w-full h-9 bg-[#141413] text-white hover:bg-primary hover:text-black rounded-full text-[10px] font-black uppercase tracking-widest"
               >
                 <Save className="w-3 h-3 mr-1.5" /> Save Gate
               </Button>
@@ -470,59 +470,59 @@ export function SystemSettingsManager() {
         </div>
 
         {/* ─── Survey Network Credentials (Engine B activation) ────────── */}
-        <div className="lg:col-span-2 bg-background border-[1.5px] border-[#111] rounded-[2rem] p-8 shadow-sm">
+        <div className="lg:col-span-2 bg-background border-[1.5px] border-[#141413] rounded-[2rem] p-8 shadow-sm">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-10 h-10 bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center rounded-full shadow-sm">
+            <div className="w-10 h-10 bg-white border-[1.5px] border-[#141413]/20 flex items-center justify-center rounded-full shadow-sm">
               <ShieldAlert className="w-5 h-5 text-zinc-500" />
             </div>
             <div>
-              <h3 className="font-black text-xl uppercase text-[#111] tracking-tight">Survey Networks</h3>
+              <h3 className="font-black text-xl uppercase text-[#141413] tracking-tight">Survey Networks</h3>
               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">Paste publisher credentials — empty network stays hidden from the wall</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-5 border-[1.5px] border-[#111]/10 bg-white/50 rounded-3xl space-y-3">
-              <TechnicalLabel text="CPX RESEARCH" className="text-[#111]/70 font-black text-[10px] uppercase tracking-widest" />
+            <div className="p-5 border-[1.5px] border-[#141413]/10 bg-white/50 rounded-3xl space-y-3">
+              <TechnicalLabel text="CPX RESEARCH" className="text-[#141413]/70 font-black text-[10px] uppercase tracking-widest" />
               <Input
                 placeholder="API ID (app_id)"
                 value={parseJsonCfg(localConfigs["CPX_RESEARCH_CONFIG_JSON"]).apiId ?? ""}
                 onChange={(e) => updateValue("CPX_RESEARCH_CONFIG_JSON", JSON.stringify({ ...parseJsonCfg(localConfigs["CPX_RESEARCH_CONFIG_JSON"]), apiId: e.target.value.trim() }))}
-                className="h-10 bg-white border-[1.5px] border-[#111]/20 font-mono text-sm rounded-full text-[#111]"
+                className="h-10 bg-white border-[1.5px] border-[#141413]/20 font-mono text-sm rounded-full text-[#141413]"
               />
               <Input
                 type="password"
                 placeholder="Secret hash (postback validation)"
                 value={parseJsonCfg(localConfigs["CPX_RESEARCH_CONFIG_JSON"]).hash ?? ""}
                 onChange={(e) => updateValue("CPX_RESEARCH_CONFIG_JSON", JSON.stringify({ ...parseJsonCfg(localConfigs["CPX_RESEARCH_CONFIG_JSON"]), hash: e.target.value.trim() }))}
-                className="h-10 bg-white border-[1.5px] border-[#111]/20 font-mono text-sm rounded-full text-[#111]"
+                className="h-10 bg-white border-[1.5px] border-[#141413]/20 font-mono text-sm rounded-full text-[#141413]"
               />
               <Button
                 onClick={() => handleSave("CPX_RESEARCH_CONFIG_JSON")}
                 disabled={saveMutation.isPending && saveMutation.variables?.key === "CPX_RESEARCH_CONFIG_JSON"}
-                className="w-full h-9 bg-[#111] text-white hover:bg-primary hover:text-black rounded-full text-[10px] font-black uppercase tracking-widest"
+                className="w-full h-9 bg-[#141413] text-white hover:bg-primary hover:text-black rounded-full text-[10px] font-black uppercase tracking-widest"
               >
                 <Save className="w-3 h-3 mr-1.5" /> Save CPX
               </Button>
             </div>
-            <div className="p-5 border-[1.5px] border-[#111]/10 bg-white/50 rounded-3xl space-y-3">
-              <TechnicalLabel text="BITLABS" className="text-[#111]/70 font-black text-[10px] uppercase tracking-widest" />
+            <div className="p-5 border-[1.5px] border-[#141413]/10 bg-white/50 rounded-3xl space-y-3">
+              <TechnicalLabel text="BITLABS" className="text-[#141413]/70 font-black text-[10px] uppercase tracking-widest" />
               <Input
                 placeholder="App token (wall URL)"
                 value={parseJsonCfg(localConfigs["BITLABS_CONFIG_JSON"]).appToken ?? ""}
                 onChange={(e) => updateValue("BITLABS_CONFIG_JSON", JSON.stringify({ ...parseJsonCfg(localConfigs["BITLABS_CONFIG_JSON"]), appToken: e.target.value.trim() }))}
-                className="h-10 bg-white border-[1.5px] border-[#111]/20 font-mono text-sm rounded-full text-[#111]"
+                className="h-10 bg-white border-[1.5px] border-[#141413]/20 font-mono text-sm rounded-full text-[#141413]"
               />
               <Input
                 type="password"
                 placeholder="Secret (callback HMAC)"
                 value={parseJsonCfg(localConfigs["BITLABS_CONFIG_JSON"]).secret ?? ""}
                 onChange={(e) => updateValue("BITLABS_CONFIG_JSON", JSON.stringify({ ...parseJsonCfg(localConfigs["BITLABS_CONFIG_JSON"]), secret: e.target.value.trim() }))}
-                className="h-10 bg-white border-[1.5px] border-[#111]/20 font-mono text-sm rounded-full text-[#111]"
+                className="h-10 bg-white border-[1.5px] border-[#141413]/20 font-mono text-sm rounded-full text-[#141413]"
               />
               <Button
                 onClick={() => handleSave("BITLABS_CONFIG_JSON")}
                 disabled={saveMutation.isPending && saveMutation.variables?.key === "BITLABS_CONFIG_JSON"}
-                className="w-full h-9 bg-[#111] text-white hover:bg-primary hover:text-black rounded-full text-[10px] font-black uppercase tracking-widest"
+                className="w-full h-9 bg-[#141413] text-white hover:bg-primary hover:text-black rounded-full text-[10px] font-black uppercase tracking-widest"
               >
                 <Save className="w-3 h-3 mr-1.5" /> Save BitLabs
               </Button>
@@ -534,31 +534,31 @@ export function SystemSettingsManager() {
         </div>
 
         {/* ─── Per-Engine TX-Points Ratio Config (Spec §11.1 / §1.1) ─── */}
-        <div className="lg:col-span-2 bg-background border-[1.5px] border-[#111] rounded-[2rem] p-8 shadow-sm">
+        <div className="lg:col-span-2 bg-background border-[1.5px] border-[#141413] rounded-[2rem] p-8 shadow-sm">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-10 h-10 bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center rounded-full shadow-sm">
+            <div className="w-10 h-10 bg-white border-[1.5px] border-[#141413]/20 flex items-center justify-center rounded-full shadow-sm">
               <Layers className="w-5 h-5 text-zinc-500" />
             </div>
             <div>
-              <h3 className="font-black text-xl uppercase text-[#111] tracking-tight">TX-Points Illusion Engine</h3>
+              <h3 className="font-black text-xl uppercase text-[#141413] tracking-tight">TX-Points Illusion Engine</h3>
               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">Per-engine TX-Points displayed per 1.00 PKR of user share — never exposes real PKR to users</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {([
-              { engine: "A", label: "Engine A — Video Ads", ratioKey: "ENGINE_A_PKR_TO_POINTS_RATIO", varKey: "ENGINE_A_ILLUSION_VARIANCE_PCT", color: "#f97316" },
+              { engine: "A", label: "Engine A — Video Ads", ratioKey: "ENGINE_A_PKR_TO_POINTS_RATIO", varKey: "ENGINE_A_ILLUSION_VARIANCE_PCT", color: "#D97757" },
               { engine: "B", label: "Engine B — Surveys", ratioKey: "ENGINE_B_PKR_TO_POINTS_RATIO", varKey: "ENGINE_B_ILLUSION_VARIANCE_PCT", color: "#7c3aed" },
               { engine: "C", label: "Engine C — Guild",    ratioKey: "ENGINE_C_PKR_TO_POINTS_RATIO", varKey: "ENGINE_C_ILLUSION_VARIANCE_PCT", color: "#16a34a" },
             ] as const).map(({ engine, label, ratioKey, varKey, color }) => {
               const ratio = Number(localConfigs[ratioKey] ?? 1000);
               const variance = Number(localConfigs[varKey] ?? 10);
               return (
-                <div key={engine} className="p-4 bg-white border-[1.5px] border-[#111]/10 rounded-2xl space-y-4">
+                <div key={engine} className="p-4 bg-white border-[1.5px] border-[#141413]/10 rounded-2xl space-y-4">
                   <div className="text-[10px] font-black uppercase tracking-widest" style={{ color }}>{label}</div>
                   <div className="space-y-2">
                     <div className="flex justify-between text-[10px] font-bold text-zinc-500">
                       <span>Points per PKR</span>
-                      <span className="font-black text-[#111]">{ratio.toLocaleString()}</span>
+                      <span className="font-black text-[#141413]">{ratio.toLocaleString()}</span>
                     </div>
                     <input type="range" min={100} max={10000} step={100} value={ratio}
                       onChange={e => updateValue(ratioKey, parseInt(e.target.value, 10))}
@@ -568,7 +568,7 @@ export function SystemSettingsManager() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-[10px] font-bold text-zinc-500">
                       <span>Variance ±%</span>
-                      <span className="font-black text-[#111]">±{variance}%</span>
+                      <span className="font-black text-[#141413]">±{variance}%</span>
                     </div>
                     <input type="range" min={0} max={50} step={1} value={variance}
                       onChange={e => updateValue(varKey, parseInt(e.target.value, 10))}
@@ -628,13 +628,13 @@ function RiskWeightsSection({ localConfigs, defaults, updateValue, handleSave, s
   const weightsOff = Math.abs(weightSum - 1) > 0.001;
 
   return (
-    <div className="bg-background border-[1.5px] border-[#111] rounded-[2rem] p-8 overflow-hidden shadow-sm hover:shadow-md transition-shadow relative group">
+    <div className="bg-background border-[1.5px] border-[#141413] rounded-[2rem] p-8 overflow-hidden shadow-sm hover:shadow-md transition-shadow relative group">
       <div className="flex items-center gap-4 mb-8">
-        <div className="w-10 h-10 bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center rounded-full shadow-sm group-hover:border-primary transition-colors">
+        <div className="w-10 h-10 bg-white border-[1.5px] border-[#141413]/20 flex items-center justify-center rounded-full shadow-sm group-hover:border-primary transition-colors">
           <ShieldAlert className="w-5 h-5 text-zinc-500 group-hover:text-primary transition-colors" />
         </div>
         <div>
-          <h3 className="font-black text-xl uppercase text-[#111] tracking-tight">Performance & Risk Scoring</h3>
+          <h3 className="font-black text-xl uppercase text-[#141413] tracking-tight">Performance & Risk Scoring</h3>
           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">
             Retune fraud detection without a deploy — every change is audit-logged
           </p>
@@ -684,19 +684,19 @@ function RiskWeightsSection({ localConfigs, defaults, updateValue, handleSave, s
 function EconomicControl({ label, value, onChange, onSave, isLoading, step }: any) {
   return (
     <div className="space-y-2">
-      <TechnicalLabel text={label} className="text-[#111]/50 font-black text-[9px] uppercase tracking-widest pl-1" />
+      <TechnicalLabel text={label} className="text-[#141413]/50 font-black text-[9px] uppercase tracking-widest pl-1" />
       <div className="flex gap-3">
         <Input 
           type="number"
           step={step ?? 1}
           value={value}
           onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-          className="flex-1 h-10 bg-white border-[1.5px] border-[#111] rounded-full focus-visible:ring-primary shadow-sm font-bold text-sm text-[#111]"
+          className="flex-1 h-10 bg-white border-[1.5px] border-[#141413] rounded-full focus-visible:ring-primary shadow-sm font-bold text-sm text-[#141413]"
         />
         <Button 
           onClick={onSave}
           disabled={isLoading}
-          className="h-10 bg-[#111] hover:bg-primary text-white border-[1.5px] border-[#111] rounded-full font-black text-[10px] uppercase transition-all shadow-sm px-6"
+          className="h-10 bg-[#141413] hover:bg-primary text-white border-[1.5px] border-[#141413] rounded-full font-black text-[10px] uppercase transition-all shadow-sm px-6"
         >
           {isLoading ? "Saving..." : "Update"}
         </Button>
@@ -782,7 +782,7 @@ function AdPlayersSection() {
   };
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden">
+    <div className="rounded-2xl border border-zinc-200 bg-white shadow-[0_4px_24px_rgba(20, 20, 19,0.04)] overflow-hidden">
       <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
         <div className="flex items-center gap-2">
           <Activity size={16} className="text-primary" />
@@ -916,14 +916,14 @@ function WaterfallSection({ title, networks, onUpdate, onSave, isLoading, icon }
   };
 
   return (
-    <div className="bg-background border-[1.5px] border-[#111] rounded-[2rem] overflow-hidden shadow-sm group hover:shadow-md transition-all">
-      <div className="p-6 md:p-8 border-b-[1.5px] border-[#111]/10 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white/50">
+    <div className="bg-background border-[1.5px] border-[#141413] rounded-[2rem] overflow-hidden shadow-sm group hover:shadow-md transition-all">
+      <div className="p-6 md:p-8 border-b-[1.5px] border-[#141413]/10 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white/50">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-white border-[1.5px] border-[#111]/20 flex items-center justify-center rounded-full shadow-sm group-hover:border-primary transition-colors">
+          <div className="w-10 h-10 bg-white border-[1.5px] border-[#141413]/20 flex items-center justify-center rounded-full shadow-sm group-hover:border-primary transition-colors">
             {icon}
           </div>
           <div>
-            <h3 className="font-black text-xl uppercase text-[#111] tracking-tight">{title}</h3>
+            <h3 className="font-black text-xl uppercase text-[#141413] tracking-tight">{title}</h3>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">Priority-based failover list</p>
           </div>
         </div>
@@ -932,15 +932,15 @@ function WaterfallSection({ title, networks, onUpdate, onSave, isLoading, icon }
           <Button 
             onClick={addNetwork}
             variant="outline"
-            className="h-10 border-[1.5px] border-[#111] text-[#111] rounded-full font-black text-[10px] uppercase hover:bg-black/5 hover:text-[#111] shadow-sm transition-all flex items-center gap-1.5"
+            className="h-10 border-[1.5px] border-[#141413] text-[#141413] rounded-full font-black text-[10px] uppercase hover:bg-black/5 hover:text-[#141413] shadow-sm transition-all flex items-center gap-1.5"
           >
-            <Plus size={14} className="text-[#111]" />
+            <Plus size={14} className="text-[#141413]" />
             <span className="hidden sm:inline">Add</span>
           </Button>
           <Button 
             onClick={onSave}
             disabled={isLoading}
-            className="h-10 bg-[#111] hover:bg-primary text-white border-[1.5px] border-[#111] rounded-full font-black text-[10px] uppercase shadow-sm transition-all flex items-center gap-1.5 px-6"
+            className="h-10 bg-[#141413] hover:bg-primary text-white border-[1.5px] border-[#141413] rounded-full font-black text-[10px] uppercase shadow-sm transition-all flex items-center gap-1.5 px-6"
           >
             <Save size={14} />
             {isLoading ? "Saving..." : "Save Config"}
@@ -954,23 +954,23 @@ function WaterfallSection({ title, networks, onUpdate, onSave, isLoading, icon }
             <p className="font-bold text-[10px] text-zinc-400 uppercase tracking-widest italic">No networks configured in waterfall</p>
           </div>
         ) : (
-          <div className="divide-y-[1.5px] divide-[#111]/10">
+          <div className="divide-y-[1.5px] divide-[#141413]/10">
             {[...networks].sort((a: AdNetwork, b: AdNetwork) => a.priority - b.priority).map((nw: AdNetwork, idx: number) => (
               <div key={nw.id} className="p-6 md:p-8 flex flex-col md:flex-row gap-6 items-center hover:bg-black/[0.02] transition-colors relative">
                 
-                <div className="flex flex-col gap-1 shrink-0 bg-white border-[1.5px] border-[#111]/10 p-1 rounded-full shadow-sm">
+                <div className="flex flex-col gap-1 shrink-0 bg-white border-[1.5px] border-[#141413]/10 p-1 rounded-full shadow-sm">
                   <button 
                     onClick={() => updateNetwork(nw.id, "priority", Math.max(1, nw.priority - 1))}
-                    className="w-6 h-6 flex items-center justify-center text-zinc-400 hover:text-[#111] hover:bg-black/5 rounded-full transition-colors"
+                    className="w-6 h-6 flex items-center justify-center text-zinc-400 hover:text-[#141413] hover:bg-black/5 rounded-full transition-colors"
                   >
                     <ArrowUp size={12} strokeWidth={3} />
                   </button>
-                  <div className="w-6 h-6 text-[#111] flex items-center justify-center font-black text-xs">
+                  <div className="w-6 h-6 text-[#141413] flex items-center justify-center font-black text-xs">
                     {nw.priority}
                   </div>
                   <button 
                     onClick={() => updateNetwork(nw.id, "priority", nw.priority + 1)}
-                    className="w-6 h-6 flex items-center justify-center text-zinc-400 hover:text-[#111] hover:bg-black/5 rounded-full transition-colors"
+                    className="w-6 h-6 flex items-center justify-center text-zinc-400 hover:text-[#141413] hover:bg-black/5 rounded-full transition-colors"
                   >
                     <ArrowDown size={12} strokeWidth={3} />
                   </button>
@@ -978,27 +978,27 @@ function WaterfallSection({ title, networks, onUpdate, onSave, isLoading, icon }
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1 w-full">
                   <div className="space-y-1.5">
-                    <TechnicalLabel text="NETWORK NAME" className="text-[#111]/50 font-black text-[9px] uppercase tracking-widest pl-1" />
+                    <TechnicalLabel text="NETWORK NAME" className="text-[#141413]/50 font-black text-[9px] uppercase tracking-widest pl-1" />
                     <Input 
                       value={nw.name}
                       onChange={(e) => updateNetwork(nw.id, "name", e.target.value)}
-                      className="h-10 border-[1.5px] border-[#111]/20 bg-white font-bold text-xs rounded-full shadow-sm focus-visible:ring-primary"
+                      className="h-10 border-[1.5px] border-[#141413]/20 bg-white font-bold text-xs rounded-full shadow-sm focus-visible:ring-primary"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <TechnicalLabel text="ZONE ID" className="text-[#111]/50 font-black text-[9px] uppercase tracking-widest pl-1" />
+                    <TechnicalLabel text="ZONE ID" className="text-[#141413]/50 font-black text-[9px] uppercase tracking-widest pl-1" />
                     <Input 
                       value={nw.zoneId}
                       onChange={(e) => updateNetwork(nw.id, "zoneId", e.target.value)}
-                      className="h-10 border-[1.5px] border-[#111]/20 bg-white font-mono text-xs rounded-full shadow-sm focus-visible:ring-primary font-bold"
+                      className="h-10 border-[1.5px] border-[#141413]/20 bg-white font-mono text-xs rounded-full shadow-sm focus-visible:ring-primary font-bold"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <TechnicalLabel text="FORMAT" className="text-[#111]/50 font-black text-[9px] uppercase tracking-widest pl-1" />
+                    <TechnicalLabel text="FORMAT" className="text-[#141413]/50 font-black text-[9px] uppercase tracking-widest pl-1" />
                     <select 
                       value={nw.type}
                       onChange={(e) => updateNetwork(nw.id, "type", e.target.value)}
-                      className="w-full h-10 border-[1.5px] border-[#111]/20 bg-white font-bold text-xs rounded-full px-4 shadow-sm outline-none focus:ring-1 focus:ring-primary text-[#111] cursor-pointer"
+                      className="w-full h-10 border-[1.5px] border-[#141413]/20 bg-white font-bold text-xs rounded-full px-4 shadow-sm outline-none focus:ring-1 focus:ring-primary text-[#141413] cursor-pointer"
                     >
                       <option value="video">VIDEO_AD</option>
                       <option value="banner">BANNER_AD</option>
@@ -1012,7 +1012,7 @@ function WaterfallSection({ title, networks, onUpdate, onSave, isLoading, icon }
                       onClick={() => updateNetwork(nw.id, "isActive", !nw.isActive)}
                       className={cn(
                         "flex-1 h-10 rounded-full border-[1.5px] font-black text-[9px] tracking-widest uppercase transition-all shadow-sm",
-                        nw.isActive ? "bg-primary border-primary text-white hover:bg-primary/90 hover:text-white" : "bg-white border-[#111]/20 text-zinc-500 hover:bg-zinc-100"
+                        nw.isActive ? "bg-primary border-primary text-white hover:bg-primary/90 hover:text-white" : "bg-white border-[#141413]/20 text-zinc-500 hover:bg-zinc-100"
                       )}
                     >
                       {nw.isActive ? "ACTIVE" : "OFFLINE"}
@@ -1021,7 +1021,7 @@ function WaterfallSection({ title, networks, onUpdate, onSave, isLoading, icon }
                       variant="outline"
                       size="icon"
                       onClick={() => removeNetwork(nw.id)}
-                      className="h-10 w-10 shrink-0 bg-white border-[1.5px] border-[#111]/20 text-red-500 hover:bg-red-50 hover:border-red-500 rounded-full transition-all shadow-sm"
+                      className="h-10 w-10 shrink-0 bg-white border-[1.5px] border-[#141413]/20 text-red-500 hover:bg-red-50 hover:border-red-500 rounded-full transition-all shadow-sm"
                     >
                       <Trash2 size={14} />
                     </Button>

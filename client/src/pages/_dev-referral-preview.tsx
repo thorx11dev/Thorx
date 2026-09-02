@@ -18,8 +18,8 @@ const mockReferrals = [
 function Panel({ referrals, zoomState }: { referrals: any[]; zoomState: [number, (n: number | ((p: number) => number)) => void] }) {
   const [zoom, setZoom] = zoomState;
   return (
-    <div className="bg-white border border-black/15 rounded-2xl overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.06)] relative">
-      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 rounded-xl border-2 border-black bg-white p-1 shadow-[0_6px_20px_rgba(0,0,0,0.14)] md:bottom-6 md:left-auto md:right-6 md:translate-x-0">
+    <div className="bg-white border border-black/15 rounded-2xl overflow-hidden shadow-[0_12px_40px_rgba(20, 20, 19,0.06)] relative">
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 rounded-xl border-2 border-black bg-white p-1 shadow-[0_6px_20px_rgba(20, 20, 19,0.14)] md:bottom-6 md:left-auto md:right-6 md:translate-x-0">
         <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-black hover:bg-black hover:text-white" onClick={() => setZoom((p) => Math.max(p - 0.1, 0.3))}>
           <Minus size={15} />
         </Button>
@@ -49,7 +49,7 @@ export default function DevReferralPreview() {
   const referrals = state.endsWith("empty") ? [] : mockReferrals;
 
   return (
-    <div className="min-h-screen bg-[hsl(48,26%,88%)] p-4 md:p-10">
+    <div className="min-h-screen bg-[#E8E5D8] p-4 md:p-10">
       {isMobile ? (
         <div className="w-[390px]">
           <div className="text-xs font-black uppercase tracking-widest text-black/40 mb-3">{state}</div>

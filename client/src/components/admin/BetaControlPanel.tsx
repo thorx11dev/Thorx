@@ -9,7 +9,7 @@
 //                        The BETA_INVITE_REQUIRED system-config toggle lives in
 //                        Settings; this panel surfaces its current state.
 //
-// Styling matches the Team Portal system: white plates on hairline #111
+// Styling matches the Team Portal system: white plates on hairline #141413
 // borders, black pills, uppercase micro-labels.
 
 import { useState } from "react";
@@ -57,7 +57,7 @@ const STATUS_FILTERS = ["open", "triaged", "resolved", "all"] as const;
 function statusBadge(status: string): string {
   if (status === "resolved") return "bg-green-500/10 text-green-700 border-green-600/30";
   if (status === "triaged") return "bg-amber-500/10 text-amber-700 border-amber-600/30";
-  return "bg-[#111]/5 text-black/60 border-black/20";
+  return "bg-[#141413]/5 text-black/60 border-black/20";
 }
 
 export function BetaControlPanel() {
@@ -76,19 +76,19 @@ export function BetaControlPanel() {
   return (
     <div className="space-y-6" data-testid="panel-beta-control">
       {/* Header */}
-      <div className="bg-white border-[1.5px] border-[#111]/10 rounded-3xl p-6 md:p-8">
+      <div className="bg-white border-[1.5px] border-[#141413]/10 rounded-3xl p-6 md:p-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div>
             <TechnicalLabel text="BETA v0.9 · CONTROLLED ROLLOUT" className="text-primary font-black text-xs mb-1.5" />
             <h2 className="text-2xl md:text-4xl font-black tracking-tighter">Beta Control</h2>
           </div>
           {/* Tab switch */}
-          <div className="flex items-center gap-1 bg-[#111]/5 p-1 rounded-full w-fit">
+          <div className="flex items-center gap-1 bg-[#141413]/5 p-1 rounded-full w-fit">
             <button
               onClick={() => setTab("feedback")}
               className={cn(
                 "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5",
-                tab === "feedback" ? "bg-[#111] text-white shadow-sm" : "text-black/50 hover:text-black"
+                tab === "feedback" ? "bg-[#141413] text-white shadow-sm" : "text-black/50 hover:text-black"
               )}
               data-testid="tab-beta-feedback"
             >
@@ -98,7 +98,7 @@ export function BetaControlPanel() {
               onClick={() => setTab("invites")}
               className={cn(
                 "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5",
-                tab === "invites" ? "bg-[#111] text-white shadow-sm" : "text-black/50 hover:text-black"
+                tab === "invites" ? "bg-[#141413] text-white shadow-sm" : "text-black/50 hover:text-black"
               )}
               data-testid="tab-beta-invites"
             >
@@ -151,14 +151,14 @@ function FeedbackInbox({
   return (
     <div className="space-y-4">
       {/* Status filter pills */}
-      <div className="flex items-center gap-1 bg-white border-[1.5px] border-[#111]/10 rounded-full p-1 w-fit">
+      <div className="flex items-center gap-1 bg-white border-[1.5px] border-[#141413]/10 rounded-full p-1 w-fit">
         {STATUS_FILTERS.map((s) => (
           <button
             key={s}
             onClick={() => setStatusFilter(s)}
             className={cn(
               "px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
-              statusFilter === s ? "bg-[#111] text-white" : "text-black/45 hover:text-black"
+              statusFilter === s ? "bg-[#141413] text-white" : "text-black/45 hover:text-black"
             )}
           >
             {s}
@@ -172,7 +172,7 @@ function FeedbackInbox({
           <span className="text-[10px] font-black uppercase tracking-widest">Loading inbox…</span>
         </div>
       ) : (query.data?.feedback ?? []).length === 0 ? (
-        <div className="bg-white border-[1.5px] border-dashed border-[#111]/15 rounded-3xl p-14 text-center">
+        <div className="bg-white border-[1.5px] border-dashed border-[#141413]/15 rounded-3xl p-14 text-center">
           <Inbox className="w-8 h-8 mx-auto mb-3 text-black/25" />
           <p className="font-black text-sm uppercase tracking-wide text-black/60">No {statusFilter} reports</p>
           <p className="text-xs font-medium text-black/40 mt-1">User feedback from the portal dock lands here.</p>
@@ -180,11 +180,11 @@ function FeedbackInbox({
       ) : (
         <div className="space-y-3">
           {(query.data?.feedback ?? []).map((row) => (
-            <div key={row.id} className="bg-white border-[1.5px] border-[#111]/10 rounded-2xl p-5 space-y-3">
+            <div key={row.id} className="bg-white border-[1.5px] border-[#141413]/10 rounded-2xl p-5 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-sm border uppercase tracking-tighter bg-[#111] text-white">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-sm border uppercase tracking-tighter bg-[#141413] text-white">
                       {row.category.replace("_", " ")}
                     </span>
                     <span className={cn("text-[9px] font-black px-2 py-0.5 rounded-sm border uppercase tracking-tighter", statusBadge(row.status))}>
@@ -200,7 +200,7 @@ function FeedbackInbox({
                   <Button
                     size="sm"
                     onClick={() => { setRespondingTo(row.id); setNextStatus(row.status === "open" ? "resolved" : "resolved"); }}
-                    className="shrink-0 bg-[#111] text-white hover:bg-primary hover:text-black rounded-lg text-[10px] font-black uppercase tracking-wider h-8 px-3"
+                    className="shrink-0 bg-[#141413] text-white hover:bg-primary hover:text-black rounded-lg text-[10px] font-black uppercase tracking-wider h-8 px-3"
                     data-testid={`button-feedback-respond-${row.id}`}
                   >
                     <Send size={11} /> Respond
@@ -209,19 +209,19 @@ function FeedbackInbox({
               </div>
 
               {row.adminResponse && (
-                <p className="text-xs font-semibold text-black/70 border-l-[3px] border-primary pl-3 bg-[#FAF9F6] rounded-r-lg py-2">
+                <p className="text-xs font-semibold text-black/70 border-l-[3px] border-primary pl-3 bg-[#FAF9F5] rounded-r-lg py-2">
                   Team reply: {row.adminResponse}
                 </p>
               )}
 
               {respondingTo === row.id && (
-                <div className="border-t-[1.5px] border-[#111]/10 pt-3 space-y-2.5">
+                <div className="border-t-[1.5px] border-[#141413]/10 pt-3 space-y-2.5">
                   <Textarea
                     value={responseText}
                     onChange={(e) => setResponseText(e.target.value)}
                     rows={3}
                     placeholder="Reply to the user — they receive this as a notification…"
-                    className="rounded-xl border-[1.5px] border-[#111]/20 focus-visible:ring-primary/40 text-sm"
+                    className="rounded-xl border-[1.5px] border-[#141413]/20 focus-visible:ring-primary/40 text-sm"
                     maxLength={500}
                   />
                   <div className="flex items-center justify-between gap-2">
@@ -230,7 +230,7 @@ function FeedbackInbox({
                       <select
                         value={nextStatus}
                         onChange={(e) => setNextStatus(e.target.value as "triaged" | "resolved")}
-                        className="h-8 rounded-lg border-[1.5px] border-[#111]/20 bg-white px-2 text-[10px] font-black uppercase tracking-wider"
+                        className="h-8 rounded-lg border-[1.5px] border-[#141413]/20 bg-white px-2 text-[10px] font-black uppercase tracking-wider"
                       >
                         <option value="triaged">Mark Triaged</option>
                         <option value="resolved">Mark Resolved</option>
@@ -326,9 +326,9 @@ function InviteManager() {
   return (
     <div className="space-y-4">
       {/* Gate status strip */}
-      <div className="bg-white border-[1.5px] border-[#111]/10 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white border-[1.5px] border-[#141413]/10 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className={cn("p-2 rounded-lg shrink-0", gateOn ? "bg-primary" : "bg-[#111]")}>
+          <div className={cn("p-2 rounded-lg shrink-0", gateOn ? "bg-primary" : "bg-[#141413]")}>
             <Users2 size={15} className="text-white" />
           </div>
           <div>
@@ -349,7 +349,7 @@ function InviteManager() {
             className={cn(
               "shrink-0 h-10 px-5 rounded-lg text-[10px] font-black uppercase tracking-widest border-[1.5px]",
               gateOn
-                ? "bg-white text-[#111] border-[#111]/20 hover:border-[#111]"
+                ? "bg-white text-[#141413] border-[#141413]/20 hover:border-[#141413]"
                 : "bg-primary text-black border-primary hover:bg-primary/90"
             )}
             data-testid="button-toggle-invite-gate"
@@ -361,7 +361,7 @@ function InviteManager() {
       </div>
 
       {/* Mint form */}
-      <div className="bg-white border-[1.5px] border-[#111]/10 rounded-2xl p-5 space-y-3">
+      <div className="bg-white border-[1.5px] border-[#141413]/10 rounded-2xl p-5 space-y-3">
         <TechnicalLabel text="MINT NEW INVITE CODE" className="text-black/45 text-[10px]" />
         <div className="flex flex-col sm:flex-row gap-2.5">
           <Input
@@ -370,19 +370,19 @@ function InviteManager() {
             max={1000}
             value={maxUses}
             onChange={(e) => setMaxUses(e.target.value)}
-            className="w-full sm:w-28 rounded-lg border-[1.5px] border-[#111]/20 h-10"
+            className="w-full sm:w-28 rounded-lg border-[1.5px] border-[#141413]/20 h-10"
             aria-label="Max uses"
           />
           <Input
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Note (e.g. WhatsApp batch #1)"
-            className="flex-1 rounded-lg border-[1.5px] border-[#111]/20 h-10"
+            className="flex-1 rounded-lg border-[1.5px] border-[#141413]/20 h-10"
           />
           <Button
             disabled={createMutation.isPending}
             onClick={() => createMutation.mutate()}
-            className="bg-[#111] text-white hover:bg-primary hover:text-black rounded-lg h-10 px-5 text-[10px] font-black uppercase tracking-wider shrink-0"
+            className="bg-[#141413] text-white hover:bg-primary hover:text-black rounded-lg h-10 px-5 text-[10px] font-black uppercase tracking-wider shrink-0"
             data-testid="button-mint-invite"
           >
             {createMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Ticket size={12} />} Mint
@@ -398,7 +398,7 @@ function InviteManager() {
           <span className="text-[10px] font-black uppercase tracking-widest">Loading invites…</span>
         </div>
       ) : (invites.data?.invites ?? []).length === 0 ? (
-        <div className="bg-white border-[1.5px] border-dashed border-[#111]/15 rounded-3xl p-14 text-center">
+        <div className="bg-white border-[1.5px] border-dashed border-[#141413]/15 rounded-3xl p-14 text-center">
           <Ticket className="w-8 h-8 mx-auto mb-3 text-black/25" />
           <p className="font-black text-sm uppercase tracking-wide text-black/60">No invites yet</p>
           <p className="text-xs font-medium text-black/40 mt-1">Mint your first code above to start onboarding beta users.</p>
@@ -408,14 +408,14 @@ function InviteManager() {
           {(invites.data?.invites ?? []).map((invite) => {
             const exhausted = invite.useCount >= invite.maxUses;
             return (
-              <div key={invite.id} className="bg-white border-[1.5px] border-[#111]/10 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+              <div key={invite.id} className="bg-white border-[1.5px] border-[#141413]/10 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <code className="font-mono font-black text-sm tracking-wider">{invite.code}</code>
                     <button
                       onClick={() => copyCode(invite.code)}
                       aria-label={`Copy ${invite.code}`}
-                      className="p-1 rounded-md hover:bg-[#111]/5 transition-colors"
+                      className="p-1 rounded-md hover:bg-[#141413]/5 transition-colors"
                     >
                       {copiedCode === invite.code ? <CheckCircle2 size={12} className="text-green-600" /> : <Copy size={12} className="text-black/40" />}
                     </button>
@@ -431,7 +431,7 @@ function InviteManager() {
                     </span>
                   )}
                   {exhausted && (
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-sm border uppercase tracking-tighter bg-[#111]/5 text-black/50 border-black/20">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-sm border uppercase tracking-tighter bg-[#141413]/5 text-black/50 border-black/20">
                       Fully used
                     </span>
                   )}

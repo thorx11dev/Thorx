@@ -282,7 +282,7 @@ export function PayoutControl() {
     <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-700">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-5xl font-black tracking-tighter uppercase text-[#111]">Payout</h2>
+          <h2 className="text-5xl font-black tracking-tighter uppercase text-[#141413]">Payout</h2>
         </div>
 
         <div className="flex items-center gap-4">
@@ -291,7 +291,7 @@ export function PayoutControl() {
             <input 
               type="text" 
               placeholder="Search beneficiary..."
-              className="h-10 pl-11 pr-4 bg-white border-[1.5px] border-[#111] rounded-full focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-xs font-bold w-64 text-[#111] placeholder:text-zinc-400"
+              className="h-10 pl-11 pr-4 bg-white border-[1.5px] border-[#141413] rounded-full focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-xs font-bold w-64 text-[#141413] placeholder:text-zinc-400"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -300,14 +300,14 @@ export function PayoutControl() {
             />
           </div>
           <Button 
-            className="h-10 bg-white border-[1.5px] border-[#111] text-[#111] font-black text-xs px-6 hover:bg-[#111] hover:text-white rounded-full transition-all uppercase shadow-sm whitespace-nowrap"
+            className="h-10 bg-white border-[1.5px] border-[#141413] text-[#141413] font-black text-xs px-6 hover:bg-[#141413] hover:text-white rounded-full transition-all uppercase shadow-sm whitespace-nowrap"
             onClick={handleExport}
           >
             Export
           </Button>
 
           <select 
-            className="h-10 px-4 bg-white border-[1.5px] border-[#111] rounded-full font-black text-[10px] uppercase tracking-widest focus:outline-none cursor-pointer hover:bg-black/5 transition-colors"
+            className="h-10 px-4 bg-white border-[1.5px] border-[#141413] rounded-full font-black text-[10px] uppercase tracking-widest focus:outline-none cursor-pointer hover:bg-black/5 transition-colors"
             value={filterStatus}
             onChange={(e) => {
               setFilterStatus(e.target.value);
@@ -324,9 +324,9 @@ export function PayoutControl() {
         </div>
       </div>
 
-      <div className="bg-background border-[1.5px] border-[#111] rounded-[2rem] overflow-hidden shadow-sm">
-        <div className="bg-white border-b-[1.5px] border-[#111] px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-1 bg-[#111]/5 p-1 rounded-full">
+      <div className="bg-background border-[1.5px] border-[#141413] rounded-[2rem] overflow-hidden shadow-sm">
+        <div className="bg-white border-b-[1.5px] border-[#141413] px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-1 bg-[#141413]/5 p-1 rounded-full">
             {(['latest', 'rank', 'deadtime'] as const).map((s) => (
               <button
                 key={s}
@@ -346,7 +346,7 @@ export function PayoutControl() {
         </div>
         
         {selectedIds.length > 0 && (
-          <div className="bg-[#111] px-8 py-3 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+          <div className="bg-[#141413] px-8 py-3 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
             <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest italic">
               {selectedIds.length} {selectedIds.length === 1 ? 'item' : 'items'} selected
             </div>
@@ -354,7 +354,7 @@ export function PayoutControl() {
               <Button
                 size="sm"
                 disabled={bulkUpdateMutation.isPending}
-                className="h-8 px-4 rounded-full bg-white text-[#111] font-black text-[9px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all disabled:opacity-50"
+                className="h-8 px-4 rounded-full bg-white text-[#141413] font-black text-[9px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all disabled:opacity-50"
                 onClick={() => setBulkConfirmAction('completed')}
               >
                 Approve Selected
@@ -374,27 +374,27 @@ export function PayoutControl() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white/50 border-b-[1.5px] border-[#111]/10">
+              <tr className="bg-white/50 border-b-[1.5px] border-[#141413]/10">
                 <th className="p-6 w-12 text-center align-middle">
                   <Checkbox 
                     checked={allSelected}
                     onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                    className="border-[#111] data-[state=checked]:bg-[#111] data-[state=checked]:text-primary"
+                    className="border-[#141413] data-[state=checked]:bg-[#141413] data-[state=checked]:text-primary"
                   />
                 </th>
-                <th className="p-6 font-black text-[10px] tracking-widest text-[#111] uppercase">Beneficiary</th>
-                <th className="p-6 font-black text-[10px] tracking-widest text-[#111] uppercase text-center">Identity Rank</th>
-                <th className="p-6 font-black text-[10px] tracking-widest text-[#111] uppercase">Transfer Protocol</th>
-                <th className="p-6 font-black text-[10px] tracking-widest text-[#111] uppercase text-center">Amount (₨)</th>
-                <th className="p-6 font-black text-[10px] tracking-widest text-[#111] uppercase text-center">Status</th>
-                <th className="p-6 font-black text-[10px] tracking-widest text-[#111] uppercase text-right">Actions</th>
+                <th className="p-6 font-black text-[10px] tracking-widest text-[#141413] uppercase">Beneficiary</th>
+                <th className="p-6 font-black text-[10px] tracking-widest text-[#141413] uppercase text-center">Identity Rank</th>
+                <th className="p-6 font-black text-[10px] tracking-widest text-[#141413] uppercase">Transfer Protocol</th>
+                <th className="p-6 font-black text-[10px] tracking-widest text-[#141413] uppercase text-center">Amount (₨)</th>
+                <th className="p-6 font-black text-[10px] tracking-widest text-[#141413] uppercase text-center">Status</th>
+                <th className="p-6 font-black text-[10px] tracking-widest text-[#141413] uppercase text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y-[1.5px] divide-[#111]/10">
+            <tbody className="divide-y-[1.5px] divide-[#141413]/10">
               <AnimatePresence mode="popLayout">
                 {isLoading ? (
                   Array(5).fill(0).map((_, i) => (
-                    <tr key={i} className="border-b-[1.5px] border-[#111]/5">
+                    <tr key={i} className="border-b-[1.5px] border-[#141413]/5">
                       <td className="p-6"><Skeleton className="h-4 w-4 rounded" /></td>
                       <td className="p-6">
                         <div className="flex items-center gap-3">
@@ -423,7 +423,7 @@ export function PayoutControl() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05, type: "spring", stiffness: 300, damping: 30 }}
-                      className="hover:bg-black/5 transition-all group border-b-[1.5px] border-[#111]/5"
+                      className="hover:bg-black/5 transition-all group border-b-[1.5px] border-[#141413]/5"
                     >
                       <td className="p-6">
                         <Checkbox 
@@ -432,16 +432,16 @@ export function PayoutControl() {
                             if (checked) setSelectedIds(prev => [...prev, withdrawal.id]);
                             else setSelectedIds(prev => prev.filter(id => id !== withdrawal.id));
                           }}
-                          className="border-[#111] data-[state=checked]:bg-[#111] transition-colors"
+                          className="border-[#141413] data-[state=checked]:bg-[#141413] transition-colors"
                         />
                       </td>
                       <td className="p-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white border-[1.5px] border-[#111] flex items-center justify-center text-[10px] font-black group-hover:bg-primary/20 transition-all">
+                          <div className="w-10 h-10 rounded-full bg-white border-[1.5px] border-[#141413] flex items-center justify-center text-[10px] font-black group-hover:bg-primary/20 transition-all">
                             {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
                           </div>
                           <div>
-                            <div className="font-black text-xs text-[#111] uppercase tracking-tight">{withdrawal.user.firstName} {withdrawal.user.lastName}</div>
+                            <div className="font-black text-xs text-[#141413] uppercase tracking-tight">{withdrawal.user.firstName} {withdrawal.user.lastName}</div>
                             <div className="text-[10px] font-bold text-zinc-400">{withdrawal.user.email}</div>
                           </div>
                         </div>
@@ -463,7 +463,7 @@ export function PayoutControl() {
                       </td>
                       <td className="p-6">
                          <div className="flex items-center gap-2">
-                           <TechnicalLabel text={withdrawal.accountNumber} className="text-[#111] !tracking-normal font-mono text-[11px]" />
+                           <TechnicalLabel text={withdrawal.accountNumber} className="text-[#141413] !tracking-normal font-mono text-[11px]" />
                            <Button 
                              size="icon" 
                              variant="ghost" 
@@ -476,7 +476,7 @@ export function PayoutControl() {
                          <div className="text-[9px] font-bold text-zinc-400 mt-1 truncate max-w-[150px]">{withdrawal.accountName}</div>
                       </td>
                       <td className="p-6 text-center">
-                        <div className="font-black text-sm text-[#111]">₨ {new Decimal(withdrawal.amount || "0").toFixed(2)}</div>
+                        <div className="font-black text-sm text-[#141413]">₨ {new Decimal(withdrawal.amount || "0").toFixed(2)}</div>
                         <div className="text-[9px] font-black uppercase text-zinc-400 tracking-widest mt-0.5">{withdrawal.method}</div>
                       </td>
                       <td className="p-6">
@@ -496,7 +496,7 @@ export function PayoutControl() {
                               <Button 
                                 size="sm" 
                                 variant="ghost" 
-                                className="h-10 w-10 p-0 rounded-full border-[1.5px] border-[#111]/20 hover:border-primary hover:bg-primary/20 hover:text-primary transition-colors text-[#111]"
+                                className="h-10 w-10 p-0 rounded-full border-[1.5px] border-[#141413]/20 hover:border-primary hover:bg-primary/20 hover:text-primary transition-colors text-[#141413]"
                                 onClick={() => { setSelectedWithdrawal(withdrawal); setActionType('approve'); }}
                               >
                                 <CheckCircle size={16} />
@@ -504,7 +504,7 @@ export function PayoutControl() {
                               <Button 
                                 size="sm" 
                                 variant="ghost" 
-                                className="h-10 w-10 p-0 rounded-full border-[1.5px] border-[#111]/20 hover:border-red-500/20 hover:bg-red-500/10 hover:text-red-500 transition-colors text-[#111]"
+                                className="h-10 w-10 p-0 rounded-full border-[1.5px] border-[#141413]/20 hover:border-red-500/20 hover:bg-red-500/10 hover:text-red-500 transition-colors text-[#141413]"
                                 onClick={() => { setSelectedWithdrawal(withdrawal); setActionType('reject'); }}
                               >
                                 <XCircle size={16} />
@@ -514,7 +514,7 @@ export function PayoutControl() {
                           <Button 
                             size="icon" 
                             variant="ghost" 
-                            className="h-10 w-10 border-[1.5px] border-[#111]/20 hover:bg-black hover:text-white rounded-full transition-all"
+                            className="h-10 w-10 border-[1.5px] border-[#141413]/20 hover:bg-black hover:text-white rounded-full transition-all"
                             onClick={() => { setSelectedWithdrawal(withdrawal); setActionType('view'); }}
                           >
                             <ChevronRight size={14} />
@@ -530,16 +530,16 @@ export function PayoutControl() {
         </div>
 
         {totalPages > 1 && (
-          <div className="p-6 bg-white border-t-[1.5px] border-[#111] flex items-center justify-between">
+          <div className="p-6 bg-white border-t-[1.5px] border-[#141413] flex items-center justify-between">
             <div className="text-[10px] font-black tracking-widest uppercase text-zinc-400">
-              Showing <span className="text-[#111]">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-[#111]">{Math.min(currentPage * itemsPerPage, totalCount)}</span> of <span className="text-[#111]">{totalCount}</span> nodes
+              Showing <span className="text-[#141413]">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-[#141413]">{Math.min(currentPage * itemsPerPage, totalCount)}</span> of <span className="text-[#141413]">{totalCount}</span> nodes
             </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 disabled={currentPage === 1}
                 onClick={() => handlePageChange(currentPage - 1)}
-                className="h-10 px-6 border-[1.5px] border-[#111] rounded-full font-black text-xs uppercase hover:bg-[#111] hover:text-white transition-all disabled:opacity-30"
+                className="h-10 px-6 border-[1.5px] border-[#141413] rounded-full font-black text-xs uppercase hover:bg-[#141413] hover:text-white transition-all disabled:opacity-30"
               >
                 Previous
               </Button>
@@ -550,7 +550,7 @@ export function PayoutControl() {
                     onClick={() => handlePageChange(i + 1)}
                     className={cn(
                       "w-2 h-2 rounded-full transition-all",
-                      currentPage === i + 1 ? "w-8 bg-[#111]" : "bg-[#111]/20 hover:bg-[#111]/40"
+                      currentPage === i + 1 ? "w-8 bg-[#141413]" : "bg-[#141413]/20 hover:bg-[#141413]/40"
                     )}
                   />
                 ))}
@@ -559,7 +559,7 @@ export function PayoutControl() {
                 variant="ghost"
                 disabled={currentPage === totalPages}
                 onClick={() => handlePageChange(currentPage + 1)}
-                className="h-10 px-6 border-[1.5px] border-[#111] rounded-full font-black text-xs uppercase hover:bg-[#111] hover:text-white transition-all disabled:opacity-30"
+                className="h-10 px-6 border-[1.5px] border-[#141413] rounded-full font-black text-xs uppercase hover:bg-[#141413] hover:text-white transition-all disabled:opacity-30"
               >
                 Next
               </Button>
@@ -752,7 +752,7 @@ export function PayoutControl() {
                {/* ── PAYMENT COPY ── */}
                {selectedWithdrawal && (
                  <div>
-                   <Button variant="outline" className="w-full h-9 border-[1.5px] border-[#111] font-black text-xs hover:bg-[#111] hover:text-white transition-all"
+                   <Button variant="outline" className="w-full h-9 border-[1.5px] border-[#141413] font-black text-xs hover:bg-[#141413] hover:text-white transition-all"
                      onClick={() => handleCopyPaymentDetails(selectedWithdrawal)}>
                      {copiedId === selectedWithdrawal.id + '_payment' ? <Check size={12} className="mr-2"/> : <Copy size={12} className="mr-2"/>}
                      Copy Payment Details

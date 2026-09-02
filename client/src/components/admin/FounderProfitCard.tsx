@@ -229,7 +229,7 @@ export function FounderProfitCard() {
 
       {/* Log Withdrawal Modal */}
       <Dialog open={showLogModal} onOpenChange={setShowLogModal}>
-        <DialogContent className="border border-black/10 bg-white rounded-[2rem] p-0 max-w-md overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.12)] [&>button]:hidden">
+        <DialogContent className="border border-black/10 bg-white rounded-[2rem] p-0 max-w-md overflow-hidden shadow-[0_20px_60px_rgba(20, 20, 19,0.12)] [&>button]:hidden">
           <DialogHeader className="p-8 border-b border-zinc-100">
             <div className="flex items-center justify-between">
               <DialogTitle className="text-2xl font-black tracking-tighter">Log Withdrawal</DialogTitle>
@@ -287,7 +287,7 @@ export function FounderProfitCard() {
 
       {/* History Modal */}
       <Dialog open={showHistory} onOpenChange={setShowHistory}>
-        <DialogContent className="border border-black/10 bg-white rounded-[2rem] p-0 max-w-lg overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.12)] [&>button]:hidden">
+        <DialogContent className="border border-black/10 bg-white rounded-[2rem] p-0 max-w-lg overflow-hidden shadow-[0_20px_60px_rgba(20, 20, 19,0.12)] [&>button]:hidden">
           <DialogHeader className="p-8 border-b border-zinc-100">
             <div className="flex items-center justify-between">
               <DialogTitle className="text-2xl font-black tracking-tighter">Withdrawal History</DialogTitle>

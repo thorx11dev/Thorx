@@ -65,11 +65,11 @@ export function HelpSection(props: HelpSectionProps) {
         <motion.div
           initial={false}
           animate={{
-            backgroundColor: isHelpHeroToggled ? "#ffffff" : "#000000",
-            borderColor: isHelpHeroToggled ? "#000000" : "#ffffff",
+            backgroundColor: isHelpHeroToggled ? "#FAF9F5" : "#141413",
+            borderColor: isHelpHeroToggled ? "#141413" : "#FAF9F5",
             boxShadow: isHelpHeroToggled
-              ? "0 4px 20px rgba(0,0,0,0.06)"
-              : "0 8px 30px rgba(0,0,0,0.12)"
+              ? "0 4px 20px rgba(20, 20, 19,0.06)"
+              : "0 8px 30px rgba(20, 20, 19,0.12)"
           }}
           transition={{
             backgroundColor: { duration: 0.4 },
@@ -122,7 +122,7 @@ export function HelpSection(props: HelpSectionProps) {
           }}
           className="max-w-[1600px] mx-auto mb-12"
         >
-          <div className="rounded-2xl border border-black/15 bg-white p-6 md:p-12 shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
+          <div className="rounded-2xl border border-black/15 bg-white p-6 md:p-12 shadow-[0_12px_40px_rgba(20, 20, 19,0.06)]">
             {/* Tab Navigation — identical control on desktop and mobile */}
             <Tabs value={activeHelpTab} onValueChange={setActiveHelpTab} className="w-full">
               <TabsList className="grid w-full grid-cols-3 mb-8 md:mb-10 bg-muted/60 border border-black/15 rounded-xl h-12 md:h-14 p-1 gap-1">
@@ -169,7 +169,7 @@ export function HelpSection(props: HelpSectionProps) {
                     exit={{ opacity: 0, x: -20 }}
                     className="mt-0"
                   >
-                    <div className="rounded-2xl border border-black/15 bg-white overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
+                    <div className="rounded-2xl border border-black/15 bg-white overflow-hidden shadow-[0_20px_60px_rgba(20, 20, 19,0.08)]">
                       {/* Chat Header */}
                       <div className="bg-black text-white px-4 md:px-6 py-4 flex items-center justify-end">
                         <Barcode className="h-4 w-12 md:w-16 opacity-40 grayscale invert" />

@@ -58,9 +58,9 @@ export function DesktopNavTabs({
                             "ml-[-3px]",
                             // Uniform rest state — active & inactive look the same at rest
                             "bg-white text-zinc-600 z-0",
-                            "hover:bg-zinc-100 hover:text-black hover:z-10 hover:shadow-[4px_4px_0px_#000]",
+                            "hover:bg-zinc-100 hover:text-black hover:z-10 hover:shadow-[4px_4px_0px_#141413]",
                             // Keyboard focus — same elevated treatment as hover
-                            "focus-visible:outline-none focus-visible:bg-zinc-100 focus-visible:text-black focus-visible:z-10 focus-visible:shadow-[4px_4px_0px_#000]"
+                            "focus-visible:outline-none focus-visible:bg-zinc-100 focus-visible:text-black focus-visible:z-10 focus-visible:shadow-[4px_4px_0px_#141413]"
                         )}
                         style={{
                             marginLeft: index === 0 ? '0' : undefined

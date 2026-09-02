@@ -182,14 +182,14 @@ export function HealthReportPanel({ snapshot }: { snapshot: HealthSnapshotData |
           <div className="p-4 h-[190px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.1} />
-                <XAxis dataKey="time" fontSize={9} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis domain={[0, 100]} fontSize={9} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--muted-foreground)" strokeOpacity={0.1} />
+                <XAxis dataKey="time" fontSize={9} tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)" }} />
+                <YAxis domain={[0, 100]} fontSize={9} tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)" }} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#fff", border: "1px solid #e4e4e7", borderRadius: "12px", fontSize: "11px", fontWeight: "bold" }}
+                  contentStyle={{ backgroundColor: "#FAF9F5", border: "1px solid #e4e4e7", borderRadius: "12px", fontSize: "11px", fontWeight: "bold" }}
                   formatter={(v: any) => [`${Math.round(v)}/100`, "Score"]}
                 />
-                <Line type="monotone" dataKey="score" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="score" stroke="#D97757" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
