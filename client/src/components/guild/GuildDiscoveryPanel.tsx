@@ -365,6 +365,31 @@ export function GuildDiscoveryPanel() {
             </span>
           )}
         </button>
+
+        {/* View toggle — desktop only (mobile uses the list) */}
+        <div className="hidden md:flex border-2 border-black/10 rounded-lg overflow-hidden shrink-0">
+          <button
+            onClick={() => setViewMode("grid")}
+            className={cn(
+              "h-11 w-11 flex items-center justify-center transition-all duration-150",
+              viewMode === "grid" ? "bg-black text-white" : "bg-white text-black/40 hover:text-black"
+            )}
+            aria-label="Grid view"
+          >
+            <LayoutGrid className="size-4" />
+          </button>
+          <div className="w-px bg-black/10" />
+          <button
+            onClick={() => setViewMode("list")}
+            className={cn(
+              "h-11 w-11 flex items-center justify-center transition-all duration-150",
+              viewMode === "list" ? "bg-black text-white" : "bg-white text-black/40 hover:text-black"
+            )}
+            aria-label="List view"
+          >
+            <List className="size-4" />
+          </button>
+        </div>
       </motion.div>
 
       {/* Result count when filtering */}
