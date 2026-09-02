@@ -1283,7 +1283,7 @@ export default function UserPortal() {
               className="cinematic-section active"
               data-testid="section-dashboard"
             >
-              <Suspense fallback={null}><DashboardSection displayUser={displayUser} isMobile={isMobile} earningsChartData={earningsChartData} earningTypesData={earningTypesData} hasEarningsBreakdownData={hasEarningsBreakdownData} /></Suspense>
+              <Suspense fallback={null}><DashboardSection displayUser={displayUser} isMobile={isMobile} earningsChartData={earningsChartData} earningTypesData={earningTypesData} hasEarningsBreakdownData={hasEarningsBreakdownData} onRefresh={refreshPortalData} /></Suspense>
             </motion.section>
           )}
           {currentSection === 1 && (
