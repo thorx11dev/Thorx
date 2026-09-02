@@ -116,7 +116,19 @@ export function GuildMemberPanel() {
     staleTime: 60000,
   });
 
-  const sendChatMutation = useMutation({    mutationFn: async (message: string) => {
+  // Manual sync — refetch every live guild surface without a hard reload.
+  const refreshGuildData = () => {
+    if (!guildId) return;
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildDetail(guildId) });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildMembers(guildId) });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildWeeklyHistory(guildId) });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildChat(guildId) });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildMessages(guildId) });
+  };
+  const { refreshing: isRefreshing, refresh: handleRefresh } = useRefreshAction(refreshGuildData);
+
+  const sendChatMutation = useMutation({
+    mutationFn: async (message: string) => {
       const r = await apiRequest("POST", `/api/guilds/${guildId}/chat`, { message });
       if (!r.ok) throw await r.json();
       return r.json();
