@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { DashboardCards } from "@/components/DashboardCards";
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import TechnicalLabel from "@/components/ui/technical-label";
+import { RefreshButton, useRefreshAction } from "@/components/ui/refresh-button";
 import { resolveAvatarUrl } from "@/lib/rankAvatars";
 import { Crown, Trophy, Medal, Shield, User } from "lucide-react";
 import {
@@ -16,10 +17,12 @@ interface DashboardSectionProps {
   earningsChartData: Array<{ date: string; earnings: number; ads: number; tasks: number }>;
   earningTypesData: Array<{ name: string; value: number; color: string }>;
   hasEarningsBreakdownData: boolean;
+  onRefresh?: () => void;
 }
 
 export function DashboardSection(props: DashboardSectionProps) {
-  const { displayUser, isMobile, earningsChartData, earningTypesData, hasEarningsBreakdownData } = props;
+  const { displayUser, isMobile, earningsChartData, earningTypesData, hasEarningsBreakdownData, onRefresh } = props;
+  const { refreshing: isRefreshing, refresh: handleRefresh } = useRefreshAction(onRefresh ?? (() => {}));
     const getRank = (rankTier?: string) => {
       const title = (rankTier || "E-Rank").toUpperCase();
       // All ranks use the same Silver (Zinc-500) frame/badge style — the avatar
