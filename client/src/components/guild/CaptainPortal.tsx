@@ -234,6 +234,18 @@ export function CaptainPortal() {
     refetchInterval: 60000,
   });
 
+  // Manual sync — refetch all live guild surfaces without a hard reload.
+  const refreshGuildData = () => {
+    if (!guildId) return;
+    queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId] });
+    queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "members"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "applications"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "weekly-history"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "chat"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "private-chat", selectedDmMember] });
+  };
+  const { refreshing: isRefreshing, refresh: handleRefresh } = useRefreshAction(refreshGuildData);
+
   const appActionMutation = useMutation({
     mutationFn: async ({ appId, action, reason }: { appId: string; action: "accept" | "reject"; reason?: string }) => {
       const r = await apiRequest("PATCH", `/api/guilds/${guildId}/applications/${appId}`, { action, rejectionReason: reason });
