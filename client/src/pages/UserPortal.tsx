@@ -42,7 +42,6 @@ const ProfileModal = retryLazy(() =>
 );
 import { PortalMenuDrawer } from "@/components/ui/portal-menu-drawer";
 import { DesktopNavTabs } from "@/components/ui/desktop-nav-tabs";
-import { RefreshButton, useRefreshAction } from "@/components/ui/refresh-button";
 const AdWebPanel = retryLazy(() =>
   import("@/components/ui/ad-web-panel").then((m) => ({ default: m.AdWebPanel }))
 );
@@ -270,7 +269,6 @@ export default function UserPortal() {
     queryClient.invalidateQueries({ queryKey: ["transactions", "history"] });
     queryClient.invalidateQueries({ queryKey: ["ad-views", "today"] });
   }, [queryClient]);
-  const { refreshing: isPortalRefreshing, refresh: refreshPortal } = useRefreshAction(refreshPortalData);
 
   // Share Modal State
   const [showShareModal, setShowShareModal] = useState(false);
@@ -1186,7 +1184,6 @@ export default function UserPortal() {
           </div>
 
           <div className="flex items-center space-x-3">
-            <RefreshButton onClick={refreshPortal} refreshing={isPortalRefreshing} title="Sync all data" />
             <Button
               onClick={() => setShowNotificationModal(true)}
               variant="outline"
