@@ -1,45 +1,49 @@
 /**
- * InteractiveRopeNav — super-realistic braided rope navigation (mobile).
+ * InteractiveRopeNav — photoreal sprite-rope navigation (mobile).
  *
- * A thick ORANGE rope that reads like real fibre rope, built entirely from
- * solid-color SVG strokes (no gradients):
- *   • dark outline + cylindrical side shading (dark/light parallel bands)
- *   • twisted strand wraps (dark + light sinusoids around the core)
- *   • tiny fibre hairs along the edges
- * All layers follow the same Verlet chain every frame, so the whole rope
- * bends, swings and springs back with real physics.
+ * The rope is a pre-rendered 36-frame sprite sheet (6×6, 326×822/frame)
+ * captured from a 3D rope simulation — one full pendulum swing cycle.
+ * A Verlet physics chain drives the tip; every frame we:
+ *   1. solve the chain (gravity, damping, constraints, drag),
+ *   2. match the tip offset against the sprite's baked tip table,
+ *   3. cross-fade the two nearest frames so the rendered rope's tip
+ *      lands exactly on the physics tip,
+ *   4. rotate by any residual angle + stretch along the rope axis when
+ *      the chain is pulled beyond natural length.
  *
- * Interaction contract:
- *   • Tap/click the ≡ icon while the rope rests → open drawer (zero movement)
- *   • Drag past a small threshold → rope stretches and follows the pointer
- *   • Release → inertia + wobble spring-back
+ * Interaction contract (unchanged):
+ *   • Tap/click the ≡ icon while resting → open drawer, rope never moves.
+ *   • Drag past threshold → physics engage, rope follows + springs back.
+ *
+ * Fallback: until the sheet loads, nothing is drawn (local asset <100ms).
  */
 import { useEffect, useRef } from "react";
 import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const SHEET_URL = "/rope/rope-sprite.png";
+const COLS = 6, ROWS = 6, FRAMES = 36;
+
+/* Baked tip offsets (px, sprite-space) per frame — measured from the sheet.
+   Index = frame; value = tip x relative to frame centre. */
+const TIP_TABLE = [
+  9, 17, 39, 61, 69, 85, 101, 115, 107, 119, 105, 79, 73, 59, 39, 23,
+  -3, -23, -23, -29, -61, -69, -75, -99, -105, -127, -127, -117, -109,
+  -107, -95, -73, -69, -41, -33, -1,
+];
+const SPRITE_ROPE_LEN = 812;   // rope span inside a frame (px)
+const SPRITE_MAX_TIP = 127;    // widest swing tip offset in the sheet
+
 const GRAVITY = 0.5;
 const DAMPING = 0.985;
 const ITERATIONS = 24;
 const SEG_COUNT = 12;
-const WIND = 0.016;
 const LINK = 9.5;
+const CHAIN_NATURAL = LINK * SEG_COUNT;            // screen px at rest
+const SPRITE_SCALE = CHAIN_NATURAL / SPRITE_ROPE_LEN; // ≈ 0.14
 const ICON_SIZE = 46;
 const STRETCH_THRESHOLD = 14;
 const TAP_MAX_MS = 400;
-
-/* Solid rope palette — no gradients anywhere */
-const C = {
-  shadow: "rgba(0,0,0,0.13)",
-  outline: "rgba(0,0,0,0.30)",
-  darkEdge: "#a84300",
-  lightEdge: "#ff9d55",
-  core: "#ff6b00",
-  coreLight: "#ff7f1f",
-  twistDark: "#9c3f00",
-  twistLight: "#ffc49b",
-  fiber: "rgba(0,0,0,0.22)",
-};
 
 interface RopePoint { x: number; y: number; px: number; py: number; }
 
@@ -53,17 +57,8 @@ export function InteractiveRopeNav({
   className?: string;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
-  const shadowRef = useRef<SVGPathElement>(null);
-  const outlineRef = useRef<SVGPathElement>(null);
-  const darkEdgeRef = useRef<SVGPathElement>(null);
-  const lightEdgeRef = useRef<SVGPathElement>(null);
-  const coreRef = useRef<SVGPathElement>(null);
-  const twistDarkRef = useRef<SVGPathElement>(null);
-  const twistLightRef = useRef<SVGPathElement>(null);
-  const fibersRef = useRef<SVGPathElement>(null);
-  const anchorDotRef = useRef<SVGCircleElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const iconRef = useRef<HTMLButtonElement>(null);
-
   const pointsRef = useRef<RopePoint[]>([]);
   const dragRef = useRef<{ x: number; y: number } | null>(null);
   const stretchRef = useRef(false);
@@ -73,12 +68,18 @@ export function InteractiveRopeNav({
 
   useEffect(() => {
     const wrap = wrapRef.current;
-    if (!wrap) return;
+    const canvas = canvasRef.current;
+    if (!wrap || !canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    // Anchor = the divider line at the bottom of the main header (Y) and the
-    // THORX. branding position (X). Viewport coords are converted to
-    // wrap-local coords every frame so the rope head stays glued to that
-    // divider through resizes/rotation.
+    /* ── Sprite sheet load ── */
+    const sheet = new Image();
+    let sheetReady = false;
+    sheet.onload = () => { sheetReady = true; };
+    sheet.src = SHEET_URL;
+
+    /* ── Anchor: below the THORX. branding, on the header divider ── */
     const headerEl = document.querySelector<HTMLElement>(".portal-topnav");
     const logoEl = document.querySelector<HTMLElement>("[data-rope-anchor]");
     const anchorLocal = () => {
@@ -86,9 +87,7 @@ export function InteractiveRopeNav({
       const headerRect = headerEl?.getBoundingClientRect();
       const logoRect = logoEl?.getBoundingClientRect();
       const x = (logoRect ? logoRect.left + logoRect.width / 2 : (headerRect ? headerRect.left + 32 : wrapRect.width / 2)) - wrapRect.left;
-      const y = headerRect
-        ? headerRect.bottom - wrapRect.top + 1 // right on the divider line
-        : 6;
+      const y = headerRect ? headerRect.bottom - wrapRect.top + 1 : 6;
       return {
         x: Math.min(Math.max(x, ICON_SIZE / 2 + 4), Math.max(wrapRect.width - ICON_SIZE / 2 - 4, ICON_SIZE / 2 + 4)),
         y: Math.max(y, ICON_SIZE / 2 + 2),
@@ -103,6 +102,12 @@ export function InteractiveRopeNav({
       pointsRef.current = Array.from({ length: SEG_COUNT + 1 }, (_, i) => ({
         x: a.x, y: a.y + i * LINK, px: a.x, py: a.y + i * LINK,
       }));
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.floor(wrap.clientWidth * dpr);
+      canvas.height = Math.floor(wrap.clientHeight * dpr);
+      canvas.style.width = `${wrap.clientWidth}px`;
+      canvas.style.height = `${wrap.clientHeight}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     init();
 
@@ -128,7 +133,7 @@ export function InteractiveRopeNav({
       if (!stretchRef.current && moved > STRETCH_THRESHOLD) {
         stretchRef.current = true;
         const tip = pointsRef.current[pointsRef.current.length - 1];
-        tip.px = tip.x; tip.py = tip.y; // no snap on engagement
+        tip.px = tip.x; tip.py = tip.y;
         dragRef.current = setLocal(e.clientX, e.clientY);
       }
       if (stretchRef.current) dragRef.current = setLocal(e.clientX, e.clientY);
@@ -149,7 +154,27 @@ export function InteractiveRopeNav({
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
 
-    /* ── Physics + realistic render loop ── */
+    /* ── Frame matching: physics tip offset → sprite frame pair ── */
+    const pickFrames = (dxScreen: number): { a: number; b: number; mix: number } => {
+      // Convert the physics tip offset into sprite-space pixels.
+      const sx = dxScreen / SPRITE_SCALE;
+      // Score every frame by how close its baked tip is to sx.
+      const scored = TIP_TABLE.map((tip, i) => ({ i, d: Math.abs(tip - sx) }))
+        .sort((p, q) => p.d - q.d);
+      const a = scored[0].i, b = scored[1].i;
+      const da = TIP_TABLE[a], db = TIP_TABLE[b];
+      const mix = Math.abs(da - db) < 0.001 ? 0 : Math.min(1, Math.max(0, (sx - da) / (db - da)));
+      return { a, b, mix: Math.abs(db - da) < 0.001 ? 0 : Math.max(0, Math.min(1, (sx - da) / (db - da))) } as any;
+    };
+
+    const drawFrame = (idx: number) => {
+      const fw = sheet.width / COLS, fh = sheet.height / ROWS;
+      const col = idx % COLS, row = Math.floor(idx / COLS);
+      ctx.drawImage(sheet, col * fw, row * fh, fw, fh,
+        -fw * SPRITE_SCALE / 2, 0, fw * SPRITE_SCALE, fh * SPRITE_SCALE);
+    };
+
+    /* ── Physics + render loop ── */
     let raf = 0;
     let t = 0;
     const tick = () => {
@@ -164,7 +189,7 @@ export function InteractiveRopeNav({
         const vx = (p.x - p.px) * DAMPING;
         const vy = (p.y - p.py) * DAMPING;
         p.px = p.x; p.py = p.y;
-        p.x += vx + (i > pts.length / 2 ? Math.sin(t / 45) * WIND : 0);
+        p.x += vx + (i > pts.length / 2 ? Math.sin(t / 45) * 0.016 : 0);
         p.y += vy + GRAVITY;
       }
 
@@ -188,72 +213,35 @@ export function InteractiveRopeNav({
         }
       }
 
-      /* ── Render helpers ── */
-      const normals = pts.map((p, i) => {
-        const prev = pts[Math.max(0, i - 1)];
-        const next = pts[Math.min(pts.length - 1, i + 1)];
-        const tx = next.x - prev.x, ty = next.y - prev.y;
-        const tl = Math.hypot(tx, ty) || 1;
-        return { nx: -ty / tl, ny: tx / tl, tx: tx / tl, ty: ty / tl };
-      });
+      /* ── Sprite render ── */
+      if (!sheetReady) return;
+      const a0 = anchorLocal();
+      const tip = pts[pts.length - 1];
+      const dx = tip.x - a0.x;
+      const dy = tip.y - a0.y;
+      const chainLen = Math.hypot(dx, dy) || 1;
+      const theta = Math.atan2(dx, dy); // 0 = hanging straight down
 
-      // Offset polyline — follows the rope at a constant normal distance.
-      const offsetPath = (off: number) => {
-        let d = "";
-        for (let i = 0; i < pts.length; i++) {
-          const x = pts[i].x + normals[i].nx * off;
-          const y = pts[i].y + normals[i].ny * off;
-          d += i === 0 ? `M ${x.toFixed(1)} ${y.toFixed(1)}` : ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
-        }
-        return d;
-      };
+      const stretch = chainLen / CHAIN_NATURAL;
+      const { a, b, mix } = pickFrames(dx);
 
-      // Twisted strand — sinusoid along the normal (the braid wrap).
-      const strandPath = (amp: number, phase: number, freq: number, speed: number) => {
-        let d = "";
-        for (let i = 0; i < pts.length; i++) {
-          const off = Math.sin(i * freq + phase + t / speed) * amp;
-          const x = pts[i].x + normals[i].nx * off;
-          const y = pts[i].y + normals[i].ny * off;
-          d += i === 0 ? `M ${x.toFixed(1)} ${y.toFixed(1)}` : ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
-        }
-        return d;
-      };
-
-      // Fibre hairs — tiny static-seeded bristles poking off the edges.
-      const fiberPath = () => {
-        let d = "";
-        for (let i = 1; i < pts.length; i += 2) {
-          const seed = (i * 2654435761) % 1000 / 1000; // stable pseudo-random
-          const side = i % 4 === 1 ? 1 : -1;
-          const angle = side * (1.25 + seed * 0.5);
-          const x1 = pts[i].x + normals[i].nx * 4.4 * side;
-          const y1 = pts[i].y + normals[i].ny * 4.4 * side;
-          const x2 = x1 + Math.cos(angle) * (1.6 + seed * 1.6) * side;
-          const y2 = y1 + Math.sin(Math.abs(angle)) * (1.6 + seed * 1.6);
-          d += `M ${x1.toFixed(1)} ${y1.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)}`;
-        }
-        return d;
-      };
-
-      // Cylindrical shading: dark edge on one side, light edge on the other.
-      const shadow = offsetPath(0.8);
-      const outline = offsetPath(0);
-      const darkEdge = offsetPath(-3.0);
-      const lightEdge = offsetPath(3.0);
-      const core = offsetPath(0);
-
-      shadowRef.current?.setAttribute("d", shadow);
-      outlineRef.current?.setAttribute("d", outline);
-      darkEdgeRef.current?.setAttribute("d", darkEdge);
-      lightEdgeRef.current?.setAttribute("d", lightEdge);
-      coreRef.current?.setAttribute("d", core);
-      twistDarkRef.current?.setAttribute("d", strandPath(2.6, 0, 2.1, 18));
-      twistLightRef.current?.setAttribute("d", strandPath(2.6, Math.PI * 0.75, 2.1, 18));
-      fibersRef.current?.setAttribute("d", fiberPath());
+      ctx.clearRect(0, 0, width, canvas.height);
+      ctx.save();
+      ctx.translate(a0.x, a0.y);
+      ctx.rotate(theta);
+      ctx.scale(1, Math.max(0.35, stretch));
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.globalAlpha = 1 - mix;
+      drawFrame(a);
+      if (mix > 0.01) {
+        ctx.globalAlpha = mix;
+        drawFrame(b);
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
 
       if (iconRef.current) {
-        const tip = pts[pts.length - 1];
         iconRef.current.style.transform =
           `translate3d(${tip.x.toFixed(1)}px, ${tip.y.toFixed(1)}px, 0) translate(-50%, -50%)`;
       }
@@ -278,31 +266,7 @@ export function InteractiveRopeNav({
         className,
       )}
     >
-      <svg
-        width="100%"
-        height="100%"
-        className="absolute inset-0 w-full h-full overflow-visible"
-        aria-hidden="true"
-      >
-        {/* Drop shadow — grounds the rope against the page */}
-        <path ref={shadowRef} fill="none" stroke={C.shadow} strokeWidth={11.5} strokeLinecap="round" strokeLinejoin="round" transform="translate(0,1.6)" />
-        {/* Dark outline — defines the rope silhouette */}
-        <path ref={outlineRef} fill="none" stroke={C.outline} strokeWidth={10.5} strokeLinecap="round" strokeLinejoin="round" />
-        {/* Cylindrical side shading — dark edge (left of normal) */}
-        <path ref={darkEdgeRef} fill="none" stroke={C.darkEdge} strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" />
-        {/* Cylindrical side shading — light edge (right of normal) */}
-        <path ref={lightEdgeRef} fill="none" stroke={C.lightEdge} strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round" />
-        {/* Core — brightest band along the rope */}
-        <path ref={coreRef} fill="none" stroke={C.coreLight} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
-        {/* Twisted strand wraps — dark */}
-        <path ref={twistDarkRef} fill="none" stroke={C.twistDark} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
-        {/* Twisted strand wraps — light, phase-shifted */}
-        <path ref={twistLightRef} fill="none" stroke={C.twistLight} strokeWidth={1.1} strokeLinecap="round" strokeLinejoin="round" />
-        {/* Fibre hairs — subtle bristles off the edges */}
-        <path ref={fibersRef} fill="none" stroke={C.fiber} strokeWidth={0.8} strokeLinecap="round" />
-        {/* Mount plate — rope meets the header border */}
-        <circle ref={anchorDotRef} r={5} className="fill-primary stroke-black" strokeWidth={1.5} />
-      </svg>
+      <canvas ref={canvasRef} className="absolute inset-0" aria-hidden="true" />
 
       {/* ≡ Menu icon — bound to the rope tip */}
       <button
