@@ -50,7 +50,8 @@ export function PSProgressCard({ performanceScore, userRankTier, streakDays = 0,
         <div className="flex items-center gap-2">
           <RankBadge rank={userRankTier} size="md" showIcon={false} />
           <span className="text-sm font-bold text-foreground">
-            {score.toLocaleString()} PS          </span>
+            {score.toLocaleString()} PS
+          </span>
         </div>
         {streakDays > 0 && (
           <span className="text-xs flex items-center gap-1 text-primary font-bold">

@@ -164,8 +164,8 @@ export function GuildDiscoveryPanel() {
   const [recruitingOnly, setRecruitingOnly] = useState(false);
   const [warOnly, setWarOnly] = useState(false);
   const [sortBy, setSortBy] = useState<"gps" | "members" | "streak">("gps");
-  // Mobile defaults to the list; desktop defaults to the card grid.
-  const [viewMode, setViewMode] = useState<"grid" | "list">(isMobile ? "list" : "grid");
+  // List is the default view for the guild cards.
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [expandedGuild, setExpandedGuild] = useState<string | null>(null);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
