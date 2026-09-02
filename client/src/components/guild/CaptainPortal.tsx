@@ -50,8 +50,20 @@ function GroupLabel({ text }: { text: string }) {
   );
 }
 
-/* Guild emblem count — all 7 emblems render side by side in the header. */
+/* Guild emblem rotation — the NEXT character appears on every refresh.
+   Sequence persists via localStorage: 1 → 2 → … → 7 → 1 → … */
 const EMBLEM_COUNT = 7;
+const nextEmblemIndex = () => {
+  try {
+    const key = "guild-emblem-seq";
+    const next = ((parseInt(localStorage.getItem(key) ?? "0", 10) || 0) % EMBLEM_COUNT) + 1;
+    localStorage.setItem(key, String(next));
+    return next;
+  } catch {
+    return 1 + Math.floor(Math.random() * EMBLEM_COUNT);
+  }
+};
+const EMBLEM_INDEX = nextEmblemIndex();
 
 /** Animated placeholder — auth-page typing effect for empty fields. */
 function AnimatedPlaceholder({ examples, className = "text-black/35" }: { examples: string[]; className?: string }) {
