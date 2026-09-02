@@ -698,7 +698,7 @@ export function GuildDiscoveryPanel() {
                       aria-label="View guild details"
                       title="Details"
                       data-testid={`button-details-guild-${guild.id}`}
-                      className={cn(ICON_BTN_CLASS, "shrink-0")}
+                      className="inline-flex items-center justify-center w-10 h-10 shrink-0 rounded-lg border-2 border-black/15 bg-white text-black/55 transition-all duration-150 hover:border-black hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Info size={15} strokeWidth={2} />
                     </button>
