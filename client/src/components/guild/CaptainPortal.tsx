@@ -559,6 +559,21 @@ export function CaptainPortal() {
             <div className="flex-1 min-w-0 font-black text-xl uppercase tracking-tighter truncate leading-tight text-black">
               {guild.name}
             </div>
+
+            {/* Emblem — hangs right above the stats row (Target text), tap opens navigation */}
+            <button
+              onClick={() => setNavOpen(true)}
+              aria-label="Open guild navigation"
+              data-testid="button-guild-nav"
+              className="shrink-0 self-start -my-3 w-14 h-14 p-0.5 cursor-pointer transition-transform duration-200 hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl"
+            >
+              <img
+                src="/guild/nav-emblem.webp"
+                alt=""
+                draggable={false}
+                className="w-full h-full object-contain drop-shadow-[2px_2px_0px_rgba(0,0,0,0.22)]"
+              />
+            </button>
           </div>
 
           <div className="mt-4 pt-3.5 border-t-2 border-black/10 flex items-center justify-between gap-2 text-[10px] font-mono font-bold tracking-[0.12em] uppercase text-black/45">
