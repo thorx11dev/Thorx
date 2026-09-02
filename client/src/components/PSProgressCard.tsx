@@ -48,7 +48,7 @@ export function PSProgressCard({ performanceScore, userRankTier, streakDays = 0,
     <div className={cn("group bg-white border-2 border-black rounded-2xl p-6 md:p-8 space-y-3 transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(20, 20, 19,1)]", className)}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <RankBadge rank={userRankTier} size="md" showIcon={false} />
+          <RankBadge rank={userRankTier} size="md" />
           <span className="text-sm font-bold text-foreground">
             {score.toLocaleString()} PS
           </span>
