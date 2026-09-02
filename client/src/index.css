@@ -77,6 +77,12 @@
 }
 
 @layer base {
+  *,
+  ::before,
+  ::after {
+    --tw-ring-offset-color: #FAF9F5;
+  }
+
   * {
     @apply border-border;
     cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M5 2L5 26L10 21L14 29L19 27L15 19L22 19L5 2Z" fill="%23FAF9F5" stroke="%23141413" stroke-width="3" stroke-linejoin="round"/></svg>') 0 0, auto;
