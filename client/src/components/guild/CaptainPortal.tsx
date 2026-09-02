@@ -825,16 +825,6 @@ export function CaptainPortal() {
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm md:text-base font-black uppercase tracking-tight truncate flex items-center gap-2">
                                   {isMe ? "You" : (m.firstName || m.identity || "Member")}
-                                  {isCaptain && (
-                                    <span className="shrink-0 bg-black text-white rounded-sm px-1.5 py-0.5 text-[9px] font-black tracking-widest">
-                                      CAPTAIN
-                                    </span>
-                                  )}
-                                  {isInactive && (
-                                    <span className="shrink-0 bg-white text-black/45 border border-black/15 rounded-sm px-1.5 py-0.5 text-[9px] font-black tracking-widest">
-                                      INACTIVE
-                                    </span>
-                                  )}
                                 </p>
                                 <p className="text-[9px] font-mono font-bold tracking-[0.2em] text-black/40 uppercase mt-1">
                                   {pts.toLocaleString()} PTS · {pct.toFixed(0)}% OF TOP
