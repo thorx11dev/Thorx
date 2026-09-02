@@ -589,7 +589,7 @@ export function CaptainPortal() {
         </div>
 
         {/* Sync control — desktop sidebar */}
-        <div className="px-3 py-2 flex items-center justify-end">
+        <div className="px-3 py-2.5 flex items-center justify-end">
           <RefreshButton onClick={handleRefresh} refreshing={isRefreshing} size="sm" title="Refresh guild data" />
         </div>
 
@@ -675,7 +675,7 @@ export function CaptainPortal() {
       </div>
 
       {/* Sync control — mobile */}
-      <div className="lg:hidden flex items-center justify-end">
+      <div className="lg:hidden flex items-center justify-end mt-3 mb-3">
         <RefreshButton onClick={handleRefresh} refreshing={isRefreshing} size="sm" title="Refresh guild data" />
       </div>
 
