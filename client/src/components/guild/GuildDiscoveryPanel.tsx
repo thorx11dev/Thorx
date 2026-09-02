@@ -631,13 +631,14 @@ export function GuildDiscoveryPanel() {
             const weeklyPct = guild.weeklyTarget > 0 ? Math.round(Math.min(100, (guild.currentWeeklyPoints / guild.weeklyTarget) * 100)) : 0;
             const canJoin = canApply(guild);
             const applyDisabled = applied || inGuild || rankBlocked || !guild.recruitmentOpen;
+            const isExpandedCard = expandedCard === guild.id;
             return (
               <motion.article
                 key={guild.id}
                 variants={riseIn}
                 initial="initial"
                 animate="animate"
-                onClick={() => setViewingGuild(guild)}
+                onClick={() => setExpandedCard(isExpandedCard ? null : guild.id)}
                 data-testid={`card-guild-${guild.id}`}
                 className="group bg-white rounded-2xl border-2 border-black/10 cursor-pointer flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-black hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]"
               >
