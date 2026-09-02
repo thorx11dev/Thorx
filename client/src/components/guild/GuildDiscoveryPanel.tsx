@@ -366,8 +366,8 @@ export function GuildDiscoveryPanel() {
           )}
         </button>
 
-        {/* View toggle — desktop only (mobile uses the list) */}
-        <div className="hidden md:flex border-2 border-black/10 rounded-lg overflow-hidden shrink-0">
+        {/* View toggle — grid cards / list rows */}
+        <div className="flex border-2 border-black/10 rounded-lg overflow-hidden shrink-0">
           <button
             onClick={() => setViewMode("grid")}
             className={cn(
