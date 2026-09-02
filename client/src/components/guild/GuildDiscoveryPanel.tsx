@@ -606,6 +606,91 @@ export function GuildDiscoveryPanel() {
             <RotateCcw className="size-3" /> Clear Filters
           </button>
         </div>
+      ) : viewMode === "grid" ? (
+        /* ─── Grid cards — 50% media / 50% body (flex-1 both) ─── */
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {filtered.map((guild) => {
+            const minIdx = RANK_ORDER.indexOf(guild.minRankRequired || "E-Rank");
+            const rankBlocked = !DEV_UNLOCK_RANK_GATES && userTierIdx < minIdx;
+            const applied = appliedIds.has(guild.id);
+            const inGuild = alreadyInGuild && !applied;
+            const weeklyPct = guild.weeklyTarget > 0 ? Math.round(Math.min(100, (guild.currentWeeklyPoints / guild.weeklyTarget) * 100)) : 0;
+            const canJoin = canApply(guild);
+            const applyDisabled = applied || inGuild || rankBlocked || !guild.recruitmentOpen;
+            return (
+              <motion.article
+                key={guild.id}
+                variants={riseIn}
+                initial="initial"
+                animate="animate"
+                onClick={() => setViewingGuild(guild)}
+                data-testid={`card-guild-${guild.id}`}
+                className="group bg-white rounded-2xl border-2 border-black/10 cursor-pointer flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-black hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]"
+              >
+                {/* Media — flex-1 = 50% of card height */}
+                <div className="relative flex-1 min-h-[130px] bg-[#EAE5DD] overflow-hidden">
+                  <CornerPlus />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-5xl md:text-6xl font-black text-black/[0.07] select-none leading-none">{guild.name[0].toUpperCase()}</span>
+                  </div>
+                  {guild.avatarUrl && (
+                    <img
+                      src={guild.avatarUrl}
+                      alt={guild.name}
+                      loading="lazy"
+                      onError={(e) => { e.currentTarget.style.display = "none"; }}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                    />
+                  )}
+                  {guild.inActiveWar && (
+                    <div className="absolute top-2 right-2 bg-black text-destructive p-1.5 rounded-md">
+                      <Swords className="size-3" strokeWidth={2.5} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Body — flex-1 = the other 50% */}
+                <div className="p-3 flex flex-col flex-1">
+                  <h3 className="font-black text-sm md:text-base uppercase tracking-tighter truncate leading-tight" data-testid={`text-guild-name-${guild.id}`}>
+                    {guild.name}
+                  </h3>
+                  <div className="mt-1 flex items-center gap-1 text-[8px] md:text-[9px] font-black uppercase tracking-wider text-black/40 min-h-[14px]">
+                    <span>{guild.memberCount} MEMBERS</span>
+                    {!!guild.successfulWeeks && guild.successfulWeeks > 0 && (<><span className="text-primary">·</span><span className="flex items-center gap-0.5"><Flame className="size-2.5" /> {guild.successfulWeeks}w</span></>)}
+                  </div>
+
+                  {/* GPS + progress */}
+                  <div className="mt-auto pt-3 border-t-[3px] border-black/10 space-y-1.5">
+                    <div className="flex items-end justify-between">
+                      <TechnicalLabel text="GPS" className="text-black/35 text-[8px]" />
+                      <span className="font-black text-base md:text-lg tabular-nums text-primary tracking-tight leading-none">
+                        {guild.guildPerformanceScore.toLocaleString()}
+                      </span>
+                    </div>
+                    <Progress value={weeklyPct} className="h-1 bg-black/10 [&>div]:bg-primary" />
+                  </div>
+
+                  {/* Apply */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); if (canJoin && !applied) handleApply(guild); }}
+                    disabled={applyDisabled}
+                    data-testid={`button-apply-guild-${guild.id}`}
+                    className={cn(
+                      "mt-3 w-full h-9 rounded-lg border-2 text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all duration-300",
+                      applied
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                        : inGuild || rankBlocked || !guild.recruitmentOpen
+                          ? "bg-[#EAE5DD] text-black/40 border-black/10"
+                          : "bg-primary text-white border-black hover:bg-black"
+                    )}
+                  >
+                    {applied ? <><ShieldCheck className="size-3" /> Applied</> : inGuild ? <><Shield className="size-3" /> In a Guild</> : rankBlocked ? <><Lock className="size-3" /> Locked</> : !guild.recruitmentOpen ? <><X className="size-3" /> Closed</> : <>Apply <ArrowRight className="size-3" /></>}
+                  </button>
+                </div>
+              </motion.article>
+            );
+          })}
+        </div>
       ) : (
         /* ─── Guild list — 50% photo / 50% details, roster-style expand ─── */
         <div className="space-y-3">
