@@ -26,6 +26,7 @@ import {
 import { Inbox, Users, ListChecks, MessagesSquare, MessageCircle, Swords, Search, BarChart3, Settings, Menu, ArrowRight, ArrowLeft, Megaphone, Shield, ImagePlus, ChevronDown, BellRing, Trophy, X, Loader2 } from "lucide-react";
 import { InteractiveDivider } from "@/features/user-portal/shared";
 import { GuildNavDrawer } from "./GuildNavDrawer";
+import { EmblemBirds } from "./EmblemBirds";
 import {
   GiKnightBanner, GiChatBubble, GiWarhammer, GiCog,
   GiRoundShield, GiSkullCrossedBones, GiLaurelsTrophy, GiHuntingHorn, GiBroadsword, GiSpartanHelmet,
