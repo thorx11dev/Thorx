@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -11,8 +10,12 @@ interface RefreshButtonProps {
   title?: string;
 }
 
-/** Hard-edged refresh icon button — matches the portal's black-border system. */
-export function RefreshButton({ onClick, refreshing = false, className, size = "sm", title = "Refresh" }: RefreshButtonProps) {
+/**
+ * SYNC pill — THORX neobrutalist refresh control.
+ * Orange (#D97757) fill, hard black (#141413) border + offset shadow.
+ * Spins and switches to "SYNCING" while a refetch is in flight.
+ */
+export function RefreshButton({ onClick, refreshing = false, className, size = "sm", title = "Sync data" }: RefreshButtonProps) {
   return (
     <button
       type="button"
@@ -22,12 +25,18 @@ export function RefreshButton({ onClick, refreshing = false, className, size = "
       aria-label={title}
       data-testid="button-refresh"
       className={cn(
-        "inline-flex items-center justify-center rounded-lg border-2 border-black bg-white text-black/60 transition-all duration-200 hover:bg-black hover:text-white active:scale-95 disabled:opacity-50 disabled:pointer-events-none shrink-0",
-        size === "sm" ? "w-8 h-8" : "w-9 h-9",
+        "group inline-flex items-center justify-center gap-1.5 rounded-full px-3.5 md:px-4",
+        "bg-[#D97757] text-white border-2 border-[#141413] font-black uppercase tracking-[0.12em]",
+        size === "sm" ? "h-8 text-[10px]" : "h-9 text-[10px] md:text-[11px]",
+        "shadow-[3px_3px_0px_0px_#141413] transition-all duration-200",
+        "hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_#141413]",
+        "active:translate-x-0 active:translate-y-0 active:shadow-[1px_1px_0px_0px_#141413]",
+        "disabled:opacity-60 disabled:pointer-events-none shrink-0",
         className
       )}
     >
-      {refreshing ? <ThorxSpinner size={16} /> : <RefreshCw className="w-3.5 h-3.5 md:w-4 md:h-4" strokeWidth={2.5} />}
+      <RefreshCw className={cn("w-3 h-3 md:w-3.5 md:h-3.5 shrink-0", refreshing && "animate-spin")} strokeWidth={2.75} />
+      {refreshing ? "SYNCING" : "SYNC"}
     </button>
   );
 }
