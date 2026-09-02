@@ -579,11 +579,6 @@ export function CaptainPortal() {
       {/* ── The line that used to sit under the GUILD hero — standard spacing ── */}
       <InteractiveDivider className="my-12 lg:hidden" />
 
-      {/* ── Physics rope nav — hangs from the THORX header, tap ≡ to open ── */}
-      <div className="lg:hidden">
-        <InteractiveRopeNav onOpen={() => setNavOpen(true)} pendingCount={pending.length} />
-      </div>
-
       {/* ── Mobile guild navigation drawer — cream twin of the portal menu,
              slides in from the LEFT with staggered spring rows ─────────── */}
       <GuildNavDrawer
