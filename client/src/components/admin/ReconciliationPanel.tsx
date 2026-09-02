@@ -1,21 +1,13 @@
 import React, { useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion } from "framer-motion";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { AlertTriangle, CheckCircle, ChevronDown, ChevronRight, User, Shield, Loader2, XCircle, Download } from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useAuth } from "@/hooks/useAuth";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,

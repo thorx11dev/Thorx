@@ -1,29 +1,17 @@
 import type { FormEvent } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion, AnimatePresence } from "framer-motion";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { InteractiveDivider, AnimatedPlaceholder } from "@/features/user-portal/shared";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { PortalFaqSection } from "@/components/portal/PortalFaqSection";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import Barcode from "@/components/ui/barcode";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {RefreshCw, Send} from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Textarea } from "@/components/ui/textarea";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface HelpSectionProps {
   isHelpHeroToggled: boolean;

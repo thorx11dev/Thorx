@@ -1,21 +1,13 @@
 import { useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {Trophy, RefreshCw} from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { QUERY_KEYS } from "@/lib/queryKeys";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import RankBadge from "@/components/RankBadge";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { InteractiveDivider } from "@/features/user-portal/shared";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface LeaderEntry {
   rank: number;

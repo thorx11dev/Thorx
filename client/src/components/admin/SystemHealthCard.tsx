@@ -1,23 +1,14 @@
 import React, { useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion } from "framer-motion";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {Zap, TrendingUp, TrendingDown, Minus, RefreshCw, X, AlertCircle, ServerCrash} from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { HealthReportPanel } from "./HealthReportPanel";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface HealthSignal {
   name: string;

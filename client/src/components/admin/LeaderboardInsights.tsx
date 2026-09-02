@@ -5,35 +5,20 @@
 import React, { useEffect, useState, useMemo } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import Decimal from "decimal.js";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useDebounce } from "@/hooks/use-debounce";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {Trophy, Users, AlertTriangle, Search, ArrowUpDown, Eye, User, ShieldCheck, ChevronLeft, ChevronRight, Download, CheckSquare, Square, RefreshCw, ServerCrash, TrendingUp, Wallet, ShieldAlert} from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { resolveAvatarUrlByTier } from "@/lib/rankAvatars";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { RankBadge } from "@/components/RankBadge";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { format } from "date-fns";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { UserInspectorPanel } from "./UserInspectorPanel";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { RiskWatchlistPanel } from "./RiskWatchlistPanel";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface LeaderboardData {
   globalRanking: any[];

@@ -1,19 +1,12 @@
 import React, { useState, useEffect } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {Save, Settings, DollarSign, Network, Trash2, Plus, ArrowUp, ArrowDown, ShieldAlert, Zap, Layers, Activity} from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface AdNetwork {
   id: string;

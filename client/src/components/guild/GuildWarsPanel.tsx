@@ -6,29 +6,17 @@
 import { useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {Plus} from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useAuth } from "@/hooks/useAuth";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Progress } from "@/components/ui/progress";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { PremiumCard } from "@/components/ui/premium-card";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { SectionChip, CTA_CLASS, OUTLINE_CLASS, AvatarStamp } from "./GuildPanelShell";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {GiPocketWatch, GiRoundShield, GiCrossedSwords, GiFlame, GiLaurelsTrophy, GiBroadsword, GiSpartanHelmet, GiSkullCrossedBones} from "./guild-icons";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { formatDistanceToNow } from "date-fns";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface GuildWarsPanelProps {
   guildId: string;

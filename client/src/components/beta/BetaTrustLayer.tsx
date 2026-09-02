@@ -21,17 +21,11 @@
 import { useEffect, useMemo, useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion, AnimatePresence } from "framer-motion";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Megaphone, X, Send, Loader2, CheckCircle2, Eye } from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface BetaTrustUser {
   id?: string;

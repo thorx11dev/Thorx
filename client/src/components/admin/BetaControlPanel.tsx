@@ -15,27 +15,18 @@
 import { useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Textarea } from "@/components/ui/textarea";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   MessageSquare, Ticket, Loader2, Send, Ban, Copy,
   CheckCircle2, Eye, Inbox, Users2, Power,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface FeedbackRow {
   id: string;

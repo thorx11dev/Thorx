@@ -6,19 +6,12 @@
 import { useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { ThorxCard } from "@/components/ThorxCard";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Zap, Play, RotateCcw, Loader2, Download, ListTree } from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 // Matches server/modules/thorx-card.ts SimulationResult exactly.
 interface SimulateResult {

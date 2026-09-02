@@ -7,19 +7,12 @@
 import { useMemo, useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { RankBadge } from "@/components/RankBadge";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Badge } from "@/components/ui/badge";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {Activity, RefreshCw, Zap, Users, Target, Wallet, UserPlus, TrendingDown, AlertTriangle, Pause, Play, ChevronDown} from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { formatDistanceToNow } from "date-fns";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface FeedEvent {
   id: string;

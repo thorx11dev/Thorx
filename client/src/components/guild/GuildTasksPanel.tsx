@@ -10,25 +10,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { QUERY_KEYS } from "@/lib/queryKeys";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useAuth } from "@/hooks/useAuth";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Badge } from "@/components/ui/badge";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { PremiumCard } from "@/components/ui/premium-card";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { SectionChip, CTA_CLASS } from "./GuildPanelShell";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { GiWarhammer, GiSwordSpin, GiRoundShield } from "./guild-icons";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 export function GuildTasksPanel() {
   const { user } = useAuth();

@@ -7,21 +7,13 @@
 import { useState, useMemo } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Textarea } from "@/components/ui/textarea";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Label } from "@/components/ui/label";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Badge } from "@/components/ui/badge";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   Dialog,
   DialogContent,
@@ -31,13 +23,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Shield, Search, AlertTriangle, CheckCircle, RotateCcw, User, Wrench, Download, Loader2, History, Wallet, ListFilter, Layers } from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { formatDistanceToNow } from "date-fns";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { UserInspectorPanel } from "./UserInspectorPanel";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface ValidationResult {
   userId: string;

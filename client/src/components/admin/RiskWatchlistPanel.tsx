@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   AlertTriangle,
   Shield,
@@ -39,17 +36,11 @@ import {
   UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { format, formatDistanceToNow } from "date-fns";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { resolveAvatarUrlByTier } from "@/lib/rankAvatars";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { QUERY_KEYS } from "@/lib/queryKeys";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { TRUST_STATUSES } from "@shared/constants";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

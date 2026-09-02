@@ -1,21 +1,13 @@
 import { useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Label } from "@/components/ui/label";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Loader2, RefreshCw, DollarSign, BarChart3, Zap, AlertCircle } from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface HilltopAdsConfig {
   id: string;

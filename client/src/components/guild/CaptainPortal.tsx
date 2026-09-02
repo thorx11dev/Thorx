@@ -7,27 +7,16 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useAuth } from "@/hooks/useAuth";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { RankBadge } from "@/components/RankBadge";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Progress } from "@/components/ui/progress";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { PremiumCard } from "@/components/ui/premium-card";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   SectionChip, QueryError, RoleChip,
   CTA_CLASS, OUTLINE_CLASS, DESTRUCTIVE_CLASS, DESTRUCTIVE_OUTLINE, ICON_BTN_CLASS,
@@ -36,13 +25,9 @@ import {
   PanelSkeleton, SkeletonBlock,
 } from "./GuildPanelShell";
 import { Inbox, Users, ListChecks, MessagesSquare, MessageCircle, Swords, Search, BarChart3, Settings, Menu, ArrowRight, ArrowLeft, Megaphone, Shield, ImagePlus, ChevronDown, BellRing, Glasses, X, Loader2, UserMinus } from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { InteractiveDivider } from "@/features/user-portal/shared";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { GuildNavDrawer } from "./GuildNavDrawer";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { EmblemBirds } from "./EmblemBirds";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   GiKnightBanner, GiChatBubble, GiWarhammer, GiCog,
   GiRoundShield, GiSkullCrossedBones, GiLaurelsTrophy, GiHuntingHorn, GiBroadsword, GiSpartanHelmet,
@@ -50,17 +35,11 @@ import {
   GiArrowCluster, GiArrowhead, GiPortrait, GiMagnifyingGlass,
 } from "./guild-icons";
 import { GuildWarsPanel } from "./GuildWarsPanel";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { GuildProfileWizard } from "./GuildProfileWizard";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { GuildTasksPanel } from "./GuildTasksPanel";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { GuildDiscoveryPanel } from "./GuildDiscoveryPanel";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { formatDistanceToNow, format } from "date-fns";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 /** Mono group label + hairline — notification-panel section signature. */
 function GroupLabel({ text }: { text: string }) {

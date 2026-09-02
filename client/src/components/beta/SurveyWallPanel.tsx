@@ -13,19 +13,12 @@
 import { useQuery } from "@tanstack/react-query";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion } from "framer-motion";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { ClipboardList, ExternalLink, Lock, Loader2, Clock3 } from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Progress } from "@/components/ui/progress";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { captureEvent } from "@/lib/posthog";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface SurveyNetwork {
   networkId: string;

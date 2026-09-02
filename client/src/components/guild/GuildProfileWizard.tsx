@@ -6,29 +6,17 @@
 import { useState, useEffect } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {Plus, X, Link2} from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useAuth } from "@/hooks/useAuth";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Input } from "@/components/ui/input";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { PremiumCard } from "@/components/ui/premium-card";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { CTA_CLASS, OUTLINE_CLASS, FIELD_CLASS, FIELD_AREA_CLASS, FieldLabel, SelectField } from "./GuildPanelShell";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { MemberAvatarEditor } from "./MemberAvatarEditor";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {GiPortrait, GiLinkedRings} from "./guild-icons";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface GuildProfileWizardProps {
   guildId: string;

@@ -1,23 +1,14 @@
 import { useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useLocation, useSearchParams } from "wouter";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion } from "framer-motion";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Eye, EyeOff, Loader2, CheckCircle2, XCircle, KeyRound } from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { calculatePasswordStrength } from "@/lib/password-strength";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import Barcode from "@/components/ui/barcode";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import AuthNav from "@/components/auth/AuthNav";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 type ResetStatus = "form" | "success" | "invalid";
 

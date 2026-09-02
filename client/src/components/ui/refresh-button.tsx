@@ -1,9 +1,7 @@
 import { useState, useCallback } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {RefreshCw} from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface RefreshButtonProps {
   onClick: () => void;

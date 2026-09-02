@@ -1,19 +1,12 @@
 import * as React from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {TrendingUp, User, Bell, Wallet, X, GripHorizontal, Trash2, ArrowUpRight} from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { format, isToday, subDays, isAfter } from "date-fns";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useIsMobile } from "@/hooks/use-mobile";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface Commission {
     id: string;

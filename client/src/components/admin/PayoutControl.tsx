@@ -1,13 +1,9 @@
 import React, { useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import Decimal from "decimal.js";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { downloadFromUrl } from "@/lib/downloadFromUrl";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Loader2 } from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { 
   CreditCard, 
   CheckCircle, 
@@ -33,28 +29,17 @@ import {
   ShieldX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import TechnicalLabel from "@/components/ui/technical-label";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiAbsolutePath } from "@/lib/apiOrigin";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 import { useDebounce } from "@/hooks/use-debounce";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion, AnimatePresence } from "framer-motion";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { formatDistanceToNow } from "date-fns";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Checkbox } from "@/components/ui/checkbox";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   Dialog,
   DialogContent,
@@ -64,9 +49,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Label } from "@/components/ui/label";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   AlertDialog,
   AlertDialogAction,

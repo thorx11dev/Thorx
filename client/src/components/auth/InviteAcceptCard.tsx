@@ -1,21 +1,13 @@
 import { useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useLocation } from "wouter";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion } from "framer-motion";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Eye, EyeOff, Loader2, ShieldCheck, XCircle } from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import Barcode from "@/components/ui/barcode";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import AuthNav from "@/components/auth/AuthNav";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 interface InviteAcceptCardProps {
   token: string;

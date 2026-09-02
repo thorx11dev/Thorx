@@ -9,28 +9,19 @@
 import { useRef, useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {ImagePlus, X} from "lucide-react";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { QUERY_KEYS } from "@/lib/queryKeys";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useAuth } from "@/hooks/useAuth";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useToast } from "@/hooks/use-toast";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import {
   resolveAvatarUrl,
   UNIVERSAL_AVATARS,
   DEFAULT_AVATAR_ID,
 } from "@/lib/rankAvatars";
 import { CTA_CLASS, OUTLINE_CLASS } from "./GuildPanelShell";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
-import ThorxSpinner from "@/components/ui/thorx-spinner";
 
 export function MemberAvatarEditor() {
   const { user } = useAuth();
