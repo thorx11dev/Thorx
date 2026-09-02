@@ -1115,10 +1115,10 @@ export default function UserPortal() {
     };
 
     const categories = [
-      { name: 'Engine A Tasks', amount: engineAEarnings, color: chartColors.primary },
-      { name: 'Referrals', amount: referralEarnings, color: chartColors.secondary },
-      { name: 'Guild Pool', amount: guildPoolEarnings, color: chartColors.tertiary },
-      { name: 'Engine B Surveys', amount: engineBEarnings, color: chartColors.quaternary },
+      { name: 'Engine A', amount: engineAEarnings, color: chartColors.primary },
+      { name: 'Engine B', amount: engineBEarnings, color: chartColors.quaternary },
+      { name: 'Team', amount: referralEarnings, color: chartColors.secondary },
+      { name: 'Guild', amount: guildPoolEarnings, color: chartColors.tertiary },
     ];
 
     // No real earnings yet — show an honest empty state instead of a
