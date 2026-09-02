@@ -888,7 +888,7 @@ export function CaptainPortal() {
                                   {isMe ? "You" : (m.firstName || m.identity || "Member")}
                                 </p>
                                 <p className="text-[9px] font-mono font-bold tracking-[0.2em] text-black/40 uppercase mt-1">
-                                  {pts.toLocaleString()} PTS · {pct.toFixed(0)}% OF TOP
+                                  {pts.toLocaleString()} PTS
                                 </p>
                               </div>
 

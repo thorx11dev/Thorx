@@ -186,14 +186,7 @@ export function MemberAvatarEditor() {
                     draggable={false}
                   />
                 </span>
-                <span
-                  className={cn(
-                    "text-[8px] sm:text-[9px] font-black uppercase tracking-wider transition-colors text-center leading-tight",
-                    isSelected ? "text-black" : "text-black/35 group-hover:text-black/60"
-                  )}
-                >
-                  {av.label}
-                </span>
+                
               </button>
             );
           })}

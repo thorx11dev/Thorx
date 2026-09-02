@@ -432,14 +432,7 @@ export function ProfileModal({ isOpen, onClose, user, activeRefsCount = 0 }: Pro
                             draggable={false}
                           />
                         </span>
-                        <span
-                          className={cn(
-                            "text-[10px] font-bold uppercase tracking-wider transition-colors",
-                            isSelected ? "text-white" : "text-white/40 group-hover:text-white/70"
-                          )}
-                        >
-                          {av.label}
-                        </span>
+                        
                       </button>
                     );
                   })}

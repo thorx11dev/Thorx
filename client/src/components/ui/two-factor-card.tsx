@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Shield, ShieldCheck, Copy, Check } from "lucide-react";
+import { KeyRound, ShieldCheck, Copy, Check } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import { useToast } from "@/hooks/use-toast";
@@ -108,7 +108,7 @@ export default function TwoFactorCard() {
             {enabled ? (
               <ShieldCheck className="w-4 h-4 text-emerald-400" strokeWidth={2.5} />
             ) : (
-              <Shield className="w-4 h-4 text-white/50" strokeWidth={2.5} />
+              <KeyRound className="w-4 h-4 text-white/50" strokeWidth={2.5} />
             )}
           </span>
           <div className="min-w-0">
