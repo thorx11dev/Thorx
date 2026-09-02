@@ -19,6 +19,7 @@ import {
   ArrowLeft, ArrowRight, Star, Crosshair, Sword, Target, MessageCircle,
   Settings, X, Swords, Flame, Hourglass, BellRing, Megaphone, Trophy, Link2,
   Search, Lock, Clock, ImagePlus, ShieldCheck, Shield, UserX, Crown, Loader2, Hammer,
+  Glasses,
 } from "lucide-react";
 
 /* ── Gi* → lucide aliases (drop-in replacements, same props API) ────────── */
@@ -42,6 +43,7 @@ export { Link2 as GiLinkedRings };
 export { Search as GiMagnifyingGlass };
 export { Lock as GiPadlock };
 export { Clock as GiPocketWatch };
+export { Glasses as GiSpectacles };
 export { ImagePlus as GiPortrait };
 export { ShieldCheck as GiRoundShield };
 export { Shield as GiShield };

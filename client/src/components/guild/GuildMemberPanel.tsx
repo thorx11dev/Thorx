@@ -18,7 +18,7 @@ import TechnicalLabel from "@/components/ui/technical-label";
 import {
   GiLaurelsTrophy, GiBullseye, GiPocketWatch, GiChatBubble, GiKnightBanner, GiPortrait, GiBeveledStar,
   GiRoundShield, GiWarhammer, GiCrossedSwords, GiArrowCluster, GiSpartanHelmet, GiSkullCrossedBones, GiFlame,
-  GiMagnifyingGlass,
+  GiMagnifyingGlass, GiSpectacles,
 } from "./guild-icons";
 import { GuildWarsPanel } from "./GuildWarsPanel";
 import { GuildProfileWizard } from "./GuildProfileWizard";
@@ -385,7 +385,7 @@ export function GuildMemberPanel() {
                       "w-6 h-6 rounded-md border-2 flex items-center justify-center text-[10px] font-black shrink-0",
                       i === 0 ? "border-black bg-black text-white" : "border-black/15 text-black/50"
                     )}>{i + 1}</span>
-                    {m.isMvp && <GiLaurelsTrophy size={12} className="text-primary shrink-0" />}
+                    {m.isMvp && <GiSpectacles size={12} className="text-primary shrink-0" />}
                     <span className={cn("text-sm font-bold truncate", m.userId === user?.id ? "text-primary" : "text-foreground")}>
                       {m.userId === user?.id ? "You" : (m.firstName || m.identity || "Member")}
                     </span>
