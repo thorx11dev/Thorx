@@ -164,7 +164,7 @@ export function GuildDiscoveryPanel() {
   const [recruitingOnly, setRecruitingOnly] = useState(false);
   const [warOnly, setWarOnly] = useState(false);
   const [sortBy, setSortBy] = useState<"gps" | "members" | "streak">("gps");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [expandedGuild, setExpandedGuild] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
 
   const [applyingTo, setApplyingTo] = useState<GuildDiscovery | null>(null);
