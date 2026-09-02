@@ -71,7 +71,7 @@ export function EmblemBirds({ anchorRef }: { anchorRef: React.RefObject<HTMLElem
       el.textContent = WORDS[wordIdx % WORDS.length];
       wordIdx++;
       el.className = "guild-bird-text";
-      el.style.fontSize = `${15 + Math.random() * 6}px`;
+      el.style.fontSize = `${10 + Math.random() * 3}px`;
       layer.appendChild(el);
 
       const bird: Bird = {
