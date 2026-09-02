@@ -643,8 +643,8 @@ export function GuildDiscoveryPanel() {
                 data-testid={`card-guild-${guild.id}`}
                 className="group bg-white rounded-2xl border-2 border-black/10 cursor-pointer flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-black hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]"
               >
-                {/* Media — flex-1 = 50% of card height */}
-                <div className="relative flex-1 min-h-[130px] bg-[#EAE5DD] overflow-hidden">
+                {/* Media — larger share of the card height */}
+                <div className="relative flex-[1.4] min-h-[150px] bg-[#EAE5DD] overflow-hidden">
                   <CornerPlus />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-5xl md:text-6xl font-black text-black/[0.07] select-none leading-none">{guild.name[0].toUpperCase()}</span>
