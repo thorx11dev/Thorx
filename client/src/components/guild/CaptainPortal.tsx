@@ -51,8 +51,8 @@ function GroupLabel({ text }: { text: string }) {
 }
 
 /* Guild emblem rotation — the NEXT character appears on every refresh.
-   Sequence persists via localStorage: 1 → 2 → … → 7 → 1 → … */
-const EMBLEM_COUNT = 7;
+   Sequence persists via localStorage: 1 → 2 → … → 5 → 1 → … */
+const EMBLEM_COUNT = 5;
 const nextEmblemIndex = () => {
   try {
     const key = "guild-emblem-seq";
