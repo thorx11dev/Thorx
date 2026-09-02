@@ -590,24 +590,22 @@ export function CaptainPortal() {
             )}
           </div>
 
-          {/* Emblem row — all 7 characters one after another, tap opens navigation */}
-          <div ref={emblemBtnRef} className="flex justify-end items-end gap-0.5 -mb-7 -mr-7 mt-1">
-            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-              <button
-                key={n}
-                onClick={() => setNavOpen(true)}
-                aria-label="Open guild navigation"
-                data-testid={`button-guild-nav-${n}`}
-                className="w-10 h-10 p-0.5 cursor-pointer transition-transform duration-200 hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg"
-              >
-                <img
-                  src={`/guild/emblem-${n}.webp`}
-                  alt=""
-                  draggable={false}
-                  className="w-full h-full object-contain drop-shadow-[1.5px_1.5px_0px_rgba(0,0,0,0.2)]"
-                />
-              </button>
-            ))}
+          {/* Emblem — next character every refresh, tap opens navigation */}
+          <div className="flex justify-end -mb-9 -mr-9 mt-1">
+            <button
+              ref={emblemBtnRef}
+              onClick={() => setNavOpen(true)}
+              aria-label="Open guild navigation"
+              data-testid="button-guild-nav"
+              className="w-24 h-24 p-1 cursor-pointer transition-transform duration-200 hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl"
+            >
+              <img
+                src={`/guild/emblem-${EMBLEM_INDEX}.webp`}
+                alt=""
+                draggable={false}
+                className="w-full h-full object-contain drop-shadow-[2px_2px_0px_rgba(0,0,0,0.22)]"
+              />
+            </button>
           </div>
         </div>
       </div>
