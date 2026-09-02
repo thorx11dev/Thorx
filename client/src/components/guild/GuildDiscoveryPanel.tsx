@@ -671,9 +671,6 @@ export function GuildDiscoveryPanel() {
                     <h3 className="font-black text-sm md:text-base uppercase tracking-tighter truncate leading-tight" data-testid={`text-guild-name-${guild.id}`}>
                       {guild.name}
                     </h3>
-                    <span className="font-black text-sm md:text-base tabular-nums text-black tracking-tight leading-none shrink-0">
-                      {guild.memberCount}
-                    </span>
                   </div>
 
                   {/* Members digit (name ke sath) + GPS digit + progress */}
