@@ -167,6 +167,7 @@ export function GuildDiscoveryPanel() {
   // Mobile defaults to the list; desktop defaults to the card grid.
   const [viewMode, setViewMode] = useState<"grid" | "list">(isMobile ? "list" : "grid");
   const [expandedGuild, setExpandedGuild] = useState<string | null>(null);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
 
   const [applyingTo, setApplyingTo] = useState<GuildDiscovery | null>(null);
