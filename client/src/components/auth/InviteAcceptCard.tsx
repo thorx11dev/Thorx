@@ -3,7 +3,7 @@ import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Loader2, ShieldCheck, XCircle } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck, XCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import Barcode from "@/components/ui/barcode";
