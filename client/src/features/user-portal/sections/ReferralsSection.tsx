@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { InteractiveDivider } from "@/features/user-portal/shared";
 import { Users, DollarSign, Copy, Link2, ExternalLink, Minus, Plus } from "lucide-react";
 import TechnicalLabel from "@/components/ui/technical-label";
+import { RefreshButton, useRefreshAction } from "@/components/ui/refresh-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ReferralTree } from "@/components/ui/referral-tree";
@@ -34,10 +35,12 @@ interface ReferralsSectionProps {
   referralLeaderboard: any[];
   commissionsData: { commissions: any[] } | undefined;
   CONVERSION_RATE: number;
+  onRefresh?: () => void;
 }
 
 export function ReferralsSection(props: ReferralsSectionProps) {
-  const { isReferralsHeroToggled, setIsReferralsHeroToggled, handleHeroToggle, referralsData, formatCurrency, showReferralLink, setShowReferralLink, referralReady, referralLink, referralLinkHost, referralCode, toast, referralZoom, setReferralZoom, referralPanRef, onReferralMouseDown, isReferralDragging, directReferralsCount, isReferralError, isReferralLoading, referralError, displayUser, referralLeaderboard, commissionsData, CONVERSION_RATE } = props;
+  const { isReferralsHeroToggled, setIsReferralsHeroToggled, handleHeroToggle, referralsData, formatCurrency, showReferralLink, setShowReferralLink, referralReady, referralLink, referralLinkHost, referralCode, toast, referralZoom, setReferralZoom, referralPanRef, onReferralMouseDown, isReferralDragging, directReferralsCount, isReferralError, isReferralLoading, referralError, displayUser, referralLeaderboard, commissionsData, CONVERSION_RATE, onRefresh } = props;
+  const { refreshing: isRefreshing, refresh: handleRefresh } = useRefreshAction(onRefresh ?? (() => {}));
     return (
       <motion.div
         initial="initial"
