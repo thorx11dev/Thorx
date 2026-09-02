@@ -212,7 +212,7 @@ export default function LeaderboardSection() {
                     className="h-14 w-14 rounded-xl border-2 border-black object-cover"
                     onError={(e) => ((e.target as HTMLImageElement).src = "/avatars/avatar-1.png")}
                   />
-                  <span className="absolute -bottom-2 -right-2 rounded-md border-2 border-[#D97757] bg-primary px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white">
+                  <span className="absolute -bottom-2 -right-2 rounded-md border-2 border-[#D97757] bg-black px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white">
                     #1
                   </span>
                 </div>
@@ -271,16 +271,16 @@ export default function LeaderboardSection() {
                 key={entry.rank}
                 variants={itemVariants}
                 className={cn(
-                  "relative rounded-2xl border p-4 md:p-6 pt-6 md:pt-8 text-center transition-all duration-500 ease-out",
-                  entry.rank === 1
-                    ? "border-black bg-[#D97757] hover:-translate-y-1.5 hover:shadow-[6px_6px_0px_0px_rgba(217, 119, 87,1)]"
-                    : "border-black/15 bg-white hover:-translate-y-1.5 hover:border-black hover:shadow-[6px_6px_0px_0px_rgba(20, 20, 19,1)]"
+"relative rounded-2xl border-2 p-4 md:p-6 pt-6 md:pt-8 text-center transition-all duration-500 ease-out",
+                    entry.rank === 1
+                      ? "border-black bg-[#FFF7ED] hover:-translate-y-1.5 hover:shadow-[6px_6px_0px_0px_rgba(255,107,53,1)]"
+                      : "border-black/60 bg-white hover:-translate-y-1.5 hover:border-black hover:shadow-[6px_6px_0px_0px_rgba(20, 20, 19,1)]"
                 )}
               >
                 <div
                   className={cn(
                     "absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-sm text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-white",
-                    entry.rank === 1 ? "bg-primary" : "bg-black"
+                    entry.rank === 1 ? "bg-black" : "bg-black"
                   )}
                 >
                   #{entry.rank}
