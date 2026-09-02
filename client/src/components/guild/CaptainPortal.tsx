@@ -461,12 +461,62 @@ export function CaptainPortal() {
     { id: "settings", label: "Settings",     icon: Settings },
   ];
 
-  // ── Loading / no-guild guard ──────────────────────────────────────────────
+  // ── Loading / no-guild guard — mirrors the real layout ───────────────────
   if (!guildId || (isGuildLoading && !guild)) return (
-    <div className="space-y-4">
-      <PanelSkeleton lines={1} />
-      <SkeletonBlock className="h-14" />
-      <PanelSkeleton lines={4} />
+    <div className="lg:grid lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)] lg:gap-6 lg:items-start space-y-4 md:space-y-6 lg:space-y-0">
+      {/* Sidebar skeleton — desktop */}
+      <aside className="hidden lg:flex flex-col bg-white rounded-2xl border-2 border-black overflow-hidden lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]">
+        <div className="p-5 border-b-2 border-black shrink-0">
+          <SkeletonBlock className="h-2.5 w-28 mb-4" />
+          <div className="flex items-center gap-3.5">
+            <div className="w-14 h-14 rounded-xl bg-black/10 border-2 border-black/10 shrink-0" />
+            <div className="space-y-2 flex-1">
+              <SkeletonBlock className="h-4 w-3/4" />
+              <SkeletonBlock className="h-2.5 w-16" />
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <SkeletonBlock className="h-14 rounded-xl" />
+            <SkeletonBlock className="h-14 rounded-xl" />
+          </div>
+          <SkeletonBlock className="h-2 w-full mt-3.5" />
+        </div>
+        <nav className="p-3 space-y-1.5">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <SkeletonBlock key={i} className="h-11 rounded-xl" />
+          ))}
+        </nav>
+      </aside>
+
+      {/* Main column skeleton */}
+      <div className="space-y-4 md:space-y-6 min-w-0">
+        {/* Mobile profile card */}
+        <div className="lg:hidden bg-white rounded-2xl border-2 border-black p-5">
+          <div className="flex items-center gap-3.5 py-2">
+            <div className="w-14 h-14 rounded-xl bg-black/10 border-2 border-black/10 shrink-0" />
+            <div className="space-y-2 flex-1">
+              <SkeletonBlock className="h-5 w-2/3" />
+              <SkeletonBlock className="h-3 w-1/3" />
+            </div>
+            <div className="w-14 h-14 rounded-full bg-black/5 border-2 border-black/5 shrink-0" />
+          </div>
+          <div className="mt-4 pt-3.5 border-t-2 border-black/10 flex items-center justify-between gap-2">
+            <SkeletonBlock className="h-2.5 w-24" />
+            <SkeletonBlock className="h-2.5 w-28" />
+          </div>
+        </div>
+
+        {/* Content plate */}
+        <div className="bg-white rounded-2xl border-2 border-black/10 p-5 md:p-7 space-y-3.5">
+          <SkeletonBlock className="h-3 w-1/3" />
+          <SkeletonBlock className="h-3 w-2/3" />
+          <SkeletonBlock className="h-3 w-1/2" />
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <SkeletonBlock className="h-20 rounded-xl" />
+            <SkeletonBlock className="h-20 rounded-xl" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 
