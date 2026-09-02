@@ -166,6 +166,25 @@
     transition: opacity 0.25s ease;
   }
 
+  /* "CLICK ME" bird text — launched from the guild nav emblem. */
+  .guild-bird-text {
+    position: fixed;
+    top: 0;
+    left: 0;
+    font-weight: 900;
+    font-family: var(--font-sans);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #000;
+    text-shadow:
+      0 0 6px rgba(255, 255, 255, 0.9),
+      0 0 14px rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+    will-change: transform, opacity;
+  }
+
   body.drawer-open .feedback-dock {
     opacity: 0 !important;
     pointer-events: none;
