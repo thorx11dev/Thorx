@@ -433,10 +433,7 @@ export function GuildDiscoveryPanel() {
             >
               {/* ── Top bar ── */}
               <div className="flex items-center justify-between px-6 pt-[max(1rem,env(safe-area-inset-top))] pb-4 border-b-2 border-black bg-white flex-shrink-0 md:rounded-t-2xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-primary" />
-                  <span className="text-[10px] font-mono font-bold tracking-[0.3em] text-black/40 uppercase">Refine</span>
-                </div>
+                <div className="w-2 h-2 rounded-full bg-primary" />
                 <button
                   onClick={() => setFilterOpen(false)}
                   aria-label="Close filters"
