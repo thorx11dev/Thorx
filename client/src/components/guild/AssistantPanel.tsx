@@ -111,6 +111,13 @@ export function AssistantPanel() {
     queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId] });
     queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildMine });
   };
+  const refreshAssistantData = () => {
+    if (!guildId) return;
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildDetail(guildId) });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildMembers(guildId) });
+    queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "applications"] });
+  };
+  const { refreshing: isRefreshing, refresh: handleRefresh } = useRefreshAction(refreshAssistantData);
 
   const decideMutation = useMutation({
     mutationFn: async ({ appId, action }: { appId: string; action: "accept" | "reject" }) => {
