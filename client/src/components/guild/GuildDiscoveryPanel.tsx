@@ -418,9 +418,9 @@ export function GuildDiscoveryPanel() {
             />
             <motion.div
               key="filter-panel"
-              initial={isMobile ? { y: "100%" } : { x: 24, opacity: 0 }}
-              animate={isMobile ? { y: 0 } : { x: 0, opacity: 1, transition: { duration: 0.28, ease: EASE } }}
-              exit={isMobile ? { y: "100%" } : { x: 24, opacity: 0, transition: { duration: 0.2, ease: "easeIn" } }}
+              initial={isMobile ? { y: "100%" } : { x: "110%" }}
+              animate={isMobile ? { y: 0 } : { x: 0, transition: { duration: 0.45, ease: EASE } }}
+              exit={isMobile ? { y: "100%" } : { x: "110%", transition: { duration: 0.35, ease: "easeIn" } }}
               className={cn(
                 "fixed z-[810] bg-[#F2EDE4] flex flex-col",
                 // Desktop: floating window top-right — same spot as the notification panel
