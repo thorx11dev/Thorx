@@ -54,11 +54,6 @@ export function ReferralsSection(props: ReferralsSectionProps) {
         }}
         className="max-w-[1600px] mx-auto px-4 md:px-12 py-8 md:pt-4 md:pb-12 relative z-10 w-full"
       >
-        {/* Sync control — refresh team/referral data without a hard reload */}
-        <div className="flex items-center justify-end mb-4 -mt-1">
-          <RefreshButton onClick={handleRefresh} refreshing={isRefreshing} title="Refresh team data" />
-        </div>
-
         <motion.div
           initial={false}
           animate={{
@@ -108,6 +103,11 @@ export function ReferralsSection(props: ReferralsSectionProps) {
             </AnimatePresence>
           </div>
         </motion.div>
+
+        {/* Sync control — refresh team/referral data without a hard reload */}
+        <div className="flex items-center justify-end -mt-6 mb-6">
+          <RefreshButton onClick={handleRefresh} refreshing={isRefreshing} title="Refresh team data" />
+        </div>
 
         <InteractiveDivider className="my-12" />
 
