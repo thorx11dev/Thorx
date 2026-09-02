@@ -799,15 +799,22 @@ export function GuildDiscoveryPanel() {
                   </div>
                 </button>
 
-                {/* Expanded — join/closed status + apply, full width */}
+                {/* Expanded — DETAILS + APPLY buttons */}
                 {isExpanded && (
-                  <div className="px-3 md:px-4 pb-4 pt-1 bg-black/[0.02] border-t-2 border-black/10">
+                  <div className="px-3 md:px-4 pb-4 pt-1 bg-black/[0.02] border-t-2 border-black/10 flex gap-2">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setViewingGuild(guild); }}
+                      data-testid={`button-details-guild-${guild.id}`}
+                      className={cn(OUTLINE_CLASS, "flex-1 h-11 text-[10px]")}
+                    >
+                      Details
+                    </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); if (canJoin && !applied) handleApply(guild); }}
                       disabled={applyDisabled}
                       data-testid={`button-apply-guild-${guild.id}`}
                       className={cn(
-                        "mt-3 w-full h-11 rounded-lg border-2 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all duration-300",
+                        "flex-1 h-11 rounded-lg border-2 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all duration-300",
                         applied
                           ? "bg-emerald-50 text-emerald-700 border-emerald-300"
                           : inGuild || rankBlocked || !guild.recruitmentOpen
@@ -815,7 +822,7 @@ export function GuildDiscoveryPanel() {
                             : "bg-primary text-white border-black hover:bg-black"
                       )}
                     >
-                      {applied ? <><ShieldCheck className="size-3.5" /> Applied</> : inGuild ? <><Shield className="size-3.5" /> In a Guild</> : rankBlocked ? <><Lock className="size-3.5" /> Locked</> : !guild.recruitmentOpen ? <><X className="size-3.5" /> Closed</> : <>Apply Now <ArrowRight className="size-3.5" /></>}
+                      {applied ? <><ShieldCheck className="size-3.5" /> Applied</> : inGuild || rankBlocked || !guild.recruitmentOpen ? <><Lock className="size-3.5" /> N/A</> : <>Apply <ArrowRight className="size-3.5" /></>}
                     </button>
                   </div>
                 )}
