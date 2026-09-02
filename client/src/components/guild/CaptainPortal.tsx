@@ -548,7 +548,10 @@ export function CaptainPortal() {
       <aside className="hidden lg:flex flex-col bg-white rounded-2xl border-2 border-black overflow-hidden lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]">
         {/* Profile block */}
         <div className="p-5 border-b-2 border-black shrink-0">
-          <TechnicalLabel text="GUILD PROFILE" className="text-black/40 text-[9px] mb-4" />
+          <div className="flex items-center justify-between mb-4">
+            <TechnicalLabel text="GUILD PROFILE" className="text-black/40 text-[9px]" />
+            <RefreshButton onClick={handleRefresh} refreshing={isRefreshing} size="sm" title="Refresh guild data" />
+          </div>
           <div className="flex items-center gap-3.5 min-w-0">
             <div className="relative w-14 h-14 rounded-xl border-2 border-black bg-[#E8E5D8] flex items-center justify-center font-black text-xl shrink-0 overflow-hidden">
               <span className="absolute inset-0 flex items-center justify-center text-black/25">{(guild.name || "G")[0].toUpperCase()}</span>
