@@ -1186,6 +1186,7 @@ export default function UserPortal() {
           </div>
 
           <div className="flex items-center space-x-3">
+            <RefreshButton onClick={refreshPortal} refreshing={isPortalRefreshing} title="Sync all data" />
             <Button
               onClick={() => setShowNotificationModal(true)}
               variant="outline"
