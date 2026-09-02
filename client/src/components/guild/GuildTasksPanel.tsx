@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PremiumCard } from "@/components/ui/premium-card";
 import { SectionChip, CTA_CLASS } from "./GuildPanelShell";
-import { GiWarhammer, GiSwordSpin, GiRoundShield } from "./guild-icons";
+import { GiWarhammer, GiRoundShield } from "./guild-icons";
 import { cn } from "@/lib/utils";
 
 export function GuildTasksPanel() {

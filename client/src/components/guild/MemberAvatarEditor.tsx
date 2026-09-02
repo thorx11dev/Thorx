@@ -9,7 +9,7 @@
 import { useRef, useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {ImagePlus, X} from "lucide-react";
+import { ImagePlus, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import { useAuth } from "@/hooks/useAuth";

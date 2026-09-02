@@ -9,7 +9,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import {Trophy, Users, AlertTriangle, Search, ArrowUpDown, Eye, User, ShieldCheck, ChevronLeft, ChevronRight, Download, CheckSquare, Square, RefreshCw, ServerCrash, TrendingUp, Wallet, ShieldAlert} from "lucide-react";
+import { Trophy, Users, AlertTriangle, Search, ArrowUpDown, Eye, User, ShieldCheck, ChevronLeft, ChevronRight, Download, CheckSquare, Square, RefreshCw, ServerCrash, TrendingUp, Wallet, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { resolveAvatarUrlByTier } from "@/lib/rankAvatars";

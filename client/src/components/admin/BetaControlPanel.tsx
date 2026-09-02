@@ -22,10 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import {
-  MessageSquare, Ticket, Loader2, Send, Ban, Copy,
-  CheckCircle2, Eye, Inbox, Users2, Power,
-} from "lucide-react";
+import { MessageSquare, Ticket, Send, Ban, Copy, CheckCircle2, Eye, Inbox, Users2, Power } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface FeedbackRow {

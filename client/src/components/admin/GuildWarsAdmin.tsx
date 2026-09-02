@@ -19,7 +19,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {Swords, Trophy, Plus, Play, CheckCircle2, RefreshCw, Shield, Zap} from "lucide-react";
+import { Swords, Trophy, Plus, Play, CheckCircle2, RefreshCw, Shield, Zap } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   pending_challenger_approval: "bg-yellow-100 text-yellow-700 border-yellow-200",

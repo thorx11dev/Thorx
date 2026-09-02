@@ -2,7 +2,7 @@ import { useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useLocation, useSearchParams } from "wouter";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Loader2, CheckCircle2, XCircle, KeyRound } from "lucide-react";
+import { Eye, EyeOff, CheckCircle2, XCircle, KeyRound } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { calculatePasswordStrength } from "@/lib/password-strength";

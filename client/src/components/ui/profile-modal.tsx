@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
-import {X, User, Camera, Star, Check} from "lucide-react";
+import { X, User, Camera, Star, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import {Zap} from "lucide-react";
+import { Zap } from "lucide-react";
 
 interface AdNetwork {
   id: string;

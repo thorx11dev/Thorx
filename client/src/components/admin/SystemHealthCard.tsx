@@ -3,7 +3,7 @@ import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
-import {Zap, TrendingUp, TrendingDown, Minus, RefreshCw, X, AlertCircle, ServerCrash} from "lucide-react";
+import { Zap, TrendingUp, TrendingDown, Minus, RefreshCw, X, AlertCircle, ServerCrash } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";

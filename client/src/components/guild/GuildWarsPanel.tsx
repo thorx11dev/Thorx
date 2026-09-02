@@ -6,7 +6,7 @@
 import { useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {Plus} from "lucide-react";
+import { Plus } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { PremiumCard } from "@/components/ui/premium-card";
 import { SectionChip, CTA_CLASS, OUTLINE_CLASS, AvatarStamp } from "./GuildPanelShell";
-import {GiPocketWatch, GiRoundShield, GiCrossedSwords, GiFlame, GiLaurelsTrophy, GiBroadsword, GiSpartanHelmet, GiSkullCrossedBones} from "./guild-icons";
+import { GiPocketWatch, GiRoundShield, GiCrossedSwords, GiFlame, GiLaurelsTrophy, GiBroadsword, GiSpartanHelmet, GiSkullCrossedBones } from "./guild-icons";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 

@@ -1,21 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { 
-  Users, 
-  Wallet,
-  Mail, 
-  ShieldCheck,
-  LayoutDashboard,
-  ScrollText,
-  Menu,
-  LogOut,
-  Ticket,
-  Trophy,
-  Settings,
-  Vault,
-  Activity,
-  Swords,
-} from "lucide-react";
+import { Users, Wallet, Mail, ShieldCheck, LayoutDashboard, ScrollText, Menu, LogOut, Ticket, Trophy, Settings, Vault, Activity, Swords } from "lucide-react";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";

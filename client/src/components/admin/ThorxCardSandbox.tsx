@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThorxCard } from "@/components/ThorxCard";
-import { Zap, Play, RotateCcw, Loader2, Download, ListTree } from "lucide-react";
+import { Zap, Play, RotateCcw, Download, ListTree } from "lucide-react";
 
 // Matches server/modules/thorx-card.ts SimulationResult exactly.
 interface SimulateResult {

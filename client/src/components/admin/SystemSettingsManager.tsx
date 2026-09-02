@@ -5,7 +5,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {Save, Settings, DollarSign, Network, Trash2, Plus, ArrowUp, ArrowDown, ShieldAlert, Zap, Layers, Activity} from "lucide-react";
+import { Save, Settings, DollarSign, Network, Trash2, Plus, ArrowUp, ArrowDown, ShieldAlert, Zap, Layers, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AdNetwork {

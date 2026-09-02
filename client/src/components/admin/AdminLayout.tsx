@@ -2,20 +2,7 @@ import React from "react";
 import { AdminNavigation } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
 import { MobileNavBar } from "@/components/ui/mobile-nav-bar";
-import { 
-  Users, 
-  LayoutDashboard, 
-  CreditCard, 
-  Mail, 
-  FileText, 
-  Key, 
-  Home,
-  LogOut,
-  Shield,
-  Settings,
-  BarChart2,
-  Ticket
-} from "lucide-react";
+import { Users, LayoutDashboard, CreditCard, Mail, FileText, Key, Home, LogOut, Shield, Settings, BarChart2, Ticket } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { AnimatePresence, motion } from "framer-motion";

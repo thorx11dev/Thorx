@@ -3,7 +3,7 @@ import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, CheckCircle, ChevronDown, ChevronRight, User, Shield, Loader2, XCircle, Download } from "lucide-react";
+import { AlertTriangle, CheckCircle, ChevronDown, ChevronRight, User, Shield, XCircle, Download } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";

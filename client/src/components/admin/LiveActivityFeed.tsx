@@ -10,7 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { RankBadge } from "@/components/RankBadge";
 import { Badge } from "@/components/ui/badge";
-import {Activity, RefreshCw, Zap, Users, Target, Wallet, UserPlus, TrendingDown, AlertTriangle, Pause, Play, ChevronDown} from "lucide-react";
+import { Activity, RefreshCw, Zap, Users, Target, Wallet, UserPlus, TrendingDown, AlertTriangle, Pause, Play, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, RefreshCw, DollarSign, BarChart3, Zap, AlertCircle } from "lucide-react";
+import { RefreshCw, DollarSign, BarChart3, Zap, AlertCircle } from "lucide-react";
 
 interface HilltopAdsConfig {
   id: string;

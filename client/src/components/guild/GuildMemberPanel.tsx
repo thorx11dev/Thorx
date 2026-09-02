@@ -16,11 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { PremiumCard } from "@/components/ui/premium-card";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { RefreshButton, useRefreshAction } from "@/components/ui/refresh-button";
-import {
-  GiLaurelsTrophy, GiBullseye, GiPocketWatch, GiChatBubble, GiKnightBanner, GiPortrait, GiBeveledStar,
-  GiRoundShield, GiWarhammer, GiCrossedSwords, GiArrowCluster, GiSpartanHelmet, GiSkullCrossedBones, GiFlame,
-  GiMagnifyingGlass, GiSpectacles,
-} from "./guild-icons";
+import { GiLaurelsTrophy, GiBullseye, GiPocketWatch, GiChatBubble, GiKnightBanner, GiPortrait, GiBeveledStar, GiRoundShield, GiWarhammer, GiCrossedSwords, GiArrowCluster, GiSpartanHelmet, GiSkullCrossedBones, GiFlame, GiMagnifyingGlass, GiSpectacles } from "./guild-icons";
 import { GuildWarsPanel } from "./GuildWarsPanel";
 import { GuildProfileWizard } from "./GuildProfileWizard";
 import { GuildTasksPanel } from "./GuildTasksPanel";
@@ -120,8 +116,7 @@ export function GuildMemberPanel() {
     staleTime: 60000,
   });
 
-  const sendChatMutation = useMutation({
-    mutationFn: async (message: string) => {
+  const sendChatMutation = useMutation({    mutationFn: async (message: string) => {
       const r = await apiRequest("POST", `/api/guilds/${guildId}/chat`, { message });
       if (!r.ok) throw await r.json();
       return r.json();

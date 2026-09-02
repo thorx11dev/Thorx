@@ -11,7 +11,7 @@ import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion, type Variants } from "framer-motion";
-import {Search, SlidersHorizontal, LayoutGrid, List, X, Swords, Shield, ShieldCheck, Lock, ArrowRight, Clock, Flame, Crown, Trophy, RotateCcw, Users, ChevronDown, Info} from "lucide-react";
+import { Search, SlidersHorizontal, LayoutGrid, List, X, Swords, Shield, ShieldCheck, Lock, ArrowRight, Clock, Flame, Crown, Trophy, RotateCcw, Users, ChevronDown, Info } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -93,7 +93,7 @@ const CornerPlus = () => (
   </>
 );
 
-import {Plus} from "lucide-react";
+import { Plus } from "lucide-react";
 
 const GUILD_NAME_SUGGESTIONS = ["Iron Wolves", "Pixel Raiders", "Shadow Syndicate", "Aurora Vanguard"];
 const GUILD_DESCRIPTION_SUGGESTIONS = ["A focused team that builds together", "Competitive players, one shared goal", "A crew for consistent weekly wins"];

@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {Plus, X, Link2} from "lucide-react";
+import { Plus, X, Link2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { PremiumCard } from "@/components/ui/premium-card";
 import { CTA_CLASS, OUTLINE_CLASS, FIELD_CLASS, FIELD_AREA_CLASS, FieldLabel, SelectField } from "./GuildPanelShell";
 import { MemberAvatarEditor } from "./MemberAvatarEditor";
-import {GiPortrait, GiLinkedRings} from "./guild-icons";
+import { GiPortrait, GiLinkedRings } from "./guild-icons";
 import { cn } from "@/lib/utils";
 
 interface GuildProfileWizardProps {

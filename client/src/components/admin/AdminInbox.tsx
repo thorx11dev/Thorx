@@ -1,16 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { 
-  Search, 
-  Inbox, 
-  ChevronRight, 
-  Copy,
-  Archive,
-  ArchiveRestore,
-  Trash2,
-  Filter
-} from "lucide-react";
+import { Search, Inbox, ChevronRight, Copy, Archive, ArchiveRestore, Trash2, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { useToast } from "@/hooks/use-toast";

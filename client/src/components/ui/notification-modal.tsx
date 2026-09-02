@@ -1,7 +1,7 @@
 import * as React from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
-import {TrendingUp, User, Bell, Wallet, X, GripHorizontal, Trash2, ArrowUpRight} from "lucide-react";
+import { TrendingUp, User, Bell, Wallet, X, GripHorizontal, Trash2, ArrowUpRight } from "lucide-react";
 import { format, isToday, subDays, isAfter } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";

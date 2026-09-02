@@ -22,7 +22,7 @@ import { useEffect, useMemo, useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Megaphone, X, Send, Loader2, CheckCircle2, Eye } from "lucide-react";
+import { Megaphone, X, Send, CheckCircle2, Eye } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";

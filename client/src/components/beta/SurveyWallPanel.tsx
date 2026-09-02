@@ -13,7 +13,7 @@
 import { useQuery } from "@tanstack/react-query";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion } from "framer-motion";
-import { ClipboardList, ExternalLink, Lock, Loader2, Clock3 } from "lucide-react";
+import { ClipboardList, ExternalLink, Lock, Clock3 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { Progress } from "@/components/ui/progress";

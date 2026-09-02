@@ -3,21 +3,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  PlayCircle,
-  PauseCircle,
-  Maximize2,
-  Minimize2,
-  Volume2,
-  VolumeX,
-  Settings,
-  User,
-  HelpCircle,
-  MoreHorizontal,
-  Minimize, // Import Minimize icon
+import { PlayCircle, PauseCircle, Maximize2, Minimize2, Volume2, VolumeX, Settings, User, HelpCircle, MoreHorizontal, Minimize, // Import Minimize icon
   Maximize, // Import Maximize icon
-  CheckCircle2
-} from "lucide-react";
+  CheckCircle2 } from "lucide-react";
 
 interface VideoTab {
   id: string;

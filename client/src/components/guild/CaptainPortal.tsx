@@ -24,16 +24,11 @@ import {
   AvatarStamp, EmptyState, SelectField, SegmentedToggle, ChatComposer,
   PanelSkeleton, SkeletonBlock,
 } from "./GuildPanelShell";
-import { Inbox, Users, ListChecks, MessagesSquare, MessageCircle, Swords, Search, BarChart3, Settings, Menu, ArrowRight, ArrowLeft, Megaphone, Shield, ImagePlus, ChevronDown, BellRing, Glasses, X, Loader2, UserMinus } from "lucide-react";
+import { Inbox, Users, ListChecks, MessagesSquare, MessageCircle, Swords, Search, BarChart3, Settings, Menu, ArrowRight, ArrowLeft, Megaphone, Shield, ImagePlus, ChevronDown, BellRing, Glasses, X, UserMinus } from "lucide-react";
 import { InteractiveDivider } from "@/features/user-portal/shared";
 import { GuildNavDrawer } from "./GuildNavDrawer";
 import { EmblemBirds } from "./EmblemBirds";
-import {
-  GiKnightBanner, GiChatBubble, GiWarhammer, GiCog,
-  GiRoundShield, GiSkullCrossedBones, GiLaurelsTrophy, GiHuntingHorn, GiBroadsword, GiSpartanHelmet,
-  GiSwordSpin, GiCrossedSwords, GiCrossedAxes, GiShield,
-  GiArrowCluster, GiArrowhead, GiPortrait, GiMagnifyingGlass,
-} from "./guild-icons";
+import { GiKnightBanner, GiChatBubble, GiWarhammer, GiCog, GiRoundShield, GiSkullCrossedBones, GiLaurelsTrophy, GiHuntingHorn, GiBroadsword, GiSpartanHelmet, GiCrossedSwords, GiCrossedAxes, GiShield, GiArrowCluster, GiArrowhead, GiPortrait, GiMagnifyingGlass } from "./guild-icons";
 import { GuildWarsPanel } from "./GuildWarsPanel";
 import { GuildProfileWizard } from "./GuildProfileWizard";
 import { GuildTasksPanel } from "./GuildTasksPanel";

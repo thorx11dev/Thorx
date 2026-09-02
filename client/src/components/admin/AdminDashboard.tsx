@@ -5,11 +5,7 @@
 import React from "react";
 import Decimal from "decimal.js";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Users, Activity, DollarSign, TrendingUp, TrendingDown, Minus,
-  Clock, UserCheck, BarChart3, AlertTriangle,
-  Network, ShieldAlert, GitBranch, Coins, UserPlus, Award
-} from "lucide-react";
+import { Users, Activity, DollarSign, TrendingUp, TrendingDown, Minus, Clock, UserCheck, BarChart3, AlertTriangle, Network, ShieldAlert, GitBranch, Coins, UserPlus, Award } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell

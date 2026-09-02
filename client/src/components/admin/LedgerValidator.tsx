@@ -22,7 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Shield, Search, AlertTriangle, CheckCircle, RotateCcw, User, Wrench, Download, Loader2, History, Wallet, ListFilter, Layers } from "lucide-react";
+import { Shield, Search, AlertTriangle, CheckCircle, RotateCcw, User, Wrench, Download, History, Wallet, ListFilter, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { UserInspectorPanel } from "./UserInspectorPanel";

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { motion, AnimatePresence } from "framer-motion";
-import {X, ExternalLink, ChevronUp} from "lucide-react";
+import { X, ExternalLink, ChevronUp } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { Button } from "@/components/ui/button";

@@ -7,7 +7,7 @@ import Decimal from "decimal.js";
 import { downloadFromUrl } from "@/lib/downloadFromUrl";
 import { useDragToPan } from "@/hooks/useDragToPan";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {Users, Search, Filter, MoreVertical, User, Mail, Phone, Shield, Ban, CheckCircle, DollarSign, Network, ArrowRight, ExternalLink, Edit3, Calendar, Wallet, ArrowUpRight, ArrowDownRight, ChevronRight, X, StickyNote, Send, Plus, Check, Lock, TrendingUp, Crown} from "lucide-react";
+import { Users, Search, Filter, MoreVertical, User, Mail, Phone, Shield, Ban, CheckCircle, DollarSign, Network, ArrowRight, ExternalLink, Edit3, Calendar, Wallet, ArrowUpRight, ArrowDownRight, ChevronRight, X, StickyNote, Send, Plus, Check, Lock, TrendingUp, Crown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import TechnicalLabel from "@/components/ui/technical-label";
@@ -29,7 +29,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDebounce } from "@/hooks/use-debounce";
 import { resolveAvatarUrl, resolveAvatarUrlByTier, getRankDef } from "@/lib/rankAvatars";
-
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { TRUST_STATUSES } from "@shared/constants";

@@ -1,25 +1,7 @@
 import React, { useState } from "react";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  Search, 
-  Shield, 
-  Activity, 
-  Lock, 
-  Unlock, 
-  Trash2, 
-  Clock, 
-  UserCheck,
-  User,
-  ChevronDown,
-  ChevronUp,
-  ShieldCheck,
-  LayoutDashboard,
-  Loader2,
-  Mail,
-  Copy,
-  Check
-} from "lucide-react";
+import { Search, Shield, Activity, Lock, Unlock, Trash2, Clock, UserCheck, User, ChevronDown, ChevronUp, ShieldCheck, LayoutDashboard, Mail, Copy, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import TechnicalLabel from "@/components/ui/technical-label";

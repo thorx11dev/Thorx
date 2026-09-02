@@ -7,16 +7,7 @@
  */
 import React, { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Search,
-  Shield,
-  Terminal,
-  Monitor,
-  MapPin,
-  ChevronRight,
-  Download,
-  Activity,
-} from "lucide-react";
+import { Search, Shield, Terminal, Monitor, MapPin, ChevronRight, Download, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";

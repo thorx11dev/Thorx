@@ -2,19 +2,7 @@
 // team/founder accounting. Excluded from Points-Only Mandate (user-facing only).
 import React from "react";
 import Decimal from "decimal.js";
-import { 
-  X, 
-  User, 
-  Mail, 
-  Phone, 
-  ExternalLink,
-  Trophy,
-  Users,
-  Wallet,
-  TrendingUp,
-  ShieldCheck,
-  Activity
-} from "lucide-react";
+import { X, User, Mail, Phone, ExternalLink, Trophy, Users, Wallet, TrendingUp, ShieldCheck, Activity } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 

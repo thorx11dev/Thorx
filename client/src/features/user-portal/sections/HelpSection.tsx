@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PortalFaqSection } from "@/components/portal/PortalFaqSection";
 import Barcode from "@/components/ui/barcode";
 import { Skeleton } from "@/components/ui/skeleton";
-import {RefreshCw, Send} from "lucide-react";
+import { RefreshCw, Send } from "lucide-react";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

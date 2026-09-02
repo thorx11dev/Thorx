@@ -21,10 +21,7 @@ import {
   FIELD_AREA_CLASS, useEscape, ModalShell, AvatarStamp, EmptyState,
   PanelSkeleton, SkeletonBlock,
 } from "./GuildPanelShell";
-import {
-  GiSpartanHelmet, GiKnightBanner, GiHuntingHorn, GiLaurelsTrophy, GiRoundShield, GiShield,
-  GiSkullCrossedBones, GiCrossedAxes, GiPadlock, GiWarhammer, GiMagnifyingGlass, GiSpectacles,
-} from "./guild-icons";
+import { GiSpartanHelmet, GiKnightBanner, GiHuntingHorn, GiLaurelsTrophy, GiRoundShield, GiShield, GiSkullCrossedBones, GiCrossedAxes, GiPadlock, GiWarhammer, GiMagnifyingGlass, GiSpectacles } from "./guild-icons";
 import { GuildTasksPanel } from "./GuildTasksPanel";
 import { GuildDiscoveryPanel } from "./GuildDiscoveryPanel";
 import { cn } from "@/lib/utils";
