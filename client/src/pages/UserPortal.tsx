@@ -253,21 +253,26 @@ export default function UserPortal() {
   }, [user?.id]);
 
   // Manual data sync — invalidates every user-portal query so each section
-  // refetches on demand (nav + per-section refresh buttons) without a hard reload.
-  const refreshPortalData = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.sessionAuth });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.dashboardStats });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earnings });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earningsHistory });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earningsBreakdown });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.referrals });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.referralsLeaderboard });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.commissions });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adViewsToday });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.twoFactorStatus });
-    queryClient.invalidateQueries({ queryKey: ["transactions", "history"] });
-    queryClient.invalidateQueries({ queryKey: ["ad-views", "today"] });
+  // refetches on demand (per-section SYNC buttons) without a hard reload.
+  // Returns a promise so SYNC buttons keep the "SYNCING" state until the
+  // refetch actually completes.
+  const refreshPortalData = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.sessionAuth }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.dashboardStats }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earnings }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earningsBreakdown }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.referrals }),
+      // DashboardCards uses this separate key for the referral-count card —
+      // ["referrals"] does NOT prefix-match ["/api/referrals", …].
+      queryClient.invalidateQueries({ queryKey: ["/api/referrals", "dashboard-card"] }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.referralsLeaderboard }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.commissions }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adViewsToday }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.publicConfig }),
+      queryClient.invalidateQueries({ queryKey: ["transactions", "history"] }),
+    ]);
   }, [queryClient]);
 
   // Share Modal State

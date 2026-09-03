@@ -117,13 +117,15 @@ export function GuildMemberPanel() {
   });
 
   // Manual sync — refetch every live guild surface without a hard reload.
-  const refreshGuildData = () => {
+  // Async so the SYNC button's spinner reflects the actual refetch window.
+  const refreshGuildData = async () => {
     if (!guildId) return;
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildDetail(guildId) });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildMembers(guildId) });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildWeeklyHistory(guildId) });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildChat(guildId) });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildMessages(guildId) });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildDetail(guildId) }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildMembers(guildId) }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildWeeklyHistory(guildId) }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildChat(guildId) }),
+    ]);
   };
   const { refreshing: isRefreshing, refresh: handleRefresh } = useRefreshAction(refreshGuildData);
 

@@ -235,14 +235,18 @@ export function CaptainPortal() {
   });
 
   // Manual sync — refetch all live guild surfaces without a hard reload.
-  const refreshGuildData = () => {
+  // The ["/api/guilds", guildId] key prefix-matches every child query, and the
+  // private-chat prefix (no member id) covers whichever DM thread is open.
+  const refreshGuildData = async () => {
     if (!guildId) return;
-    queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId] });
-    queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "members"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "applications"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "weekly-history"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "chat"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "private-chat", selectedDmMember] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "members"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "applications"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "weekly-history"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "chat"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "private-chat"] }),
+    ]);
   };
   const { refreshing: isRefreshing, refresh: handleRefresh } = useRefreshAction(refreshGuildData);
 
