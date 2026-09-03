@@ -105,11 +105,9 @@ export function ReferralsSection(props: ReferralsSectionProps) {
         </motion.div>
 
         {/* Sync control — refresh team/referral data without a hard reload */}
-        <div className="flex items-center justify-end mt-4 mb-4">
+        <div className="flex items-center justify-end mt-6 mb-6 md:mt-8 md:mb-8">
           <RefreshButton onClick={handleRefresh} refreshing={isRefreshing} title="Refresh team data" />
         </div>
-
-        <InteractiveDivider className="my-12" />
 
         {/* Key Metrics Cards - Dashboard Layout */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8 mb-12">
@@ -126,8 +124,7 @@ export function ReferralsSection(props: ReferralsSectionProps) {
             data-testid="card-total-referrals"
           >
             <div className="flex items-start justify-between mb-3">
-              <Users className="w-8 h-8 text-primary group-hover:text-primary/80 transition-colors" />
-              <TechnicalLabel text="TOTAL REFERRALS" className="text-muted-foreground text-xs" />
+              <TechnicalLabel text="TEAM MEMBERS" className="text-muted-foreground text-xs" />
             </div>
             <p className="text-2xl md:text-3xl font-black text-foreground mb-2 group-hover:text-primary/90 transition-colors" data-testid="text-referrals-count">{referralsData?.stats.count || 0}</p>
           </motion.div>
