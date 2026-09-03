@@ -451,7 +451,9 @@ export default function Auth() {
         password: data.password,
         phone: data.phone || "",
         identity: data.identity,
-        referralCode: data.referralCode || "",
+        // Referral attribution: the ?ref= link code wins even if the user
+        // cleared the visible field on the form.
+        referralCode: linkReferralCode || data.referralCode || "",
         betaInviteCode: data.betaInviteCode || "",
         role: data.role,
         deviceFingerprint: fingerprint,
