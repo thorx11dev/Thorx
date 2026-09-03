@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { InteractiveDivider } from "@/features/user-portal/shared";
-import { Users, DollarSign, Copy, Link2, ExternalLink, Minus, Plus } from "lucide-react";
+import { Copy, Link2, ExternalLink, Minus, Plus } from "lucide-react";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { RefreshButton, useRefreshAction } from "@/components/ui/refresh-button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -142,8 +142,7 @@ export function ReferralsSection(props: ReferralsSectionProps) {
             data-testid="card-referral-earnings"
           >
             <div className="flex items-start justify-between mb-3">
-              <DollarSign className="w-8 h-8 text-primary group-hover:text-primary/80 transition-colors" />
-              <TechnicalLabel text="REFERRAL EARNINGS" className="text-muted-foreground text-xs" />
+              <TechnicalLabel text="TEAM EARNING" className="text-muted-foreground text-xs" />
             </div>
             <p className="text-2xl md:text-3xl font-black text-primary mb-2 group-hover:text-primary/90 transition-colors" data-testid="text-referral-earnings">{formatCurrency(referralsData?.stats.totalEarned || '0.00')}</p>
           </motion.div>
