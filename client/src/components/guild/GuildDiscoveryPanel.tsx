@@ -23,7 +23,6 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import TechnicalLabel from "@/components/ui/technical-label";
-import { RefreshButton, useRefreshAction } from "@/components/ui/refresh-button";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { DEV_UNLOCK_RANK_GATES } from "@/lib/previewAccess";
@@ -211,12 +210,6 @@ export function GuildDiscoveryPanel() {
     queryKey: ["/api/guilds/discovery"],
     queryFn: async () => { const res = await apiRequest("GET", "/api/guilds/discovery"); const data = await res.json(); return data.guilds ?? data; },
   });
-  const refreshDirectory = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/guilds/discovery"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/guilds/my-creation-request"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/guilds/my-application"] });
-  };
-  const { refreshing: isRefreshing, refresh: handleRefresh } = useRefreshAction(refreshDirectory);
 
   /* ── Mutations ───────────────────────────────────────────────────────── */
 
@@ -397,9 +390,6 @@ export function GuildDiscoveryPanel() {
             <List className="size-4" />
           </button>
         </div>
-
-        {/* Sync control */}
-        <RefreshButton onClick={handleRefresh} refreshing={isRefreshing} title="Refresh guild directory" />
       </motion.div>
 
       {/* Result count when filtering */}
