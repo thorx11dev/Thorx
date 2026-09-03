@@ -261,6 +261,8 @@ export default function UserPortal() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.sessionAuth }),
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.dashboardStats }),
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earnings }),
+      // Weekly Earnings chart reads this exact key (props-fed into DashboardSection)
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earningsHistory }),
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earningsBreakdown }),
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.referrals }),
       // DashboardCards uses this separate key for the referral-count card —
