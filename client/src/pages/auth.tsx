@@ -266,6 +266,10 @@ export default function Auth() {
   const [, setLocation] = useLocation();
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get("invite");
+  // Referral link capture (?ref=CODE). Kept in a ref so the inviter's code is
+  // ALWAYS attached to the registration payload — even if the user clears the
+  // visible referral field on the form.
+  const linkReferralCode = searchParams.get("ref") || "";
   const [activeTab, setActiveTab] = useState("register");
   const [authView, setAuthView] = useState<AuthView>('register');
   const [showPassword, setShowPassword] = useState(false);
@@ -391,7 +395,8 @@ export default function Auth() {
       email: "",
       password: "",
       confirmPassword: "",
-      referralCode: "",
+      // Pre-fill from the referral link so the inviter's code shows on the form
+      referralCode: linkReferralCode,
       betaInviteCode: "",
       role: "user" as const
     }
