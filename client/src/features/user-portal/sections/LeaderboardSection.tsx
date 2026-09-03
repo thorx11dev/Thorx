@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Trophy } from "lucide-react";
 import { QUERY_KEYS } from "@/lib/queryKeys";
+import { apiRequest } from "@/lib/queryClient";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { RefreshButton } from "@/components/ui/refresh-button";
 import RankBadge from "@/components/RankBadge";
@@ -52,6 +53,11 @@ export default function LeaderboardSection() {
   const [isRanksHeroToggled, setIsRanksHeroToggled] = useState(false);
   const { data, isLoading, isError, refetch, isRefetching } = useQuery<LeaderboardResponse>({
     queryKey: QUERY_KEYS.leaderboard,
+    // Chart shows ONLY the top 10 PS scorers (server caps + orders by rank).
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/leaderboard?limit=10");
+      return res.json();
+    },
     refetchInterval: 60_000,
   });
 
@@ -345,11 +351,6 @@ export default function LeaderboardSection() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm md:text-base font-black uppercase tracking-tight truncate flex items-center gap-2">
                       {entry.name}
-                      {entry.isMe && (
-                        <span className="shrink-0 bg-black text-white rounded-sm px-1.5 py-0.5 text-[9px] font-black tracking-widest">
-                          YOU
-                        </span>
-                      )}
                     </p>
                     <div className="mt-1">
                       <RankBadge rank={entry.rankTier} size="sm" />
