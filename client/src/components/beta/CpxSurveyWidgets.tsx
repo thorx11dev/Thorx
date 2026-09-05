@@ -115,6 +115,3 @@ export function CpxSurveyNotification({ cpx }: { cpx: CpxConfig }) {
 
   return <div ref={ref} id={NOTIFICATION_DIV_ID} aria-hidden="true" />;
 }
-
-// Re-exports for consumers that want the icons in the fallback UI.
-export { Clock3, ClipboardList, Zap };
