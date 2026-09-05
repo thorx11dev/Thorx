@@ -26,7 +26,7 @@
 import crypto from "crypto";
 import Decimal from "decimal.js";
 import { db } from "../db";
-import { surveyRecords } from "@shared/schema";
+import { referralEarnCommissions, surveyRecords, userTransactions, users } from "@shared/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { storage } from "../storage";
 import { logger } from "../lib/logger";
