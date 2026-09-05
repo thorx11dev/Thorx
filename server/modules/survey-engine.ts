@@ -410,13 +410,20 @@ export async function reverseSurveyCredit(opts: {
     if (claimed.length === 0) return { outcome: "already_reversed" as SurveyReversalOutcome };
 
     // 3 — Deduct exactly what the user was credited (stored gross PKR).
+    // sourceId is the original record id suffixed with ":reversal" — the
+    // uniq_user_transactions_source index (user_id, source_type, source_id)
+    // would otherwise collide with the ORIGINAL credit's ledger row (same
+    // sourceId), surfacing as a 500 on every reversal callback. The suffix
+    // keeps the ledger rows distinct while staying auditable; idempotency of
+    // the reversal itself is guaranteed by the reconciled status-flip above
+    // (a retried reversal never reaches this point).
     const grossToReverse = record.grossPkr ?? "0";
     if (new Decimal(grossToReverse).greaterThan(0)) {
       await storage.recordEarnEvent({
         userId: record.userId,
         engineType: "Engine_B",
         grossPkr: `-${grossToReverse}`,
-        sourceId: record.id,
+        sourceId: `${record.id}:reversal`,
         sourceType: "survey",
         tx,
       });
