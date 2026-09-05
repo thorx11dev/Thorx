@@ -180,30 +180,33 @@ app.use(helmet({
         directives: {
           ...helmet.contentSecurityPolicy.getDefaultDirectives(),
           "frame-ancestors": ["*"],
-          // Engine B — CPX Research Script Tag widget:
-          //   script-src  — the widget library (cdn.cpx-research.com)
-          //   frame-src   — surveys open inside CPX-hosted iframes
-          //   connect-src — the library fetches live survey inventory
-          //   img-src     — survey provider icons/creatives
+          // Engine B — CPX Research Script Tag widget. Wildcard covers ALL CPX
+          // subdomains (cdn, offers, wall, api, jsscriptv1-live — the inventory
+          // API rotates subdomains, so hardcoding them breaks the widget).
           "script-src": [
             ...(helmet.contentSecurityPolicy.getDefaultDirectives()["script-src"] ?? ["'self'"]),
-            "https://cdn.cpx-research.com",
+            "https://*.cpx-research.com",
+            "https://cpx-research.com",
+            // PostHog analytics (script + beacon host) and Cloudflare Insights.
+            "https://us-assets.i.posthog.com",
+            "https://static.cloudflareinsights.com",
           ],
           "frame-src": [
             "'self'",
-            "https://offers.cpx-research.com",
-            "https://wall.cpx-research.com",
+            "https://*.cpx-research.com",
+            "https://cpx-research.com",
           ],
           "connect-src": [
             ...(helmet.contentSecurityPolicy.getDefaultDirectives()["connect-src"] ?? ["'self'"]),
-            "https://offers.cpx-research.com",
-            "https://api.cpx-research.com",
-            "https://wall.cpx-research.com",
+            "https://*.cpx-research.com",
+            "https://cpx-research.com",
+            "https://us.i.posthog.com",
+            "https://us-assets.i.posthog.com",
           ],
           "img-src": [
             ...(helmet.contentSecurityPolicy.getDefaultDirectives()["img-src"] ?? ["'self' data:"]),
-            "https://cdn.cpx-research.com",
-            "https://offers.cpx-research.com",
+            "https://*.cpx-research.com",
+            "https://cpx-research.com",
           ],
         },
       },
