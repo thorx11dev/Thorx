@@ -24,6 +24,7 @@
  */
 
 import crypto from "crypto";
+import Decimal from "decimal.js";
 import { db } from "../db";
 import { surveyRecords } from "@shared/schema";
 import { and, eq, sql } from "drizzle-orm";
@@ -92,6 +93,32 @@ export interface NormalizedSurveyCallback {
 export type CallbackVerification =
   | { ok: true }
   | { ok: false; reason: string };
+
+// ─── CPX Research event semantics (postback settings) ────────────────────────
+// Postback URL placeholders (CPX dashboard → Postback Settings):
+//   status  — "1" = completed, "2" = canceled (fraud reversal, re-sent for a
+//             previously credited trans_id, usually 15–60 days later)
+//   type    — "complete" (paid survey), "out" (screen out, no payout), "bonus"
+//             (screen-out compensation / survey rating — small real payout)
+//   amount_usd / amount_local — publisher payout in USD and display currency.
+//             amount_local is scaled by the CPX "currency factor" (PKR) and
+//             must NEVER be treated as USD.
+export type CpxEventType = "complete" | "out" | "bonus" | "unknown";
+
+export function parseCpxEvent(params: URLSearchParams): {
+  status: "1" | "2" | null;
+  type: CpxEventType;
+} {
+  const statusRaw = (params.get("status") ?? "").trim();
+  const typeRaw = (params.get("type") ?? "").trim().toLowerCase();
+  const status = statusRaw === "1" || statusRaw === "2" ? (statusRaw as "1" | "2") : null;
+  const type: CpxEventType =
+    typeRaw === "complete" ? "complete"
+    : typeRaw === "out" || typeRaw === "screenout" ? "out"
+    : typeRaw === "bonus" ? "bonus"
+    : "unknown";
+  return { status, type };
+}
 
 // ─── Config helpers ───────────────────────────────────────────────────────────
 
@@ -305,6 +332,99 @@ export async function buildSurveyWallEntry(
   }
 
   return { networkId: network.id, networkName: network.name, wallUrl: "", available: false };
+}
+
+// ─── CPX Script Tag config (client-side widget, Design 1–5) ──────────────────
+// The script tag library (cdn.cpx-research.com/assets/js/script_tag_v2.0.js)
+// runs in the browser and needs: app_id, ext_user_id and — when the Security
+// Check is enabled on the publisher area — secure_hash = MD5(ext_user_id +
+// "-" + app_secure_hash). The raw app hash secret NEVER leaves the server:
+// only the per-user digest is returned to the client.
+export interface CpxScriptConfig {
+  appId: string;
+  extUserId: string;
+  secureHash: string;
+  email: string;
+  username: string;
+}
+
+export async function buildCpxScriptConfig(
+  userId: string,
+  profile?: SurveyUserProfile,
+): Promise<CpxScriptConfig | null> {
+  const creds = await getCpxCredentials();
+  if (!creds.apiId) return null;
+  // Same digest formula as the wall URL builder: MD5(userId-hash) per CPX docs.
+  const secureHash = creds.hash
+    ? crypto.createHash("md5").update(`${userId}-${creds.hash}`, "utf8").digest("hex")
+    : "";
+  return {
+    appId: creds.apiId,
+    extUserId: userId,
+    secureHash,
+    email: profile?.email ?? "",
+    username: profile?.username ?? "",
+  };
+}
+
+// ─── Credit reversal (CPX status=2 fraud cancellation, BitLabs reconciliation) ─
+// The vendor claws back a previously credited transaction (same trans_id or a
+// refTxId pointing at it). The reversal must deduct the ORIGINAL credited PKR
+// amount — not the callback's USD figure — so the user's balance moves by
+// exactly what they were paid. The record's status flip (completed →
+// reconciled) is the idempotency guard: a retried reversal callback finds the
+// row already reconciled and is an acknowledged no-op.
+export type SurveyReversalOutcome = "reversed" | "already_reversed" | "not_found";
+
+export async function reverseSurveyCredit(opts: {
+  networkId: string;
+  txId: string; // vendor TX id of the ORIGINAL credit (CPX: same trans_id; BitLabs: refTxId)
+  reason: string;
+}): Promise<{ outcome: SurveyReversalOutcome }> {
+  return db.transaction(async (tx) => {
+    // 1 — Locate the original credited record (plain read; committed row).
+    const [record] = await tx
+      .select()
+      .from(surveyRecords)
+      .where(and(
+        eq(surveyRecords.networkId, opts.networkId),
+        eq(surveyRecords.transactionId, opts.txId),
+        eq(surveyRecords.status, "completed"),
+      ))
+      .limit(1);
+
+    if (!record) return { outcome: "not_found" as SurveyReversalOutcome };
+
+    // 2 — Serialize against concurrent earns/reversals for this user (same
+    //     advisory-lock key as the credit path), then claim the record via a
+    //     conditional status flip. Two racing reversals: only one flips.
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${record.userId})::bigint)`);
+    const claimed = await tx
+      .update(surveyRecords)
+      .set({ status: "reconciled" })
+      .where(and(
+        eq(surveyRecords.id, record.id),
+        eq(surveyRecords.status, "completed"),
+      ))
+      .returning({ id: surveyRecords.id });
+    if (claimed.length === 0) return { outcome: "already_reversed" as SurveyReversalOutcome };
+
+    // 3 — Deduct exactly what the user was credited (stored gross PKR).
+    const grossToReverse = record.grossPkr ?? "0";
+    if (new Decimal(grossToReverse).greaterThan(0)) {
+      await storage.recordEarnEvent({
+        userId: record.userId,
+        engineType: "Engine_B",
+        grossPkr: `-${grossToReverse}`,
+        sourceId: record.id,
+        sourceType: "survey",
+        tx,
+      });
+    }
+
+    logger.warn({ networkId: opts.networkId, txId: opts.txId, userId: record.userId, gross: grossToReverse, reason: opts.reason }, "[Surveys] Credit reversed");
+    return { outcome: "reversed" as SurveyReversalOutcome };
+  });
 }
 
 // ─── Callback signature verification ─────────────────────────────────────────
@@ -641,7 +761,11 @@ export function normalizeSurveyCallback(
     case "cpx-research":
       userId = firstParam(params, ["user_id", "uid", "ext_user_id"]);
       txId = firstParam(params, ["trans_id", "tx", "transaction_id"]);
-      usdRaw = firstParam(params, ["currency_amount", "usd", "amount_usd"]);
+      // CPX postback sends amount_usd (USD publisher payout) and amount_local
+      // (display currency, scaled by the CPX currency factor — PKR here, NOT
+      // USD). amount_usd is authoritative; currency_amount is the legacy param
+      // name kept as a fallback for older CPX postback templates.
+      usdRaw = firstParam(params, ["amount_usd", "currency_amount", "usd"]);
       break;
 
     case "timewall":

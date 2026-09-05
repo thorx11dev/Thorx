@@ -17,6 +17,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:backup": "node scripts/backup-db.mjs",
     "setup:founder": "node scripts/provision-founder.mjs",
+    "setup:cpx": "node scripts/provision-cpx.mjs",
     "verify:auth": "npm test -- server/__tests__/auth.test.ts",
     "setup": "node scripts/auto-setup.js",
     "test": "vitest run",

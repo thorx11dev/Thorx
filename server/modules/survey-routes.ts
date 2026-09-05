@@ -4,9 +4,11 @@
  *   GET /api/surveys
  *     Authenticated. Returns the configured survey-network waterfall (only
  *     networks with real credentials are marked available), the user's
- *     today-progress against SURVEY_MAX_PER_DAY, and the SURVEY_MIN_RANK
- *     eligibility verdict. The client renders each available network as a
- *     wall button; the wall URL embeds the user's THORX id.
+ *     today-progress against SURVEY_MAX_PER_DAY, the SURVEY_MIN_RANK
+ *     eligibility verdict, and — when CPX Research is configured — the `cpx`
+ *     Script Tag config (app_id + per-user MD5 secure hash; the raw hash
+ *     secret never leaves the server). The client renders the embedded CPX
+ *     widget from this config; other networks remain wall buttons.
  *
  *   GET|POST /api/webhooks/survey/:networkId
  *     Public (CSRF-exempt via the /api/webhooks/ rule) network callback.
@@ -15,6 +17,20 @@
  *     daily cap → guarded insert + recordEarnEvent inside one advisory-locked
  *     transaction. Valid callbacks always get a 200 so vendors stop retrying;
  *     rejections use 4xx exactly like the ad-complete webhook.
+ *
+ *   CPX event semantics (dashboard → Postback Settings placeholders):
+ *     status=1 + type=complete → credit amount_usd (normal completion)
+ *     status=1 + type=bonus    → credit as a 'bonus' record (screen-out
+ *                                compensation / rating; no daily-cap charge)
+ *     type=out                 → screen-out, acknowledged, no credit
+ *     status=2                 → fraud cancellation: reverse the original
+ *                                credit (same trans_id re-called 15–60 days
+ *                                later), flip record to 'reconciled'
+ *     hash = MD5(trans_id + app_secure_hash) (dash-joined variant accepted)
+ *     amount_local is display-currency PKR and is NEVER treated as USD.
+ *   BitLabs event semantics:
+ *     type=COMPLETE | START_BONUS → credit; type=SCREENOUT → ack, no credit;
+ *     type=RECONCILIATION (negative usd + ref tx) → reverse original credit.
  */
 
 import type { Express, Request } from "express";
@@ -26,13 +42,16 @@ import { requireSessionAuth } from "../routes";
 import { logger } from "../lib/logger";
 import { sql } from "drizzle-orm";
 import {
+  buildCpxScriptConfig,
   buildSurveyWallEntry,
   countSurveysCompletedToday,
   getActiveSurveyNetworks,
   getSurveyDailyCap,
   getSurveyMinRank,
   normalizeSurveyCallback,
+  parseCpxEvent,
   rankAtLeast,
+  reverseSurveyCredit,
   verifySurveyCallback,
 } from "./survey-engine";
 
@@ -85,10 +104,11 @@ export function registerSurveyRoutes(app: Express): void {
       const eligible = rankAtLeast(user.userRankTier, minRank);
       const dailyCap = await getSurveyDailyCap();
       const completedToday = await countSurveysCompletedToday(userId);
+      const canEarnNow = eligible && completedToday < dailyCap;
 
+      const active = canEarnNow ? await getActiveSurveyNetworks() : [];
       let networks: Awaited<ReturnType<typeof buildSurveyWallEntry>>[] = [];
-      if (eligible && completedToday < dailyCap) {
-        const active = await getActiveSurveyNetworks();
+      if (canEarnNow) {
         // userId is passed so CPX's signed-wall digest (secure_hash) can be
         // computed server-side per user — the secret never leaves the server.
         // Profile hints (email/username) boost vendor-side survey matching.
@@ -106,12 +126,22 @@ export function registerSurveyRoutes(app: Express): void {
         }));
       }
 
+      // CPX Script Tag config — only when the user may earn right now and CPX
+      // is configured + active. The widget renders client-side; when the cap
+      // is reached or the user is rank-gated, cpx stays null so the widget
+      // unmounts (and CPX never sees inventory requests from capped users).
+      const cpxNetworkActive = active.some((n) => n.id === "cpx-research");
+      const cpx = canEarnNow && cpxNetworkActive
+        ? await buildCpxScriptConfig(userId, { email: user.email, username: user.identity })
+        : null;
+
       res.json({
         eligible,
         minRank,
         completedToday,
         dailyCap,
         networks, // only `available: true` entries carry a wallUrl
+        cpx, // Script Tag config for the embedded widget — null when CPX off/capped/gated
       });
     } catch (error) {
       logger.error({ err: error }, "[Surveys] Failed to load survey wall");
@@ -141,55 +171,92 @@ export function registerSurveyRoutes(app: Express): void {
         return res.status(200).json({ credited: false, ignored: "REVERSAL_EVENT", reason: reversal });
       }
 
-      // 2 — Params → normalized payload.
+      // 2 — Vendor event semantics BEFORE normalization. Screen-out and
+      // reversal callbacks legitimately carry zero / negative amounts that the
+      // normalizer (rewardUsd > 0) would reject as INVALID_PARAMS; they must
+      // be classified on raw params first.
+      let isBonusEvent = false;
+
+      if (networkId === "cpx-research") {
+        const evt = parseCpxEvent(params);
+
+        // status=2: fraud cancellation of a PREVIOUSLY credited trans_id
+        // (CPX re-calls the postback 15–60 days after the original credit).
+        // Reverse the original credit (deduct stored gross PKR, flip the
+        // record to reconciled) and acknowledge with 200 so CPX stops retrying.
+        if (evt.status === "2") {
+          const txId = params.get("trans_id") ?? "";
+          if (!txId) {
+            return res.status(400).json({ credited: false, error: "INVALID_PARAMS" });
+          }
+          const reversal = await reverseSurveyCredit({
+            networkId,
+            txId,
+            reason: "CPX status=2 (canceled/fraud reversal)",
+          });
+          logger.warn({ networkId, txId, outcome: reversal.outcome }, "[Surveys][CPX] Reversal callback processed");
+          return res.status(200).json({
+            credited: false,
+            ignored: "CPX_REVERSAL",
+            outcome: reversal.outcome,
+          });
+        }
+
+        // type=out: screen-out. No payout — acknowledge so CPX stops retrying.
+        if (evt.type === "out") {
+          const txId = params.get("trans_id") ?? "";
+          logger.info({ networkId, txId }, "[Surveys][CPX] Screen-out acknowledged — no credit");
+          return res.status(200).json({ credited: false, ignored: "CPX_SCREENOUT" });
+        }
+
+        // type=bonus: screen-out compensation / survey rating. Real (small)
+        // payout — credit like a completion but flagged so it does NOT count
+        // against the daily completion cap (screen-outs would otherwise eat
+        // the user's real-survey budget).
+        if (evt.type === "bonus") {
+          isBonusEvent = true;
+        }
+      }
+
+      if (networkId === "bitlabs") {
+        const typeParam = (params.get("type") ?? "").trim().toUpperCase();
+
+        // RECONCILIATION: reward revoked (fraud/quality) — BitLabs sends a
+        // NEGATIVE usd referencing the original transaction. Reverse the
+        // original credit (stored gross PKR, keyed on ref) via the shared
+        // helper. Idempotent: a retried reconciliation finds the record
+        // already reconciled and is a no-op ack.
+        if (typeParam === "RECONCILIATION") {
+          const txId = params.get("tx") || params.get("trans_id") || params.get("transaction_id") || "";
+          const refTxId = params.get("ref") || params.get("REF") || null;
+          logger.warn({ networkId, txId, refTxId }, "[Surveys][BitLabs] Reconciliation callback — reversing previous credit");
+          const reversal = await reverseSurveyCredit({
+            networkId,
+            txId: refTxId || txId,
+            reason: "BitLabs RECONCILIATION (reward revoked)",
+          });
+          return res.status(200).json({ credited: false, ignored: "RECONCILIATION", outcome: reversal.outcome, refTxId });
+        }
+
+        // SCREENOUT: user was disqualified — no credit, just acknowledge.
+        if (typeParam === "SCREENOUT") {
+          logger.info({ networkId }, "[Surveys][BitLabs] Screenout acknowledged — no credit");
+          return res.status(200).json({ credited: false, ignored: "SCREENOUT" });
+        }
+      }
+
+      // 2.5 — Params → normalized payload (positive-amount events only).
       const payload = normalizeSurveyCallback(networkId, params);
       if (!payload) {
         return res.status(400).json({ credited: false, error: "INVALID_PARAMS" });
       }
 
-      // 2.5 — Handle BitLabs-specific callback types
-      if (networkId === "bitlabs" && payload.surveyType) {
-        // SCREENOUT: user was disqualified from survey — no credit, just acknowledge
-        if (payload.isScreenout) {
-          logger.info({ networkId, txId: payload.txId, userId: payload.userId, reason: payload.surveyReason }, "[Surveys][BitLabs] Screenout acknowledged — no credit");
-          return res.status(200).json({ credited: false, ignored: "SCREENOUT", reason: payload.surveyReason });
-        }
-
-        // RECONCILIATION: survey reward was revoked (fraud/quality) — negative amount, ref to original tx
-        if (payload.isReconciliation) {
-          logger.warn({ networkId, txId: payload.txId, refTxId: payload.refTxId, amount: payload.rewardUsd }, "[Surveys][BitLabs] Reconciliation callback — reversing previous credit");
-          
-          // For reconciliation, we need to reverse the previous credit
-          const reconciliationAmount = Math.abs(payload.rewardUsd);
-          if (reconciliationAmount > 0) {
-            // Use a separate transaction for reconciliation
-            await db.transaction(async (reconTx) => {
-              // Reverse the previous credit by recording a negative earn event
-              await storage.recordEarnEvent({
-                userId: payload.userId,
-                engineType: "Engine_B",
-                grossPkr: `-${Math.abs(payload.rewardUsd).toFixed(4)}`,
-                sourceId: payload.txId,
-                sourceType: "survey",
-                tx: reconTx,
-              });
-              // Also update the original survey record to mark as reconciled
-              await db
-                .update(surveyRecords)
-                .set({ status: "reconciled" })
-                .where(sql`${surveyRecords.transactionId} = ${payload.refTxId || payload.txId}`);
-            });
-          }
-          return res.status(200).json({ credited: false, ignored: "RECONCILIATION", refTxId: payload.refTxId });
-        }
-
-        // START_BONUS: treat like COMPLETE — credit the user
-        if (payload.isStartBonus) {
-          logger.info({ networkId, txId: payload.txId, userId: payload.userId }, "[Surveys][BitLabs] Start bonus callback — processing as COMPLETE");
-          // Fall through to normal credit flow
-        }
-
-        // COMPLETE: normal credit flow (falls through to existing logic)
+      // 2.6 — Unknown users must fail explicitly (400) instead of surfacing as
+      // an FK violation (500) at insert time. A signed callback naming a user
+      // that doesn't exist is a vendor misconfiguration, not a transient fault.
+      if (!(await storage.getUserById(payload.userId))) {
+        logger.warn({ networkId, userId: payload.userId }, "[Surveys] Callback for unknown user");
+        return res.status(400).json({ credited: false, error: "UNKNOWN_USER" });
       }
 
       // 3 — Credit path: one advisory-locked transaction; duplicate TX and
@@ -209,7 +276,10 @@ export function registerSurveyRoutes(app: Express): void {
             userId: payload.userId,
             networkId,
             transactionId: payload.txId,
-            status: "completed",
+            // CPX bonus events (screen-out compensation / ratings) are stored
+            // as 'bonus' rows so the daily-cap count below — and the wall's
+            // completedToday progress — only reflect real survey completions.
+            status: isBonusEvent ? "bonus" : "completed",
             rewardUsd: payload.rewardUsd.toFixed(4),
             grossPkr: new Decimal(payload.rewardUsd)
               .mul(await storage.getSystemConfigValue<number>("SURVEY_USD_TO_PKR_RATE", 278))
@@ -227,20 +297,22 @@ export function registerSurveyRoutes(app: Express): void {
           return;
         }
 
-        const cap = await storage.getSystemConfigValue<number>("SURVEY_MAX_PER_DAY", 20);
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        const [done] = await tx
-          .select({ n: sql<number>`COUNT(*)` })
-          .from(surveyRecords)
-          .where(sql`${surveyRecords.userId} = ${payload.userId}
-              AND ${surveyRecords.status} = 'completed'
-              AND ${surveyRecords.completedAt} >= ${todayStart}`);
-        if (Number(done?.n ?? 0) > cap) {
-          // Over cap: remove this record again and refuse the credit.
-          result.outcome = "daily_cap";
-          await tx.delete(surveyRecords).where(sql`${surveyRecords.id} = ${record.id}`);
-          return;
+        if (!isBonusEvent) {
+          const cap = await storage.getSystemConfigValue<number>("SURVEY_MAX_PER_DAY", 20);
+          const todayStart = new Date();
+          todayStart.setHours(0, 0, 0, 0);
+          const [done] = await tx
+            .select({ n: sql<number>`COUNT(*)` })
+            .from(surveyRecords)
+            .where(sql`${surveyRecords.userId} = ${payload.userId}
+                AND ${surveyRecords.status} = 'completed'
+                AND ${surveyRecords.completedAt} >= ${todayStart}`);
+          if (Number(done?.n ?? 0) > cap) {
+            // Over cap: remove this record again and refuse the credit.
+            result.outcome = "daily_cap";
+            await tx.delete(surveyRecords).where(sql`${surveyRecords.id} = ${record.id}`);
+            return;
+          }
         }
 
         const earnResult = await storage.recordEarnEvent({

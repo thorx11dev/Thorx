@@ -12,6 +12,12 @@
  *   4. An unknown network id is rejected (401) — stubs can never mint credit.
  *   5. A CPX Research callback (MD5 of trans_id+app_secure_hash per CPX dashboard docs)
  *      also credits exactly once, on a second user, proving both adapters.
+ *   6. CPX dashboard contract: amount_usd param, type=complete/out/bonus
+ *      semantics (bonus skips the daily cap), status=2 fraud reversal claws
+ *      back the stored gross PKR idempotently, amount_local never treated as
+ *      USD, and the Script Tag config in /api/surveys never leaks the secret.
+ *   7. BitLabs RECONCILIATION (negative usd + ref tx) reverses the original
+ *      credit instead of surfacing as INVALID_PARAMS.
  *
  * Run: npx vitest run server/__tests__/survey-callback.test.ts
  */
@@ -444,6 +450,174 @@ describe("Engine B — survey callbacks (BitLabs + CPX Research)", () => {
       );
       expect(res.status).toBe(400);
       expect(res.body.error).toBe("UNKNOWN_USER");
+    });
+
+    it("wall returns the CPX Script Tag config (appId, extUserId, secure_hash)", async () => {
+      const { h, user } = await registerUser("cpx_scriptcfg");
+      const res = await getWall(h);
+      expect(res.body.cpx).toBeTruthy();
+      expect(res.body.cpx.appId).toBe(CPX_API_ID);
+      expect(res.body.cpx.extUserId).toBe(user.id);
+      const expectedHash = crypto.createHash("md5").update(`${user.id}-${CPX_HASH}`, "utf8").digest("hex");
+      expect(res.body.cpx.secureHash).toBe(expectedHash);
+      // Raw app hash secret must NEVER leak to the client.
+      expect(JSON.stringify(res.body)).not.toContain(CPX_HASH);
+    });
+
+    it("CPX postback with amount_usd (dashboard placeholder) credits correctly", async () => {
+      const { user } = await registerUser("cpx_usd");
+
+      const transId = `cpx_usd_${TS}`;
+      const sig = signCpx(transId, user.id, "0.40");
+      const res = await request(app).get(
+        `/api/webhooks/survey/cpx-research?status=1&type=complete&user_id=${user.id}&trans_id=${transId}&amount_usd=0.40&amount_local=111.20&hash=${sig}`,
+      );
+      expect(res.status).toBe(200);
+      expect(res.body.credited).toBe(true);
+
+      // amount_local (111.20 = 0.40 × 278 display PKR) must NOT be used as USD.
+      const [record] = await db
+        .select({ rewardUsd: surveyRecords.rewardUsd, grossPkr: surveyRecords.grossPkr })
+        .from(surveyRecords).where(eq(surveyRecords.transactionId, transId)).limit(1);
+      expect(Number(record?.rewardUsd)).toBeCloseTo(0.40, 3);
+      expect(Number(record?.grossPkr)).toBeCloseTo(0.40 * 278, 1);
+    });
+
+    it("CPX type=out (screen-out) is acknowledged with no credit", async () => {
+      const { user } = await registerUser("cpx_out");
+
+      const transId = `cpx_out_${TS}`;
+      const sig = signCpx(transId, user.id, "0");
+      const res = await request(app).get(
+        `/api/webhooks/survey/cpx-research?status=1&type=out&user_id=${user.id}&trans_id=${transId}&amount_usd=0&hash=${sig}`,
+      );
+      expect(res.status).toBe(200);
+      expect(res.body.credited).toBe(false);
+      expect(res.body.ignored).toBe("CPX_SCREENOUT");
+      expect(await countSurveyCredits(user.id)).toBe(0);
+    });
+
+    it("CPX type=bonus credits WITHOUT charging the daily cap", async () => {
+      const { user } = await registerUser("cpx_bonus");
+
+      // Seed the cap with 20 completions.
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      for (let i = 0; i < 20; i++) {
+        await db.insert(surveyRecords).values({
+          userId: user.id,
+          networkId: "cpx-research",
+          transactionId: `bonus_seed_${TS}_${i}`,
+          status: "completed",
+          rewardUsd: "1.00",
+          grossPkr: "278.0000",
+          completedAt: todayStart,
+        });
+      }
+
+      const transId = `cpx_bonus_${TS}`;
+      const sig = signCpx(transId, user.id, "0.01");
+      const res = await request(app).get(
+        `/api/webhooks/survey/cpx-research?status=1&type=bonus&user_id=${user.id}&trans_id=${transId}&amount_usd=0.01&hash=${sig}`,
+      );
+      expect(res.status).toBe(200);
+      expect(res.body.credited).toBe(true);
+
+      // Stored as a bonus record, credited, and NOT counted as a completion.
+      const [record] = await db
+        .select({ status: surveyRecords.status })
+        .from(surveyRecords).where(eq(surveyRecords.transactionId, transId)).limit(1);
+      expect(record?.status).toBe("bonus");
+      expect(await countSurveyCredits(user.id)).toBe(1);
+
+      const [cnt] = await db
+        .select({ n: sql<number>`COUNT(*)` })
+        .from(surveyRecords)
+        .where(sql`${surveyRecords.userId} = ${user.id} AND ${surveyRecords.status} = 'completed'`);
+      expect(Number(cnt?.n ?? 0)).toBe(20);
+    });
+
+    it("CPX status=2 reverses the original credit (stored gross PKR, idempotent)", async () => {
+      const { user } = await registerUser("cpx_rev");
+
+      const [before] = await db
+        .select({ balance: users.availableBalance })
+        .from(users).where(eq(users.id, user.id)).limit(1);
+      const balBefore = Number(before.balance ?? 0);
+
+      // 1 — Original complete: 1.00 USD → 278 PKR gross → 60% user = 166.80.
+      const transId = `cpx_rev_${TS}`;
+      const sig = signCpx(transId, user.id, "1.00");
+      const credit = await request(app).get(
+        `/api/webhooks/survey/cpx-research?status=1&type=complete&user_id=${user.id}&trans_id=${transId}&amount_usd=1.00&hash=${sig}`,
+      );
+      expect(credit.status).toBe(200);
+      expect(credit.body.credited).toBe(true);
+
+      const [afterCredit] = await db
+        .select({ balance: users.availableBalance })
+        .from(users).where(eq(users.id, user.id)).limit(1);
+      expect(Number(afterCredit.balance)).toBeGreaterThan(balBefore);
+
+      // 2 — Reversal: same trans_id, status=2 (fraud cancellation).
+      const sig2 = signCpx(transId, user.id, "1.00");
+      const reversal = await request(app).get(
+        `/api/webhooks/survey/cpx-research?status=2&type=complete&user_id=${user.id}&trans_id=${transId}&amount_usd=1.00&hash=${sig2}`,
+      );
+      expect(reversal.status).toBe(200);
+      expect(reversal.body.credited).toBe(false);
+      expect(reversal.body.ignored).toBe("CPX_REVERSAL");
+      expect(reversal.body.outcome).toBe("reversed");
+
+      const [afterReversal] = await db
+        .select({ balance: users.availableBalance })
+        .from(users).where(eq(users.id, user.id)).limit(1);
+      expect(Number(afterReversal.balance)).toBeCloseTo(balBefore, 2);
+
+      const [record] = await db
+        .select({ status: surveyRecords.status })
+        .from(surveyRecords).where(eq(surveyRecords.transactionId, transId)).limit(1);
+      expect(record?.status).toBe("reconciled");
+
+      // 3 — Retried reversal (vendor retry) is an idempotent no-op.
+      const retry = await request(app).get(
+        `/api/webhooks/survey/cpx-research?status=2&type=complete&user_id=${user.id}&trans_id=${transId}&amount_usd=1.00&hash=${sig2}`,
+      );
+      expect(retry.status).toBe(200);
+      expect(retry.body.outcome).toBe("already_reversed");
+      expect(Number((await db.select({ balance: users.availableBalance }).from(users).where(eq(users.id, user.id)).limit(1))[0].balance)).toBeCloseTo(balBefore, 2);
+    });
+
+    it("BitLabs RECONCILIATION (negative usd, ref tx) reverses the original credit", async () => {
+      const { user } = await registerUser("bl_rev");
+
+      const origTx = `bl_rev_orig_${TS}`;
+      const origBase = `/api/webhooks/survey/bitlabs?uid=${user.id}&usd=0.80&tx=${origTx}`;
+      const orig = await request(app).get(`${origBase}&hash=${signBitLabs(origBase)}`);
+      expect(orig.status).toBe(200);
+      expect(orig.body.credited).toBe(true);
+
+      const [beforeRev] = await db
+        .select({ balance: users.availableBalance })
+        .from(users).where(eq(users.id, user.id)).limit(1);
+
+      // Reconciliation references the original tx via `ref` and carries a negative usd.
+      const reconTx = `bl_rev_recon_${TS}`;
+      const reconBase = `/api/webhooks/survey/bitlabs?type=RECONCILIATION&uid=${user.id}&usd=-0.80&tx=${reconTx}&ref=${origTx}`;
+      const recon = await request(app).get(`${reconBase}&hash=${signBitLabs(reconBase)}`);
+      expect(recon.status).toBe(200);
+      expect(recon.body.ignored).toBe("RECONCILIATION");
+      expect(recon.body.outcome).toBe("reversed");
+
+      const [record] = await db
+        .select({ status: surveyRecords.status })
+        .from(surveyRecords).where(eq(surveyRecords.transactionId, origTx)).limit(1);
+      expect(record?.status).toBe("reconciled");
+
+      const [afterRev] = await db
+        .select({ balance: users.availableBalance })
+        .from(users).where(eq(users.id, user.id)).limit(1);
+      expect(Number(afterRev.balance)).toBeLessThan(Number(beforeRev.balance));
     });
   });
 });

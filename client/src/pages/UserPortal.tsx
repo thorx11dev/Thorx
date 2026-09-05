@@ -48,6 +48,9 @@ const AdWebPanel = retryLazy(() =>
 const NotificationModal = retryLazy(() =>
   import("@/components/ui/notification-modal").then((m) => ({ default: m.NotificationModal }))
 );
+const CpxSurveyNotification = retryLazy(() =>
+  import("@/components/beta/CpxSurveyWidgets").then((m) => ({ default: m.CpxSurveyNotification }))
+);
 import { apiAbsolutePath } from "@/lib/apiOrigin";
 import type { ScratchCardBreakdown } from "@/components/guild/ScratchCardModal";
 const ScratchCardModal = retryLazy(() =>
@@ -233,6 +236,20 @@ const sections = [
   { id: "help", name: "Help", icon: Headphones },
   { id: "ranks", name: "Chart", icon: Trophy },
 ];
+
+// CPX notification host — shares the ["/api/surveys"] query cache with the
+// Work tab's SurveyWallPanel (one request serves both). Renders the Design 4
+// popup only when the server returns live CPX config (configured + eligible
+// + under daily cap).
+function CpxNotificationHost() {
+  const { data } = useQuery<{ cpx: { appId: string; extUserId: string; secureHash: string; email: string; username: string } | null }>({
+    queryKey: ["/api/surveys"],
+    staleTime: 60_000,
+    retry: false,
+  });
+  if (!data?.cpx) return null;
+  return <CpxSurveyNotification cpx={data.cpx} />;
+}
 
 export default function UserPortal() {
   const { user, logout, isLoading } = useAuth();
@@ -1413,6 +1430,12 @@ export default function UserPortal() {
 
       {/* Beta trust layer: mandatory honesty-rules acknowledgment + floating feedback */}
       <BetaTrustLayer user={displayUser as any} />
+
+      {/* CPX notification popup (Design 4, bottom-right) — portal-wide survey
+          nudge; renders nothing unless /api/surveys returns live CPX config. */}
+      <Suspense fallback={null}>
+        <CpxNotificationHost />
+      </Suspense>
 
       <Suspense fallback={null}>
       <ScratchCardModal

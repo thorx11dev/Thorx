@@ -180,6 +180,31 @@ app.use(helmet({
         directives: {
           ...helmet.contentSecurityPolicy.getDefaultDirectives(),
           "frame-ancestors": ["*"],
+          // Engine B — CPX Research Script Tag widget:
+          //   script-src  — the widget library (cdn.cpx-research.com)
+          //   frame-src   — surveys open inside CPX-hosted iframes
+          //   connect-src — the library fetches live survey inventory
+          //   img-src     — survey provider icons/creatives
+          "script-src": [
+            ...(helmet.contentSecurityPolicy.getDefaultDirectives()["script-src"] ?? ["'self'"]),
+            "https://cdn.cpx-research.com",
+          ],
+          "frame-src": [
+            "'self'",
+            "https://offers.cpx-research.com",
+            "https://wall.cpx-research.com",
+          ],
+          "connect-src": [
+            ...(helmet.contentSecurityPolicy.getDefaultDirectives()["connect-src"] ?? ["'self'"]),
+            "https://offers.cpx-research.com",
+            "https://api.cpx-research.com",
+            "https://wall.cpx-research.com",
+          ],
+          "img-src": [
+            ...(helmet.contentSecurityPolicy.getDefaultDirectives()["img-src"] ?? ["'self' data:"]),
+            "https://cdn.cpx-research.com",
+            "https://offers.cpx-research.com",
+          ],
         },
       },
   crossOriginEmbedderPolicy: false,

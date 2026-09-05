@@ -3,12 +3,15 @@
 // Data comes from GET /api/surveys:
 //
 //   { eligible, minRank, completedToday, dailyCap,
-//     networks: [{ networkId, networkName, wallUrl, available }] }
+//     networks: [{ networkId, networkName, wallUrl, available }],
+//     cpx: { appId, extUserId, secureHash, email, username } | null }
 //
 // Only networks with REAL configured credentials are returned available:true
-// with a wall URL (server-side filter — a stub can never be rendered). Each
-// card opens that network's wall in a new tab; credit arrives later via the
-// signed S2S callback → recordEarnEvent pipeline. Nothing here handles money.
+// with a wall URL (server-side filter — a stub can never be rendered). CPX
+// Research renders as an EMBEDDED script-tag widget (highest revenue per CPX
+// guidance) when `cpx` config is present; every other network opens its wall
+// in a new tab. Credit arrives via the signed S2S callback → recordEarnEvent
+// pipeline. Nothing here handles money.
 
 import { useQuery } from "@tanstack/react-query";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
@@ -19,6 +22,7 @@ import TechnicalLabel from "@/components/ui/technical-label";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { captureEvent } from "@/lib/posthog";
+import { CpxSurveyWall, type CpxConfig } from "./CpxSurveyWidgets";
 
 interface SurveyNetwork {
   networkId: string;
@@ -33,6 +37,7 @@ interface SurveyWallResponse {
   completedToday: number;
   dailyCap: number;
   networks: SurveyNetwork[];
+  cpx: CpxConfig | null;
 }
 
 export default function SurveyWallPanel() {
@@ -103,8 +108,24 @@ export default function SurveyWallPanel() {
               </p>
             </div>
 
-            {/* Network cards */}
-            {data.networks.filter((n) => n.available).length === 0 ? (
+            {/* Embedded CPX widget (Design 1 fullscreen) — replaces the CPX
+                new-tab card. Server nulls `cpx` when unconfigured/capped. */}
+            {data.cpx && (
+              <div className="rounded-2xl border-2 border-black overflow-hidden" data-testid="cpx-wall-container">
+                <div className="bg-black px-4 py-2.5 flex items-center gap-2">
+                  <ClipboardList size={14} className="text-primary" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
+                    CPX Research · Live Survey Inventory
+                  </span>
+                </div>
+                <div className="bg-white p-3">
+                  <CpxSurveyWall cpx={data.cpx} />
+                </div>
+              </div>
+            )}
+
+            {/* Network cards (CPX excluded — embedded above) */}
+            {data.networks.filter((n) => n.available && n.networkId !== "cpx-research").length === 0 && !data.cpx ? (
               <div className="rounded-xl border-2 border-dashed border-black/15 py-8 px-6 text-center">
                 <ClipboardList className="w-6 h-6 text-black/30 mx-auto mb-3" />
                 <p className="text-sm font-bold text-black/60">Surveys are coming online soon</p>
@@ -117,7 +138,7 @@ export default function SurveyWallPanel() {
                 variants={{ show: { transition: { staggerChildren: 0.06 } } }}
                 className="space-y-3"
               >
-                {data.networks.filter((n) => n.available).map((network) => (
+                {data.networks.filter((n) => n.available && n.networkId !== "cpx-research").map((network) => (
                   <motion.a
                     key={network.networkId}
                     href={network.wallUrl}

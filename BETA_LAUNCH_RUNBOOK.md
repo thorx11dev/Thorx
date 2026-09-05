@@ -18,8 +18,17 @@ remaining path from "code complete" to "first beta user earns".
 
 All keys go to **Settings → System Config** (or env for secrets):
 
-- [ ] `CPX_RESEARCH_CONFIG_JSON` = `{"apiId":"…","hash":"…"}` — postback URL:
-      `https://<your-domain>/api/webhooks/survey/cpx-research`
+- [ ] `CPX_RESEARCH_CONFIG_JSON` = `{"apiId":"…","hash":"…"}` — one command:
+      `CPX_APP_ID=<id> CPX_SECURE_HASH=<hash> npm run setup:cpx`
+      CPX dashboard → Postback URL (paste exactly):
+      `https://<your-domain>/api/webhooks/survey/cpx-research?status={status}&trans_id={trans_id}&user_id={user_id}&amount_usd={amount_usd}&amount_local={amount_local}&type={type}&hash={secure_hash}`
+      **Required dashboard fixes before launch:**
+      - Currency Factor → set `1 $ is 278.00` (currently 2780 — 10× mismatch with
+        `SURVEY_USD_TO_PKR_RATE`; users would see inflated wall rewards)
+      - Redirect URL → leave empty or `https://<your-domain>/` (currently points
+        back at the CPX wall itself — pointless loop)
+      - Security Check → enabled (secure_hash MD5 verification)
+      - Test Mode → ON + your Test Mode ExtUserIds while validating; OFF at launch
 - [ ] `BITLABS_CONFIG_JSON` = `{"appToken":"…","secret":"…"}` — callback URL:
       `https://<your-domain>/api/webhooks/survey/bitlabs`
 - [ ] `TIMEWALL_CONFIG_JSON` = `{"siteId":"…","secret":"…"}` — callback URL:
@@ -74,3 +83,19 @@ rejected — no stub can mint credit.
   active zone — replace as soon as HilltopAds key lands.
 - Test suites insert throwaway CPA-style tasks into the dev DB when run; never
   run `npm test` against production.
+
+## 7. CPX Research — go-live validation (after §2 CPX step)
+
+1. Provision credentials → `npm run setup:cpx` (see §2).
+2. Set the CPX dashboard postback URL + fix Currency Factor (§2 checklist).
+3. CPX Test Mode ON → add your account id to Test Mode ExtUserIds.
+4. Log in → Work tab → the embedded CPX widget should render surveys; use the
+   wall's test buttons to simulate: complete, screen-out (with/without bonus),
+   and cancel. Each fires a signed postback to `/api/webhooks/survey/cpx-research`.
+5. Verify per scenario in Team Portal → Users → (user) → transactions:
+   - complete → `survey` ledger row, balance up, `survey_records.status = completed`
+   - screen-out (`type=out`) → ack 200, NO ledger row
+   - bonus (`type=bonus`) → ledger row, `survey_records.status = bonus`, does NOT
+     consume the daily cap
+   - cancel (`status=2`) → original credit reversed, `survey_records.status = reconciled`
+6. Flip CPX Test Mode OFF → real earnings begin.
