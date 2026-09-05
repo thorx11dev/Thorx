@@ -8,8 +8,13 @@
 //                         ordered by best money per CPX revenue guidance)
 //   CpxSurveyNotification Design 4 popup (bottom-right, portal-wide) — CPX
 //                         attributes ~240% average revenue lift to it
+//
+// The wall tracks CPX's no_surveys_available / count_new_surveys callbacks:
+// when inventory is empty the widget swaps to a THORX-branded fallback instead
+// of showing a bare "Feedback" footer.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Clock3, ClipboardList, Zap } from "lucide-react";
 import {
   registerCpxElement,
   unregisterCpxElement,
@@ -40,6 +45,9 @@ function toGeneral(cpx: CpxConfig): CpxGeneralConfig {
 /** Design 1 — fullscreen survey widget embedded in the Engine B Work tab. */
 export function CpxSurveyWall({ cpx }: { cpx: CpxConfig }) {
   const ref = useRef<HTMLDivElement>(null);
+  // 'unknown' → waiting for CPX's first report; 'empty' → no inventory;
+  // 'available' → CPX is serving surveys.
+  const [inventory, setInventory] = useState<"unknown" | "empty" | "available">("unknown");
 
   useEffect(() => {
     const node = ref.current;
@@ -48,20 +56,42 @@ export function CpxSurveyWall({ cpx }: { cpx: CpxConfig }) {
       toGeneral(cpx),
       { div_id: WALL_DIV_ID, theme_style: 1, order_by: 2, limit_surveys: 8 },
       node,
+      {
+        onNoSurveys: () => setInventory("empty"),
+        onSurveysAvailable: (count) => setInventory(count > 0 ? "available" : "empty"),
+      },
     );
-    return () => unregisterCpxElement(WALL_DIV_ID);
+    return () => {
+      unregisterCpxElement(WALL_DIV_ID);
+      setInventory("unknown");
+    };
     // Identity primitives only: a refetch producing an equal config must not
     // re-trigger a script re-sync.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cpx.appId, cpx.extUserId, cpx.secureHash]);
 
   return (
-    <div
-      ref={ref}
-      id={WALL_DIV_ID}
-      style={{ maxWidth: 950, margin: "0 auto", minHeight: 420 }}
-      data-testid="cpx-survey-wall"
-    />
+    <div>
+      {inventory === "empty" ? (
+        <div className="py-10 px-6 text-center" data-testid="cpx-wall-empty">
+          <div className="w-12 h-12 rounded-full bg-black/5 flex items-center justify-center mx-auto mb-4">
+            <Clock3 className="w-5 h-5 text-black/40" />
+          </div>
+          <p className="font-black text-sm uppercase tracking-wide text-black">No surveys right now</p>
+          <p className="text-xs font-medium text-black/50 mt-2 max-w-sm mx-auto">
+            New surveys are matched to your profile every few hours. Keep the tab
+            handy — a notification pops up the moment one lands for you.
+          </p>
+        </div>
+      ) : (
+        <div
+          ref={ref}
+          id={WALL_DIV_ID}
+          style={{ maxWidth: 950, margin: "0 auto", minHeight: 420 }}
+          data-testid="cpx-survey-wall"
+        />
+      )}
+    </div>
   );
 }
 
@@ -85,3 +115,6 @@ export function CpxSurveyNotification({ cpx }: { cpx: CpxConfig }) {
 
   return <div ref={ref} id={NOTIFICATION_DIV_ID} aria-hidden="true" />;
 }
+
+// Re-exports for consumers that want the icons in the fallback UI.
+export { Clock3, ClipboardList, Zap };
