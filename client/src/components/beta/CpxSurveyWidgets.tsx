@@ -72,7 +72,25 @@ export function CpxSurveyWall({ cpx }: { cpx: CpxConfig }) {
 
   return (
     <div>
-      {inventory === "empty" ? (
+      {/*
+        The widget div stays MOUNTED at all times — React must never add/remove
+        it after the CPX library has rendered into it (the library keeps node
+        references; unmounting mid-render crashes with "removeChild on 'Node'").
+        Empty inventory is handled by CSS-hiding the div and overlaying the
+        THORX fallback, not by unmounting.
+      */}
+      <div
+        ref={ref}
+        id={WALL_DIV_ID}
+        style={{
+          maxWidth: 950,
+          margin: "0 auto",
+          minHeight: 420,
+          display: inventory === "empty" ? "none" : "block",
+        }}
+        data-testid="cpx-survey-wall"
+      />
+      {inventory === "empty" && (
         <div className="py-10 px-6 text-center" data-testid="cpx-wall-empty">
           <div className="w-12 h-12 rounded-full bg-black/5 flex items-center justify-center mx-auto mb-4">
             <Clock3 className="w-5 h-5 text-black/40" />
@@ -83,13 +101,6 @@ export function CpxSurveyWall({ cpx }: { cpx: CpxConfig }) {
             handy — a notification pops up the moment one lands for you.
           </p>
         </div>
-      ) : (
-        <div
-          ref={ref}
-          id={WALL_DIV_ID}
-          style={{ maxWidth: 950, margin: "0 auto", minHeight: 420 }}
-          data-testid="cpx-survey-wall"
-        />
       )}
     </div>
   );
