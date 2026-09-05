@@ -14,7 +14,7 @@
 // of showing a bare "Feedback" footer.
 
 import { useEffect, useRef, useState } from "react";
-import { Clock3, ClipboardList, Zap } from "lucide-react";
+import { Clock3 } from "lucide-react";
 import {
   registerCpxElement,
   unregisterCpxElement,
