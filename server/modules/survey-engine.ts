@@ -388,18 +388,24 @@ export async function reverseSurveyCredit(opts: {
   reason: string;
 }): Promise<{ outcome: SurveyReversalOutcome }> {
   return db.transaction(async (tx) => {
-    // 1 — Locate the original credited record (plain read; committed row).
+    // 1 — Locate the original record (any status — the status decides the
+    //     outcome: completed → reverse, reconciled → already reversed, else
+    //     nothing was ever credited).
     const [record] = await tx
       .select()
       .from(surveyRecords)
       .where(and(
         eq(surveyRecords.networkId, opts.networkId),
         eq(surveyRecords.transactionId, opts.txId),
-        eq(surveyRecords.status, "completed"),
       ))
       .limit(1);
 
-    if (!record) return { outcome: "not_found" as SurveyReversalOutcome };
+    if (!record || (record.status !== "completed" && record.status !== "reconciled")) {
+      return { outcome: "not_found" as SurveyReversalOutcome };
+    }
+    if (record.status === "reconciled") {
+      return { outcome: "already_reversed" as SurveyReversalOutcome };
+    }
 
     // 2 — Serialize against concurrent earns/reversals for this user (same
     //     advisory-lock key as the credit path), then claim the record via a
