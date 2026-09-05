@@ -45,6 +45,15 @@ export interface CpxElementConfig {
 interface CpxRegistryEntry {
   element: CpxElementConfig;
   node: HTMLElement;
+  callbacks?: CpxElementCallbacks;
+}
+
+/** Per-element UI hooks fired from the shared CPX config functions. */
+export interface CpxElementCallbacks {
+  /** CPX found zero surveys for this user — render a friendly fallback. */
+  onNoSurveys?: () => void;
+  /** CPX reported inventory (count_new_surveys) — clear the fallback state. */
+  onSurveysAvailable?: (count: number) => void;
 }
 
 // ─── Module-level registry (one page = one script = one window.config) ───────
