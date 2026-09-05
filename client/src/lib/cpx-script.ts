@@ -93,7 +93,11 @@ function buildWindowConfig(): void {
     functions: {
       // NEVER use window.alert here (CPX docs: infinite-loop guard).
       count_new_surveys: (count: unknown) => {
-        captureEvent("cpx_surveys_available", { count: Number(count) || 0 });
+        const n = Number(count) || 0;
+        captureEvent("cpx_surveys_available", { count: n });
+        for (const entry of registry.values()) {
+          entry.callbacks?.onSurveysAvailable?.(n);
+        }
       },
       get_transaction: (transactions: unknown) => {
         // A completion/bonus landed for this user — refresh the money queries
@@ -106,6 +110,9 @@ function buildWindowConfig(): void {
       },
       no_surveys_available: () => {
         captureEvent("cpx_no_surveys");
+        for (const entry of registry.values()) {
+          entry.callbacks?.onNoSurveys?.();
+        }
       },
     },
   };
@@ -156,9 +163,10 @@ export function registerCpxElement(
   general: CpxGeneralConfig,
   element: CpxElementConfig,
   node: HTMLElement,
+  callbacks?: CpxElementCallbacks,
 ): void {
   generalConfig = general;
-  registry.set(element.div_id, { element, node });
+  registry.set(element.div_id, { element, node, callbacks });
   scheduleSync();
 }
 
