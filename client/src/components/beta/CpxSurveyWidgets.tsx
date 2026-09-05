@@ -52,6 +52,8 @@ export function CpxSurveyWall({ cpx }: { cpx: CpxConfig }) {
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
+    // primary: true — the wall triggers the one-time script start (the
+    // notification widget just joins the frozen script_config).
     registerCpxElement(
       toGeneral(cpx),
       { div_id: WALL_DIV_ID, theme_style: 1, order_by: 2, limit_surveys: 8 },
@@ -60,6 +62,7 @@ export function CpxSurveyWall({ cpx }: { cpx: CpxConfig }) {
         onNoSurveys: () => setInventory("empty"),
         onSurveysAvailable: (count) => setInventory(count > 0 ? "available" : "empty"),
       },
+      { primary: true },
     );
     return () => {
       unregisterCpxElement(WALL_DIV_ID);
