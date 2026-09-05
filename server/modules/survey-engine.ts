@@ -369,12 +369,18 @@ export async function buildCpxScriptConfig(
 
 // ─── Credit reversal (CPX status=2 fraud cancellation, BitLabs reconciliation) ─
 // The vendor claws back a previously credited transaction (same trans_id or a
-// refTxId pointing at it). The reversal must deduct the ORIGINAL credited PKR
-// amount — not the callback's USD figure — so the user's balance moves by
-// exactly what they were paid. The record's status flip (completed →
-// reconciled) is the idempotency guard: a retried reversal callback finds the
-// row already reconciled and is an acknowledged no-op.
-export type SurveyReversalOutcome = "reversed" | "already_reversed" | "not_found";
+// refTxId pointing at it). The reversal mirrors the ORIGINAL credit's ledger
+// row exactly (negated) instead of calling recordEarnEvent — the earn pipeline
+// only models positive gross (negative shares skip the balance update, and
+// economy/rank multipliers + PS awards have no meaning for a clawback). The
+// record's status flip (completed → reconciled) is the idempotency guard: a
+// retried reversal callback finds the row already reconciled and is an
+// acknowledged no-op.
+//
+// NOTE: if the user already withdrew the credited amount, the deduction can
+// push their balance negative — intended (the platform is owed the clawback);
+// admins settle such cases manually.
+export type SurveyReversalOutcome = "reversed" | "already_reversed" | "not_found" | "ledger_missing";
 
 export async function reverseSurveyCredit(opts: {
   networkId: string;
@@ -409,27 +415,87 @@ export async function reverseSurveyCredit(opts: {
       .returning({ id: surveyRecords.id });
     if (claimed.length === 0) return { outcome: "already_reversed" as SurveyReversalOutcome };
 
-    // 3 — Deduct exactly what the user was credited (stored gross PKR).
-    // sourceId is the original record id suffixed with ":reversal" — the
-    // uniq_user_transactions_source index (user_id, source_type, source_id)
-    // would otherwise collide with the ORIGINAL credit's ledger row (same
-    // sourceId), surfacing as a 500 on every reversal callback. The suffix
-    // keeps the ledger rows distinct while staying auditable; idempotency of
-    // the reversal itself is guaranteed by the reconciled status-flip above
-    // (a retried reversal never reaches this point).
-    const grossToReverse = record.grossPkr ?? "0";
-    if (new Decimal(grossToReverse).greaterThan(0)) {
-      await storage.recordEarnEvent({
-        userId: record.userId,
-        engineType: "Engine_B",
-        grossPkr: `-${grossToReverse}`,
-        sourceId: `${record.id}:reversal`,
-        sourceType: "survey",
-        tx,
-      });
+    // 3 — Mirror the ORIGINAL credit's ledger row exactly (negated). The
+    //     original row is keyed (userId, 'survey', record.id) — the credit path
+    //     wrote it in the same transaction as the record insert, so its absence
+    //     means the original credit never actually paid out (e.g. cap-deleted).
+    //     In that case there is nothing to claw back: already acknowledged.
+    const [origLedger] = await tx
+      .select()
+      .from(userTransactions)
+      .where(and(
+        eq(userTransactions.userId, record.userId),
+        eq(userTransactions.sourceType, "survey"),
+        eq(userTransactions.sourceId, record.id),
+      ))
+      .limit(1);
+
+    if (!origLedger || new Decimal(origLedger.realPkrValue).lessThanOrEqualTo(0)) {
+      return { outcome: "ledger_missing" as SurveyReversalOutcome };
     }
 
-    logger.warn({ networkId: opts.networkId, txId: opts.txId, userId: record.userId, gross: grossToReverse, reason: opts.reason }, "[Surveys] Credit reversed");
+    // uniq_user_transactions_source (user_id, source_type, source_id) would
+    // collide with the original row's sourceId — the ":reversal" suffix keeps
+    // the ledger rows distinct and auditable while staying idempotent-by-status.
+    await tx.insert(userTransactions).values({
+      userId: origLedger.userId,
+      engineType: origLedger.engineType,
+      pointsCredited: -origLedger.pointsCredited,
+      realPkrValue: new Decimal(origLedger.realPkrValue).negated().toDecimalPlaces(4, Decimal.ROUND_HALF_UP).toFixed(4),
+      grossPkr: origLedger.grossPkr ? new Decimal(origLedger.grossPkr).negated().toDecimalPlaces(4, Decimal.ROUND_HALF_UP).toFixed(4) : null,
+      thorxProfitPkr: origLedger.thorxProfitPkr ? new Decimal(origLedger.thorxProfitPkr).negated().toDecimalPlaces(4, Decimal.ROUND_HALF_UP).toFixed(4) : null,
+      guildPoolPkr: origLedger.guildPoolPkr ? new Decimal(origLedger.guildPoolPkr).negated().toDecimalPlaces(4, Decimal.ROUND_HALF_UP).toFixed(4) : null,
+      conversionRate: origLedger.conversionRate,
+      cardVariance: origLedger.cardVariance,
+      sourceId: `${record.id}:reversal`,
+      sourceType: "survey",
+    });
+
+    // 4 — Deduct exactly what the user received (mirrored real PKR share).
+    await tx
+      .update(users)
+      .set({
+        availableBalance: sql`${users.availableBalance} - ${new Decimal(origLedger.realPkrValue).toFixed(4)}`,
+        totalEarnings: sql`${users.totalEarnings} - ${new Decimal(origLedger.realPkrValue).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toFixed(2)}`,
+        txPointsBalance: sql`${users.txPointsBalance} - ${origLedger.pointsCredited}`,
+      })
+      .where(eq(users.id, record.userId));
+
+    // 5 — Referral commission clawback: mirror + deduct from the referrer's
+    //     cash wallet, exactly as the original earn paid it.
+    const [origCommission] = await tx
+      .select()
+      .from(referralEarnCommissions)
+      .where(and(
+        eq(referralEarnCommissions.earnerId, record.userId),
+        eq(referralEarnCommissions.earnEventSourceId, record.id),
+        eq(referralEarnCommissions.earnEventSourceType, "survey"),
+      ))
+      .limit(1);
+
+    if (origCommission && new Decimal(origCommission.commissionPkr).greaterThan(0)) {
+      await tx.insert(referralEarnCommissions).values({
+        referrerId: origCommission.referrerId,
+        earnerId: origCommission.earnerId,
+        earnEventSourceId: `${record.id}:reversal`,
+        earnEventSourceType: "survey",
+        grossPkr: new Decimal(origCommission.grossPkr).negated().toFixed(4),
+        commissionPkr: new Decimal(origCommission.commissionPkr).negated().toFixed(4),
+        commissionRatePct: origCommission.commissionRatePct,
+      });
+      await tx
+        .update(users)
+        .set({ balanceCashPkr: sql`${users.balanceCashPkr} - ${new Decimal(origCommission.commissionPkr).toFixed(4)}` })
+        .where(eq(users.id, origCommission.referrerId));
+    }
+
+    logger.warn({
+      networkId: opts.networkId,
+      txId: opts.txId,
+      userId: record.userId,
+      reversedPkr: origLedger.realPkrValue,
+      reason: opts.reason,
+    }, "[Surveys] Credit reversed");
     return { outcome: "reversed" as SurveyReversalOutcome };
   });
 }
