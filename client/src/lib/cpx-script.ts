@@ -1,17 +1,22 @@
 // ── THORX Engine B — CPX Research Script Tag loader ──────────────────────────
 // Loads https://cdn.cpx-research.com/assets/js/script_tag_v2.0.js with the
-// per-user config returned by GET /api/surveys (`cpx` field). The script reads
-// window.config exactly once per execution, so any mount-order change (portal
-// tab switches, React StrictMode double-mount) re-syncs: the registry below
-// rebuilds window.config from the currently-mounted widget divs, clears their
-// rendered content, and re-injects a fresh script element. The raw CPX app
-// hash secret never reaches this module — only the per-user MD5 digest
-// (secureHash) computed server-side.
+// per-user config returned by GET /api/surveys (`cpx` field).
 //
-// Designs used (per CPX script-tag docs):
-//   • theme_style 1 (fullscreen widget) — embedded in the Work tab
-//   • theme_style 4 (notification popup, bottom-right) — portal-wide
-// Multiple designs on one page is officially supported via script_config[].
+// LIFECYCLE CONTRACT (do not break — this is battle-tested against the CPX
+// library's internals):
+//   • window.config is built ONCE and the script is injected ONCE per SPA
+//     session. The library bundles its own React-like renderer that keeps
+//     long-lived references + poll timers; re-injecting a second instance
+//     (or wiping its DOM) crashes with "removeChild on 'Node'".
+//   • Each widget's target div is a PERSISTENT node owned by this module.
+//     React never creates/destroys it — on mount it is MOVED into the React
+//     ref container (appendChild preserves nodes + listeners), on unmount it
+//     is parked in a hidden staging div. CPX's renderer keeps working across
+//     portal tab switches.
+//   • A different logged-in user (new ext_user_id) in the same session cannot
+//     re-use the frozen config — one guarded full reload re-initializes.
+// The raw CPX app hash secret never reaches this module — only the per-user
+// MD5 digest (secureHash) computed server-side.
 
 import { queryClient } from "@/lib/queryClient";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -19,6 +24,8 @@ import { captureEvent } from "@/lib/posthog";
 
 const CPX_SCRIPT_URL = "https://cdn.cpx-research.com/assets/js/script_tag_v2.0.js";
 const CPX_SCRIPT_ID = "thorx-cpx-script-tag";
+const STAGING_ID = "thorx-cpx-staging";
+const RELOAD_GUARD_KEY = "thorx:cpx:config-reloaded";
 
 export interface CpxGeneralConfig {
   appId: string;
@@ -42,12 +49,6 @@ export interface CpxElementConfig {
   display_mode?: number;
 }
 
-interface CpxRegistryEntry {
-  element: CpxElementConfig;
-  node: HTMLElement;
-  callbacks?: CpxElementCallbacks;
-}
-
 /** Per-element UI hooks fired from the shared CPX config functions. */
 export interface CpxElementCallbacks {
   /** CPX found zero surveys for this user — render a friendly fallback. */
@@ -56,23 +57,48 @@ export interface CpxElementCallbacks {
   onSurveysAvailable?: (count: number) => void;
 }
 
-// ─── Module-level registry (one page = one script = one window.config) ───────
+interface CpxRegistryEntry {
+  element: CpxElementConfig;
+  /** Persistent container div — created once, moved between React + staging. */
+  persistent: HTMLDivElement;
+  node: HTMLElement | null;
+  callbacks?: CpxElementCallbacks;
+}
+
+// ─── Module-level singleton state ─────────────────────────────────────────────
 const registry = new Map<string, CpxRegistryEntry>();
-let generalConfig: CpxGeneralConfig | null = null;
-let syncTimer: number | null = null;
+let frozenGeneral: CpxGeneralConfig | null = null;
+let startTimer: number | null = null;
+let scriptStarted = false;
+
+function sameGeneral(a: CpxGeneralConfig, b: CpxGeneralConfig): boolean {
+  return a.appId === b.appId && a.extUserId === b.extUserId;
+}
+
+/** Hidden parking spot for persistent widget divs whose React host unmounted. */
+function getStaging(): HTMLElement {
+  let staging = document.getElementById(STAGING_ID);
+  if (!staging) {
+    staging = document.createElement("div");
+    staging.id = STAGING_ID;
+    staging.style.display = "none";
+    document.body.appendChild(staging);
+  }
+  return staging;
+}
 
 function buildWindowConfig(): void {
-  if (!generalConfig || registry.size === 0) return;
+  if (!frozenGeneral) return;
 
   const scriptConfig = Array.from(registry.values()).map((e) => e.element);
 
   window.config = {
     general_config: {
-      app_id: Number(generalConfig.appId),
-      ext_user_id: generalConfig.extUserId,
-      email: generalConfig.email || "",
-      username: generalConfig.username || "",
-      secure_hash: generalConfig.secureHash || "",
+      app_id: Number(frozenGeneral.appId),
+      ext_user_id: frozenGeneral.extUserId,
+      email: frozenGeneral.email || "",
+      username: frozenGeneral.username || "",
+      secure_hash: frozenGeneral.secureHash || "",
       subid_1: "",
       subid_2: "",
     },
@@ -119,9 +145,6 @@ function buildWindowConfig(): void {
 }
 
 function injectScript(): void {
-  // Fresh element each sync — the library initializes from window.config at
-  // execution time, so a new execution picks up registry changes.
-  document.getElementById(CPX_SCRIPT_ID)?.remove();
   const script = document.createElement("script");
   script.id = CPX_SCRIPT_ID;
   script.src = CPX_SCRIPT_URL;
@@ -129,50 +152,72 @@ function injectScript(): void {
   document.body.appendChild(script);
 }
 
-function clearRenderedContent(): void {
-  // The re-executed library re-renders into the divs; stale markup would
-  // duplicate widget content.
-  for (const entry of registry.values()) {
-    entry.node.innerHTML = "";
-  }
-}
-
-/** Coalesced re-sync: rebuild config + re-inject (debounced across mounts). */
-function scheduleSync(): void {
-  if (syncTimer !== null) return;
-  syncTimer = window.setTimeout(() => {
-    syncTimer = null;
-    if (!generalConfig || registry.size === 0) {
-      // Nothing wants the widget — tear the script down entirely.
-      document.getElementById(CPX_SCRIPT_ID)?.remove();
-      delete window.config;
-      return;
-    }
+/**
+ * Start the library once. Debounced briefly so sibling registrations from the
+ * same React commit (wall + portal-wide notification) both make it into the
+ * frozen script_config before the library reads window.config (it reads it
+ * exactly once, at script execution).
+ */
+function scheduleStart(): void {
+  if (scriptStarted || startTimer !== null) return;
+  startTimer = window.setTimeout(() => {
+    startTimer = null;
+    if (scriptStarted || !frozenGeneral || registry.size === 0) return;
+    scriptStarted = true;
     buildWindowConfig();
-    clearRenderedContent();
     injectScript();
-  }, 80);
+  }, 150);
 }
 
 /**
- * Register a widget div. Call from a component's effect after its div exists;
- * pair with {@link unregisterCpxElement} in cleanup. Returns nothing — the
- * div stays owned by React, only its innerHTML is managed by the CPX lib.
+ * Register a widget. `node` is the React ref container; the persistent div is
+ * MOVED into it (never recreated). Pair with {@link unregisterCpxElement} in
+ * cleanup. `primary: true` (the wall) triggers the one-time script start.
  */
 export function registerCpxElement(
   general: CpxGeneralConfig,
   element: CpxElementConfig,
   node: HTMLElement,
   callbacks?: CpxElementCallbacks,
+  opts?: { primary?: boolean },
 ): void {
-  generalConfig = general;
-  registry.set(element.div_id, { element, node, callbacks });
-  scheduleSync();
+  // Frozen config is per-user. A different ext_user_id in the same SPA session
+  // cannot be hot-swapped (the library read window.config already) — reload
+  // exactly once so everything re-initializes for the new user.
+  if (frozenGeneral && !sameGeneral(frozenGeneral, general)) {
+    if (typeof sessionStorage !== "undefined" && !sessionStorage.getItem(RELOAD_GUARD_KEY)) {
+      sessionStorage.setItem(RELOAD_GUARD_KEY, "1");
+      window.location.reload();
+      return;
+    }
+    // Reload already attempted this session — do not loop; leave state as is.
+    return;
+  }
+  frozenGeneral ??= general;
+
+  let entry = registry.get(element.div_id);
+  if (!entry) {
+    const persistent = document.createElement("div");
+    persistent.id = element.div_id;
+    entry = { element, persistent, node: null };
+    registry.set(element.div_id, entry);
+  }
+  entry.node = node;
+  entry.callbacks = callbacks;
+  // Move (not recreate) — CPX's bundled renderer keeps references to the
+  // nodes inside `persistent`; appendChild preserves them all.
+  node.appendChild(entry.persistent);
+
+  if (opts?.primary) scheduleStart();
 }
 
+/** Unregister: park the persistent div in staging (still alive, CPX keeps it). */
 export function unregisterCpxElement(divId: string): void {
-  registry.delete(divId);
-  scheduleSync();
+  const entry = registry.get(divId);
+  if (!entry) return;
+  entry.node = null;
+  entry.callbacks = undefined;
+  getStaging().appendChild(entry.persistent);
 }
 
 // ─── Global type for the CPX script tag v2.0 contract ────────────────────────
