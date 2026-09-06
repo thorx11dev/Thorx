@@ -309,9 +309,9 @@ describe("Engine B — survey callbacks (BitLabs + CPX Research)", () => {
 
       // Snapshot balances before credit
       const [before] = await db
-        .select({ balance: users.availableBalance, earnings: users.totalEarnings })
+        .select({ pending: users.pendingBalance, earnings: users.totalEarnings })
         .from(users).where(eq(users.id, user.id)).limit(1);
-      const balBefore = Number(before.balance ?? 0);
+      const pendingBefore = Number(before.pending ?? 0);
       const earnBefore = Number(before.earnings ?? 0);
 
       const transId = `cpx_bal_${TS}`;
@@ -323,11 +323,13 @@ describe("Engine B — survey callbacks (BitLabs + CPX Research)", () => {
       expect(res.status).toBe(200);
       expect(res.body.credited).toBe(true);
 
-      // Verify balances updated
+      // v4: credited PKR lands in PENDING (verification lifecycle) — never
+      // straight to available.
       const [after] = await db
-        .select({ balance: users.availableBalance, earnings: users.totalEarnings, points: users.txPointsBalance })
+        .select({ pending: users.pendingBalance, available: users.availableBalance, earnings: users.totalEarnings, points: users.txPointsBalance })
         .from(users).where(eq(users.id, user.id)).limit(1);
-      expect(Number(after.balance)).toBeGreaterThan(balBefore);
+      expect(Number(after.pending)).toBeGreaterThan(pendingBefore);
+      expect(Number(after.available)).toBe(0);
       expect(Number(after.earnings)).toBeGreaterThan(earnBefore);
       expect(Number(after.points)).toBeGreaterThan(0);
 
