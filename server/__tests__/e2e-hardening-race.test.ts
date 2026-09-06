@@ -150,7 +150,9 @@ async function registerRealUser(key: string, overrides: Partial<{ firstName: str
   return user;
 }
 
-/** Seed a withdrawable balance: FIFO ledger rows + reflected balance columns. */
+/** Seed a withdrawable verified balance: FIFO ledger rows + reflected balance
+ *  columns. v4: rows are VERIFIED (back payouts) and available_balance is set
+ *  to the full PKR sum — the hold path debits from the live balance. */
 async function seedWithdrawableBalance(userId: string, rows: number, ptsEach: number, pkrEach: string) {
   for (let i = 0; i < rows; i++) {
     await db.insert(userTransactions).values({
@@ -160,14 +162,22 @@ async function seedWithdrawableBalance(userId: string, rows: number, ptsEach: nu
       realPkrValue: pkrEach,
       grossPkr: (parseFloat(pkrEach) / 0.6).toFixed(4),
       thorxProfitPkr: (parseFloat(pkrEach) / 0.6 * 0.4).toFixed(4),
-      conversionRate: 100,
+      conversionRate: 10,
       cardVariance: "1.0000",
       sourceId: `hr_seed_${TS}_${userId}_${i}_${Math.random().toString(36).slice(2)}`,
       sourceType: "ad_view",
       withdrawn: false,
+      verificationStatus: "verified",
+      verifiedAt: new Date(),
     } as any);
   }
-  await db.update(users).set({ txPointsBalance: rows * ptsEach as any }).where(eq(users.id, userId));
+  const totalPkr = rows * parseFloat(pkrEach);
+  await db.update(users)
+    .set({
+      availableBalance: totalPkr.toFixed(2),
+      txPointsBalance: rows * ptsEach as any,
+    })
+    .where(eq(users.id, userId));
 }
 
 // â”€â”€ Rate-limiter scaffolding (standalone express apps) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
