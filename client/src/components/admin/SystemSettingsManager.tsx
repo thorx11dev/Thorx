@@ -357,12 +357,13 @@ export function SystemSettingsManager() {
             <p className="text-[10px] font-bold text-zinc-400 -mt-3">Portion of the withdrawal fee carved out to the withdrawing user's direct referrer. The rest stays with the platform. The user's total deduction is always exactly the Withdrawal Fee — this share does not add on top.</p>
 
             <EconomicControl 
-              label="Points per PKR" 
-              value={localConfigs["CONVERSION_RATE"] || 0} 
-              onChange={(val: number) => updateValue("CONVERSION_RATE", val)}
-              onSave={() => handleSave("CONVERSION_RATE")}
-              isLoading={saveMutation.isPending && saveMutation.variables?.key === "CONVERSION_RATE"}
+              label="TX-Points per Rs.1 (fixed conversion)" 
+              value={localConfigs["TX_POINTS_PER_PKR"] || 0} 
+              onChange={(val: number) => updateValue("TX_POINTS_PER_PKR", val)}
+              onSave={() => handleSave("TX_POINTS_PER_PKR")}
+              isLoading={saveMutation.isPending && saveMutation.variables?.key === "TX_POINTS_PER_PKR"}
             />
+            <p className="text-[10px] font-bold text-zinc-400 -mt-3">Fixed platform-wide conversion (default 10 = 10 TX-Points per Rs.1). Historical ledger rows preserve the rate used at earn time — changing this never rewrites past transactions.</p>
           </div>
         </div>
 
