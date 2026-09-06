@@ -123,16 +123,14 @@ export function PayoutSection(props: PayoutSectionProps) {
 
         if (response.ok) {
           captureEvent("withdrawal_requested", {
-            points: withdrawAmount,
+            amountPkr: withdrawAmount,
             estNetPkr: withdrawalPreview?.userNetPkr ?? null,
             method: selectedMethod,
             timeframe: selectedTimeframe,
           });
           toast({
             title: "Payout Request Submitted!",
-            description: withdrawalPreview
-              ? `Your withdrawal of ${formatCurrency(withdrawAmount)} PTS (Est. Rs. ${withdrawalPreview.userNetPkr.toFixed(2)} net) has been submitted for processing.`
-              : `Your withdrawal of ${formatCurrency(withdrawAmount)} PTS has been submitted for processing.`,
+            description: `Your payout request of Rs. ${withdrawAmount} (${withdrawalPreview ? `Est. Rs. ${Number(withdrawalPreview.userNetPkr).toFixed(2)} net` : "pending team review"}) has been submitted for Team review.`,
           });
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earnings });
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.sessionAuth });
