@@ -571,7 +571,7 @@ describe("Abuse & security hardening", () => {
   it("strips mass-assigned fields from withdrawal payloads (status/fee/transactionId)", async () => {
     await seedWithdrawableBalance(usersState.memberB.id, 20, 1_000, "10.0000");
     const res = await harnesses.memberB.post("/api/withdrawals", {
-      amount: "10000",
+      amount: "100",
       method: "bank",
       accountName: "Smuggle Test",
       accountNumber: "5555555555",
@@ -585,9 +585,9 @@ describe("Abuse & security hardening", () => {
     });
     expect(res.status).toBe(201);
     const w = res.body.withdrawal;
-    // Non-S-Rank user â†’ must stay pending (status was NOT smuggled to approved).
+    // v4: EVERY payout starts pending — status was NOT smuggled to approved.
     expect(w.status).toBe("pending");
-    // Server-computed 15% fee + net â€” NOT the attacker's zero values.
+    // Server-computed 15% fee + net — NOT the attacker's zero values.
     expect(Number(w.fee)).toBe(15);
     expect(Number(w.netAmount)).toBeCloseTo(85, 2);
     expect(w.transactionId).toBeNull();
