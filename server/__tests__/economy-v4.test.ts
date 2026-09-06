@@ -414,9 +414,32 @@ describe("Referred-user payout lifecycle (fee-share commission)", () => {
       verificationStatus: "verified",
       verifiedAt: new Date(),
     });
-    await db.update(users)
-      .set({ availableBalance: "1000.00" })
-      .where(eq(users.id, usersState.referrer.id));
+    // 1000 seeded + whatever the sweep credited; top available up to a clean
+    // 1000-equivalent: read current available, add the difference via the
+    // seeded ledger (so the ledger walk can cover the full request).
+    const pre = await readUser(usersState.referrer.id);
+    const currentAvailable = new Decimal(pre.availableBalance ?? "0");
+    const topUp = new Decimal("1000").minus(currentAvailable);
+    if (topUp.gt(0)) {
+      await db.insert(userTransactions).values({
+        userId: usersState.referrer.id,
+        engineType: "Engine_A",
+        pointsCredited: topUp.times(10).toNumber(),
+        realPkrValue: topUp.toFixed(4),
+        grossPkr: topUp.div(0.6).toFixed(4),
+        thorxProfitPkr: topUp.div(0.6).times(0.4).toFixed(4),
+        guildPoolPkr: "0.0000",
+        conversionRate: 10,
+        cardVariance: "1.0000",
+        sourceId: `eco_seed_topup_${TS}`,
+        sourceType: "ad_view",
+        verificationStatus: "verified",
+        verifiedAt: new Date(),
+      });
+      await db.update(users)
+        .set({ availableBalance: "1000.00" })
+        .where(eq(users.id, usersState.referrer.id));
+    }
 
     // Referrer has no referrer of their own → no fee-share commission.
     const res = await harnesses.referrer.post("/api/withdrawals", {
