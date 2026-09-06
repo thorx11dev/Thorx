@@ -5839,11 +5839,13 @@ export class DatabaseStorage implements IStorage {
 
   // ── THORX v3 (spec E.9): Withdrawal preview & referral cash withdrawal ─────
 
-  async previewWithdrawal(userId: string, points: number): Promise<{
+  async previewWithdrawal(userId: string, pkrAmount: number): Promise<{
     exactPkr: string; platformFee: string; feePercent: number; referralCommission: string;
     referrerName: string | null; userNetPkr: string; sRankFastTrack: boolean;
   }> {
-    const breakdown = await this.calculateWithdrawalBreakdown(userId, points);
+    const amountD = new Decimal(pkrAmount).toDecimalPlaces(2, Decimal.ROUND_DOWN);
+    if (amountD.lte(0)) throw new Error("Amount must be a positive PKR value.");
+    const breakdown = await this.calculateWithdrawalBreakdown(userId, amountD);
     const feePercent = await this.getSystemConfigValue<number>("WITHDRAWAL_FEE_PCT", 15);
     const user = await this.getUserById(userId);
     return {
@@ -5853,7 +5855,66 @@ export class DatabaseStorage implements IStorage {
       referralCommission: breakdown.referralCommission,
       referrerName: breakdown.referrerName,
       userNetPkr: breakdown.userNetPkr,
-      sRankFastTrack: user?.userRankTier === "S-Rank",
+      // v4: NO auto-approve for anyone — the field stays so old clients render
+      // but always false (Spec §12).
+      sRankFastTrack: false,
+    };
+  }
+
+  // v4: referral earnings summary distinguishing pending vs available.
+  async getReferralEarningsSummary(userId: string): Promise<{
+    pendingPkr: string;
+    availablePkr: string;
+    totalEarnedAllTime: string;
+    referralCount: number;
+  }> {
+    const user = await this.getUserById(userId);
+    if (!user) throw new Error("User not found");
+
+    // Pending referral PKR: live pending-balance portion sourced from referral
+    // commission ledger rows not yet verified.
+    const [pendingRow] = await db
+      .select({ total: sql<string>`COALESCE(SUM(${userTransactions.realPkrValue}), '0')` })
+      .from(userTransactions)
+      .where(and(
+        eq(userTransactions.userId, userId),
+        eq(userTransactions.engineType, "Referral_Commission"),
+        eq(userTransactions.verificationStatus, "pending"),
+        eq(userTransactions.withdrawn, false),
+      ));
+
+    // Available referral PKR: verified commission rows not yet consumed by a payout.
+    const [availableRow] = await db
+      .select({ total: sql<string>`COALESCE(SUM(${userTransactions.realPkrValue}), '0')` })
+      .from(userTransactions)
+      .where(and(
+        eq(userTransactions.userId, userId),
+        eq(userTransactions.engineType, "Referral_Commission"),
+        eq(userTransactions.verificationStatus, "verified"),
+        eq(userTransactions.withdrawn, false),
+      ));
+
+    // Lifetime total: everything ever credited as a task referral commission
+    // (pending + verified + withdrawn rows, excluding reversed ones).
+    const [totalRow] = await db
+      .select({ total: sql<string>`COALESCE(SUM(${userTransactions.realPkrValue}), '0')` })
+      .from(userTransactions)
+      .where(and(
+        eq(userTransactions.userId, userId),
+        eq(userTransactions.engineType, "Referral_Commission"),
+        inArray(userTransactions.verificationStatus, ["pending", "verified"]),
+      ));
+
+    const [{ count }] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(users)
+      .where(eq(users.referredBy, userId));
+
+    return {
+      pendingPkr: new Decimal(pendingRow?.total ?? "0").toFixed(2),
+      availablePkr: new Decimal(availableRow?.total ?? "0").toFixed(2),
+      totalEarnedAllTime: new Decimal(totalRow?.total ?? "0").toFixed(2),
+      referralCount: Number(count) || 0,
     };
   }
 
