@@ -508,7 +508,9 @@ describe("Rejected payout reverses referrer fee-share commission", () => {
     expect(earner.availableBalance).toBe("1000.00"); // hold fully restored
 
     const referrer = await readUser(usersState.referrer.id);
-    expect(referrer.pendingBalance).toBe("0.00"); // commission reversed
+    // Commission reversed (was Rs.75 pending from this withdrawal; the earlier
+    // sweep already moved the earn commissions to available — untouched).
+    expect(referrer.pendingBalance).toBe("0.00");
 
     const [comm] = await db.select().from(referralCommissions)
       .where(eq(referralCommissions.withdrawalId, withdrawalId)).limit(1);
