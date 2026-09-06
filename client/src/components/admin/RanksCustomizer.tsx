@@ -40,25 +40,16 @@ const PS_THRESHOLD_DEFAULTS: Record<string, number> = {
 // user share is derived as 100 - cut. Engine C additionally locks a % into the
 // weekly guild pool and a % into a bonus pool; it never pays the user directly
 // (100% of the user's immediate cut is 0 — the pool payout happens Sunday).
+// v4: Engine A/B use the unified TASK_SPLIT_* keys — the per-engine cut keys
+// were removed from the earn engine, so only Engine C's guild keys remain here.
 const ENGINE_SPLIT_DEFAULTS: Record<string, number> = {
-  "ENGINE_A_THORX_CUT_PCT": 40,
-  "ENGINE_B_THORX_CUT_PCT": 40,
   "ENGINE_C_THORX_CUT_PCT": 15,
   "ENGINE_C_GUILD_POOL_PCT": 80,
   "ENGINE_C_BONUS_PCT": 5,
 };
 
-// Read by server/storage.ts recordEarnEvent() / server/modules/thorx-card.ts.
-// Per-engine illusion variance (%) sets the base ± band on the TX-Point card
-// draw (e.g. 10 = card shows between 90% and 110% of the target points).
-// A/S-Rank bonus % widens that band further for higher-rank users.
-const VARIANCE_DEFAULTS: Record<string, number> = {
-  "ENGINE_A_ILLUSION_VARIANCE_PCT": 10,
-  "ENGINE_B_ILLUSION_VARIANCE_PCT": 10,
-  "ENGINE_C_ILLUSION_VARIANCE_PCT": 10,
-  "A_RANK_CARD_BONUS_PCT": 5,
-  "S_RANK_CARD_BONUS_PCT": 10,
-};
+// v4: the Thorx Card illusion (variance bands, rank bonuses) is REMOVED.
+// Points are a fixed conversion — see TX_POINTS_PER_PKR in System Settings.
 
 // Read by server/modules/ps-engine.ts awardTaskPS() / processStreak() /
 // applyInactivityPenalties().
