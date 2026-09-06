@@ -197,8 +197,7 @@ export function RanksCustomizer() {
 
   const SECTIONS: { id: Section; label: string }[] = [
     { id: "thresholds", label: "PS Thresholds" },
-    { id: "splits",     label: "Engine Splits" },
-    { id: "variance",   label: "Card Variance" },
+    { id: "splits",     label: "Guild Splits" },
     { id: "ps_awards",  label: "PS Awards" },
   ];
 
@@ -207,7 +206,7 @@ export function RanksCustomizer() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-black">Ranks & Engine Config</h2>
-          <p className="text-sm text-zinc-500 mt-0.5">Fine-tune PS thresholds, engine splits, and TX-Point card variance.</p>
+          <p className="text-sm text-zinc-500 mt-0.5">Fine-tune PS thresholds, guild-pool splits, and PS awards.</p>
         </div>
         <Button variant="ghost" className="h-8 w-8 p-0" onClick={() => refetch()} title="Refresh">
           <RefreshCw size={14} />
