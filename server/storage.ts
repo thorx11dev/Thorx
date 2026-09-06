@@ -2330,44 +2330,27 @@ export class DatabaseStorage implements IStorage {
     return results;
   }
 
-  // Withdrawals with Commission Logic
+  // ── REAL PKR ECONOMY v4 — withdrawals are PKR-denominated ──────────────────
+  // The requested amount is REAL PKR taken from the user's available balance.
+  // The immutable ledger still backs every rupee: FIFO consumption of
+  // un-withdrawn, VERIFIED user_transactions rows determines exactly which
+  // earn events fund this payout (audit trail), while the available/pending
+  // balance columns are the live money the user sees.
   //
-  // Fee model (single-level referral, per thorx_master_plan.md): every withdrawal
-  // pays a single total fee of WITHDRAWAL_FEE_PCT (default 15%) of the requested
-  // amount. REFERRAL_FEE_SHARE_PCT (default 50%) carves a portion of THAT fee out
-  // to the withdrawing user's direct (L1) referrer — the platform keeps the rest.
-  // The user's total deduction is always exactly WITHDRAWAL_FEE_PCT; the referral
-  // share does not add on top of it. There is no Level-2 referral commission —
-  // that code path was retired (see thorx_master_plan.md and memory topic
-  // "referral-simplification"); any pending L2 rows were settled once via a
-  // one-time migration at that time.
-  // THORX v3 (spec Part E.7) — FIFO-consumes un-withdrawn user_transactions
-  // rows until pointsCredited covers pointsRequested, and sums their exact
-  // historical realPkrValue as the PKR base. This is Appendix A invariant
-  // #1/#2: withdrawal math is NEVER recomputed from points × conversion rate.
+  // Lifecycle (Spec §11–§12, §18):
+  //   request  → available balance is DEBITED immediately (hold) — same funds
+  //              can never fund two payouts; status stays 'pending' for ALL
+  //              users (NO S-Rank auto-approve — Spec §12).
+  //   complete → payout marked completed; referrer fee-share commission
+  //              (already credited to referrer's PENDING balance at request
+  //              time) moves pending → available (finalized).
+  //   reject   → held amount fully restored to available; referrer's pending
+  //              commission reversed (Spec §17).
   //
-  // Pro-rata last-row fix (2026-07-23): the previous implementation consumed
-  // the full realPkrValue of the last FIFO row even when only a fraction of
-  // its pointsCredited was needed, causing the user to receive PKR for more
-  // points than they withdrew while the surplus points were permanently
-  // burned. The new logic computes a Decimal fraction of the last row's PKR
-  // precisely proportional to the points actually consumed, and returns a
-  // `partialLastRow` descriptor so processWithdrawal can insert a
-  // split_remainder row atomically for the unused portion.
-  //
-  // Fallback chain for zero realPkrValue (legacy / data-quality edge cases):
-  //   1. realPkrValue > 0  → use it directly (normal path)
-  //   2. grossPkr > 0      → apply engine-specific user-cut percentage
-  //   3. conversionRate > 0 → derive gross from points ÷ rate; apply 60% cut
-  //   Any row that is genuinely valueless (Indirect engine, 0 points) stays 0.
-  //
-  // `dbc` lets callers pass a transaction client so the FIFO read is inside
-  // the same transaction as the withdrawal-row lock (see processWithdrawal).
-  // All PKR arithmetic uses Decimal throughout — never native float — to
-  // prevent IEEE-754 sub-paisa drift (audit finding #3, 2026-07-15).
+  // All PKR math is Decimal — no float anywhere.
   private async calculateWithdrawalBreakdown(
     userId: string,
-    pointsRequested: number,
+    pkrRequested: Decimal,
     dbc: any = db
   ): Promise<{
     exactPkr: string;
@@ -2377,9 +2360,6 @@ export class DatabaseStorage implements IStorage {
     referrerName: string | null;
     userNetPkr: string;
     consumedTransactionIds: string[];
-    /** Non-null when the last consumed FIFO row was only partially used.
-     *  processWithdrawal must insert a split_remainder row for the unused
-     *  portion inside the same transaction before marking rows withdrawn. */
     partialLastRow: {
       originalId: string;
       pointsUsed: number;
@@ -2394,8 +2374,11 @@ export class DatabaseStorage implements IStorage {
       cardVariance: string;
     } | null;
   }> {
-    // Fetch all FIFO fields needed for the fallback chain and for constructing
-    // the split_remainder row — one query, no extra round-trips.
+    // FIFO over un-withdrawn rows with actual PKR value, oldest first. Only
+    // rows whose money is REAL and settled (verified) or legacy rows
+    // (pre-v4, all verified by default) are eligible to back a payout.
+    // Pending rows represent money that has NOT passed verification — it
+    // must never be paid out (Spec §6).
     const rows = await dbc
       .select({
         id:             userTransactions.id,
@@ -2409,38 +2392,29 @@ export class DatabaseStorage implements IStorage {
         engineType:     userTransactions.engineType,
       })
       .from(userTransactions)
-      .where(and(eq(userTransactions.userId, userId), eq(userTransactions.withdrawn, false)))
+      .where(and(
+        eq(userTransactions.userId, userId),
+        eq(userTransactions.withdrawn, false),
+        inArray(userTransactions.verificationStatus, ["verified", "held"]),
+      ))
       .orderBy(asc(userTransactions.createdAt))
       .limit(5000); // C1-05: safety cap — no realistic user accumulates >5 000 un-withdrawn rows
 
-    /** Resolve a row's true PKR value with a three-tier fallback for legacy
-     *  records where realPkrValue was not captured at earn time.
-     *
-     *  Ledger-audit fix (2026-07-29, CRITICAL): the fallback used to trigger
-     *  for ANY row with realPkrValue <= 0, but Engine_C rows are 0 by design
-     *  (their PKR share is locked in the guild's weekly pool, not paid to the
-     *  user immediately — see recordEarnEvent), Indirect rows never pay PKR
-     *  at all, and Manual admin/reconciliation rows (engineType 'Manual')
-     *  can be legitimately zero or negative. Falling back to a gross-based
-     *  estimate for these rows previously leaked guild-pool money (or
-     *  mis-estimated correction rows) into individual withdrawals. Only
-     *  Engine_A/Engine_B rows — which should always carry a real positive
-     *  share — are eligible for the legacy fallback. */
+    // Resolve a row's true PKR value with a legacy fallback chain (pre-v4
+    // rows where realPkrValue was not captured). v4 rows (Referral_Commission
+    // etc.) always carry their exact value; Engine_C rows are 0 by design —
+    // their money lives in the guild pool, never in user balances.
     const resolveRowPkr = (row: typeof rows[number]): Decimal => {
       const realD = new Decimal(row.realPkrValue ?? "0");
       if (row.engineType !== "Engine_A" && row.engineType !== "Engine_B") return realD;
       if (realD.gt(0)) return realD;
 
-      // Fallback 1 — use stored grossPkr × engine-appropriate user cut.
       const grossD = new Decimal(row.grossPkr ?? "0");
       if (grossD.gt(0)) {
-        // Engine A and B are both 60% user cut.
         const userCutPct = new Decimal("0.60");
         return grossD.times(userCutPct);
       }
 
-      // Fallback 2 — derive gross from historical conversion rate, then apply
-      // the default 60 % user cut (Engine A / B) as a conservative estimate.
       if (row.conversionRate > 0 && row.pointsCredited > 0) {
         logger.warn(
           { rowId: row.id, engineType: row.engineType },
@@ -2455,43 +2429,40 @@ export class DatabaseStorage implements IStorage {
       return new Decimal(0);
     };
 
-    const pointsRequestedD  = new Decimal(pointsRequested);
-    let   pointsAccumulatedD = new Decimal(0);
-    let   exactPkr           = new Decimal(0);
+    let pkrAccumulatedD = new Decimal(0);
+    let pointsAccumulatedD = new Decimal(0);
+    let exactPkr = new Decimal(0);
     const consumedTransactionIds: string[] = [];
-    let   partialLastRow: Awaited<ReturnType<typeof this.calculateWithdrawalBreakdown>>["partialLastRow"] = null;
+    let partialLastRow: Awaited<ReturnType<typeof this.calculateWithdrawalBreakdown>>["partialLastRow"] = null;
 
     for (const row of rows) {
-      // Stop as soon as we have enough points accumulated.
-      if (pointsAccumulatedD.gte(pointsRequestedD)) break;
+      if (pkrAccumulatedD.gte(pkrRequestedD2(pkrRequested))) break;
 
-      const rowPointsD       = new Decimal(row.pointsCredited.toString());
-      const pointsStillNeeded = pointsRequestedD.minus(pointsAccumulatedD);
-      const effectivePkr     = resolveRowPkr(row);
+      const effectivePkr = resolveRowPkr(row);
+      const rowPointsD = new Decimal(row.pointsCredited.toString());
+      const pkrStillNeeded = pkrRequested.minus(pkrAccumulatedD);
 
-      if (rowPointsD.lte(pointsStillNeeded)) {
-        // ── Full row consumed — no overshoot ─────────────────────────────────
+      if (effectivePkr.lte(pkrStillNeeded)) {
+        // Full row consumed.
+        pkrAccumulatedD = pkrAccumulatedD.plus(effectivePkr);
         pointsAccumulatedD = pointsAccumulatedD.plus(rowPointsD);
-        exactPkr           = exactPkr.plus(effectivePkr);
+        exactPkr = exactPkr.plus(effectivePkr);
         consumedTransactionIds.push(row.id);
       } else {
-        // ── Partial last row — pro-rata split ────────────────────────────────
-        // Only the fraction of this row's points that we still need is taken.
-        // PKR is split proportionally so the user is paid for exactly the
-        // points they withdrew — no more, no less.
-        const fraction      = pointsStillNeeded.div(rowPointsD);
-        const pkrUsedD      = effectivePkr.times(fraction);
+        // Partial last row — pro-rata by PKR. The consumed fraction of this
+        // row's points is what its ledger history shows; the remainder is
+        // materialised by processWithdrawal as a split_remainder row.
+        const fraction = pkrStillNeeded.div(effectivePkr);
+        const pkrUsedD = effectivePkr.times(fraction);
         const pkrRemainderD = effectivePkr.minus(pkrUsedD);
+        const pointsUsedD = rowPointsD.times(fraction).toDecimalPlaces(0, Decimal.ROUND_FLOOR);
+        const pointsRemainderD = rowPointsD.minus(pointsUsedD).toDecimalPlaces(0, Decimal.ROUND_CEIL);
 
-        // pointsRemainder must be a whole integer — use CEIL so no points vanish.
-        const pointsRemainderD = rowPointsD.minus(pointsStillNeeded)
-                                           .toDecimalPlaces(0, Decimal.ROUND_CEIL);
-
-        exactPkr           = exactPkr.plus(pkrUsedD);
-        pointsAccumulatedD = pointsAccumulatedD.plus(pointsStillNeeded);
+        exactPkr = exactPkr.plus(pkrUsedD);
+        pkrAccumulatedD = pkrAccumulatedD.plus(pkrUsedD);
+        pointsAccumulatedD = pointsAccumulatedD.plus(pointsUsedD);
         consumedTransactionIds.push(row.id);
 
-        // Proportionally scale auxiliary PKR fields for the split_remainder row.
         const scaleRemainder = (stored: string | null): string | null => {
           if (!stored) return null;
           const d = new Decimal(stored);
@@ -2502,7 +2473,7 @@ export class DatabaseStorage implements IStorage {
 
         partialLastRow = {
           originalId:     row.id,
-          pointsUsed:     pointsStillNeeded.toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber(),
+          pointsUsed:     pointsUsedD.toNumber(),
           pointsRemainder: pointsRemainderD.toNumber(),
           pkrUsed:        pkrUsedD.toFixed(4),
           pkrRemainder:   pkrRemainderD.toFixed(4),
@@ -2513,17 +2484,16 @@ export class DatabaseStorage implements IStorage {
           guildPoolPkr:   scaleRemainder(row.guildPoolPkr),
           cardVariance:   new Decimal(row.cardVariance ?? "1").toFixed(4),
         };
-
-        // Row is fully consumed from our perspective (the remainder is
-        // materialised as a new split row in processWithdrawal); stop here.
         break;
       }
     }
 
-    if (pointsAccumulatedD.lt(pointsRequestedD)) {
+    // The FIFO walk must cover the full requested amount — available_balance
+    // is the live guard, the ledger walk is the audit guarantee. If they ever
+    // disagree, refuse rather than mint money from nothing.
+    if (pkrAccumulatedD.lt(pkrRequested)) {
       throw new Error(
-        `Insufficient balance. Available: ${pointsAccumulatedD.toNumber()} points, ` +
-        `requested: ${pointsRequested} points.`
+        `Insufficient verified balance. Ledger: Rs.${pkrAccumulatedD.toFixed(2)}, requested: Rs.${pkrRequested.toFixed(2)}.`
       );
     }
 
@@ -2540,8 +2510,6 @@ export class DatabaseStorage implements IStorage {
 
     const userNetPkr = exactPkr.minus(platformFee);
 
-    // H-04: Return as fixed-precision strings — never .toNumber() — so IEEE-754
-    // rounding cannot corrupt financial values in transit to the client.
     return {
       exactPkr:               exactPkr.toFixed(4),
       platformFee:            platformFee.toFixed(4),
@@ -2554,86 +2522,105 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  // THORX v3 (spec Part E.7) — a withdrawal request is denominated in
-  // TX-Points (insertWithdrawal.amount). The PKR breakdown is computed
-  // up-front (fail fast on insufficient ledger balance / below minimum) but
-  // is NOT persisted as a deduction yet — points are only marked withdrawn
-  // once an admin approves via processWithdrawal, which recomputes the
-  // breakdown fresh against the ledger as of approval time.
+  // v4: withdrawal request is denominated in REAL PKR. The full requested
+  // amount is debited (held) from available_balance inside the same locked
+  // transaction — double-spend becomes impossible (Spec §18–§19). Referrer's
+  // fee-share commission is credited to their PENDING balance at request
+  // time and only finalized when the payout completes (Spec §16–§17).
+  // NO auto-approve: every request starts 'pending' for team review (Spec §12).
   async createWithdrawal(insertWithdrawal: InsertWithdrawal): Promise<Withdrawal> {
-    const _amtD = new Decimal(insertWithdrawal.amount);
-    if (_amtD.isNaN() || !_amtD.isFinite() || _amtD.lte(0)) {
+    const amountD = new Decimal(insertWithdrawal.amount);
+    if (amountD.isNaN() || !amountD.isFinite() || amountD.lte(0)) {
       throw new Error("INVALID_AMOUNT: withdrawal amount must be a positive number");
     }
-    const pointsRequested = _amtD.toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber();
+    const pkrRequested = amountD.toDecimalPlaces(2, Decimal.ROUND_DOWN);
 
-    // ALL pre-flight checks (balance, minimum payout, S-Rank status) and the
-    // INSERT are now inside a single transaction with a SELECT FOR UPDATE on the
-    // user row — eliminates the TOCTOU race where two concurrent requests both
-    // pass the balance check before either INSERT commits (audit finding D).
-    try {
-      return await db.transaction(async (tx) => {
-        // Lock the user row — any concurrent withdrawal for the same user
-        // will block here until this transaction commits or rolls back.
-        const [lockedUser] = await tx
-          .select({ userRankTier: users.userRankTier })
-          .from(users)
-          .where(eq(users.id, insertWithdrawal.userId))
-          .for('update');
+    return await db.transaction(async (tx) => {
+      // Lock the user row — any concurrent withdrawal for the same user
+      // blocks here until this transaction commits or rolls back.
+      const [lockedUser] = await tx
+        .select({ id: users.id, availableBalance: users.availableBalance })
+        .from(users)
+        .where(eq(users.id, insertWithdrawal.userId))
+        .for('update');
 
-        if (!lockedUser) throw new Error("User not found");
+      if (!lockedUser) throw new Error("User not found");
 
-        // Balance / breakdown check with row locked — safe from concurrent writes.
-        const breakdown = await this.calculateWithdrawalBreakdown(insertWithdrawal.userId, pointsRequested);
-        const minPayout = await this.getSystemConfigValue<number>("MIN_PAYOUT", 100);
-        if (new Decimal(breakdown.exactPkr).lessThan(minPayout)) {
-          throw new Error(`Minimum payout requirement not met. Threshold: Rs.${minPayout}.`);
-        }
-
-        // S-Rank status from the locked row — no second DB trip needed.
-        const initialStatus: string = lockedUser.userRankTier === 'S-Rank' ? 'approved' : 'pending';
-
-        // Block duplicate withdrawals for both 'pending' (normal) and 'approved'
-        // (S-Rank fast-track). Without checking 'approved', two concurrent S-Rank
-        // requests could both pass this check (since neither is 'pending') and
-        // both insert, creating duplicate approved withdrawals. The DB partial
-        // indexes uniq_withdrawals_one_pending_per_user and
-        // uniq_withdrawals_one_approved_per_user are the backstop, but the
-        // application-level check gives a user-friendly error first.
-        const [pending] = await tx
-          .select({ id: withdrawals.id })
-          .from(withdrawals)
-          .where(and(
-            eq(withdrawals.userId, insertWithdrawal.userId),
-            sql`${withdrawals.status} IN ('pending', 'approved')`,
-          ))
-          .limit(1);
-        if (pending) {
-          throw new Error("A pending payout request already exists for this account.");
-        }
-
-        const [withdrawal] = await tx
-          .insert(withdrawals)
-          .values({
-            ...insertWithdrawal,
-            amount: pointsRequested.toString(),
-            fee: new Decimal(breakdown.platformFee).toFixed(2),
-            netAmount: new Decimal(breakdown.userNetPkr).toFixed(2),
-            status: initialStatus,
-          })
-          .returning();
-
-        return withdrawal;
-      });
-    } catch (err: any) {
-      // Postgres unique_violation on uniq_withdrawals_one_pending_per_user —
-      // translate the DB-level guarantee into the same friendly error whether
-      // it arrives from the in-transaction check or the index.
-      if (err?.code === "23505" || err?.message?.includes("pending payout")) {
+      // Duplicate-request guard (pending OR in-flight processing).
+      const [pending] = await tx
+        .select({ id: withdrawals.id })
+        .from(withdrawals)
+        .where(and(
+          eq(withdrawals.userId, insertWithdrawal.userId),
+          sql`${withdrawals.status} IN ('pending', 'approved', 'processing')`,
+        ))
+        .limit(1);
+      if (pending) {
         throw new Error("A pending payout request already exists for this account.");
       }
-      throw err;
-    }
+
+      // Balance check against the LIVE available balance (already row-locked).
+      const availableD = new Decimal(lockedUser.availableBalance ?? "0");
+      if (availableD.lt(pkrRequested)) {
+        throw new Error(
+          `Insufficient available balance. Available: Rs.${availableD.toFixed(2)}, requested: Rs.${pkrRequested.toFixed(2)}.`
+        );
+      }
+
+      // Ledger-backed breakdown (audit trail: which earn events fund this).
+      // Runs on the same tx so the FIFO read sees a consistent world.
+      const breakdown = await this.calculateWithdrawalBreakdown(insertWithdrawal.userId, pkrRequested, tx);
+
+      // Minimum payout check (Spec §11 — default Rs.500).
+      const minPayout = await this.getSystemConfigValue<number>("MIN_PAYOUT", 500);
+      if (pkrRequested.lt(minPayout)) {
+        throw new Error(`Minimum payout requirement not met. Threshold: Rs.${minPayout}.`);
+      }
+
+      // HOLD: debit the full gross amount now. Refunded on rejection.
+      await tx
+        .update(users)
+        .set({ availableBalance: sql`${users.availableBalance} - ${pkrRequested.toFixed(2)}` })
+        .where(eq(users.id, insertWithdrawal.userId));
+
+      // Referrer fee-share commission → referrer's PENDING balance (Spec §16).
+      // Finalized only on completion; reversed on rejection (Spec §17).
+      if (breakdown.referrerId && new Decimal(breakdown.referralCommission).gt(0)) {
+        await tx
+          .update(users)
+          .set({ pendingBalance: sql`${users.pendingBalance} + ${new Decimal(breakdown.referralCommission).toFixed(2)}` })
+          .where(eq(users.id, breakdown.referrerId));
+      }
+
+      const [withdrawal] = await tx
+        .insert(withdrawals)
+        .values({
+          ...insertWithdrawal,
+          amount: pkrRequested.toFixed(2),
+          fee: new Decimal(breakdown.platformFee).toFixed(2),
+          netAmount: new Decimal(breakdown.userNetPkr).toFixed(2),
+          status: "pending", // NEVER auto-approved (Spec §12) — team reviews every request
+        })
+        .returning();
+
+      // Persist the pending referral commission so completion/rejection can
+      // settle it exactly. Keyed by the withdrawal row.
+      if (breakdown.referrerId && new Decimal(breakdown.referralCommission).gt(0)) {
+        await tx.insert(referralCommissions).values({
+          referrerId: breakdown.referrerId,
+          inviteeId: insertWithdrawal.userId,
+          withdrawalId: withdrawal.id,
+          commissionAmountPkr: new Decimal(breakdown.referralCommission).toFixed(2),
+          inviteeNetPkr: new Decimal(breakdown.userNetPkr).toFixed(2),
+          platformFeePkr: new Decimal(breakdown.platformFee).toFixed(2),
+          feeRateUsed: new Decimal(await this.getSystemConfigValue<number>("WITHDRAWAL_FEE_PCT", 15)).div(100).toFixed(4),
+          refShareRateUsed: new Decimal(await this.getSystemConfigValue<number>("REFERRAL_FEE_SHARE_PCT", 50)).div(100).toFixed(4),
+          status: "pending",
+        });
+      }
+
+      return withdrawal;
+    });
   }
 
   async getWithdrawalsByUserId(userId: string, limit = 50, offset = 0): Promise<Withdrawal[]> {
