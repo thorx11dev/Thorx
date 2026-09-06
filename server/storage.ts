@@ -908,16 +908,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(systemConfig.key, key));
   }
 
-  // Thorx Card Sandbox audit fix: resolves the SAME live System Settings keys
-  // that recordEarnEvent() reads for the per-engine ratio/variance/split, so
-  // the admin simulation tool always mirrors production unless an admin
-  // explicitly supplies an override for "what-if" testing. Before this fix,
-  // the sandbox route hardcoded conversionRate=1000 / variance 0.80-1.20 /
-  // thorxCut 40-60 as request defaults that the client never overrode — so
-  // changing any of these in System Settings silently had zero effect on the
-  // sandbox's preview, defeating its stated purpose. Deliberately duplicated
-  // (not shared) from recordEarnEvent's inline resolution to avoid touching
-  // that financial-critical code path.
+  // REAL PKR ECONOMY v4: resolves the SAME live System Settings keys that
+  // recordEarnEvent() reads for the fixed conversion + revenue splits, so the
+  // admin simulation tool always mirrors production. Variance/rank-bonus keys
+  // no longer exist — the fields remain in the shape (fixed at 1 / 0) so the
+  // admin sandbox UI keeps compiling while showing honest deterministic math.
   async getThorxCardEngineConfig(engineType: "A" | "B" | "C"): Promise<{
     conversionRate: number;
     varianceMin: number;
@@ -929,34 +924,41 @@ export class DatabaseStorage implements IStorage {
     guildPoolPct: number;
     bonusPct: number;
   }> {
-    const engineKey = `ENGINE_${engineType}`;
     const [
-      globalConversionRate,
-      perEngineRatio,
-      illusionVariancePct,
-      aRankBonusPct,
-      sRankBonusPct,
-      thorxCutPct,
-      guildPoolPct,
-      bonusPct,
+      txPointsPerPkr,
+      directThorxCutPct,
+      referredThorxCutPct,
+      referrerCutPct,
     ] = await Promise.all([
-      this.getSystemConfigValue<number>("CONVERSION_RATE", 1000),
-      this.getSystemConfigValue<number | null>(`${engineKey}_PKR_TO_POINTS_RATIO`, null),
-      this.getSystemConfigValue<number>(`${engineKey}_ILLUSION_VARIANCE_PCT`, 10),
-      this.getSystemConfigValue<number>("A_RANK_CARD_BONUS_PCT", 5),
-      this.getSystemConfigValue<number>("S_RANK_CARD_BONUS_PCT", 10),
+      this.getSystemConfigValue<number>("TX_POINTS_PER_PKR", 10),
+      this.getSystemConfigValue<number>("TASK_SPLIT_THORX_PCT", 40),
+      this.getSystemConfigValue<number>("TASK_SPLIT_THORX_REFERRED_PCT", 35),
+      this.getSystemConfigValue<number>("TASK_SPLIT_REFERRER_PCT", 5),
+    ]);
+    // Engine C keeps its own guild-pool economics (not part of the v4 task split).
+    const [engineCThorxCutPct, guildPoolPct, bonusPct] = await Promise.all([
       engineType === "C"
         ? this.getSystemConfigValue<number>("ENGINE_C_THORX_CUT_PCT", 15)
-        : this.getSystemConfigValue<number>(`${engineKey}_THORX_CUT_PCT`, 40),
+        : Promise.resolve(0),
       engineType === "C" ? this.getSystemConfigValue<number>("ENGINE_C_GUILD_POOL_PCT", 80) : Promise.resolve(0),
       engineType === "C" ? this.getSystemConfigValue<number>("ENGINE_C_BONUS_PCT", 5) : Promise.resolve(0),
     ]);
-    const conversionRate = perEngineRatio ?? globalConversionRate;
-    const varianceMin = Math.max(0.01, 1 - illusionVariancePct / 100);
-    const varianceMax = Math.max(varianceMin, 1 + illusionVariancePct / 100);
-    // Engine C routes 0% to the user's immediate balance (pool-based, Sunday payout).
-    const userCutPct = engineType === "C" ? 0 : 100 - thorxCutPct;
-    return { conversionRate, varianceMin, varianceMax, aRankBonusPct, sRankBonusPct, thorxCutPct, userCutPct, guildPoolPct, bonusPct };
+    // v4: the user cut on Engine C is 0 (pool-based); on A/B it's whatever
+    // remains after Thorx's cut (referrer's 5% comes out of Thorx's side).
+    const thorxCutPct = engineType === "C" ? engineCThorxCutPct : directThorxCutPct;
+    const userCutPct = engineType === "C" ? 0 : 100 - directThorxCutPct;
+    void referredThorxCutPct; void referrerCutPct; // surfaced via TX_POINTS settings UI instead
+    return {
+      conversionRate: txPointsPerPkr,
+      varianceMin: 1,
+      varianceMax: 1,
+      aRankBonusPct: 0,
+      sRankBonusPct: 0,
+      thorxCutPct,
+      userCutPct,
+      guildPoolPct,
+      bonusPct,
+    };
   }
 
   // Legacy registration methods
