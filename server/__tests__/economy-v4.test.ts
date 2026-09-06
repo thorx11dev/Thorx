@@ -380,14 +380,8 @@ describe("Direct-user payout (Rs.60 available, hold + fee + manual review)", () 
 describe("Referred-user payout lifecycle (fee-share commission)", () => {
   let withdrawalId = "";
 
-  it("admin credits enough verified balance for a Rs.1000 payout (test scaffold)", async () => {
-    const admin = harnesses.admin;
-    const login = await admin.post("/api/login", { email: usersState.referrer.email, password: PASSWORD });
-    expect(login.status).toBe(200);
-  });
-
-  it("referrer requests Rs.1000 → hold debits available, commission NOT created (no referrer)", async () => {
-    // Give the referrer Rs.1000 verified balance via direct admin ledger seeding.
+  it("referrer requests Rs.1000 → hold debits available, no fee-share (referrer has no referrer)", async () => {
+    // Seed the referrer's verified balance (test scaffold — mirrors verified money).
     await db.insert(userTransactions).values({
       userId: usersState.referrer.id,
       engineType: "Engine_A",
