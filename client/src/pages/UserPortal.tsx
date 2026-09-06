@@ -444,7 +444,7 @@ export default function UserPortal() {
   const { data: sysConfig, isLoading: isConfigLoading } = useQuery({
     queryKey: ["/api/config/bulk"],
     queryFn: async () => {
-      const keys = ["MIN_PAYOUT", "WITHDRAWAL_FEE_PCT", "REFERRAL_FEE_SHARE_PCT", "CONVERSION_RATE"];
+      const keys = ["MIN_PAYOUT", "WITHDRAWAL_FEE_PCT", "REFERRAL_FEE_SHARE_PCT", "TX_POINTS_PER_PKR"];
       const results = await Promise.all(
         keys.map(k => apiRequest("GET", `/api/config/${k}`).then(r => r.json()))
       );
@@ -452,12 +452,12 @@ export default function UserPortal() {
     },
   });
 
-  const MIN_PAYOUT = parseFloat(sysConfig?.["MIN_PAYOUT"] ?? "100");
+  const MIN_PAYOUT = parseFloat(sysConfig?.["MIN_PAYOUT"] ?? "500");
   const WITHDRAWAL_FEE_PERCENT = parseFloat(sysConfig?.["WITHDRAWAL_FEE_PCT"] ?? "15");
   const REFERRAL_FEE_SHARE_PERCENT = parseFloat(sysConfig?.["REFERRAL_FEE_SHARE_PCT"] ?? "50");
-  // F-10 / Q1: Commission amounts are stored as PKR in commission_logs.
-  // Convert to TX-Points for display to honour the Points-Only Mandate.
-  const CONVERSION_RATE = parseFloat(sysConfig?.["CONVERSION_RATE"] ?? "100");
+  // v4: fixed conversion — TX-Points per Rs.1 (default 10). One rate everywhere,
+  // edited from Team Portal → Settings. NO per-page math, NO variance.
+  const TX_POINTS_PER_PKR = parseFloat(sysConfig?.["TX_POINTS_PER_PKR"] ?? "10");
 
   const commissions = commissionsData?.commissions || [];
 
