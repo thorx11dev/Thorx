@@ -1383,9 +1383,10 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       }
       // Business logic errors from storage layer
       if (error instanceof Error && (
-        error.message.includes("balance") || 
-        error.message.includes("withdrawal amount") || 
-        error.message.includes("already exists")
+        error.message.includes("balance") ||
+        error.message.includes("withdrawal amount") ||
+        error.message.includes("already exists") ||
+        error.message.includes("Minimum payout")
       )) {
         return res.status(400).json({ message: error.message });
       }
