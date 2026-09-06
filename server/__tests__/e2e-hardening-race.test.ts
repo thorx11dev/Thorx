@@ -570,28 +570,37 @@ describe("Abuse & security hardening", () => {
 
   it("strips mass-assigned fields from withdrawal payloads (status/fee/transactionId)", async () => {
     await seedWithdrawableBalance(usersState.memberB.id, 20, 1_000, "10.0000");
-    const res = await harnesses.memberB.post("/api/withdrawals", {
-      amount: "100",
-      method: "bank",
-      accountName: "Smuggle Test",
-      accountNumber: "5555555555",
-      accountDetails: {},
-      // Attacker attempts:
-      status: "approved",
-      fee: "0",
-      netAmount: "0.01",
-      transactionId: "HACKED-999",
-      processedAt: new Date(0).toISOString(),
-    });
-    expect(res.status).toBe(201);
-    const w = res.body.withdrawal;
-    // v4: EVERY payout starts pending — status was NOT smuggled to approved.
-    expect(w.status).toBe("pending");
-    // Server-computed 15% fee + net — NOT the attacker's zero values.
-    expect(Number(w.fee)).toBe(15);
-    expect(Number(w.netAmount)).toBeCloseTo(85, 2);
-    expect(w.transactionId).toBeNull();
-    expect(w.processedAt).toBeNull();
+    // v4 default MIN_PAYOUT is Rs.500; this scenario requests Rs.100.
+    const { systemConfig } = await import("@shared/schema");
+    const [cfg] = await db.select().from(systemConfig).where(eq(systemConfig.key, "MIN_PAYOUT")).limit(1);
+    const originalMin = cfg?.value ?? 500;
+    await db.update(systemConfig).set({ value: 100 }).where(eq(systemConfig.key, "MIN_PAYOUT"));
+    try {
+      const res = await harnesses.memberB.post("/api/withdrawals", {
+        amount: "100",
+        method: "bank",
+        accountName: "Smuggle Test",
+        accountNumber: "5555555555",
+        accountDetails: {},
+        // Attacker attempts:
+        status: "approved",
+        fee: "0",
+        netAmount: "0.01",
+        transactionId: "HACKED-999",
+        processedAt: new Date(0).toISOString(),
+      });
+      expect(res.status).toBe(201);
+      const w = res.body.withdrawal;
+      // v4: EVERY payout starts pending — status was NOT smuggled to approved.
+      expect(w.status).toBe("pending");
+      // Server-computed 15% fee + net — NOT the attacker's zero values.
+      expect(Number(w.fee)).toBe(15);
+      expect(Number(w.netAmount)).toBeCloseTo(85, 2);
+      expect(w.transactionId).toBeNull();
+      expect(w.processedAt).toBeNull();
+    } finally {
+      await db.update(systemConfig).set({ value: originalMin }).where(eq(systemConfig.key, "MIN_PAYOUT"));
+    }
   }, 60_000);
 });
 
