@@ -4067,6 +4067,8 @@ export class DatabaseStorage implements IStorage {
         .where(and(
           eq(userTransactions.userId, userId),
           eq(userTransactions.withdrawn, false),
+          // v4: pending money is NOT withdrawable — only verified/held rows.
+          inArray(userTransactions.verificationStatus, ["verified", "held"]),
           since ? gte(userTransactions.createdAt, since) : undefined as any
         ) as any);
       return { points: Number(row.points), pkr: String(row.pkr ?? "0") };

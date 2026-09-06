@@ -351,7 +351,7 @@ export function PayoutSection(props: PayoutSectionProps) {
                         )}
                         {withdrawalPreview && (
                           <div className="text-sm md:text-base font-bold text-foreground/70">
-                            Estimated Final Payout: ≈ Rs. {withdrawalPreview.exactPkr.toFixed(2)} gross · Rs. {withdrawalPreview.userNetPkr.toFixed(2)} net (after {withdrawalPreview.feePercent ?? 15}% fee)
+                            Request: Rs. {Number(withdrawalPreview.exactPkr).toFixed(2)} gross · Rs. {Number(withdrawalPreview.userNetPkr).toFixed(2)} net (after {withdrawalPreview.feePercent ?? 15}% fee) — held from your Available Balance until Team review
                           </div>
                         )}
                       </div>
