@@ -119,7 +119,6 @@ import {
   type InsertCaptainMessage,
   activityFeed,
   type ActivityFeed,
-  economyState,
   engineBTasks,
   type EngineBTask,
   type InsertEngineBTask,
@@ -142,18 +141,11 @@ import { encryptCredential, decryptCredential, isEncrypted } from "./utils/crede
 import { inferAuditCategory, type RequestContext } from "./request-context";
 import { describeAuditLog } from "./audit-descriptions";
 
-// ── Points Ledger config defaults ────────────────────────────────────────────
-// Real values are read via getSystemConfigValue() from system_config at runtime
-// (team/admin editable); these are only the fallback if a key was never set.
-// TX-Points per Rs.10 earned (not per Rs.1). The thorx-card formula is
-// `pkrDecimal.div(10).times(conversionRate)`, so effective rate = value/10.
-// Default 1000 → 100 TX-Points per Rs.1 PKR — matches spec §1.1 ("default 100").
-const DEFAULT_CONVERSION_RATE = 1000;
-
-// Rank reward multipliers — applied to TX-Points (gamification display) per earn event.
-// Config Q6: E=1.00x, D=1.10x, C=1.20x, B=1.35x, A=1.50x, S=1.75x.
-// Canonical definition lives in ./modules/thorx-card (imported above) so the
-// real earn flow and the admin Thorx Card Sandbox simulation can never drift.
+// ── REAL PKR ECONOMY v4 ──────────────────────────────────────────────────────
+// The old CONVERSION_RATE (1000 → 100 pts/Rs.1) and Thorx Card illusion are
+// REMOVED. One fixed rate now: TX_POINTS_PER_PKR (default 10 pts = Rs.1),
+// read live from system_config in recordEarnEvent — no module-level default
+// is kept so a stale constant can never shadow the Team Portal setting.
 
 // Fixed UTC week boundary: Monday 00:00:00 UTC through Sunday 23:59:59.999 UTC.
 // Not user-configurable in v1 (see design notes in shared/schema.ts).
