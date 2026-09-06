@@ -56,8 +56,8 @@ export function DashboardCards() {
   const [, navigate] = useLocation();
   // REAL PKR ECONOMY v4 (Spec §24): real money is the PRIMARY representation.
   // Card 1 = Available + Pending PKR; Card 2 = TX-Points with the fixed
-  // conversion caption; Card 3 = referrals. All values come from the server
-  // user object — the client never computes money.
+  // conversion caption; Card 3 = referrals; Card 4 = PS rank. All values come
+  // from the server user object — the client never computes money.
   const availablePkr = parseFloat((user as any)?.availableBalance ?? "0") || 0;
   const pendingPkr = parseFloat((user as any)?.pendingBalance ?? "0") || 0;
   const txPoints = (user as any)?.txPointsBalance ?? 0;
@@ -74,7 +74,6 @@ export function DashboardCards() {
     staleTime: 5 * 60 * 1000,
   });
   const txPointsPerPkr = publicConfig?.txPointsPerPkr ?? 10;
-  const pkrEquivalent = Math.floor(txPoints / Math.max(1, txPointsPerPkr));
 
   const { data: referralStats, isLoading: isReferralStatsLoading, isError: isReferralStatsError, refetch: refetchReferralStats } = useQuery<{ count: number; totalEarned: string }>({
     queryKey: ["/api/referrals", "dashboard-card"],
