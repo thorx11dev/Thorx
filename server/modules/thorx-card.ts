@@ -33,9 +33,12 @@ export function drawThorxCard(params: CardDrawParams): CardResult {
 
   const pkrDecimal = new Decimal(userPkrShare);
   // Keep Decimal through the full chain — only convert to number at the
-  // final integer step to avoid float-multiply precision drift.
+  // final integer step to avoid float-multiply precision drift. A 1-point
+  // minimum applies to any positive PKR share (mirrors recordEarnEvent).
   const exactPointsD = pkrDecimal.times(conversionRate).toDecimalPlaces(0, Decimal.ROUND_FLOOR);
-  const pointsCredited = Math.max(0, exactPointsD.toNumber());
+  const pointsCredited = pkrDecimal.gt(0)
+    ? Math.max(1, exactPointsD.toNumber())
+    : 0;
 
   return {
     pointsCredited,
