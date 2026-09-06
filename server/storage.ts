@@ -739,24 +739,14 @@ export const SYSTEM_CONFIG_DEFAULTS = [
         description: "Waterfall priority list for Video Ad Providers" 
       },
       // ── THORX v3 — Engine Splits (Part J) ────────────────────────────
-      // Note: Engine C never pays the user an immediate PKR share (100% of the
-      // gross is split between Thorx cut / guild pool / bonus pool below), so
-      // there is no "ENGINE_C_USER_CUT_PCT" — deliberately omitted (Ranks &
-      // Engine Config audit, 2026-07-29: a prior seeded copy of that key, plus
-      // ENGINE_A/B_USER_CUT_PCT, were dead — never read by recordEarnEvent,
-      // which derives the user cut as 100 - thorxCutPct instead).
-      { key: "ENGINE_A_THORX_CUT_PCT", value: 40, description: "Engine A (video ads): Thorx profit cut % (user keeps 100 - this)" },
-      { key: "ENGINE_B_THORX_CUT_PCT", value: 40, description: "Engine B (surveys): Thorx profit cut % (user keeps 100 - this)" },
+      // v4: Engine A/B now share the unified TASK_SPLIT keys (TASK_SPLIT_THORX_PCT,
+      // TASK_SPLIT_THORX_REFERRED_PCT, TASK_SPLIT_REFERRER_PCT). Engine C keeps its
+      // guild-pool economics unchanged (guild distributions are not part of the v4
+      // task-split spec). Per-engine override keys were removed — one split, one
+      // conversion rate, everywhere.
       { key: "ENGINE_C_THORX_CUT_PCT", value: 15, description: "Engine C (guild tasks): Thorx direct profit cut %" },
       { key: "ENGINE_C_GUILD_POOL_PCT", value: 80, description: "Engine C: % locked in the guild weekly bonus pool (distributed Sunday)" },
       { key: "ENGINE_C_BONUS_PCT", value: 5, description: "Engine C: % added to bonus pool — paid to guild on target hit, otherwise goes to treasury" },
-      // ── Thorx Card ────────────────────────────────────────────────────────
-      // Base variance bounds are derived per-engine from ENGINE_{A,B,C}_ILLUSION_VARIANCE_PCT
-      // above (min = 1 - pct/100, max = 1 + pct/100) — there is no separate global
-      // CARD_VARIANCE_MIN/MAX; a previously-seeded pair of those keys was dead
-      // (never read by drawThorxCard's caller) and has been removed.
-      { key: "A_RANK_CARD_BONUS_PCT", value: 5, description: "A-Rank: expand card variance bounds by ±N%" },
-      { key: "S_RANK_CARD_BONUS_PCT", value: 10, description: "S-Rank: expand card variance bounds by ±N%" },
       // ── PS System ─────────────────────────────────────────────────────────
       { key: "PS_ENGINE_A_REWARD", value: 5, description: "PS awarded per Engine A task" },
       { key: "PS_ENGINE_B_REWARD", value: 25, description: "PS awarded per Engine B task" },
