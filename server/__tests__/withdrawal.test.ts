@@ -219,11 +219,11 @@ describe("Withdrawal rejection refunds the hold", () => {
   let rejectedWdId: string;
 
   it("creates and rejects a withdrawal, restoring the held amount", async () => {
-    await setAvailable(testUserId, "200.00");
-    const wd = await storage.createWithdrawal(wdPayload(testUserId, "50"));
+    await setAvailable(testUserId, "600.00");
+    const wd = await storage.createWithdrawal(wdPayload(testUserId, "500"));
     rejectedWdId = wd.id;
     // Hold applied.
-    expect(await getAvailable(testUserId)).toBe("150.00");
+    expect(await getAvailable(testUserId)).toBe("100.00");
 
     const rejected = await storage.updateWithdrawalStatus(
       rejectedWdId,
@@ -234,7 +234,7 @@ describe("Withdrawal rejection refunds the hold", () => {
     );
     expect(rejected.status).toBe("rejected");
     // Hold fully restored.
-    expect(await getAvailable(testUserId)).toBe("200.00");
+    expect(await getAvailable(testUserId)).toBe("600.00");
   });
 
   it("cannot re-reject an already-rejected withdrawal", async () => {
