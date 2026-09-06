@@ -1467,8 +1467,10 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       // never does PKR math client-side.
       // TX-Points for Engine C are based on the 80% pool contribution (not user cut,
       // which is now 0% — pool unlocks Sunday). This keeps gamification visible.
+      // v4: fixed conversion (TX_POINTS_PER_PKR), no variance — reward and its
+      // "max" are now identical.
       const [conversionRate, poolPct] = await Promise.all([
-        storage.getSystemConfigValue<number>("CONVERSION_RATE", 100),
+        storage.getSystemConfigValue<number>("TX_POINTS_PER_PKR", 10),
         storage.getSystemConfigValue<number>("ENGINE_C_GUILD_POOL_PCT", 80),
       ]);
       const poolPctD = new Decimal(poolPct);
@@ -1481,9 +1483,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           ? 0
           : grossPkrD.times(poolPctD).div(100).times(conversionRate)
               .toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber();
-        const txPointsRewardMax = txPointsReward
-          ? new Decimal(txPointsReward).times(1.2).toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber()
-          : 0;
+        const txPointsRewardMax = txPointsReward;
         return { ...rest, txPointsReward, txPointsRewardMax };
       });
 
