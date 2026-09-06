@@ -54,11 +54,8 @@ const harnesses: Record<string, any> = {};
 const createdIds = { users: [] as string[], engineBTasks: [] as string[] };
 const cfgSnapshot = new Map<string, any>();
 const CONFIG_KEYS = [
-  "ENGINE_A_ILLUSION_VARIANCE_PCT",
-  "ENGINE_A_THORX_CUT_PCT",
-  "ENGINE_A_PKR_TO_POINTS_RATIO",
-  "CONVERSION_RATE",
-  "ECONOMY_MULTIPLIER_OVERRIDE",
+  "TASK_SPLIT_THORX_PCT",
+  "TX_POINTS_PER_PKR",
   "AD_INVENTORY_JSON",
   "PS_INACTIVITY_HOURS",
   "PS_INACTIVITY_PENALTY",
