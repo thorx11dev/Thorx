@@ -3709,8 +3709,11 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   });
 
   // Update withdrawal status (Admin Action)
+  // v4 (Spec §12): NO 'approved' fast-path — every payout is either completed
+  // (money sent) or rejected (hold refunded) by an explicit team action.
+  // 'processing' remains a non-terminal marker for admins mid-transfer.
   const withdrawalUpdateSchema = z.object({
-    status:           z.enum(["completed", "rejected", "pending", "approved", "processing"]),
+    status:           z.enum(["completed", "rejected", "processing"]),
     transactionId:    z.string().max(200).optional(),
     rejectionReason:  z.string().max(500).optional(),
   });
