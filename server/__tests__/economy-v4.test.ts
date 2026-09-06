@@ -41,6 +41,7 @@ const TS = Date.now();
 const PASSWORD = "TestPass123!";
 
 let app: any;
+const founder = { id: "", email: `eco_founder_${TS}@thorx-test.local` };
 const usersState: Record<string, any> = {};
 const harnesses: Record<string, any> = {};
 const createdIds = { users: [] as string[], withdrawals: [] as string[] };
