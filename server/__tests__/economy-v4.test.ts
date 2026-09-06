@@ -19,6 +19,7 @@ import request from "supertest";
 import type { Agent } from "supertest";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import Decimal from "decimal.js";
 import { db, pool } from "../db";
 import {
   users,
