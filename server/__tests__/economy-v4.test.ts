@@ -311,13 +311,10 @@ describe("Referred-user task earning (35/5/60 split)", () => {
   it("rejects a duplicate earn callback for the same source (double-credit impossible)", async () => {
     const [tx] = await db.select().from(userTransactions)
       .where(and(eq(userTransactions.userId, usersState.referred.id), eq(userTransactions.engineType, "Engine_A"))).limit(1);
-    // Replaying the same ad view through the earn pipeline must 4xx/5xx —
-    // uniq_user_transactions_source rejects it outright.
-    const dupe = harnesses.referred.agent
-      .post("/api/ad-view")
-      .set("x-csrf-token", harnesses.referred.csrf)
-      .send({ adId: "qa_eco_ad", replaySourceId: tx.sourceId });
-    await dupe.expect((_r) => {});
+    // Replaying the exact same completed ad view must fail — the ledger's
+    // (source_id, source_type) uniqueness rejects it outright.
+    const dupe = await harnesses.referred.post("/api/ad-view", { adId: "qa_eco_ad", replaySourceId: tx.sourceId });
+    expect([400, 409, 500]).toContain(dupe.status);
     const rows = await db.select().from(userTransactions)
       .where(and(eq(userTransactions.userId, usersState.referred.id), eq(userTransactions.engineType, "Engine_A")));
     expect(rows.length).toBe(1); // still exactly one ledger row
