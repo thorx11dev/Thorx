@@ -543,11 +543,11 @@ describe("Engine B — survey callbacks (BitLabs + CPX Research)", () => {
       const { user } = await registerUser("cpx_rev");
 
       const [before] = await db
-        .select({ balance: users.availableBalance })
+        .select({ pending: users.pendingBalance })
         .from(users).where(eq(users.id, user.id)).limit(1);
-      const balBefore = Number(before.balance ?? 0);
+      const pendingBefore = Number(before.pending ?? 0);
 
-      // 1 — Original complete: 1.00 USD → 278 PKR gross → 60% user = 166.80.
+      // 1 — Original complete: 1.00 USD → 278 PKR gross → 60% user = 166.80 (pending).
       const transId = `cpx_rev_${TS}`;
       const sig = signCpx(transId, user.id, "1.00");
       const credit = await request(app).get(
@@ -557,9 +557,9 @@ describe("Engine B — survey callbacks (BitLabs + CPX Research)", () => {
       expect(credit.body.credited).toBe(true);
 
       const [afterCredit] = await db
-        .select({ balance: users.availableBalance })
+        .select({ pending: users.pendingBalance })
         .from(users).where(eq(users.id, user.id)).limit(1);
-      expect(Number(afterCredit.balance)).toBeGreaterThan(balBefore);
+      expect(Number(afterCredit.pending)).toBeGreaterThan(pendingBefore);
 
       // 2 — Reversal: same trans_id, status=2 (fraud cancellation).
       const sig2 = signCpx(transId, user.id, "1.00");
@@ -572,9 +572,9 @@ describe("Engine B — survey callbacks (BitLabs + CPX Research)", () => {
       expect(reversal.body.outcome).toBe("reversed");
 
       const [afterReversal] = await db
-        .select({ balance: users.availableBalance })
+        .select({ pending: users.pendingBalance })
         .from(users).where(eq(users.id, user.id)).limit(1);
-      expect(Number(afterReversal.balance)).toBeCloseTo(balBefore, 2);
+      expect(Number(afterReversal.pending)).toBeCloseTo(pendingBefore, 2);
 
       const [record] = await db
         .select({ status: surveyRecords.status })
@@ -587,7 +587,7 @@ describe("Engine B — survey callbacks (BitLabs + CPX Research)", () => {
       );
       expect(retry.status).toBe(200);
       expect(retry.body.outcome).toBe("already_reversed");
-      expect(Number((await db.select({ balance: users.availableBalance }).from(users).where(eq(users.id, user.id)).limit(1))[0].balance)).toBeCloseTo(balBefore, 2);
+      expect(Number((await db.select({ pending: users.pendingBalance }).from(users).where(eq(users.id, user.id)).limit(1))[0].pending)).toBeCloseTo(pendingBefore, 2);
     });
 
     it("BitLabs RECONCILIATION (negative usd, ref tx) reverses the original credit", async () => {
