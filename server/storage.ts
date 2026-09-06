@@ -2436,7 +2436,7 @@ export class DatabaseStorage implements IStorage {
     let partialLastRow: Awaited<ReturnType<typeof this.calculateWithdrawalBreakdown>>["partialLastRow"] = null;
 
     for (const row of rows) {
-      if (pkrAccumulatedD.gte(pkrRequestedD2(pkrRequested))) break;
+      if (pkrAccumulatedD.gte(pkrRequested)) break;
 
       const effectivePkr = resolveRowPkr(row);
       const rowPointsD = new Decimal(row.pointsCredited.toString());
@@ -2641,20 +2641,11 @@ export class DatabaseStorage implements IStorage {
     return withdrawal;
   }
 
-  // THORX v3 (spec Part E.7) — finalizes a payout against the immutable
-  // ledger: marks the consumed user_transactions rows withdrawn, deducts the
-  // points from the user's TX-Points balance, pays the 1-tier referral
-  // commission (Appendix A #4) into the referrer's separate cash wallet
-  // (Appendix A #5 — never mixed with txPointsBalance), audit-logs the
-  // action (Appendix A #10), and emits a live feed event + notification.
-  // Critical finding #1 of the 2026-07-15 production-readiness audit: the
-  // pending-status check used to happen BEFORE the transaction opened, with
-  // no row lock, so two concurrent approvals of the same withdrawal could
-  // both pass the check and both execute the payout. Fix: lock the
-  // withdrawal row with SELECT ... FOR UPDATE as the very first statement
-  // inside the transaction, and re-check status only after the lock is held.
-  // A second concurrent call blocks on the lock, then sees status !=
-  // 'pending' once it acquires it, and throws instead of double-paying.
+  // ── v4: finalize a payout. The user's available balance was ALREADY
+  // debited (held) at request time — completion consumes the held funds,
+  // marks the backing ledger rows withdrawn, and FINALIZES the referrer's
+  // pending fee-share commission (pending → available). NO auto-approve
+  // path exists: this only ever runs from an explicit team action.
   async processWithdrawal(withdrawalId: string, adminId: string, transactionId?: string): Promise<Withdrawal> {
     let breakdown!: Awaited<ReturnType<DatabaseStorage["calculateWithdrawalBreakdown"]>>;
     let withdrawalUserId!: string;
@@ -2667,34 +2658,25 @@ export class DatabaseStorage implements IStorage {
         .for("update");
 
       if (!withdrawal) throw new Error("Withdrawal not found");
-      // Accept 'pending' (normal flow), 'approved' (S-Rank fast-track —
-      // createWithdrawal sets status='approved' for S-Rank users to skip the admin
-      // approval queue, but the financial settlement — FIFO ledger consumption,
-      // balance debit, referral commission — still happens here at processing time),
-      // and 'processing' (admin-set non-terminal marker, no ledger effect yet —
-      // must still be completable or it becomes a dead end).
+      // Accept 'pending' (normal review flow) and 'processing' (admin-set
+      // non-terminal marker). 'approved' no longer exists in the v4 flow —
+      // nothing auto-approves — but tolerate it for in-flight rows created
+      // before this deploy.
       if (withdrawal.status !== "pending" && withdrawal.status !== "approved" && withdrawal.status !== "processing") {
         throw new Error("Withdrawal is not in a processable state");
       }
 
       withdrawalUserId = withdrawal.userId;
-      // F-02: Use Decimal to parse the stored amount — parseInt silently truncates
-      // decimals and can produce wrong point counts. Decimal.ROUND_FLOOR matches
-      // the behaviour of createWithdrawal so the two call sites are consistent.
-      const _amtD = new Decimal(withdrawal.amount);
-      if (_amtD.isNaN() || !_amtD.isFinite() || _amtD.lte(0)) {
+      const grossD = new Decimal(withdrawal.amount);
+      if (grossD.isNaN() || !grossD.isFinite() || grossD.lte(0)) {
         throw new Error(`Withdrawal amount is invalid: "${withdrawal.amount}"`);
       }
-      const pointsRequested = _amtD.toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber();
-      breakdown = await this.calculateWithdrawalBreakdown(withdrawal.userId, pointsRequested, tx);
+      breakdown = await this.calculateWithdrawalBreakdown(withdrawal.userId, grossD, tx);
 
-      // C1-04: Wrap breakdown numbers in Decimal immediately — native float arithmetic
-      // on DECIMAL columns accumulates sub-paisa drift; all subsequent math uses Decimal.
       const exactPkrD = new Decimal(breakdown.exactPkr.toString());
       const platformFeeD = new Decimal(breakdown.platformFee.toString());
       const referralCommissionD = new Decimal(breakdown.referralCommission.toString());
       const userNetPkrD = new Decimal(breakdown.userNetPkr.toString());
-      // thorxFeeShare = platformFee - referralCommission (Spec §18.2)
       const thorxShareD = platformFeeD.minus(referralCommissionD);
       const [updatedWithdrawal] = await tx
         .update(withdrawals)
@@ -2711,30 +2693,20 @@ export class DatabaseStorage implements IStorage {
         .where(eq(withdrawals.id, withdrawalId))
         .returning();
 
+      // v4: the gross was held at request time. Net goes out to the user;
+      // the fee delta (exact − net) is platform revenue realized NOW. Only
+      // the net amount is deducted from the user's ledgers of record.
       await tx
         .update(users)
         .set({
-          txPointsBalance:  sql`${users.txPointsBalance}  - ${pointsRequested}`,
-          // The specification defines both lifetime withdrawn and available
-          // balance in terms of the net amount paid to the user. The platform
-          // fee is recorded separately on the withdrawal row.
-          totalWithdrawn:   sql`${users.totalWithdrawn}   + ${userNetPkrD.toFixed(4)}`,
-          availableBalance: sql`${users.availableBalance} - ${userNetPkrD.toFixed(4)}`,
+          // Spec: totalWithdrawn tracks what the user actually received.
+          totalWithdrawn: sql`${users.totalWithdrawn} + ${userNetPkrD.toFixed(4)}`,
           updatedAt: new Date(),
         })
         .where(eq(users.id, withdrawal.userId));
 
       // ── Split-remainder: insert the unused portion of the partial last row ──
-      // If the FIFO loop partially consumed the last ledger row (i.e. only a
-      // fraction of its pointsCredited was needed), we insert a new
-      // split_remainder row for the leftover portion BEFORE marking the
-      // original row withdrawn. This preserves full ledger integrity:
-      //   • original row → marked withdrawn (consumed fraction only, PKR exact)
-      //   • new split row → unwithdrawn, carries the remainder for future use
-      // Both the INSERT and the UPDATE below are inside the same transaction,
-      // so there is no window where the remainder points can be double-counted
-      // or lost.
-      if (breakdown.partialLastRow && breakdown.partialLastRow.pointsRemainder > 0) {
+      if (breakdown.partialLastRow && breakdown.partialLastRow.pkrRemainder !== "0.0000") {
         const plr = breakdown.partialLastRow;
         await tx.insert(userTransactions).values({
           userId:         withdrawal.userId,
@@ -2746,13 +2718,12 @@ export class DatabaseStorage implements IStorage {
           guildPoolPkr:   plr.guildPoolPkr   ?? null,
           conversionRate: plr.conversionRate,
           cardVariance:   plr.cardVariance,
-          // Tie back to the original row so audit queries can reconstruct the
-          // full earn event; the partial-unique index on (source_id, source_type)
-          // guarantees at most one split_remainder per original row.
           sourceId:       `split:${plr.originalId}`,
           sourceType:     "split_remainder",
           withdrawn:      false,
           withdrawalId:   null,
+          verificationStatus: "verified", // remainder of verified money stays verified
+          verifiedAt: new Date(),
         });
         logger.info(
           {
@@ -2772,31 +2743,22 @@ export class DatabaseStorage implements IStorage {
           .where(inArray(userTransactions.id, breakdown.consumedTransactionIds));
       }
 
-      // 1-tier referral commission only (Appendix A #4) — paid from the
-      // platform fee into the referrer's balanceCashPkr, never txPointsBalance.
+      // v4 (Spec §16): finalize the referrer's pending fee-share commission —
+      // move it from pending to available, mark the commission row finalized.
       if (breakdown.referrerId && referralCommissionD.gt(0)) {
-        const feeRateUsed = new Decimal(await this.getSystemConfigValue<number>("WITHDRAWAL_FEE_PCT", 15)).div(100);
-        const refShareRateUsed = new Decimal(await this.getSystemConfigValue<number>("REFERRAL_FEE_SHARE_PCT", 50)).div(100);
-
         await tx
           .update(users)
           .set({
-            balanceCashPkr: sql`${users.balanceCashPkr} + ${referralCommissionD.toFixed(4)}`,
+            pendingBalance:  sql`${users.pendingBalance}  - ${referralCommissionD.toFixed(2)}`,
+            availableBalance: sql`${users.availableBalance} + ${referralCommissionD.toFixed(2)}`,
             updatedAt: new Date(),
           })
           .where(eq(users.id, breakdown.referrerId));
 
-        await tx.insert(referralCommissions).values({
-          referrerId: breakdown.referrerId,
-          inviteeId: withdrawalUserId,
-          withdrawalId,
-          commissionAmountPkr: referralCommissionD.toFixed(4),
-          inviteeNetPkr: userNetPkrD.toFixed(4),
-          platformFeePkr: platformFeeD.toFixed(4),
-          feeRateUsed: feeRateUsed.toFixed(4),
-          refShareRateUsed: refShareRateUsed.toFixed(4),
-        });
-        // Note: commission_logs is frozen/deprecated (Appendix A #4) — do not write to it.
+        await tx
+          .update(referralCommissions)
+          .set({ status: "finalized" })
+          .where(and(eq(referralCommissions.withdrawalId, withdrawalId), eq(referralCommissions.status, "pending")));
       }
 
       await tx.insert(auditLogs).values({
@@ -2814,7 +2776,7 @@ export class DatabaseStorage implements IStorage {
     await emitFeedEvent({
       type: "withdrawal",
       userId: withdrawalUserId,
-      displayMessage: `Payout approved: '${user?.identity ?? withdrawalUserId}' → Rs.${new Decimal(breakdown.userNetPkr.toString()).toFixed(2)} | Fee: Rs.${new Decimal(breakdown.platformFee.toString()).toFixed(2)}${new Decimal(breakdown.referralCommission.toString()).gt(0) ? ` | Ref: Rs.${new Decimal(breakdown.referralCommission.toString()).toFixed(2)}` : ""}`,
+      displayMessage: `Payout completed: '${user?.identity ?? withdrawalUserId}' → Rs.${new Decimal(breakdown.userNetPkr.toString()).toFixed(2)} | Fee: Rs.${new Decimal(breakdown.platformFee.toString()).toFixed(2)}${new Decimal(breakdown.referralCommission.toString()).gt(0) ? ` | Ref: Rs.${new Decimal(breakdown.referralCommission.toString()).toFixed(2)} finalized` : ""}`,
       data: breakdown,
     });
 
@@ -2828,11 +2790,10 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  // Reject withdrawal — no balance refund needed since createWithdrawal
-  // never deducts points/PKR up front under the v3 ledger model.
+  // ── v4: reject a payout — restore the held gross to the user's available
+  // balance and REVERSE the referrer's pending fee-share commission (Spec §17:
+  // failed payouts must never finalize referral commissions).
   async rejectWithdrawal(withdrawalId: string, adminId: string, reason: string): Promise<Withdrawal> {
-    // Same row-lock discipline as processWithdrawal — prevents a reject
-    // racing an in-flight approval of the same withdrawal.
     return await db.transaction(async (tx) => {
       const [withdrawal] = await tx
         .select()
@@ -2841,10 +2802,6 @@ export class DatabaseStorage implements IStorage {
         .for("update");
 
       if (!withdrawal) throw new Error("Withdrawal not found");
-      // Accept 'pending', 'approved' (S-Rank fast-track — admins must still be able
-      // to block a fast-tracked payout flagged by the ledger-mismatch check), and
-      // 'processing'. Mirrors the guard in processWithdrawal so neither terminal
-      // action ever dead-ends on a non-pending, non-terminal status.
       if (withdrawal.status !== "pending" && withdrawal.status !== "approved" && withdrawal.status !== "processing") {
         throw new Error("Withdrawal is not in a rejectable state");
       }
@@ -2860,22 +2817,41 @@ export class DatabaseStorage implements IStorage {
         .where(eq(withdrawals.id, withdrawalId))
         .returning();
 
-      // Ledger-audit fix (2026-07-29, CRITICAL): createReferralCashWithdrawal
-      // debits balanceCashPkr immediately when the request is created (unlike
-      // normal earnings withdrawals, whose balance is only touched later in
-      // processWithdrawal) — see spec E.9. Rejecting a referral:* withdrawal
-      // previously never refunded that pre-deducted amount, so every rejected
-      // referral cash-out permanently destroyed real user money with no
-      // corresponding ledger entry or recovery path.
+      // v4: normal (non-referral-wallet) withdrawals held the gross at
+      // request time — restore it in full.
+      if (!updatedWithdrawal.method?.startsWith("referral:")) {
+        await tx.update(users)
+          .set({ availableBalance: sql`${users.availableBalance} + ${new Decimal(updatedWithdrawal.amount).toFixed(2)}` })
+          .where(eq(users.id, updatedWithdrawal.userId));
+      }
+
+      // Referral cash withdrawals (referral:*) pre-deducted balanceCashPkr at
+      // request time (spec E.9 model) — refund that instead.
       if (updatedWithdrawal.method?.startsWith("referral:")) {
         await tx.update(users)
           .set({ balanceCashPkr: sql`${users.balanceCashPkr} + ${updatedWithdrawal.amount}` })
           .where(eq(users.id, updatedWithdrawal.userId));
       }
 
-      // Audit log written inside the transaction — atomically consistent with the
-      // status update. The route handler writes a second log for belt-and-suspenders
-      // visibility, but this one is the authoritative record even if the route fails.
+      // v4: reverse the referrer's pending fee-share commission for this
+      // withdrawal — pending balance debited, commission row marked reversed.
+      const [pendingCommission] = await tx
+        .select()
+        .from(referralCommissions)
+        .where(and(
+          eq(referralCommissions.withdrawalId, withdrawalId),
+          eq(referralCommissions.status, "pending"),
+        ))
+        .limit(1);
+      if (pendingCommission) {
+        await tx.update(users)
+          .set({ pendingBalance: sql`${users.pendingBalance} - ${pendingCommission.commissionAmountPkr}` })
+          .where(eq(users.id, pendingCommission.referrerId));
+        await tx.update(referralCommissions)
+          .set({ status: "reversed" })
+          .where(eq(referralCommissions.id, pendingCommission.id));
+      }
+
       await tx.insert(auditLogs).values({
         adminId,
         action: "WITHDRAWAL_REJECTED",
@@ -2886,7 +2862,9 @@ export class DatabaseStorage implements IStorage {
           amount: updatedWithdrawal.amount,
           beneficiary: updatedWithdrawal.userId,
           rejectionReason: reason,
+          heldAmountRestored: updatedWithdrawal.method?.startsWith("referral:") ? undefined : updatedWithdrawal.amount,
           referralCashRefunded: updatedWithdrawal.method?.startsWith("referral:") ? updatedWithdrawal.amount : undefined,
+          referrerCommissionReversed: pendingCommission?.commissionAmountPkr ?? undefined,
         },
       });
 
