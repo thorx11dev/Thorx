@@ -1347,27 +1347,7 @@ export class DatabaseStorage implements IStorage {
     const conversionRate = txPointsPerPkr;
     const pointsCredited = userPkrShareD.gt(0)
       ? userPkrShareD.times(txPointsPerPkr).toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber()
-      : 0;thorx_profit_pkr.
-    let thorxProfitRecorded = thorxProfitPkrD;
-
-    // Step 2: Thorx Card draw.
-    // For Engine A/B: base TX-Points on user's direct PKR share.
-    // For Engine C: base TX-Points on the 80% pool contribution so members see
-    //   their work counted even though the balance is locked until Sunday.
-    // drawThorxCard owns rank-tier variance. Pass bounds once (F-02 audit fix).
-    const txPointsBaseD = params.engineType === "Engine_C" ? guildPoolPkrD : userPkrShareD;
-    let cardResult = { pointsCredited: 0, realPkrValue: "0.0000", cardVariance: 1.0, targetPoints: 0 };
-    if (txPointsBaseD.gt(0)) {
-      cardResult = drawThorxCard({
-        userPkrShare: txPointsBaseD.toFixed(4),
-        conversionRate,
-        userRankTier: user.userRankTier,
-        varianceMin: baseVarianceMin,
-        varianceMax: baseVarianceMax,
-        aRankBonusPct,
-        sRankBonusPct,
-      });
-    }
+      : 0;
 
     // Steps 3-6 are wrapped in a single transaction — Critical finding #2 of
     // the 2026-07-15 production-readiness audit: recordEarnEvent previously
