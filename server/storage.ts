@@ -799,11 +799,8 @@ export const SYSTEM_CONFIG_DEFAULTS = [
       { key: "WAR_LEVY_ENGINE_B_PCT", value: 2, description: "War chest levy: % of Engine B gross routed from THORX's cut into the guild war chest during an active war (never from member earnings)" },
       { key: "WAR_LEVY_ENGINE_C_PCT", value: 2, description: "War chest levy: % of Engine C gross routed from THORX's cut into the guild war chest during an active war (never from member earnings)" },
       // ── Referral Earn Commission ─────────────────────────────────────────
-      { key: "REFERRAL_EARN_PCT", value: 1, description: "% of gross PKR credited to direct referrer on every earn event (Engine A/B/C). Separate from the withdrawal-based referral fee." },
-      // ── Dynamic Economy Multiplier ────────────────────────────────────────
-      { key: "ECONOMY_MULTIPLIER_ENABLED", value: true, description: "Enable auto-computed economy multiplier based on platform revenue trends" },
-      { key: "ECONOMY_MULTIPLIER_MIN", value: 0.7, description: "Minimum economy multiplier (floor)" },
-      { key: "ECONOMY_MULTIPLIER_MAX", value: 1.5, description: "Maximum economy multiplier (ceiling)" },
+      { key: "REFERRAL_EARN_PCT", value: 1, description: "DEPRECATED (v4): superseded by TASK_SPLIT_REFERRER_PCT — kept only so old rows keep their stored rate readable" },
+      // ── Dynamic Economy Multiplier — REMOVED (v4): the multiplier keys above ──
       // ── Activity Feed ─────────────────────────────────────────────────────
       { key: "FEED_RETENTION_DAYS", value: 30, description: "Days to retain activity_feed rows" },
       // ── Ad Engine ─────────────────────────────────────────────────────────────
