@@ -23,7 +23,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
-import { PSProgressCard } from "@/components/PSProgressCard";
+import { QUERY_KEYS } from "@/lib/queryKeys";
 import { Skeleton } from "@/components/ui/skeleton";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { cn } from "@/lib/utils";
