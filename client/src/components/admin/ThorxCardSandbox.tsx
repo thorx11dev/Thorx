@@ -208,12 +208,12 @@ export function ThorxCardSandbox() {
       </div>
 
       {/* Live config transparency — audit addition: proves the sandbox is
-          actually reading current System Settings instead of stale defaults. */}
+          actually reading current System Settings instead of stale defaults.
+          v4: fixed conversion, no variance, no rank multipliers. */}
       {liveConfig && (
         <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600 flex flex-wrap gap-x-4 gap-y-1">
           <span className="font-semibold text-zinc-700">Live config for Engine {shortEngine}:</span>
-          <span>Ratio {liveConfig.conversionRate} pts/Rs.10</span>
-          <span>Variance {Math.round(liveConfig.varianceMin * 100)}–{Math.round(liveConfig.varianceMax * 100)}%</span>
+          <span>{liveConfig.conversionRate} pts/Rs.1 (fixed)</span>
           {isEngineC ? (
             <>
               <span>Thorx {liveConfig.thorxCutPct}%</span>
@@ -226,7 +226,6 @@ export function ThorxCardSandbox() {
               <span>User cut {liveConfig.userCutPct}%</span>
             </>
           )}
-          <span>A-Rank ±{liveConfig.aRankBonusPct}% · S-Rank ±{liveConfig.sRankBonusPct}%</span>
         </div>
       )}
 
