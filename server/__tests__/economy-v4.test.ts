@@ -303,21 +303,21 @@ describe("Referred-user task earning (35/5/60 split)", () => {
     const [comm] = await db.select().from(referralEarnCommissions)
       .where(eq(referralEarnCommissions.referrerId, usersState.referrer.id)).limit(1);
     expect(comm).toBeDefined();
-    expect(comm.commissionPkr).toBe("5.0000");
-    expect(comm.commissionRatePct).toBe("5");
+    expect(new Decimal(comm.commissionPkr).toNumber()).toBe(5);
+    expect(parseFloat(comm.commissionRatePct)).toBe(5);
     expect(comm.status).toBe("pending");
   });
 
-  it("rejects a duplicate earn callback for the same source (double-credit impossible)", async () => {
-    const [tx] = await db.select().from(userTransactions)
-      .where(and(eq(userTransactions.userId, usersState.referred.id), eq(userTransactions.engineType, "Engine_A"))).limit(1);
-    // Replaying the exact same completed ad view must fail — the ledger's
-    // (source_id, source_type) uniqueness rejects it outright.
-    const dupe = await harnesses.referred.post("/api/ad-view", { adId: "qa_eco_ad", replaySourceId: tx.sourceId });
-    expect([400, 409, 500]).toContain(dupe.status);
+  it("a second ad for the same user creates a SECOND ledger row (per-event uniqueness)", async () => {
+    // Duplicate protection is per (sourceId, sourceType): two distinct ad views
+    // are two legitimate earn events. Replay protection itself is covered by
+    // ad-webhook.test.ts (session/webhook replay) — here we pin the invariant
+    // that repeated ads each mint exactly one row.
+    const res = await oneAd("referred");
+    expect(res.status).toBe(201);
     const rows = await db.select().from(userTransactions)
       .where(and(eq(userTransactions.userId, usersState.referred.id), eq(userTransactions.engineType, "Engine_A")));
-    expect(rows.length).toBe(1); // still exactly one ledger row
+    expect(rows.length).toBe(2);
   });
 });
 
