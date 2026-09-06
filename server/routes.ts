@@ -448,18 +448,21 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
   // Explicit health check endpoint for Railway
   // ── Public config endpoint — no auth required (Spec §17.6) ──────────────────
-  // Returns only the display parameters the frontend needs for TX-Points conversion.
-  // NEVER exposes per-engine ratios, PKR values, or business secrets.
+  // Returns only the display parameters the frontend needs. v4: the fixed
+  // TX-Points conversion (TX_POINTS_PER_PKR, default 10 pts = Rs.1) replaces
+  // the old CONVERSION_RATE. NEVER exposes per-engine ratios, PKR values, or
+  // business secrets.
   app.get("/api/config/public", async (_req, res) => {
     try {
-      const [conversionRate, withdrawalFeePct, dailyEarningsGoalPkr] = await Promise.all([
-        storage.getSystemConfigValue<number>("CONVERSION_RATE", 1000),
+      const [txPointsPerPkr, withdrawalFeePct, minPayout, dailyEarningsGoalPkr] = await Promise.all([
+        storage.getSystemConfigValue<number>("TX_POINTS_PER_PKR", 10),
         storage.getSystemConfigValue<number>("WITHDRAWAL_FEE_PCT", 15),
+        storage.getSystemConfigValue<number>("MIN_PAYOUT", 500),
         storage.getSystemConfigValue<number>("DAILY_EARNINGS_GOAL_PKR", 50),
       ]);
-      res.json({ conversionRate, platformName: "THORX", withdrawalFeePct, dailyEarningsGoalPkr });
+      res.json({ txPointsPerPkr, conversionRate: txPointsPerPkr, minPayout, platformName: "THORX", withdrawalFeePct, dailyEarningsGoalPkr });
     } catch (error) {
-      res.json({ conversionRate: 1000, platformName: "THORX", withdrawalFeePct: 15, dailyEarningsGoalPkr: 50 });
+      res.json({ txPointsPerPkr: 10, conversionRate: 10, minPayout: 500, platformName: "THORX", withdrawalFeePct: 15, dailyEarningsGoalPkr: 50 });
     }
   });
 
