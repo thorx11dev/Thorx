@@ -186,9 +186,9 @@ describe("Referral link — createUser with referredBy", () => {
   });
 });
 
-// ── Suite 3: 1% earn commission on Engine A / B ───────────────────────────────
+// ── Suite 3: v4 referred-task split — 5% PKR-only commission (pending) ───────
 
-describe("Referral earn commission (REFERRAL_EARN_PCT = 1%)", () => {
+describe("Referral earn commission (v4: TASK_SPLIT_REFERRER_PCT, PKR only)", () => {
   let referrerId: string;
   let earnerId: string;
   const GROSS_PKR = 100; // big round number → easy to verify math
@@ -211,9 +211,10 @@ describe("Referral earn commission (REFERRAL_EARN_PCT = 1%)", () => {
     earnerId = earner.id;
   }, 30_000);
 
-  it("credits 1% of grossPkr to referrer's balanceCashPkr (Engine A)", async () => {
+  it("credits 5% of grossPkr to referrer's PENDING balance (Engine A) — PKR only", async () => {
     const before = await storage.getUserById(referrerId);
-    const beforeBalance = new Decimal(before!.balanceCashPkr ?? "0");
+    const beforePending = new Decimal(before!.pendingBalance ?? "0");
+    const beforePoints = before!.txPointsBalance ?? 0;
 
     await storage.recordEarnEvent({
       userId:     earnerId,
@@ -224,26 +225,45 @@ describe("Referral earn commission (REFERRAL_EARN_PCT = 1%)", () => {
     });
 
     const after = await storage.getUserById(referrerId);
-    const afterBalance = new Decimal(after!.balanceCashPkr ?? "0");
-    const delta = afterBalance.minus(beforeBalance);
-
-    // 1% of 100 = 1.0000 PKR
-    expect(delta.toNumber()).toBeCloseTo(1.0, 3);
+    const delta = new Decimal(after!.pendingBalance ?? "0").minus(beforePending);
+    // 5% of 100 = 5.0000 PKR into PENDING (v4 — was 1% to balanceCashPkr).
+    expect(delta.toNumber()).toBeCloseTo(5.0, 3);
+    // §9: referral commissions NEVER create TX-Points.
+    expect(after!.txPointsBalance).toBe(beforePoints);
+    // balanceCashPkr is untouched under v4.
+    expect(new Decimal(after!.balanceCashPkr ?? "0").toNumber()).toBe(
+      new Decimal(before!.balanceCashPkr ?? "0").toNumber()
+    );
   });
 
-  it("inserts a referral_earn_commissions row", async () => {
+  it("inserts a referral_earn_commissions row with status='pending'", async () => {
     const rows = await db.select().from(referralEarnCommissions)
       .where(and(
         eq(referralEarnCommissions.referrerId, referrerId),
         eq(referralEarnCommissions.earnerId, earnerId),
       ));
     expect(rows.length).toBeGreaterThan(0);
-    expect(new Decimal(rows[0].commissionPkr).toNumber()).toBeCloseTo(1.0, 3);
+    expect(new Decimal(rows[0].commissionPkr).toNumber()).toBeCloseTo(5.0, 3);
+    expect(rows[0].commissionRatePct).toBe("5");
+    expect(rows[0].status).toBe("pending");
   });
 
-  it("credits 1% commission for Engine B as well", async () => {
+  it("writes a dedicated Referral_Commission ledger row (audit trail)", async () => {
+    const [refTx] = await db.select().from(userTransactions)
+      .where(and(
+        eq(userTransactions.userId, referrerId),
+        eq(userTransactions.engineType, "Referral_Commission"),
+        eq(userTransactions.sourceId, `test_ref_comm_a_${TS}:ref`),
+      )).limit(1);
+    expect(refTx).toBeDefined();
+    expect(refTx.realPkrValue).toBe("5.0000");
+    expect(refTx.pointsCredited).toBe(0);
+    expect(refTx.verificationStatus).toBe("pending");
+  });
+
+  it("credits 5% commission for Engine B as well", async () => {
     const before = await storage.getUserById(referrerId);
-    const beforeBalance = new Decimal(before!.balanceCashPkr ?? "0");
+    const beforePending = new Decimal(before!.pendingBalance ?? "0");
 
     await storage.recordEarnEvent({
       userId:     earnerId,
@@ -254,14 +274,24 @@ describe("Referral earn commission (REFERRAL_EARN_PCT = 1%)", () => {
     });
 
     const after = await storage.getUserById(referrerId);
-    const afterBalance = new Decimal(after!.balanceCashPkr ?? "0");
-    const delta = afterBalance.minus(beforeBalance);
-    expect(delta.toNumber()).toBeCloseTo(1.0, 3);
+    const delta = new Decimal(after!.pendingBalance ?? "0").minus(beforePending);
+    expect(delta.toNumber()).toBeCloseTo(5.0, 3);
+  });
+
+  it("earner still receives the full 60% user share (referred split: 35/5/60)", async () => {
+    const [earnerTx] = await db.select().from(userTransactions)
+      .where(and(
+        eq(userTransactions.userId, earnerId),
+        eq(userTransactions.engineType, "Engine_A"),
+      )).limit(1);
+    expect(earnerTx.realPkrValue).toBe("60.0000");
+    expect(earnerTx.thorxProfitPkr).toBe("35.0000");
+    expect(earnerTx.pointsCredited).toBe(600); // 60 × 10 fixed conversion
   });
 
   it("does NOT credit commission for Indirect earn events", async () => {
     const before = await storage.getUserById(referrerId);
-    const beforeBalance = new Decimal(before!.balanceCashPkr ?? "0");
+    const beforePending = new Decimal(before!.pendingBalance ?? "0");
 
     await storage.recordEarnEvent({
       userId:     earnerId,
@@ -272,8 +302,7 @@ describe("Referral earn commission (REFERRAL_EARN_PCT = 1%)", () => {
     });
 
     const after = await storage.getUserById(referrerId);
-    const afterBalance = new Decimal(after!.balanceCashPkr ?? "0");
-    expect(afterBalance.toNumber()).toBe(beforeBalance.toNumber()); // unchanged
+    expect(new Decimal(after!.pendingBalance ?? "0").toNumber()).toBe(beforePending.toNumber()); // unchanged
   });
 });
 
