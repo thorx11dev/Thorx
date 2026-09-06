@@ -600,7 +600,7 @@ describe("Engine B — survey callbacks (BitLabs + CPX Research)", () => {
       expect(orig.body.credited).toBe(true);
 
       const [beforeRev] = await db
-        .select({ balance: users.availableBalance })
+        .select({ pending: users.pendingBalance })
         .from(users).where(eq(users.id, user.id)).limit(1);
 
       // Reconciliation references the original tx via `ref` and carries a negative usd.
@@ -617,9 +617,9 @@ describe("Engine B — survey callbacks (BitLabs + CPX Research)", () => {
       expect(record?.status).toBe("reconciled");
 
       const [afterRev] = await db
-        .select({ balance: users.availableBalance })
+        .select({ pending: users.pendingBalance })
         .from(users).where(eq(users.id, user.id)).limit(1);
-      expect(Number(afterRev.balance)).toBeLessThan(Number(beforeRev.balance));
+      expect(Number(afterRev.pending)).toBeLessThan(Number(beforeRev.pending));
     });
   });
 });
