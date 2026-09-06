@@ -3751,7 +3751,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       broadcastToUser(updated.userId, 'withdrawal_status_changed', { status, withdrawalId });
 
       // Fire-and-forget branded payout notification — never blocks the admin action
-      if (status === "approved" || status === "completed" || status === "rejected") {
+      if (status === "completed" || status === "rejected") {
         storage.getUserById(updated.userId).then((owner) => {
           if (!owner) return;
           return sendPayoutStatusEmail({
