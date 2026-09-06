@@ -184,12 +184,10 @@ beforeAll(async () => {
     if (exists) cfgSnapshot.set(key, value);
   }
 
-  // Deterministic draw environment for the multiplier test.
-  await setConfig("ENGINE_A_ILLUSION_VARIANCE_PCT", 0);
-  await setConfig("ENGINE_A_THORX_CUT_PCT", 40);
-  await setConfig("ENGINE_A_PKR_TO_POINTS_RATIO", 1000);
-  await setConfig("CONVERSION_RATE", 1000);
-  await setConfig("ECONOMY_MULTIPLIER_OVERRIDE", 1);
+  // Deterministic v4 environment: fixed conversion (10 pts = Rs.1), standard
+  // direct split (40/60). No variance, no multipliers — v4 removed them.
+  await setConfig("TASK_SPLIT_THORX_PCT", 40);
+  await setConfig("TX_POINTS_PER_PKR", 10);
 
   // Add a QA ad with a meaningful reward (default hilltop_fallback is 0.02 PKR
   // → 2 base points, too small to distinguish rank multipliers after flooring).
