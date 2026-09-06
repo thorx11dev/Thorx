@@ -1369,12 +1369,6 @@ export class DatabaseStorage implements IStorage {
       });
     }
 
-    // Apply rank multiplier to TX-Points display value (Q6).
-    // Rounding down to keep integer point counts clean.
-    const rankedPointsCredited = cardResult.pointsCredited > 0
-      ? Math.floor(cardResult.pointsCredited * rankMult)
-      : 0;
-
     // Steps 3-6 are wrapped in a single transaction — Critical finding #2 of
     // the 2026-07-15 production-readiness audit: recordEarnEvent previously
     // made independent, unguarded db calls for the ledger row, balance
@@ -1408,21 +1402,23 @@ export class DatabaseStorage implements IStorage {
       // duplicate ledger row outright if this same ad_view/task completion
       // is ever submitted twice — defense-in-depth for Critical finding #4
       // of the 2026-07-15 production-readiness audit.
-      // Audit fix 1-F: use userPkrShareD (Decimal) directly for all DB writes
-      // instead of cardResult.realPkrValue (which is userPkrShareD.toNumber() —
-      // a float). This eliminates IEEE 754 drift at the ledger write boundary.
+      // v4: user PKR lands with verificationStatus='pending' — the verification
+      // sweep moves it to available after PENDING_VERIFICATION_HOURS. Engine C
+      // rows carry 0 PKR (pool money) so they are 'verified' from birth.
       await tx.insert(userTransactions).values({
         userId: params.userId,
         engineType: params.engineType,
-        pointsCredited: rankedPointsCredited,
+        pointsCredited,
         realPkrValue: userPkrShareD.toFixed(4),
-        grossPkr: grossPkrD.toFixed(4), // effective grossPkr after economy multiplier
+        grossPkr: grossPkrD.toFixed(4),
         thorxProfitPkr: thorxProfitRecorded.toFixed(4),
         guildPoolPkr: guildPoolPkrD.toFixed(4),
-        conversionRate: Math.round(conversionRate),
-        cardVariance: cardResult.cardVariance.toFixed(4),
+        conversionRate,
+        cardVariance: new Decimal(1).toFixed(4), // variance removed — fixed 1.0000 for audit compatibility
         sourceId: params.sourceId,
         sourceType: params.sourceType,
+        verificationStatus: userPkrShareD.gt(0) ? "pending" : "verified",
+        verifiedAt: userPkrShareD.gt(0) ? null : new Date(),
       });
 
       if (params.engineType === "Engine_C" && params.guildId) {
@@ -1437,16 +1433,14 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Step 4: Update user-facing balances + earnings history.
-      if (rankedPointsCredited > 0 || userPkrShareD.gt(0)) {
+      // v4: PKR goes to PENDING balance — never straight to available.
+      if (pointsCredited > 0 || userPkrShareD.gt(0)) {
         await tx
           .update(users)
           .set({
-            txPointsBalance: sql`${users.txPointsBalance} + ${rankedPointsCredited}`,
+            txPointsBalance: sql`${users.txPointsBalance} + ${pointsCredited}`,
             totalEarnings:   sql`${users.totalEarnings}   + ${userPkrShareD.toFixed(2)}`,
-            // Credit the exact historical user share. The withdrawal fee is
-            // charged at approval, so the user's cash balance is debited by
-            // the documented net amount there.
-            availableBalance: sql`${users.availableBalance} + ${userPkrShareD.toFixed(4)}`,
+            pendingBalance:  sql`${users.pendingBalance}  + ${userPkrShareD.toFixed(4)}`,
             lastActiveAt: new Date(),
           })
           .where(eq(users.id, params.userId));
@@ -1459,54 +1453,70 @@ export class DatabaseStorage implements IStorage {
             amount: userPkrShareD.toFixed(2),
             description: params.engineType === "Engine_C"
               ? `Engine C pool contribution — Rs.${guildPoolPkrD.toFixed(2)} locked in guild pool (Sunday distribution)`
-              : `${params.engineType} task completion`,
-            status: "completed",
+              : `${params.engineType} task completion — pending verification`,
+            status: "pending",
           })
           .returning();
       }
 
-      // Step 4b: Referral earn commission (Q1) — 1% of effective grossPkr to direct referrer.
-      // Only fires for revenue-generating engines (not Indirect). Duplicate-protected by
-      // unique index on (earnerId, earnEventSourceId, earnEventSourceType).
+      // Step 4b: Referral task-split commission (Spec §8) — referrer receives
+      // their % of the earner's gross as REAL PKR ONLY, credited to the
+      // referrer's PENDING balance with its own ledger row. It NEVER creates
+      // TX-Points and is only settled by the verification sweep (or reversed
+      // with the underlying earning). Duplicate-protected by the unique index
+      // on (earnerId, earnEventSourceId, earnEventSourceType) and by the
+      // ledger's (sourceId, sourceType) index via the ':ref' suffix.
       if (
         user.referredBy &&
         params.engineType !== "Indirect" &&
-        referralEarnPct > 0 &&
-        grossPkrD.gt(0)
+        referrerCommissionD.gt(0)
       ) {
-        const commissionD = grossPkrD
-          .times(referralEarnPct)
-          .div(100)
-          .toDecimalPlaces(4, Decimal.ROUND_DOWN);
-        if (commissionD.gt(0)) {
-          await tx
-            .update(users)
-            .set({ balanceCashPkr: sql`${users.balanceCashPkr} + ${commissionD.toFixed(4)}` })
-            .where(eq(users.id, user.referredBy));
-          await tx.insert(referralEarnCommissions).values({
-            referrerId: user.referredBy,
-            earnerId: params.userId,
-            earnEventSourceId: params.sourceId,
-            earnEventSourceType: params.sourceType,
-            grossPkr: grossPkrD.toFixed(4),
-            commissionPkr: commissionD.toFixed(4),
-            commissionRatePct: String(referralEarnPct),
-          });
-        }
+        await tx
+          .update(users)
+          .set({ pendingBalance: sql`${users.pendingBalance} + ${referrerCommissionD.toFixed(4)}` })
+          .where(eq(users.id, user.referredBy));
+
+        // Own immutable ledger row — type Referral_Commission, pending like the
+        // underlying earning, so the sweep finalizes both together.
+        await tx.insert(userTransactions).values({
+          userId: user.referredBy,
+          engineType: "Referral_Commission",
+          pointsCredited: 0, // PKR only — referral commissions NEVER create TX-Points (Spec §9)
+          realPkrValue: referrerCommissionD.toFixed(4),
+          grossPkr: grossPkrD.toFixed(4),
+          thorxProfitPkr: null,
+          guildPoolPkr: null,
+          conversionRate,
+          cardVariance: new Decimal(1).toFixed(4),
+          sourceId: `${params.sourceId}:ref`,
+          sourceType: "referral_commission",
+          verificationStatus: "pending",
+        });
+
+        await tx.insert(referralEarnCommissions).values({
+          referrerId: user.referredBy,
+          earnerId: params.userId,
+          earnEventSourceId: params.sourceId,
+          earnEventSourceType: params.sourceType,
+          grossPkr: grossPkrD.toFixed(4),
+          commissionPkr: referrerCommissionD.toFixed(4),
+          commissionRatePct: String(referrerCutPct),
+          status: "pending",
+        });
       }
 
       // Step 5: Guild member contribution tracking (Engine C only).
       if (params.engineType === "Engine_C" && params.guildId) {
         await tx
           .update(guildMembers)
-          .set({ weeklyPointsContributed: sql`${guildMembers.weeklyPointsContributed} + ${rankedPointsCredited}` })
+          .set({ weeklyPointsContributed: sql`${guildMembers.weeklyPointsContributed} + ${pointsCredited}` })
           .where(and(eq(guildMembers.userId, params.userId), eq(guildMembers.guildId, params.guildId)));
-        await awardMemberGPS(params.guildId, rankedPointsCredited, tx);
+        await awardMemberGPS(params.guildId, pointsCredited, tx);
         // Critical fix: this was the missing link — contributeWarPoints() was fully
         // implemented but never called from anywhere, so active guild wars never
         // accumulated points from real member earnings. Wired in here, alongside
         // the GPS award, using the same outer transaction for consistency.
-        await contributeWarPoints(params.userId, params.guildId, rankedPointsCredited, tx);
+        await contributeWarPoints(params.userId, params.guildId, pointsCredited, tx);
       }
 
       // Step 6: PS award + streak + rank-tier check (PS is the sole rank input — Appendix A #6).
