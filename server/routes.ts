@@ -6510,14 +6510,16 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   });
 
   // ── THORX v3 (spec E.9): Withdrawal preview & referral cash withdrawal ────
+  // v4: preview is PKR-denominated (Spec §13 — the user sees gross/fee/net
+  // in rupees before submitting; the request itself holds the gross).
   app.get("/api/withdrawals/preview", requireSessionAuth, async (req, res) => {
     try {
       const userId = getThorxPrincipalId(req) as string;
-      const points = parseInt(req.query.points as string);
-      if (!Number.isFinite(points) || points <= 0) {
-        return res.status(400).json({ message: "points must be a positive integer." });
+      const amount = parseFloat(req.query.amount as string);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return res.status(400).json({ message: "amount must be a positive PKR value." });
       }
-      const preview = await storage.previewWithdrawal(userId, points);
+      const preview = await storage.previewWithdrawal(userId, amount);
       res.json(preview);
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to preview withdrawal";
@@ -6532,6 +6534,17 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       res.json(balance);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch referral balance" });
+    }
+  });
+
+  // v4 (Spec §25): referral earnings split into pending / available / total.
+  app.get("/api/user/referral-earnings", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req) as string;
+      const summary = await storage.getReferralEarningsSummary(userId);
+      res.json(summary);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch referral earnings" });
     }
   });
 
