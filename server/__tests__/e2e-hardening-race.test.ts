@@ -1,18 +1,18 @@
 /**
- * THORX Ultra-Advanced Hardening E2E — concurrency races, security & rate limiting
+ * THORX Ultra-Advanced Hardening E2E â€” concurrency races, security & rate limiting
  *
  * This suite exists to PROVE the platform's hardening under conditions real
  * traffic produces but happy-path tests never see:
  *
  *   1. CONCURRENCY / RACE CONDITIONS (the crown jewels)
- *      - Two parallel Engine B verify calls for the same task → exactly ONE
+ *      - Two parallel Engine B verify calls for the same task â†’ exactly ONE
  *        credit, one ledger row, exact balance delta, no 500s.
- *      - Two parallel weekly-task completes → exactly one credit, one ledger
+ *      - Two parallel weekly-task completes â†’ exactly one credit, one ledger
  *        row, and the guild pool grows by exactly ONE event's contribution.
- *      - Two parallel withdrawal submissions → exactly one pending withdrawal
+ *      - Two parallel withdrawal submissions â†’ exactly one pending withdrawal
  *        (FOR UPDATE + partial unique index).
- *      - Same X-Idempotency-Key retried → deduped to one withdrawal (H-01).
- *      - Two parallel admin war resolves → the prize is credited to the winner
+ *      - Same X-Idempotency-Key retried â†’ deduped to one withdrawal (H-01).
+ *      - Two parallel admin war resolves â†’ the prize is credited to the winner
  *        EXACTLY ONCE (regression test for the double-prize race fixed by
  *        adding FOR UPDATE in resolveWar()).
  *
@@ -21,7 +21,7 @@
  *      - Unauthenticated earn routes 401.
  *      - Non-admin cannot resolve wars (403).
  *      - Mass-assignment smuggling on /api/withdrawals (status/fee/transactionId)
- *        is stripped — the row is created pending with server-computed fee.
+ *        is stripped â€” the row is created pending with server-computed fee.
  *
  *   3. RATE LIMITERS (real middleware, HTTP level)
  *      - authRateLimiter (10/15min), withdrawalRateLimiter (5/15min),
@@ -55,7 +55,7 @@ import {
   guildInteractionRateLimiter, chatbotRateLimiter, publicApiRateLimiter,
 } from "../middleware/auth-rate-limit";
 
-// ── Fixtures & shared state ──────────────────────────────────────────────────
+// â”€â”€ Fixtures & shared state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const TS = Date.now();
 const PASSWORD = "TestPass123!";
@@ -82,7 +82,7 @@ const createdIds = {
   engineBTasks: [] as string[],
 };
 
-// ── HTTP harness (CSRF double-submit cookies) ────────────────────────────────
+// â”€â”€ HTTP harness (CSRF double-submit cookies) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function getCsrfToken(res: request.Response): string {
   const cookies: string[] = Array.isArray(res.headers["set-cookie"])
@@ -170,7 +170,7 @@ async function seedWithdrawableBalance(userId: string, rows: number, ptsEach: nu
   await db.update(users).set({ txPointsBalance: rows * ptsEach as any }).where(eq(users.id, userId));
 }
 
-// ── Rate-limiter scaffolding (standalone express apps) ───────────────────────
+// â”€â”€ Rate-limiter scaffolding (standalone express apps) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function makeLimitedApp(limiter: any, path = "/x") {
   const limApp = express();
@@ -195,7 +195,7 @@ async function burst(limApp: any, n: number, ip: string, method: "get" | "post" 
   return statuses;
 }
 
-// ── Setup / teardown ─────────────────────────────────────────────────────────
+// â”€â”€ Setup / teardown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 beforeAll(async () => {
   app = express();
@@ -215,7 +215,7 @@ beforeAll(async () => {
   await registerRoutes(app);
 
   // registerRoutes sets 'trust proxy' 1; with a single X-Forwarded-For value
-  // that leaves req.ip = socket (127.0.0.1) → skipLocalhost() skips the rate
+  // that leaves req.ip = socket (127.0.0.1) â†’ skipLocalhost() skips the rate
   // limiters. Trust-all lets the spoofed XFF become req.ip so the earn-limiter
   // HTTP tests actually exercise the real middleware.
   app.set("trust proxy", true);
@@ -236,7 +236,7 @@ beforeAll(async () => {
   }
   await harnesses.founder.post("/api/login", { email: founder.email, password: PASSWORD });
 
-  // Captains seeded at B-Rank — guild creation now requires it (beta policy).
+  // Captains seeded at B-Rank â€” guild creation now requires it (beta policy).
   await registerRealUser("captainA", { firstName: "CapA", userRankTier: "B-Rank" });
   await registerRealUser("memberA", { firstName: "MemA", userRankTier: "C-Rank" });
   await registerRealUser("captainB", { firstName: "CapB", userRankTier: "B-Rank" });
@@ -279,7 +279,7 @@ afterAll(async () => {
   await pool.end();
 }, 30_000);
 
-// ── Concurrency & race conditions ────────────────────────────────────────────
+// â”€â”€ Concurrency & race conditions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("Concurrency & race conditions", () => {
   beforeAll(async () => {
@@ -303,7 +303,7 @@ describe("Concurrency & race conditions", () => {
     guildA.id = await mkGuild("captainA", `HR-GuildA ${TS}`);
     guildB.id = await mkGuild("captainB", `HR-GuildB ${TS}`);
 
-    // memberA → guildA, memberB → guildB. Applications are listed and decided
+    // memberA â†’ guildA, memberB â†’ guildB. Applications are listed and decided
     // by the CAPTAIN (the endpoint is captain-scoped), not the applicant.
     for (const [hKey, gid] of [["memberA", guildA.id], ["memberB", guildB.id]] as const) {
       const apply = await harnesses[hKey].post(`/api/guilds/${gid}/apply`, {
@@ -373,7 +373,7 @@ describe("Concurrency & race conditions", () => {
       harnesses.racer.post(`/api/engine-b/tasks/${ebTask.easy}/verify`, { code: "HREASY" }),
     ]);
 
-    // Both must succeed gracefully — no 500 "Verification failed" from a lost
+    // Both must succeed gracefully â€” no 500 "Verification failed" from a lost
     // unique-index race (regression test for the WHERE status='pending' guard).
     expect([r1.status, r2.status]).toEqual([200, 200]);
     const winners = [r1, r2].filter((r) => r.body.success === true);
@@ -410,7 +410,7 @@ describe("Concurrency & race conditions", () => {
     expect(records.length).toBe(1);
 
     // Exactly one ledger row, and the guild pool grew by EXACTLY that row's
-    // contribution — the losing request must not have double-funded anything.
+    // contribution â€” the losing request must not have double-funded anything.
     const ledger = await db.select({ guildPool: userTransactions.guildPoolPkr }).from(userTransactions)
       .where(and(eq(userTransactions.sourceId, records[0].id), eq(userTransactions.sourceType, "weekly_task")));
     expect(ledger.length).toBe(1);
@@ -422,7 +422,7 @@ describe("Concurrency & race conditions", () => {
   }, 60_000);
 
   it("parallel withdrawal submissions create EXACTLY one pending withdrawal", async () => {
-    await seedWithdrawableBalance(usersState.wallet.id, 20, 1_000, "10.0000"); // 200 PKR, min payout 100
+    await seedWithdrawableBalance(usersState.wallet.id, 20, 1_000, "10.0000"); // 200 PKR (MIN_PAYOUT forced below in-test)
 
     const payload = {
       amount: "10000", method: "bank",
@@ -463,7 +463,7 @@ describe("Concurrency & race conditions", () => {
   }, 60_000);
 
   it("parallel war resolves pay the prize EXACTLY once (double-prize race regression)", async () => {
-    // Full real war flow: challenge + all four approvals → active.
+    // Full real war flow: challenge + all four approvals â†’ active.
     const chal = await harnesses.captainA.post(`/api/guilds/${guildA.id}/war/challenge`, { challengedGuildId: guildB.id });
     expect(chal.status).toBe(201);
     war.id = chal.body.war.id;
@@ -475,7 +475,7 @@ describe("Concurrency & race conditions", () => {
       expect(r.status).toBe(200);
     }
 
-    // Known chests + known score gap (test scaffolding — gameplay already proven).
+    // Known chests + known score gap (test scaffolding â€” gameplay already proven).
     await db.update(guilds).set({ warChestPkr: "100.0000" }).where(eq(guilds.id, guildA.id));
     await db.update(guilds).set({ warChestPkr: "50.0000" }).where(eq(guilds.id, guildB.id));
     await db.update(guildWars).set({ challengerScore: 500, challengedScore: 200 }).where(eq(guildWars.id, war.id));
@@ -494,9 +494,9 @@ describe("Concurrency & race conditions", () => {
     expect(Number(resolved[0].body.prizePkr)).toBeCloseTo(150, 2);
 
     const [poolAfter] = await db.select({ pool: guilds.weeklyBonusPool }).from(guilds).where(eq(guilds.id, guildA.id));
-    // CRITICAL: the winner's pool grows by the prize EXACTLY once — before the
+    // CRITICAL: the winner's pool grows by the prize EXACTLY once â€” before the
     // FOR UPDATE fix, two concurrent resolves both read the war as active and
-    // each credited 150 → 300.
+    // each credited 150 â†’ 300.
     expect(Number(poolAfter!.pool) - Number(poolBefore!.pool)).toBeCloseTo(150, 4);
 
     const [a] = await db.select({ chest: guilds.warChestPkr }).from(guilds).where(eq(guilds.id, guildA.id));
@@ -506,7 +506,7 @@ describe("Concurrency & race conditions", () => {
   }, 120_000);
 });
 
-// ── Abuse & security hardening ───────────────────────────────────────────────
+// â”€â”€ Abuse & security hardening â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("Abuse & security hardening", () => {
   it("rejects state-changing requests without the CSRF token (403)", async () => {
@@ -526,7 +526,7 @@ describe("Abuse & security hardening", () => {
   });
 
   it("rejects unauthenticated earn attempts (401 after valid CSRF)", async () => {
-    // Production order: CSRF runs first (no cookie → 403), so prove the AUTH
+    // Production order: CSRF runs first (no cookie â†’ 403), so prove the AUTH
     // guard separately with a valid double-submit token but no session.
     const raw = request.agent(app);
     const health = await raw.get("/api/health");
@@ -558,9 +558,9 @@ describe("Abuse & security hardening", () => {
     });
     expect(res.status).toBe(201);
     const w = res.body.withdrawal;
-    // Non-S-Rank user → must stay pending (status was NOT smuggled to approved).
+    // Non-S-Rank user â†’ must stay pending (status was NOT smuggled to approved).
     expect(w.status).toBe("pending");
-    // Server-computed 15% fee + net — NOT the attacker's zero values.
+    // Server-computed 15% fee + net â€” NOT the attacker's zero values.
     expect(Number(w.fee)).toBe(15);
     expect(Number(w.netAmount)).toBeCloseTo(85, 2);
     expect(w.transactionId).toBeNull();
@@ -568,31 +568,31 @@ describe("Abuse & security hardening", () => {
   }, 60_000);
 });
 
-// ── Rate limiters (real middleware, HTTP level) ─────────────────────────────
+// â”€â”€ Rate limiters (real middleware, HTTP level) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("Rate limiters", () => {
-  it("authRateLimiter: 10 attempts allowed, 11th → 429", async () => {
+  it("authRateLimiter: 10 attempts allowed, 11th â†’ 429", async () => {
     const limApp = makeLimitedApp(authRateLimiter);
     const statuses = await burst(limApp, 11, "203.0.113.10");
     expect(statuses.slice(0, 10).every((s) => s === 200)).toBe(true);
     expect(statuses[10]).toBe(429);
   });
 
-  it("withdrawalRateLimiter: 5 allowed, 6th → 429", async () => {
+  it("withdrawalRateLimiter: 5 allowed, 6th â†’ 429", async () => {
     const limApp = makeLimitedApp(withdrawalRateLimiter);
     const statuses = await burst(limApp, 6, "203.0.113.11");
     expect(statuses.slice(0, 5).every((s) => s === 200)).toBe(true);
     expect(statuses[5]).toBe(429);
   });
 
-  it("contactRateLimiter: 5 allowed, 6th → 429", async () => {
+  it("contactRateLimiter: 5 allowed, 6th â†’ 429", async () => {
     const limApp = makeLimitedApp(contactRateLimiter);
     const statuses = await burst(limApp, 6, "203.0.113.12");
     expect(statuses.slice(0, 5).every((s) => s === 200)).toBe(true);
     expect(statuses[5]).toBe(429);
   });
 
-  it("contactEmailRateLimiter: 3 per email, 4th → 429 (fresh quota per email)", async () => {
+  it("contactEmailRateLimiter: 3 per email, 4th â†’ 429 (fresh quota per email)", async () => {
     const limApp = makeLimitedApp(contactEmailRateLimiter);
     for (let i = 0; i < 4; i++) {
       const r = await request(limApp).post("/x").set("x-forwarded-for", "203.0.113.13")
@@ -605,7 +605,7 @@ describe("Rate limiters", () => {
     expect(other.status).toBe(200);
   });
 
-  it("bootstrapRateLimiter: 3 allowed, 4th → 429", async () => {
+  it("bootstrapRateLimiter: 3 allowed, 4th â†’ 429", async () => {
     const limApp = makeLimitedApp(bootstrapRateLimiter);
     const statuses = await burst(limApp, 4, "203.0.113.14");
     expect(statuses.slice(0, 3).every((s) => s === 200)).toBe(true);
@@ -614,11 +614,11 @@ describe("Rate limiters", () => {
 
   it("earnRateLimiter is keyed per-USER not per-IP (shared NAT is safe)", async () => {
     // (a) REAL app: a spoofed non-localhost XFF must NOT skip the limiter.
-    //     One ad-view consumes 1 of the 15/min quota → RateLimit-Remaining 14.
+    //     One ad-view consumes 1 of the 15/min quota â†’ RateLimit-Remaining 14.
     //     (If skipLocalhost() had matched, the header would be absent.)
     //     Only a single request here: each /api/ad-view fires ~30 system_config
     //     DB round-trips (~4-6s on Neon), so 16 HTTP calls take >60s and slide
-    //     past the 1-minute window — the middleware-level test below is the
+    //     past the 1-minute window â€” the middleware-level test below is the
     //     deterministic quota check.
     const probe = await harnesses.racer.postXff("/api/ad-view", { adId: "hilltop_fallback" }, "203.0.113.50");
     expect([200, 201]).toContain(probe.status);
