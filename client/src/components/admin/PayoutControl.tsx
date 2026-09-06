@@ -233,8 +233,8 @@ export function PayoutControl() {
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-primary/10 text-primary border-primary/20';
-      // 'approved' = S-Rank fast-track (skips the admin queue, still awaiting
-      // settlement) — distinct amber tone so it reads as "in flight", not new.
+      // v4: 'approved' is legacy only (S-Rank fast-track removed — Spec §12 no
+      // auto-approve). Kept for old rows; new payouts never enter this state.
       case 'approved': return 'bg-amber-50 text-amber-600 border-amber-200';
       case 'completed': return 'bg-primary/20 text-primary border-primary/40';
       case 'rejected': return 'bg-red-50 text-red-600 border-red-200';
