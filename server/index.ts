@@ -481,9 +481,10 @@ app.use((req, res, next) => {
     // HilltopAds daily inventory + stats sync (no-ops gracefully if API key not configured)
     const { hilltopAdsScheduler } = await import("./hilltopads-scheduler");
     hilltopAdsScheduler.start();
-    // Daily economy multiplier snapshot — populates economy_state for recordEarnEvent()
-    const { startEconomySnapshotJob } = await import("./jobs/economy-snapshot");
-    startEconomySnapshotJob();
+    // v4: pending-earning verification sweep — moves Pending → Available after
+    // PENDING_VERIFICATION_HOURS (default 48h, max target 2 days per Spec §5).
+    const { startEarningVerificationJob } = await import("./jobs/earning-verification");
+    startEarningVerificationJob();
     // Daily automated ledger integrity scan — catches balance/ledger drift without
     // waiting on an admin to manually run Ledger Validator.
     const { startLedgerIntegrityScanJob } = await import("./jobs/ledger-integrity-scan");
