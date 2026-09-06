@@ -282,88 +282,29 @@ export function SystemSettingsManager() {
         </div>
       </div>
 
-      {/* ─── THORX CARD VARIANCE CONTROLS ─── */}
+      {/* ─── v4: EARNING VERIFICATION WINDOW (Spec §5) ─── */}
       <div className="bg-background border-[1.5px] border-[#141413] rounded-[2rem] p-8 shadow-sm">
         <div className="flex items-center gap-4 mb-6">
           <div className="w-10 h-10 bg-white border-[1.5px] border-[#141413]/20 flex items-center justify-center rounded-full shadow-sm">
             <Activity className="w-5 h-5 text-zinc-500" />
           </div>
           <div>
-            <h3 className="font-black text-xl uppercase text-[#141413] tracking-tight">Thorx Card Randomness</h3>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">Multiplier range for the randomized reward card draw</p>
+            <h3 className="font-black text-xl uppercase text-[#141413] tracking-tight">Earning Verification</h3>
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">How long earnings stay Pending before auto-moving to Available</p>
           </div>
         </div>
-        {/*
-          Ranks & Engine Config audit (2026-07-29): this panel used to edit
-          CARD_MIN_MULTIPLIER / CARD_MAX_MULTIPLIER / CARD_ARANK_BONUS_PCT /
-          CARD_SRANK_BONUS_PCT — none of which exist anywhere in the earning
-          engine. The real variance is per-engine (ENGINE_{A,B,C}_ILLUSION_VARIANCE_PCT,
-          e.g. 10 = ±10% band) plus a global A/S-Rank bonus that widens that
-          band further (A_RANK_CARD_BONUS_PCT / S_RANK_CARD_BONUS_PCT). See
-          server/storage.ts recordEarnEvent() and server/modules/thorx-card.ts.
-        */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Per-Engine Variance (±%)</div>
-            {[
-              { label: "Engine A — Video Ads", key: "ENGINE_A_ILLUSION_VARIANCE_PCT", def: 10 },
-              { label: "Engine B — Surveys", key: "ENGINE_B_ILLUSION_VARIANCE_PCT", def: 10 },
-              { label: "Engine C — Guild Tasks", key: "ENGINE_C_ILLUSION_VARIANCE_PCT", def: 10 },
-            ].map(({ label, key, def }) => {
-              const val = Number(localConfigs[key] ?? def);
-              return (
-                <div key={key} className="space-y-1">
-                  <div className="flex justify-between text-[10px] font-bold text-zinc-500">
-                    <span>{label}</span>
-                    <span className="font-black text-[#141413]">±{val}%</span>
-                  </div>
-                  <input type="range" min={0} max={50} step={1} value={val}
-                    onChange={e => updateValue(key, parseInt(e.target.value, 10))}
-                    className="w-full h-2 rounded-full accent-black cursor-pointer"
-                  />
-                  <Button size="sm" className="h-6 text-[9px] font-black px-3" onClick={() => saveMutation.mutate({ key, value: val })}>Save</Button>
-                </div>
-              );
-            })}
+        <div className="p-4 bg-white border-[1.5px] border-[#141413]/10 rounded-2xl space-y-3 max-w-md">
+          <div className="space-y-1">
+            <div className="flex justify-between text-[10px] font-bold text-zinc-500">
+              <span>Pending Verification Window</span><span className="font-black text-[#141413]">{verificationHours}h</span>
+            </div>
+            <input type="range" min={1} max={96} step={1} value={verificationHours}
+              onChange={e => updateValue("PENDING_VERIFICATION_HOURS", parseInt(e.target.value, 10))}
+              className="w-full h-2 rounded-full accent-black cursor-pointer"
+            />
+            <p className="text-[9px] font-bold text-zinc-400">Sweep runs every 15 minutes. Spec target: ≤ 48h (2 days). Network reversals still claw money back after verification.</p>
           </div>
-          <div className="space-y-4">
-            <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Rank Bonus (widens the band ±%)</div>
-            {[
-              { label: "A-Rank Bonus %", key: "A_RANK_CARD_BONUS_PCT", min: 0, max: 15, def: 5 },
-              { label: "S-Rank Bonus %", key: "S_RANK_CARD_BONUS_PCT", min: 0, max: 20, def: 10 },
-            ].map(({ label, key, min, max, def }) => {
-              const val = Number(localConfigs[key] ?? def);
-              return (
-                <div key={key} className="space-y-1">
-                  <div className="flex justify-between text-[10px] font-bold text-zinc-500">
-                    <span>{label}</span>
-                    <span className="font-black text-[#141413]">{val}%</span>
-                  </div>
-                  <input type="range" min={min} max={max} step={1} value={val}
-                    onChange={e => updateValue(key, parseInt(e.target.value, 10))}
-                    className="w-full h-2 rounded-full accent-black cursor-pointer"
-                  />
-                  <Button size="sm" className="h-6 text-[9px] font-black px-3" onClick={() => saveMutation.mutate({ key, value: val })}>Save</Button>
-                </div>
-              );
-            })}
-            <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pt-2">Presets (all engines)</div>
-            {[
-              { label: "Stable (±10%)", pct: 10 },
-              { label: "Standard (±20%)", pct: 20 },
-              { label: "Jackpot (±50%)", pct: 50 },
-            ].map(({ label, pct }) => (
-              <Button key={label} variant="outline" className="w-full h-9 text-xs font-black border-[1.5px] border-[#141413] justify-start"
-                onClick={() => {
-                  (["ENGINE_A_ILLUSION_VARIANCE_PCT", "ENGINE_B_ILLUSION_VARIANCE_PCT", "ENGINE_C_ILLUSION_VARIANCE_PCT"] as const).forEach(key => {
-                    updateValue(key, pct);
-                    saveMutation.mutate({ key, value: pct });
-                  });
-                }}>
-                {label}
-              </Button>
-            ))}
-          </div>
+          <Button size="sm" className="h-7 text-[10px] font-black px-3" onClick={() => saveMutation.mutate({ key: "PENDING_VERIFICATION_HOURS", value: verificationHours })}>Save</Button>
         </div>
       </div>
 
