@@ -34,12 +34,12 @@ interface ReferralsSectionProps {
   displayUser: AuthUser;
   referralLeaderboard: any[];
   commissionsData: { commissions: any[] } | undefined;
-  CONVERSION_RATE: number;
+  TX_POINTS_PER_PKR: number;
   onRefresh?: () => void;
 }
 
 export function ReferralsSection(props: ReferralsSectionProps) {
-  const { isReferralsHeroToggled, setIsReferralsHeroToggled, handleHeroToggle, referralsData, formatCurrency, showReferralLink, setShowReferralLink, referralReady, referralLink, referralLinkHost, referralCode, toast, referralZoom, setReferralZoom, referralPanRef, onReferralMouseDown, isReferralDragging, directReferralsCount, isReferralError, isReferralLoading, referralError, displayUser, referralLeaderboard, commissionsData, CONVERSION_RATE, onRefresh } = props;
+  const { isReferralsHeroToggled, setIsReferralsHeroToggled, handleHeroToggle, referralsData, formatCurrency, showReferralLink, setShowReferralLink, referralReady, referralLink, referralLinkHost, referralCode, toast, referralZoom, setReferralZoom, referralPanRef, onReferralMouseDown, isReferralDragging, directReferralsCount, isReferralError, isReferralLoading, referralError, displayUser, referralLeaderboard, commissionsData, TX_POINTS_PER_PKR, onRefresh } = props;
   const { refreshing: isRefreshing, refresh: handleRefresh } = useRefreshAction(onRefresh ?? (() => {}));
     return (
       <motion.div
