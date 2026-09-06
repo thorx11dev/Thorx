@@ -5846,6 +5846,294 @@ export class DatabaseStorage implements IStorage {
 
   // ── THORX v3 (spec E.9): Withdrawal preview & referral cash withdrawal ─────
 
+  // ── REAL PKR ECONOMY v4: verification lifecycle ────────────────────────────
+  //
+  // The sweep moves every 'pending' ledger row older than
+  // PENDING_VERIFICATION_HOURS to 'verified' and transfers its PKR from the
+  // user's pending balance to available balance. Referral commissions ride
+  // the same lifecycle: when the underlying earning verifies, the referrer's
+  // commission row verifies too (both were created 'pending' in the same
+  // earn transaction).
+  //
+  // Idempotency: the UPDATE claims rows with a conditional WHERE (status is
+  // still 'pending'), so concurrent sweep runs / admin actions can never
+  // double-move money — a row is only ever claimed once.
+  async verifyPendingEarnings(now: Date = new Date()): Promise<{ verified: number; pkrMoved: string; usersTouched: number; commissionsFinalized: number }> {
+    const hours = await this.getSystemConfigValue<number>("PENDING_VERIFICATION_HOURS", 48);
+    const cutoff = new Date(now.getTime() - Math.max(0, hours) * 60 * 60 * 1000);
+
+    return await db.transaction(async (tx) => {
+      // 1 — Aggregate all claimable pending rows per user (single pass).
+      const claimable = await tx
+        .select({
+          id: userTransactions.id,
+          userId: userTransactions.userId,
+          realPkrValue: userTransactions.realPkrValue,
+        })
+        .from(userTransactions)
+        .where(and(
+          eq(userTransactions.verificationStatus, "pending"),
+          lte(userTransactions.createdAt, cutoff),
+          gt(userTransactions.realPkrValue, "0"),
+        ))
+        .orderBy(asc(userTransactions.createdAt))
+        .limit(5000);
+
+      if (claimable.length === 0) {
+        return { verified: 0, pkrMoved: "0.0000", usersTouched: 0, commissionsFinalized: 0 };
+      }
+
+      // 2 — Claim the rows atomically: only rows still 'pending' flip.
+      const claimableIds = claimable.map((r) => r.id);
+      const claimed = await tx
+        .update(userTransactions)
+        .set({ verificationStatus: "verified", verifiedAt: now })
+        .where(and(
+          inArray(userTransactions.id, claimableIds),
+          eq(userTransactions.verificationStatus, "pending"),
+        ))
+        .returning({ id: userTransactions.id, userId: userTransactions.userId, realPkrValue: userTransactions.realPkrValue });
+
+      // 3 — Per-user balance moves: pending → available.
+      const perUser = new Map<string, Decimal>();
+      let pkrMovedD = new Decimal(0);
+      for (const row of claimed) {
+        const amt = new Decimal(row.realPkrValue);
+        if (amt.lte(0)) continue;
+        perUser.set(row.userId, (perUser.get(row.userId) ?? new Decimal(0)).plus(amt));
+        pkrMovedD = pkrMovedD.plus(amt);
+      }
+      for (const [userId, amt] of perUser) {
+        if (amt.lte(0)) continue;
+        await tx
+          .update(users)
+          .set({
+            pendingBalance: sql`GREATEST(${users.pendingBalance} - ${amt.toFixed(4)}, 0)`,
+            availableBalance: sql`${users.availableBalance} + ${amt.toFixed(4)}`,
+            updatedAt: now,
+          })
+          .where(eq(users.id, userId));
+      }
+
+      // 4 — Sync the referral-commission audit table (pending → finalized).
+      const commissionsFinalized = claimed.filter((r) => new Decimal(r.realPkrValue).gt(0)).length;
+      // Earn commissions share the sweep only via their own ledger rows; the
+      // audit rows are updated for reporting parity.
+      const refSourceIds = claimable
+        .filter((r) => new Decimal(r.realPkrValue).gt(0))
+        .map((r) => r.id);
+      if (refSourceIds.length > 0) {
+        await tx
+          .update(referralEarnCommissions)
+          .set({ status: "finalized" })
+          .where(and(
+            inArray(referralEarnCommissions.id, refSourceIds),
+            eq(referralEarnCommissions.status, "pending"),
+          ));
+      }
+
+      return {
+        verified: claimed.length,
+        pkrMoved: pkrMovedD.toFixed(4),
+        usersTouched: perUser.size,
+        commissionsFinalized,
+      };
+    });
+  }
+
+  // Admin force-verify: immediately moves ONE pending earning (and its PKR)
+  // pending → available. Idempotent by the same conditional-claim pattern.
+  async adminVerifyEarning(ledgerId: string, adminId: string): Promise<any> {
+    return await db.transaction(async (tx) => {
+      const claimed = await tx
+        .update(userTransactions)
+        .set({ verificationStatus: "verified", verifiedAt: new Date() })
+        .where(and(
+          eq(userTransactions.id, ledgerId),
+          eq(userTransactions.verificationStatus, "pending"),
+        ))
+        .returning();
+
+      if (claimed.length === 0) throw new Error("Earning not found or already verified/rejected");
+
+      const row = claimed[0];
+      const amt = new Decimal(row.realPkrValue);
+      if (amt.gt(0)) {
+        await tx
+          .update(users)
+          .set({
+            pendingBalance: sql`GREATEST(${users.pendingBalance} - ${amt.toFixed(4)}, 0)`,
+            availableBalance: sql`${users.availableBalance} + ${amt.toFixed(4)}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, row.userId));
+      }
+
+      await tx.insert(auditLogs).values({
+        adminId,
+        action: "EARNING_VERIFIED",
+        targetType: "user_transaction",
+        targetId: ledgerId,
+        details: { userId: row.userId, pkr: row.realPkrValue, forcedBy: "admin" },
+      });
+
+      return row;
+    });
+  }
+
+  // Admin reject: claw the earning back. Deducts from pending while the row
+  // is still pending; if it was already verified (and the money may already
+  // be withdrawn), the deduction hits available balance — mirroring the
+  // survey clawback semantics (platform is owed the money either way).
+  async adminRejectEarning(ledgerId: string, adminId: string, reason: string): Promise<any> {
+    return await db.transaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(userTransactions)
+        .where(eq(userTransactions.id, ledgerId))
+        .for("update");
+
+      if (!row) throw new Error("Earning not found");
+      if (row.verificationStatus === "rejected") throw new Error("Earning already rejected");
+      if (row.withdrawn) throw new Error("Earning already consumed by a payout — use a manual adjustment");
+
+      const amt = new Decimal(row.realPkrValue);
+      if (amt.gt(0)) {
+        if (row.verificationStatus === "pending") {
+          await tx
+            .update(users)
+            .set({ pendingBalance: sql`GREATEST(${users.pendingBalance} - ${amt.toFixed(4)}, 0)` })
+            .where(eq(users.id, row.userId));
+        } else {
+          await tx
+            .update(users)
+            .set({ availableBalance: sql`${users.availableBalance} - ${amt.toFixed(4)}` })
+            .where(eq(users.id, row.userId));
+        }
+      }
+
+      // Points: remove the TX-Points this earning minted (they were display
+      // values tied to now-rejected money).
+      if (row.pointsCredited > 0) {
+        await tx
+          .update(users)
+          .set({ txPointsBalance: sql`GREATEST(${users.txPointsBalance} - ${row.pointsCredited}, 0)` })
+          .where(eq(users.id, row.userId));
+      }
+
+      await tx
+        .update(userTransactions)
+        .set({ verificationStatus: "rejected", rejectionReason: reason })
+        .where(eq(userTransactions.id, ledgerId));
+
+      // Reverse the linked referral commission (if this was an earner's row).
+      const [refCommission] = await tx
+        .select()
+        .from(referralEarnCommissions)
+        .where(and(
+          eq(referralEarnCommissions.earnEventSourceId, row.sourceId ?? ""),
+          eq(referralEarnCommissions.earnEventSourceType, row.sourceType ?? ""),
+          ne(referralEarnCommissions.status, "reversed"),
+        ))
+        .limit(1);
+      if (refCommission && new Decimal(refCommission.commissionPkr).gt(0)) {
+        // Reversal order: pending first, then available (commission may have
+        // already been swept to available).
+        const [referrer] = await tx
+          .select({ pendingBalance: users.pendingBalance, availableBalance: users.availableBalance })
+          .from(users)
+          .where(eq(users.id, refCommission.referrerId))
+          .for("update");
+        const commD = new Decimal(refCommission.commissionPkr);
+        if (referrer && commD.gt(0)) {
+          const pendingD = new Decimal(referrer.pendingBalance ?? "0");
+          const fromPending = Decimal.min(pendingD, commD);
+          const fromAvailable = commD.minus(fromPending);
+          if (fromPending.gt(0)) {
+            await tx
+              .update(users)
+              .set({ pendingBalance: sql`${users.pendingBalance} - ${fromPending.toFixed(4)}` })
+              .where(eq(users.id, refCommission.referrerId));
+          }
+          if (fromAvailable.gt(0)) {
+            await tx
+              .update(users)
+              .set({ availableBalance: sql`${users.availableBalance} - ${fromAvailable.toFixed(4)}` })
+              .where(eq(users.id, refCommission.referrerId));
+          }
+        }
+        await tx
+          .update(referralEarnCommissions)
+          .set({ status: "reversed" })
+          .where(eq(referralEarnCommissions.id, refCommission.id));
+
+        // Mirror-negate the referrer's commission ledger row so the ledger
+        // stays balanced (the original commission row was a separate insert).
+        const [origCommissionLedger] = await tx
+          .select()
+          .from(userTransactions)
+          .where(and(
+            eq(userTransactions.userId, refCommission.referrerId),
+            eq(userTransactions.engineType, "Referral_Commission"),
+            eq(userTransactions.sourceId, `${row.sourceId}:ref`),
+          ))
+          .limit(1);
+        if (origCommissionLedger && origCommissionLedger.verificationStatus !== "rejected") {
+          await tx
+            .update(userTransactions)
+            .set({ verificationStatus: "rejected", rejectionReason: `Referrer commission reversed: ${reason}` })
+            .where(eq(userTransactions.id, origCommissionLedger.id));
+        }
+      }
+
+      await tx.insert(auditLogs).values({
+        adminId,
+        action: "EARNING_REJECTED",
+        targetType: "user_transaction",
+        targetId: ledgerId,
+        details: { userId: row.userId, pkr: row.realPkrValue, points: row.pointsCredited, reason },
+      });
+
+      return row;
+    });
+  }
+
+  // Admin queue view: every unverified earning with user context.
+  async getPendingEarningsQueue(limit = 50, offset = 0): Promise<{ rows: any[]; total: number }> {
+    const base = and(
+      eq(userTransactions.verificationStatus, "pending"),
+      gt(userTransactions.realPkrValue, "0"),
+    );
+    const rows = await db
+      .select({
+        id: userTransactions.id,
+        userId: userTransactions.userId,
+        userIdentity: users.identity,
+        userEmail: users.email,
+        engineType: userTransactions.engineType,
+        realPkrValue: userTransactions.realPkrValue,
+        pointsCredited: userTransactions.pointsCredited,
+        grossPkr: userTransactions.grossPkr,
+        thorxProfitPkr: userTransactions.thorxProfitPkr,
+        sourceType: userTransactions.sourceType,
+        sourceId: userTransactions.sourceId,
+        createdAt: userTransactions.createdAt,
+      })
+      .from(userTransactions)
+      .innerJoin(users, eq(userTransactions.userId, users.id))
+      .where(base)
+      .orderBy(asc(userTransactions.createdAt))
+      .limit(Math.min(limit, 200))
+      .offset(offset);
+
+    const [{ count }] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(userTransactions)
+      .where(base);
+
+    return { rows, total: Number(count) || 0 };
+  }
+
   async previewWithdrawal(userId: string, pkrAmount: number): Promise<{
     exactPkr: string; platformFee: string; feePercent: number; referralCommission: string;
     referrerName: string | null; userNetPkr: string; sRankFastTrack: boolean;
