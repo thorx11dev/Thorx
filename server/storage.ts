@@ -1236,6 +1236,21 @@ export class DatabaseStorage implements IStorage {
   // entry (the sole basis for withdrawal math — Appendix A invariants #1/#2),
   // PS award + streak + rank-tier check, and a live feed event. Replaces the
   // old points_ledger / guild_vault_ledger split entirely for new earn events.
+  // ── REAL PKR ECONOMY v4 ────────────────────────────────────────────────────
+  // ONE fixed conversion rate (TX_POINTS_PER_PKR, default 10 pts = Rs.1),
+  // NO economy multiplier, NO card variance, NO rank point multipliers.
+  //
+  // Money model:
+  //   Direct user:    Thorx TASK_SPLIT_THORX_PCT% / user (100 − thorx)%
+  //   Referred user:  Thorx TASK_SPLIT_THORX_REFERRED_PCT% /
+  //                   referrer TASK_SPLIT_REFERRER_PCT% (PKR only) /
+  //                   user the remainder
+  //   Engine C:       guild-pool economics unchanged (15/80/5)
+  //
+  // The user's PKR share lands in users.pending_balance (verification_status
+  // 'pending' on the ledger row) and the verification sweep job moves it to
+  // available after PENDING_VERIFICATION_HOURS. Referral commissions are PKR
+  // ONLY — they never generate TX-Points.
   async recordEarnEvent(params: {
     userId: string;
     engineType: "Engine_A" | "Engine_B" | "Engine_C" | "Indirect";
@@ -1254,108 +1269,49 @@ export class DatabaseStorage implements IStorage {
     const cfgRows = await this.getAllSystemConfigs();
     const cfgMap = new Map(cfgRows.map((c) => [c.key, c.value]));
     const cfgVal = <T>(key: string, fallback: T): T => (cfgMap.has(key) ? (cfgMap.get(key) as T) : fallback);
-    const engineAThorxCutPct = cfgVal<number>("ENGINE_A_THORX_CUT_PCT", 40);
-    const engineBThorxCutPct = cfgVal<number>("ENGINE_B_THORX_CUT_PCT", 40);
-    const engineCThorxCutPct = cfgVal<number>("ENGINE_C_THORX_CUT_PCT", 15);  // 15% Thorx (was 20)
-    const engineCGuildPoolPct = cfgVal<number>("ENGINE_C_GUILD_POOL_PCT", 80); // 80% main pool (was 35)
-    const engineCBonusPct = cfgVal<number>("ENGINE_C_BONUS_PCT", 5);           // 5% bonus pool (new)
-    const globalConversionRate = cfgVal<number>("CONVERSION_RATE", DEFAULT_CONVERSION_RATE);
-    const engineAPlayersJson = cfgVal<string>("ENGINE_A_PLAYERS_JSON", "[]");
-    const referralEarnPct = cfgVal<number>("REFERRAL_EARN_PCT", 1);
-    const economyEnabled = cfgVal<boolean>("ECONOMY_MULTIPLIER_ENABLED", true);
-    const economyOverrideRaw = cfgVal<number | null>("ECONOMY_MULTIPLIER_OVERRIDE", null);
+    const engineCThorxCutPct = cfgVal<number>("ENGINE_C_THORX_CUT_PCT", 15);
+    const engineCGuildPoolPct = cfgVal<number>("ENGINE_C_GUILD_POOL_PCT", 80);
+    const engineCBonusPct = cfgVal<number>("ENGINE_C_BONUS_PCT", 5);
+    const txPointsPerPkr = Math.max(1, cfgVal<number>("TX_POINTS_PER_PKR", 10));
+    const directThorxCutPct = cfgVal<number>("TASK_SPLIT_THORX_PCT", 40);
+    const referredThorxCutPct = cfgVal<number>("TASK_SPLIT_THORX_REFERRED_PCT", 35);
+    const referrerCutPct = cfgVal<number>("TASK_SPLIT_REFERRER_PCT", 5);
     const engineAWarLevyPct = cfgVal<number>("WAR_LEVY_ENGINE_A_PCT", 2);
     const engineBWarLevyPct = cfgVal<number>("WAR_LEVY_ENGINE_B_PCT", 2);
     const engineCWarLevyPct = cfgVal<number>("WAR_LEVY_ENGINE_C_PCT", 2);
 
-    // Resolve per-engine ratio + variance (Spec §1.1 / §16.2).
-    // Priority: per-ad-player override → per-engine key → global CONVERSION_RATE fallback.
-    let conversionRate = globalConversionRate;
-    let illusioncVariancePct = 10; // default ±10%
-    const engineKey = params.engineType.replace("Engine_", "ENGINE_");
-    if (params.engineType === "Engine_A" && (params as any).adNetworkId) {
-      try {
-        const players = JSON.parse(engineAPlayersJson) as Array<{ id: string; pkrToPointsRatio: number; variancePct: number }>;
-        const matched = players.find(p => p.id === (params as any).adNetworkId);
-        if (matched) { conversionRate = matched.pkrToPointsRatio; illusioncVariancePct = matched.variancePct; }
-      } catch { /* malformed JSON — fall through to per-engine key */ }
-    }
-    if (conversionRate === globalConversionRate) {
-      // No per-player match; try per-engine key
-      const [perEngineRatio, perEngineVariance] = await Promise.all([
-        this.getSystemConfigValue<number>(`${engineKey}_PKR_TO_POINTS_RATIO`, globalConversionRate),
-        this.getSystemConfigValue<number>(`${engineKey}_ILLUSION_VARIANCE_PCT`, 10),
-      ]);
-      conversionRate = perEngineRatio;
-      illusioncVariancePct = perEngineVariance;
-    }
-
-    // Convert illusion variance % (e.g. 10) to min/max multiplier bounds (e.g. 0.90 / 1.10).
-    // A-Rank and S-Rank users get an additional bonus to their bounds.
-    const baseVarianceMin = 1 - illusioncVariancePct / 100;
-    const baseVarianceMax = 1 + illusioncVariancePct / 100;
-    const [aRankBonusPct, sRankBonusPct] = await Promise.all([
-      this.getSystemConfigValue<number>("A_RANK_CARD_BONUS_PCT", 5),
-      this.getSystemConfigValue<number>("S_RANK_CARD_BONUS_PCT", 10),
-    ]);
-
     const user = await this.getUserById(params.userId);
     if (!user) throw new Error("User not found");
 
-    // ── Dynamic Economy Multiplier (Q9) ────────────────────────────────────
-    // Admin override wins; otherwise read today's cached multiplier from economy_state
-    // (computed daily by economy-engine.ts). Falls back to 1.0 if no state row yet.
-    let economyMult = new Decimal(1);
-    if (economyOverrideRaw !== null && economyOverrideRaw !== undefined) {
-      const [eMin, eMax] = await Promise.all([
-        this.getSystemConfigValue<number>("ECONOMY_MULTIPLIER_MIN", 0.7),
-        this.getSystemConfigValue<number>("ECONOMY_MULTIPLIER_MAX", 1.5),
-      ]);
-      economyMult = new Decimal(economyOverrideRaw).clamp(eMin, eMax);
-    } else if (economyEnabled && params.engineType !== "Indirect") {
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const [stateRow] = await db
-        .select({ effectiveMultiplier: economyState.effectiveMultiplier })
-        .from(economyState)
-        .where(eq(economyState.date, todayStr as any))
-        .limit(1);
-      if (stateRow?.effectiveMultiplier) {
-        economyMult = new Decimal(stateRow.effectiveMultiplier);
-      }
-    }
-
-    // ── Rank Reward Multiplier (Q6) ─────────────────────────────────────────
-    // Applied to TX-Points (gamification display) — not to real PKR — to
-    // preserve financial integrity while rewarding higher-rank users more.
-    const rankMult = RANK_REWARD_MULTIPLIERS[user.userRankTier] ?? 1.00;
-
-    // Step 1: Engine split. Decimal (not native float */) — Critical finding
-    // #3 of the 2026-07-15 production-readiness audit.
-    // Apply economy multiplier to grossPkr before splits so all cuts scale proportionally.
-    const baseGrossPkrD = new Decimal(params.grossPkr);
-    const grossPkrD = params.engineType !== "Indirect"
-      ? baseGrossPkrD.mul(economyMult).toDecimalPlaces(4, Decimal.ROUND_DOWN)
-      : baseGrossPkrD;
+    // ── Step 1: Engine split (Decimal, never float) ─────────────────────────
+    const grossPkrD = new Decimal(params.grossPkr);
     let userPkrShareD = new Decimal(0);
     let thorxProfitPkrD = new Decimal(0);
     let guildPoolPkrD = new Decimal(0);
     let bonusPoolPkrD = new Decimal(0); // Engine C only: 5% bonus pool (Sunday gift on target hit)
+    let referrerCommissionD = new Decimal(0); // Referred-user task revenue: referrer's 5%
 
     if (params.engineType === "Engine_A" || params.engineType === "Engine_B") {
-      const thorxCut = params.engineType === "Engine_A" ? engineAThorxCutPct : engineBThorxCutPct;
-      const userCut = 100 - thorxCut;
-      thorxProfitPkrD = grossPkrD.times(thorxCut).div(100);
-      userPkrShareD = grossPkrD.times(userCut).div(100);
+      if (user.referredBy) {
+        // Referred-user split: Thorx 35% / referrer 5% / user 60% (defaults).
+        thorxProfitPkrD = grossPkrD.times(referredThorxCutPct).div(100);
+        referrerCommissionD = grossPkrD.times(referrerCutPct).div(100);
+        userPkrShareD = grossPkrD.minus(thorxProfitPkrD).minus(referrerCommissionD);
+      } else {
+        // Direct-user split: Thorx 40% / user 60% (defaults).
+        thorxProfitPkrD = grossPkrD.times(directThorxCutPct).div(100);
+        userPkrShareD = grossPkrD.minus(thorxProfitPkrD);
+      }
     } else if (params.engineType === "Engine_C") {
       if (!params.guildId) throw new Error("guildId is required for Engine_C earn events");
-      // New Engine C split (Master Plan Phase 4.5):
+      // Guild-pool economics unchanged (Master Plan Phase 4.5):
       //   15% → Thorx direct profit
       //   80% → Guild weekly bonus pool (locked until Sunday distribution)
       //    5% → Bonus pool (added to Sunday payout only if target is hit)
       //    0% → User immediate balance (pool is the reward; distributed Sunday)
-      thorxProfitPkrD = grossPkrD.times(engineCThorxCutPct).div(100);  // 15%
-      guildPoolPkrD   = grossPkrD.times(engineCGuildPoolPct).div(100);  // 80%
-      bonusPoolPkrD   = grossPkrD.times(engineCBonusPct).div(100);      // 5%
+      thorxProfitPkrD = grossPkrD.times(engineCThorxCutPct).div(100);
+      guildPoolPkrD   = grossPkrD.times(engineCGuildPoolPct).div(100);
+      bonusPoolPkrD   = grossPkrD.times(engineCBonusPct).div(100);
       userPkrShareD   = new Decimal(0); // no immediate PKR — pool unlocks Sunday
     }
     // 'Indirect' — no PKR payout, only PS (userPkrShare/thorxProfitPkr stay 0).
@@ -1382,6 +1338,16 @@ export class DatabaseStorage implements IStorage {
     // chest levy only when the guild is in an active war (see runEarnTx).
     // Declared here (outer scope) so the Step 7 notification strings below
     // show the same audited number as user_transactions.thorx_profit_pkr.
+    let thorxProfitRecorded = thorxProfitPkrD;
+
+    // ── Step 2: Deterministic TX-Points (Spec §2 — illusion REMOVED) ────────
+    // points = realPkr × TX_POINTS_PER_PKR, floored to an integer. The ledger
+    // row preserves the conversion rate used, so later rate changes never
+    // rewrite history.
+    const conversionRate = txPointsPerPkr;
+    const pointsCredited = userPkrShareD.gt(0)
+      ? userPkrShareD.times(txPointsPerPkr).toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber()
+      : 0;thorx_profit_pkr.
     let thorxProfitRecorded = thorxProfitPkrD;
 
     // Step 2: Thorx Card draw.
