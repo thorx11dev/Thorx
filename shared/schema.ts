@@ -1453,6 +1453,11 @@ export type UserTransaction = typeof userTransactions.$inferSelect;
 export type InsertUserTransaction = typeof userTransactions.$inferInsert;
 
 // D.8 — 1-tier referral commissions, paid from the withdrawal fee.
+// ── REAL PKR ECONOMY v4: settlement lifecycle ────────────────────────────────
+// status: 'pending' (credited to referrer's pending balance at payout-request
+// time) → 'finalized' (underlying payout completed; moved pending → available)
+// or 'reversed' (payout rejected/failed; pending amount clawed back).
+// Legacy rows are 'paid' (old model credited balanceCashPkr at completion).
 export const referralCommissions = pgTable("referral_commissions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   referrerId: varchar("referrer_id").notNull().references(() => users.id),
@@ -1463,7 +1468,7 @@ export const referralCommissions = pgTable("referral_commissions", {
   platformFeePkr: decimal("platform_fee_pkr", { precision: 10, scale: 2 }).notNull(),
   feeRateUsed: decimal("fee_rate_used", { precision: 5, scale: 4 }).notNull(),
   refShareRateUsed: decimal("ref_share_rate_used", { precision: 5, scale: 4 }).notNull(),
-  status: text("status").notNull().default("paid"),
+  status: text("status").notNull().default("paid"), // pending | finalized | reversed | paid (legacy)
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("idx_referral_commissions_referrer").on(table.referrerId, table.createdAt),
