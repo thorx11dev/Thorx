@@ -720,23 +720,18 @@ export const RANK_NAMES: string[] = [];
 // not match any of these entries, so saves silently created orphan rows
 // that no engine ever read. Any admin UI must use one of these exact keys.
 export const SYSTEM_CONFIG_DEFAULTS = [
-      { key: "MIN_PAYOUT", value: 100, description: "Minimum PKR required for withdrawal" },
+      { key: "MIN_PAYOUT", value: 500, description: "Minimum Available PKR balance required to request a payout" },
       { key: "WITHDRAWAL_FEE_PCT", value: 15, description: "Total percentage fee deducted from every payout" },
       { key: "PAYOUT_SLA_HOURS", value: 48, description: "Hours an admin has to action a pending withdrawal before Payout Control's deadtime countdown shows EXPIRED" },
-      { key: "REFERRAL_FEE_SHARE_PCT", value: 50, description: "Share of the withdrawal fee (above) carved out to the withdrawing user's direct referrer; the rest stays with the platform" },
-      { key: "CONVERSION_RATE", value: 1000, description: "TX-Points per Rs.10 earned (formula: pkr÷10×rate → effective 100 pts per Rs.1 at default 1000; global fallback — per-engine keys take precedence)" },
+      { key: "REFERRAL_FEE_SHARE_PCT", value: 50, description: "Share of the withdrawal fee (above) carved out to the withdrawing user's direct referrer; the rest stays with the platform. Commission stays PENDING until the payout completes." },
       { key: "DAILY_EARNINGS_GOAL_PKR", value: 50, description: "Lifetime-earnings progress bar target shown in User Portal (PKR). Adjust to set the milestone threshold." },
-      // ── Per-Engine TX-Points illusion ratios (Spec §1.1) ─────────────────
-      { key: "ENGINE_A_PKR_TO_POINTS_RATIO", value: 1000, description: "Engine A (Ad Slots): TX-Points credited per 1.00 PKR of user share" },
-      { key: "ENGINE_A_ILLUSION_VARIANCE_PCT", value: 10, description: "Engine A: ±variance % applied to Thorx Card draw (10 = ±10%)" },
-      { key: "ENGINE_B_PKR_TO_POINTS_RATIO", value: 1000, description: "Engine B (Surveys): TX-Points per 1.00 PKR" },
-      { key: "ENGINE_B_ILLUSION_VARIANCE_PCT", value: 10, description: "Engine B: ±variance %" },
-      { key: "ENGINE_C_PKR_TO_POINTS_RATIO", value: 1000, description: "Engine C (Guild): TX-Points per 1.00 PKR" },
-      { key: "ENGINE_C_ILLUSION_VARIANCE_PCT", value: 10, description: "Engine C: ±variance %" },
-      // ── Per-Ad-Player overrides (ENGINE_A only) ────────────────────────────
-      { key: "ENGINE_A_PLAYERS_JSON", value: "[]", description: "JSON array of {id,name,pkrToPointsRatio,variancePct} for Engine A ad players; overrides ENGINE_A_PKR_TO_POINTS_RATIO when matched" },
-      { 
-        key: "AD_NETWORKS", 
+      // ── REAL PKR ECONOMY v4 — fixed conversion + revenue splits ────────────
+      { key: "TX_POINTS_PER_PKR", value: 10, description: "Fixed conversion: TX-Points per Rs.1 (default 10). One rate everywhere; historical ledger rows preserve the rate used at earn time." },
+      { key: "TASK_SPLIT_THORX_PCT", value: 40, description: "Direct-user task revenue: Thorx share % (user keeps 100 minus this)" },
+      { key: "TASK_SPLIT_THORX_REFERRED_PCT", value: 35, description: "Referred-user task revenue: Thorx share %" },
+      { key: "TASK_SPLIT_REFERRER_PCT", value: 5, description: "Referred-user task revenue: referrer commission % — PKR only, lands in Pending Balance" },
+      { key: "PENDING_VERIFICATION_HOURS", value: 48, description: "Hours an earning sits in Pending Balance before the verification sweep moves it to Available (max target: 2 days)" },
+      { key: "AD_NETWORKS", 
         value: [
           { id: "hilltop-1", name: "HilltopAds", zoneId: "default", type: "video", priority: 1, isActive: true },
           { id: "adsterra-1", name: "Adsterra", zoneId: "default", type: "video", priority: 2, isActive: true }
