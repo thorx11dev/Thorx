@@ -1,17 +1,19 @@
 /**
- * Withdrawal integration tests — THORX
+ * Withdrawal integration tests — REAL PKR ECONOMY v4
  *
  * Covers:
- *  1. Creating a pending withdrawal (ledger-based — requires user_transactions rows)
- *  2. Pro-rata partial last-row: withdrawal of fewer points than the last row credits
- *     must produce exactly proportional PKR — not the full row value.
- *  3. Idempotency: a second concurrent pending withdrawal from the same user is rejected.
- *  4. Admin approving / rejecting a withdrawal.
- *  5. Double-approval guard: re-approving a completed withdrawal throws.
- *  6. MIN_PAYOUT guard: withdrawal below the PKR threshold is rejected.
+ *  1. PKR-denominated withdrawal request: hold debits available_balance at
+ *     request time (Spec §18) and always starts 'pending' (Spec §12).
+ *  2. Pro-rata partial last-row: FIFO consumption by realPkrValue produces
+ *     exactly proportional PKR — not the full row value.
+ *  3. Idempotency: a second concurrent pending withdrawal from the same user
+ *     (or one that would overspend the balance) is rejected (Spec §19).
+ *  4. Admin completing / rejecting a withdrawal.
+ *  5. Double-settlement guard: re-completing a completed withdrawal throws.
+ *  6. MIN_PAYOUT guard (default Rs.500) + insufficient-available guard.
  *
  * These tests exercise storage methods directly (not via HTTP) so there is no
- * CSRF or session concern.  Financial math unit coverage lives in financial.test.ts.
+ * CSRF or session concern. Financial math unit coverage lives in financial.test.ts.
  *
  * Run: npx vitest run server/__tests__/withdrawal.test.ts
  */
@@ -19,7 +21,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { db, pool } from "../db";
 import { users, withdrawals, userTransactions } from "@shared/schema";
-import { eq, and, inArray, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { storage } from "../storage";
 import bcrypt from "bcrypt";
 
@@ -31,54 +33,48 @@ const TEST_IDENTITY = `twd_${TS}`;
 
 let testUserId: string;
 let founderUserId: string;
-/** All user_transaction IDs seeded by this run — bulk-deleted in afterAll. */
-const seededTxIds: string[] = [];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function createTestUser(overrides: Partial<{
   firstName: string; lastName: string; identity: string;
-  phone: string; email: string; role: string; txPointsBalance: number;
+  phone: string; email: string; role: string; availableBalance: string;
 }> = {}): Promise<string> {
   const [u] = await db.insert(users).values({
-    firstName:       overrides.firstName ?? "Withdrawal",
-    lastName:        overrides.lastName  ?? "Test",
-    identity:        overrides.identity  ?? TEST_IDENTITY,
-    phone:           overrides.phone     ?? TEST_PHONE,
-    email:           overrides.email     ?? TEST_EMAIL,
-    passwordHash:    await bcrypt.hash("TestPass123!", 10),
-    referralCode:    `REF_${TS}_${Math.random().toString(36).slice(2, 7)}`,
-    role:            overrides.role      ?? "user",
-    txPointsBalance: overrides.txPointsBalance ?? 0,
+    firstName:        overrides.firstName ?? "Withdrawal",
+    lastName:         overrides.lastName  ?? "Test",
+    identity:         overrides.identity  ?? TEST_IDENTITY,
+    phone:            overrides.phone     ?? TEST_PHONE,
+    email:            overrides.email     ?? TEST_EMAIL,
+    passwordHash:     await bcrypt.hash("TestPass123!", 10),
+    referralCode:     `REF_${TS}_${Math.random().toString(36).slice(2, 7)}`,
+    role:             overrides.role      ?? "user",
+    availableBalance: overrides.availableBalance ?? "0.00",
   } as any).returning();
   return u.id;
 }
 
 /**
- * Seed `count` user_transactions rows for `userId`.
- * Each row contributes `pkrEach` realPkrValue and `ptsEach` pointsCredited.
- * Returns the IDs of inserted rows.
+ * Seed verified ledger rows. Each row carries `pkrEach` of real, verified PKR.
+ * v4: only 'verified' rows back a payout — pending money is not withdrawable.
  */
-async function seedLedger(
-  userId: string,
-  count: number,
-  ptsEach: number,
-  pkrEach: string,
-): Promise<string[]> {
+async function seedLedger(userId: string, count: number, pkrEach: string): Promise<string[]> {
   const ids: string[] = [];
   for (let i = 0; i < count; i++) {
     const [row] = await db.insert(userTransactions).values({
       userId,
       engineType:     "Engine_A",
-      pointsCredited: ptsEach,
+      pointsCredited: Math.floor(parseFloat(pkrEach) * 10),
       realPkrValue:   pkrEach,
       grossPkr:       (parseFloat(pkrEach) / 0.6).toFixed(4),
       thorxProfitPkr: (parseFloat(pkrEach) / 0.6 * 0.4).toFixed(4),
-      conversionRate: 100,
+      conversionRate: 10,
       cardVariance:   "1.0000",
       sourceId:       `seed_${TS}_${i}_${Math.random().toString(36).slice(2)}`,
       sourceType:     "ad_view",
       withdrawn:      false,
+      verificationStatus: "verified",
+      verifiedAt: new Date(),
     } as any).returning({ id: userTransactions.id });
     ids.push(row.id);
   }
@@ -97,32 +93,34 @@ function wdPayload(userId: string, amount: string) {
   } as any;
 }
 
+async function setAvailable(userId: string, pkr: string) {
+  await db.update(users).set({ availableBalance: pkr }).where(eq(users.id, userId));
+}
+
+async function getAvailable(userId: string): Promise<string> {
+  const [u] = await db.select({ availableBalance: users.availableBalance }).from(users).where(eq(users.id, userId));
+  return u?.availableBalance ?? "0.00";
+}
+
 // ── Setup / teardown ──────────────────────────────────────────────────────────
 
 beforeAll(async () => {
-  testUserId = await createTestUser({ txPointsBalance: 0 });
+  testUserId = await createTestUser({ availableBalance: "200.00" });
   founderUserId = await createTestUser({
     firstName: "Founder", lastName: "Test",
     identity:  `fnd_${TS}`,
     phone:     `032${Math.floor(10000000 + Math.random() * 89999999)}`,
     email:     `fnd_${TS}@thorx-test.local`,
     role:      "founder",
-    txPointsBalance: 0,
   });
 
-  // Seed 20 rows × 1 000 pts × Rs. 10.0000 each = 20 000 pts / Rs. 200 total.
-  // This gives ample headroom: the default MIN_PAYOUT is Rs. 100 exactPkr.
-  const ids = await seedLedger(testUserId, 20, 1_000, "10.0000");
-  seededTxIds.push(...ids);
-
-  // Reflect the seeded points in the user's balance column.
-  await db.update(users)
-    .set({ txPointsBalance: 20_000 as any })
-    .where(eq(users.id, testUserId));
+  // Seed 20 verified rows × Rs. 10 each = Rs. 200 of ledger-backed PKR,
+  // mirrored by the user's available balance (v4: hold debits from balance).
+  const ids = await seedLedger(testUserId, 20, "10.0000");
+  void ids;
 }, 60_000);
 
 afterAll(async () => {
-  // Clean up in FK order: split_remainders first, then withdrawals, then users.
   await db.delete(userTransactions).where(eq(userTransactions.userId, testUserId)).catch(() => {});
   await db.delete(withdrawals).where(eq(withdrawals.userId, testUserId)).catch(() => {});
   await db.delete(users).where(eq(users.id, testUserId)).catch(() => {});
@@ -130,46 +128,68 @@ afterAll(async () => {
   await pool.end();
 }, 30_000);
 
-// ── Suite 1: MIN_PAYOUT guard ─────────────────────────────────────────────────
+// ── Suite 1: MIN_PAYOUT + balance guards ─────────────────────────────────────
 
-describe("MIN_PAYOUT guard", () => {
-  it("rejects a withdrawal whose exactPkr is below MIN_PAYOUT (Rs. 100)", async () => {
-    // 5 000 pts → 5 rows × Rs. 10 = Rs. 50 exactPkr → below threshold
+describe("MIN_PAYOUT guard (v4: default Rs.500)", () => {
+  it("rejects a withdrawal below MIN_PAYOUT", async () => {
+    // Rs.60 requested — above zero balance but below the Rs.500 minimum.
+    await setAvailable(testUserId, "200.00");
     await expect(
-      storage.createWithdrawal(wdPayload(testUserId, "5000"))
+      storage.createWithdrawal(wdPayload(testUserId, "60"))
     ).rejects.toThrow(/Minimum payout requirement/i);
+  });
+
+  it("rejects a withdrawal exceeding the available balance (hold guard)", async () => {
+    await setAvailable(testUserId, "100.00");
+    await expect(
+      storage.createWithdrawal(wdPayload(testUserId, "500"))
+    ).rejects.toThrow(/Insufficient available balance/i);
   });
 });
 
 // ── Suite 2: Full withdrawal lifecycle ───────────────────────────────────────
 
-describe("Withdrawal lifecycle", () => {
+describe("Withdrawal lifecycle (hold → complete)", () => {
   let withdrawalId: string;
 
-  it("creates a pending withdrawal when exactPkr meets MIN_PAYOUT", async () => {
-    // 10 000 pts → 10 rows × Rs. 10 = Rs. 100 exactPkr (exactly at threshold)
-    const wd = await storage.createWithdrawal(wdPayload(testUserId, "10000"));
-    expect(wd.status).toBe("pending");
-    expect(wd.userId).toBe(testUserId);
-    withdrawalId = wd.id;
+  it("creates a pending withdrawal and HOLDS the gross at request time", async () => {
+    await setAvailable(testUserId, "200.00");
+    // Rs.100 request (fits the seeded ledger; below the default Rs.500 min —
+    // so lower MIN_PAYOUT first via the system_config the storage reads).
+    const { systemConfig } = await import("@shared/schema");
+    const [cfg] = await db.select().from(systemConfig).where(eq(systemConfig.key, "MIN_PAYOUT")).limit(1);
+    const originalMin = cfg?.value ?? 500;
+    await db.update(systemConfig).set({ value: 100 }).where(eq(systemConfig.key, "MIN_PAYOUT"));
+    try {
+      const wd = await storage.createWithdrawal(wdPayload(testUserId, "100"));
+      expect(wd.status).toBe("pending");
+      expect(wd.userId).toBe(testUserId);
+      withdrawalId = wd.id;
+      // §18: the hold is immediate — available drops by the full gross.
+      expect(await getAvailable(testUserId)).toBe("100.00");
+      // Fee recorded up-front: 15% of 100 = 15; net = 85.
+      expect(parseFloat(wd.fee ?? "0")).toBeCloseTo(15.0, 2);
+      expect(parseFloat(wd.netAmount ?? "0")).toBeCloseTo(85.0, 2);
+    } finally {
+      await db.update(systemConfig).set({ value: originalMin }).where(eq(systemConfig.key, "MIN_PAYOUT"));
+    }
   });
 
-  it("rejects a second concurrent pending withdrawal from the same user", async () => {
+  it("rejects a second concurrent withdrawal for the same user", async () => {
     await expect(
-      storage.createWithdrawal(wdPayload(testUserId, "10000"))
+      storage.createWithdrawal(wdPayload(testUserId, "100"))
     ).rejects.toThrow(/pending payout/i);
   });
 
-  it("approves the withdrawal — ledger rows marked withdrawn, balance deducted", async () => {
-    const approved = await storage.updateWithdrawalStatus(
+  it("completes the withdrawal — ledger rows marked withdrawn, hold consumed", async () => {
+    const completed = await storage.updateWithdrawalStatus(
       withdrawalId,
       "completed",
       founderUserId,
       `TX_TEST_${TS}`
     );
-    expect(approved.status).toBe("completed");
+    expect(completed.status).toBe("completed");
 
-    // Confirm the consumed ledger rows are now marked withdrawn
     const [{ cnt }] = await db
       .select({ cnt: sql<number>`COUNT(*)::int` })
       .from(userTransactions)
@@ -178,30 +198,32 @@ describe("Withdrawal lifecycle", () => {
         eq(userTransactions.withdrawn, true)
       ));
     expect(Number(cnt)).toBeGreaterThanOrEqual(10);
+
+    const [u] = await db.select().from(users).where(eq(users.id, testUserId));
+    // totalWithdrawn tracks the NET actually paid (§18).
+    expect(parseFloat(u.totalWithdrawn ?? "0")).toBeCloseTo(85.0, 2);
+    // Available stays at the post-hold value (completion consumes the hold).
+    expect(u.availableBalance).toBe("100.00");
   });
 
-  it("rejects re-approving an already-completed withdrawal", async () => {
+  it("rejects re-completing an already-completed withdrawal", async () => {
     await expect(
       storage.updateWithdrawalStatus(withdrawalId, "completed", founderUserId)
     ).rejects.toThrow(/not in a processable state|not pending/i);
   });
 });
 
-// ── Suite 3: Rejection path ───────────────────────────────────────────────────
+// ── Suite 3: Rejection path — refund the hold ────────────────────────────────
 
-describe("Withdrawal rejection", () => {
+describe("Withdrawal rejection refunds the hold", () => {
   let rejectedWdId: string;
 
-  it("creates and rejects a withdrawal", async () => {
-    // Seed fresh rows for this suite (previous suite consumed 10)
-    const freshIds = await seedLedger(testUserId, 10, 1_000, "10.0000");
-    seededTxIds.push(...freshIds);
-    await db.update(users)
-      .set({ txPointsBalance: 10_000 as any })
-      .where(eq(users.id, testUserId));
-
-    const wd = await storage.createWithdrawal(wdPayload(testUserId, "10000"));
+  it("creates and rejects a withdrawal, restoring the held amount", async () => {
+    await setAvailable(testUserId, "200.00");
+    const wd = await storage.createWithdrawal(wdPayload(testUserId, "50"));
     rejectedWdId = wd.id;
+    // Hold applied.
+    expect(await getAvailable(testUserId)).toBe("150.00");
 
     const rejected = await storage.updateWithdrawalStatus(
       rejectedWdId,
@@ -211,6 +233,8 @@ describe("Withdrawal rejection", () => {
       "Test rejection reason"
     );
     expect(rejected.status).toBe("rejected");
+    // Hold fully restored.
+    expect(await getAvailable(testUserId)).toBe("200.00");
   });
 
   it("cannot re-reject an already-rejected withdrawal", async () => {
@@ -220,40 +244,35 @@ describe("Withdrawal rejection", () => {
   });
 });
 
-// ── Suite 4: Pro-rata last-row split ─────────────────────────────────────────
+// ── Suite 4: Pro-rata last-row split (PKR-based FIFO) ────────────────────────
 
 describe("Pro-rata ledger split", () => {
-  it("partial withdrawal computes proportional PKR — not the full last-row value", async () => {
-    // Single large row: 2 000 pts, Rs. 20.0000 realPkrValue
+  it("partial FIFO consumption computes proportional PKR — not the full last-row value", async () => {
+    // Single large verified row: Rs. 20.0000 (200 points at 10 pts/Rs.1).
     const [bigRow] = await db.insert(userTransactions).values({
       userId:         testUserId,
       engineType:     "Engine_A",
-      pointsCredited: 2_000,
+      pointsCredited: 200,
       realPkrValue:   "20.0000",
       grossPkr:       "33.3333",
       thorxProfitPkr: "13.3333",
-      conversionRate: 100,
+      conversionRate: 10,
       cardVariance:   "1.0000",
       sourceId:       `split_test_${TS}`,
       sourceType:     "ad_view",
       withdrawn:      false,
+      verificationStatus: "verified",
+      verifiedAt: new Date(),
     } as any).returning({ id: userTransactions.id });
-    seededTxIds.push(bigRow.id);
 
-    await db.update(users)
-      .set({ txPointsBalance: 2_000 as any })
-      .where(eq(users.id, testUserId));
-
-    // Request 1 000 pts (half the row) → expected exactPkr = Rs. 10, fee = Rs. 1.50, net = Rs. 8.50
-    const preview = await storage.previewWithdrawal(testUserId, 1_000);
+    // Request Rs.10 (half the row) → exactPkr = Rs.10, fee = Rs.1.50, net = Rs.8.50.
+    const preview = await storage.previewWithdrawal(testUserId, 10);
 
     expect(parseFloat(preview.exactPkr)).toBeCloseTo(10.0, 2);
     expect(parseFloat(preview.userNetPkr)).toBeCloseTo(8.5, 2);
     expect(parseFloat(preview.platformFee)).toBeCloseTo(1.5, 2);
 
-    // Clean up: mark the row withdrawn so afterAll does not leave stale data
-    await db.update(userTransactions)
-      .set({ withdrawn: true })
-      .where(eq(userTransactions.id, bigRow.id));
+    // Clean up so afterAll does not leave stale rows.
+    await db.delete(userTransactions).where(eq(userTransactions.id, bigRow.id));
   });
 });
