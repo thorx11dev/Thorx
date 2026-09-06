@@ -371,8 +371,9 @@ describe("Verification sweep (pending → available)", () => {
 
 // ── §11/§14/§18: Direct user payout — hold, 15% fee, manual approval ─────────
 
-describe("Direct-user payout (Rs.60 available, hold + fee + manual review)", () => {
-  it("blocks below the configured minimum (Rs.500 default)", async () => {
+describe("Direct-user payout guards", () => {
+  it("blocks below the configured minimum (Rs.500 default) before any balance check", async () => {
+    // Sweep has moved Rs.60 to available — still below the Rs.500 minimum.
     const res = await harnesses.direct.post("/api/withdrawals", {
       amount: "60",
       method: "jazzcash",
@@ -383,11 +384,10 @@ describe("Direct-user payout (Rs.60 available, hold + fee + manual review)", () 
     expect(res.body.message).toContain("Minimum payout");
   });
 
-  it("preview shows exact gross/fee/net in PKR", async () => {
+  it("preview fails fast when the verified ledger cannot cover the request", async () => {
     const res = await harnesses.direct.get("/api/withdrawals/preview?amount=500");
-    expect(res.status).toBe(200);
-    // Preview walks the ledger: only Rs.60 is verified, so an Rs.500 request
-    // fails with the insufficient-ledger error.
+    // Only Rs.60 (or slightly more after sweeps) is verified — Rs.500 cannot
+    // be backed by the ledger, so the preview errors instead of lying.
     expect(res.status).toBe(400);
   });
 });
