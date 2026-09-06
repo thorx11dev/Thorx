@@ -510,6 +510,26 @@ describe("Rejected payout reverses referrer fee-share commission", () => {
       verificationStatus: "verified",
       verifiedAt: new Date(),
     });
+    const pre = await readUser(usersState.referred.id);
+    const currentAvailable = new Decimal(pre.availableBalance ?? "0");
+    const topUp = new Decimal("1000").minus(currentAvailable);
+    if (topUp.gt(0)) {
+      await db.insert(userTransactions).values({
+        userId: usersState.referred.id,
+        engineType: "Engine_A",
+        pointsCredited: topUp.times(10).toNumber(),
+        realPkrValue: topUp.toFixed(4),
+        grossPkr: topUp.div(0.6).toFixed(4),
+        thorxProfitPkr: topUp.div(0.6).times(0.4).toFixed(4),
+        guildPoolPkr: "0.0000",
+        conversionRate: 10,
+        cardVariance: "1.0000",
+        sourceId: `eco_seed2_topup_${TS}`,
+        sourceType: "ad_view",
+        verificationStatus: "verified",
+        verifiedAt: new Date(),
+      });
+    }
     await db.update(users).set({ availableBalance: "1000.00" }).where(eq(users.id, usersState.referred.id));
 
     const res = await harnesses.referred.post("/api/withdrawals", {
