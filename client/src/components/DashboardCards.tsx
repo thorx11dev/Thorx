@@ -53,12 +53,27 @@ function CardHead({ label }: { label: string }) {
 export function DashboardCards() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  // REAL PKR ECONOMY v4 (Spec §24): real money is the PRIMARY representation.
+  // Card 1 = Available + Pending PKR; Card 2 = TX-Points with the fixed
+  // conversion caption; Card 3 = referrals. All values come from the server
+  // user object — the client never computes money.
+  const availablePkr = parseFloat((user as any)?.availableBalance ?? "0") || 0;
+  const pendingPkr = parseFloat((user as any)?.pendingBalance ?? "0") || 0;
   const txPoints = (user as any)?.txPointsBalance ?? 0;
   const performanceScore = (user as any)?.performanceScore ?? 0;
   const userRankTier = (user as any)?.userRankTier ?? "E-Rank";
   const streakDays = (user as any)?.streakDays ?? 0;
-  // balanceCashPkr removed — field not sent by /api/user and PKR values must
-  // only appear inside the Conversion Room / payout flow (audit finding 1-A, 1-B).
+
+  const { data: publicConfig } = useQuery<{ txPointsPerPkr: number }>({
+    queryKey: QUERY_KEYS.publicConfig,
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/config/public");
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const txPointsPerPkr = publicConfig?.txPointsPerPkr ?? 10;
+  const pkrEquivalent = Math.floor(txPoints / Math.max(1, txPointsPerPkr));
 
   const { data: referralStats, isLoading: isReferralStatsLoading, isError: isReferralStatsError, refetch: refetchReferralStats } = useQuery<{ count: number; totalEarned: string }>({
     queryKey: ["/api/referrals", "dashboard-card"],
@@ -71,9 +86,22 @@ export function DashboardCards() {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-12">
+      <CardShell testId="card-real-balance">
+        <CardHead label="REAL BALANCE (PKR)" />
+        <p className="text-3xl md:text-4xl font-black text-primary mb-1 tracking-tighter">
+          Rs. {availablePkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </p>
+        <p className="text-xs font-bold text-muted-foreground" data-testid="pending-balance-line">
+          Pending: Rs. {pendingPkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </p>
+      </CardShell>
+
       <CardShell testId="card-tx-points">
         <CardHead label="TX-POINTS" />
-        <p className="text-3xl md:text-4xl font-black text-primary mb-1 tracking-tighter">{txPoints.toLocaleString()}</p>
+        <p className="text-3xl md:text-4xl font-black text-foreground mb-1 tracking-tighter">{txPoints.toLocaleString()}</p>
+        <p className="text-xs font-bold text-muted-foreground">
+          {txPointsPerPkr} TX-Points = Rs. 1
+        </p>
       </CardShell>
 
       <CardShell testId="card-referral-balance">
@@ -87,7 +115,7 @@ export function DashboardCards() {
         </div>
       </CardShell>
 
-      <div data-testid="card-performance-rank">
+      <div data-testid="card-performance-rank" className="hidden">
         <PSProgressCard performanceScore={performanceScore} userRankTier={userRankTier} streakDays={streakDays} />
       </div>
     </div>
