@@ -745,6 +745,47 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const { value } = z.object({
         value: z.union([z.string(), z.number(), z.boolean(), z.array(z.unknown())]),
       }).parse(req.body);
+
+      // ── v4: server-side economic validation (Spec §7/§8/§22) ──────────────
+      // Percentage/rate keys are validated here so an invalid Team Portal save
+      // can never create a split that pays out more than 100% of revenue or a
+      // conversion that breaks point math.
+      const ECONOMIC_NUMERIC_KEYS: Record<string, { min: number; max: number; integer?: boolean }> = {
+        TASK_SPLIT_THORX_PCT: { min: 0, max: 100, integer: true },
+        TASK_SPLIT_THORX_REFERRED_PCT: { min: 0, max: 100, integer: true },
+        TASK_SPLIT_REFERRER_PCT: { min: 0, max: 50, integer: true },
+        TX_POINTS_PER_PKR: { min: 1, max: 100000, integer: true },
+        MIN_PAYOUT: { min: 1, max: 1_000_000, integer: true },
+        WITHDRAWAL_FEE_PCT: { min: 0, max: 90, integer: true },
+        REFERRAL_FEE_SHARE_PCT: { min: 0, max: 100, integer: true },
+        PENDING_VERIFICATION_HOURS: { min: 1, max: 720, integer: true },
+      };
+      const econRule = ECONOMIC_NUMERIC_KEYS[req.params.key];
+      if (econRule) {
+        const num = typeof value === "number" ? value : parseFloat(String(value));
+        if (!Number.isFinite(num) || num < econRule.min || num > econRule.max) {
+          return res.status(400).json({
+            message: `Invalid value for ${req.params.key}: must be between ${econRule.min} and ${econRule.max}.`,
+            error: "VALIDATION_ERROR",
+          });
+        }
+        // Sum validation for the referred split (Thorx + referrer must not exceed 100).
+        if (req.params.key === "TASK_SPLIT_THORX_REFERRED_PCT" || req.params.key === "TASK_SPLIT_REFERRER_PCT") {
+          const [thorxReferred, referrerPct] = await Promise.all([
+            storage.getSystemConfigValue<number>("TASK_SPLIT_THORX_REFERRED_PCT", 35),
+            storage.getSystemConfigValue<number>("TASK_SPLIT_REFERRER_PCT", 5),
+          ]);
+          const newThorx = req.params.key === "TASK_SPLIT_THORX_REFERRED_PCT" ? num : thorxReferred;
+          const newReferrer = req.params.key === "TASK_SPLIT_REFERRER_PCT" ? num : referrerPct;
+          if (newThorx + newReferrer > 100) {
+            return res.status(400).json({
+              message: "Invalid referred-task split: Thorx share + referrer commission must not exceed 100%.",
+              error: "VALIDATION_ERROR",
+            });
+          }
+        }
+      }
+
       // storage.updateSystemConfig() already writes a SYSTEM_CONFIG_UPDATED/CREATED
       // audit log entry with both the old and new value (System Settings audit,
       // 2026-07-29) — a second manual createAuditLog() call here used to write a
