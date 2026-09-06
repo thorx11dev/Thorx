@@ -766,25 +766,24 @@ export default function UserPortal() {
     { key: "allTime", label: "All Time" },
   ];
 
-  // THORX v3: live withdrawal preview — the amount the user types is a count
-  // of TX-Points; the real PKR value is computed server-side from the FIFO
-  // ledger walk (never guessed/converted client-side), so we fetch the exact
-  // breakdown before letting the user confirm.
-  const withdrawPointsRequested = parseInt(withdrawAmount || "0", 10);
+  // v4: live withdrawal preview — the amount the user types is REAL PKR;
+  // the exact fee/net breakdown is computed server-side (never client-side),
+  // so we fetch it before letting the user confirm (Spec §13).
+  const withdrawPkrRequested = parseFloat(withdrawAmount || "0");
   const { data: withdrawalPreview, isLoading: isPreviewLoading, error: withdrawalPreviewError } = useQuery<{
     exactPkr: number; platformFee: number; feePercent: number; referralCommission: number;
     referrerName: string | null; userNetPkr: number; sRankFastTrack: boolean;
   }>({
-    queryKey: QUERY_KEYS.withdrawalPreview(withdrawPointsRequested),
+    queryKey: QUERY_KEYS.withdrawalPreview(withdrawPkrRequested),
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/withdrawals/preview?points=${withdrawPointsRequested}`);
+      const res = await apiRequest("GET", `/api/withdrawals/preview?amount=${withdrawPkrRequested}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Failed to preview withdrawal");
       }
       return res.json();
     },
-    enabled: currentStep >= 2 && Number.isFinite(withdrawPointsRequested) && withdrawPointsRequested > 0,
+    enabled: currentStep >= 2 && Number.isFinite(withdrawPkrRequested) && withdrawPkrRequested > 0,
     retry: false,
   });
 
