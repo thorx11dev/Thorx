@@ -450,7 +450,7 @@ describe("Referred-user payout lifecycle (fee-share commission)", () => {
   });
 
   it("completing the payout finalizes nothing for a non-referred user but consumes the hold", async () => {
-    const res = await harnesses.referrer.patch(`/api/admin/withdrawals/${withdrawalId}`, {
+    const res = await harnesses.admin.patch(`/api/admin/withdrawals/${withdrawalId}`, {
       status: "completed",
       transactionId: `QA-TRX-${TS}`,
     });
@@ -512,7 +512,7 @@ describe("Rejected payout reverses referrer fee-share commission", () => {
   });
 
   it("rejecting the payout refunds the hold AND reverses the pending commission", async () => {
-    const res = await harnesses.referred.patch(`/api/admin/withdrawals/${withdrawalId}`, {
+    const res = await harnesses.admin.patch(`/api/admin/withdrawals/${withdrawalId}`, {
       status: "rejected",
       rejectionReason: "QA reject — commission reversal check",
     });
