@@ -260,72 +260,42 @@ afterAll(async () => {
   await pool.end();
 }, 60_000);
 
-// ── Unit: Thorx Card rank variance bonus (A/S widen the draw band) ───────────
+// ── Unit: deterministic conversion (v4 — variance removed) ──────────────────
 
-describe("drawThorxCard — rank variance bonus", () => {
-  afterAll(() => vi.restoreAllMocks());
-
-  it("A-Rank and S-Rank widen the variance band by their configured bonus", () => {
-    const spy = vi.spyOn(Math, "random");
-    // min bound (random=0): E stays at base min, A/S go wider.
-    spy.mockReturnValue(0);
-    const base = { userPkrShare: "60", conversionRate: 1000, varianceMin: 0.9, varianceMax: 1.1 };
-    expect(drawThorxCard({ ...base, userRankTier: "E-Rank" }).cardVariance).toBe(0.9);
-    expect(drawThorxCard({ ...base, userRankTier: "A-Rank", aRankBonusPct: 5 }).cardVariance).toBe(0.85);
-    expect(drawThorxCard({ ...base, userRankTier: "S-Rank", sRankBonusPct: 10 }).cardVariance).toBe(0.8);
-    // max bound (random=1): E stays at base max, A/S go wider.
-    spy.mockReturnValue(1);
-    expect(drawThorxCard({ ...base, userRankTier: "E-Rank" }).cardVariance).toBe(1.1);
-    expect(drawThorxCard({ ...base, userRankTier: "A-Rank", aRankBonusPct: 5 }).cardVariance).toBe(1.15);
-    expect(drawThorxCard({ ...base, userRankTier: "S-Rank", sRankBonusPct: 10 }).cardVariance).toBe(1.2);
+describe("drawThorxCard — deterministic conversion (v4)", () => {
+  it("converts PKR at the exact rate with no variance or rank influence", () => {
+    const base = { userPkrShare: "60", conversionRate: 10, varianceMin: 0.8, varianceMax: 1.2 };
+    const e = drawThorxCard({ ...base, userRankTier: "E-Rank" });
+    const s = drawThorxCard({ ...base, userRankTier: "S-Rank", sRankBonusPct: 10 });
+    // Both ranks get identical, exact points — rank is now irrelevant.
+    expect(e.pointsCredited).toBe(600);
+    expect(s.pointsCredited).toBe(600);
+    expect(e.cardVariance).toBe(1.0);
+    expect(e.targetPoints).toBe(600);
+    // Flooring: fractional points round down.
+    expect(drawThorxCard({ ...base, userPkrShare: "60.55", conversionRate: 10 }).pointsCredited).toBe(605);
   });
 });
 
-// ── Q6 rank reward multiplier: same gross PKR, rank-scaled TX-Points ────────
+// ── v4 fixed conversion: same gross PKR → identical points for every rank ───
 
-describe("Q6 rank reward multiplier (recordEarnEvent HTTP path)", () => {
-  const EXPECTED: Record<string, number> = {
-    "E-Rank": 6000, "D-Rank": 6600, "C-Rank": 7200, "B-Rank": 8100,
-  };
-  // A/S variance band with ENGINE_A_ILLUSION_VARIANCE_PCT=0:
-  //   A: [0.95, 1.05] × 1.5 → [8550, 9450]
-  //   S: [0.90, 1.10] × 1.75 → [9450, 11550]
-  const RANGE: Record<string, [number, number]> = {
-    "A-Rank": [8550, 9450],
-    "S-Rank": [9450, 11550],
-  };
-
-  it("credits rank-scaled TX-Points for identical gross PKR, monotonic across ranks", async () => {
-    // Cold-started Neon pools + ~32 system_config round-trips per ad-view make
-    // this the slowest test in the file; give it headroom beyond the 30s default.
+describe("v4 fixed conversion (recordEarnEvent HTTP path)", () => {
+  it("credits identical TX-Points for identical gross PKR regardless of rank", async () => {
     const tierByKey: Record<string, string> = {
       eRank: "E-Rank", dRank: "D-Rank", cRank: "C-Rank", bRank: "B-Rank", aRank: "A-Rank", sRank: "S-Rank",
     };
-    const got: Record<string, number> = {};
-    for (const [key, tier] of Object.entries(tierByKey)) {
+    for (const [key] of Object.entries(tierByKey)) {
       const res = await oneAd(key);
       expect(res.status).toBe(201);
       const pts = res.body.thorxCard?.pointsCredited;
-      expect(typeof pts).toBe("number");
-      if (tier in EXPECTED) {
-        expect(pts, `${tier} exact (variance pinned to 0)`).toBe(EXPECTED[tier]);
-      } else {
-        const [lo, hi] = RANGE[tier];
-        expect(pts, `${tier} band (A/S variance bonus)`).toBeGreaterThanOrEqual(lo);
-        expect(pts, `${tier} band (A/S variance bonus)`).toBeLessThanOrEqual(hi);
-      }
-      got[tier] = pts;
+      // Rs.100 gross → 60% user share (Rs.60) × 10 pts/Rs.1 = exactly 600.
+      expect(pts, `${tierByKey[key]} exact fixed conversion`).toBe(600);
       const dbUser = await readUser(usersState[key].id);
-      expect(dbUser.txPointsBalance, `${tier} txPointsBalance`).toBe(pts);
-    }
-    // Strict monotonicity: S > A > B > C > D > E even across random A/S draws.
-    const order = ["E-Rank", "D-Rank", "C-Rank", "B-Rank", "A-Rank", "S-Rank"];
-    for (let i = 1; i < order.length; i++) {
-      expect(got[order[i]]).toBeGreaterThan(got[order[i - 1]]);
+      expect(dbUser.txPointsBalance, `${tierByKey[key]} txPointsBalance`).toBe(600);
     }
   }, 90_000);
 
-  it("keeps the real PKR share identical for every rank (financial integrity)", async () => {
+  it("lands the user PKR share in PENDING balance with a pending ledger row (v4 lifecycle)", async () => {
     const tierByKey: Record<string, string> = {
       eRank: "E-Rank", dRank: "D-Rank", cRank: "C-Rank", bRank: "B-Rank", aRank: "A-Rank", sRank: "S-Rank",
     };
@@ -333,8 +303,10 @@ describe("Q6 rank reward multiplier (recordEarnEvent HTTP path)", () => {
       const [tx] = await db.select().from(userTransactions).where(eq(userTransactions.userId, usersState[key].id)).limit(1);
       expect(tx, `${tierByKey[key]} ledger row`).toBeDefined();
       expect(tx.realPkrValue, `${tierByKey[key]} realPkrValue`).toBe("60.0000");
+      expect(tx.verificationStatus, `${tierByKey[key]} starts pending`).toBe("pending");
       const u = await readUser(usersState[key].id);
-      expect(u.availableBalance, `${tierByKey[key]} availableBalance`).toBe("60.00");
+      expect(u.pendingBalance, `${tierByKey[key]} pendingBalance`).toBe("60.00");
+      expect(u.availableBalance, `${tierByKey[key]} availableBalance stays 0`).toBe("0.00");
       expect(u.totalEarnings, `${tierByKey[key]} totalEarnings`).toBe("60.00");
     }
   });
