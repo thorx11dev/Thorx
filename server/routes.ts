@@ -5116,19 +5116,22 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
-  // Public/Authenticated System Configuration Access
-  // C-05: Strict public allowlist — only non-sensitive UI keys are exposed without auth.
-  // Keys readable by ANY authenticated user. Fee %, conversion rate and min
-  // payout are display/withdrawal-copy values the UserPortal needs and are
-  // already exposed (conversionRate, withdrawalFeePct) via /api/config/public
-  // — keeping them here avoids 403s on every portal load. Business-sensitive
-  // keys (ad network config, engine cuts, economy overrides) stay restricted.
-  const PUBLIC_CONFIG_KEYS = new Set([
-    "MIN_PAYOUT",
-    "WITHDRAWAL_FEE_PCT",
-    "REFERRAL_FEE_SHARE_PCT",
-    "CONVERSION_RATE",
-  ]);
+  // Public config endpoint — no auth required (Spec §17.6)
+  // Returns only the display parameters the frontend needs. v4: the fixed
+  // TX-Points conversion (TX_POINTS_PER_PKR) replaces the old CONVERSION_RATE.
+  app.get("/api/config/public", async (_req, res) => {
+    try {
+      const [txPointsPerPkr, withdrawalFeePct, minPayout, dailyEarningsGoalPkr] = await Promise.all([
+        storage.getSystemConfigValue<number>("TX_POINTS_PER_PKR", 10),
+        storage.getSystemConfigValue<number>("WITHDRAWAL_FEE_PCT", 15),
+        storage.getSystemConfigValue<number>("MIN_PAYOUT", 500),
+        storage.getSystemConfigValue<number>("DAILY_EARNINGS_GOAL_PKR", 50),
+      ]);
+      res.json({ txPointsPerPkr, conversionRate: txPointsPerPkr, minPayout, platformName: "THORX", withdrawalFeePct, dailyEarningsGoalPkr });
+    } catch (error) {
+      res.json({ txPointsPerPkr: 10, conversionRate: 10, minPayout: 500, platformName: "THORX", withdrawalFeePct: 15, dailyEarningsGoalPkr: 50 });
+    }
+  });
   app.get("/api/config/:key", publicApiRateLimiter, async (req, res) => {
     try {
       const { key } = req.params;
