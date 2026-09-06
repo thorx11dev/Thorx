@@ -330,7 +330,7 @@ export function PayoutSection(props: PayoutSectionProps) {
                       {selectedTimeframe && withdrawAmount && (
                         <div className="p-3 bg-muted/30 rounded-xl text-center border border-muted">
                           <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Selected</div>
-                          <div className="text-2xl font-black text-foreground">{parseInt(withdrawAmount).toLocaleString()} <span className="text-base text-muted-foreground">PTS</span></div>
+                          <div className="text-2xl font-black text-foreground">Rs. {parseFloat(withdrawAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-base text-muted-foreground">PKR</span></div>
                         </div>
                       )}
                     </motion.div>
