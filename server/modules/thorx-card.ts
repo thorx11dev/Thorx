@@ -1,142 +1,81 @@
-// THORX v3 — Thorx Card randomized reward engine (Part E.1 of the v3 spec).
+// THORX v4 — deterministic TX-Point conversion (REAL PKR ECONOMY v4, Spec §2–§3).
 //
-// Design: the user's exact PKR share of an earn event (userPkrShare) is
-// IMMUTABLE and is what withdrawal math is based on (see user_transactions.
-// real_pkr_value). The "points" shown on the card are a randomized display
-// value layered on top purely for engagement — they never change what the
-// user can withdraw.
+// The old "Thorx Card illusion" (random variance, rank multipliers) is
+// REMOVED. Points are a fixed, transparent conversion of real PKR:
+//
+//     points = realPkr × TX_POINTS_PER_PKR      (default 10 pts = Rs.1)
+//
+// The functions below are kept because storage.recordEarnEvent and the admin
+// sandbox route call them — they now perform the exact conversion with no
+// randomness so the entire platform shows one consistent number.
 
 import Decimal from "decimal.js";
 
-// Rank reward multipliers — applied to TX-Points (gamification display) per earn event.
-// Higher ranks earn proportionally more points for the same gross PKR amount.
-// Config Q6: E=1.00x, D=1.10x, C=1.20x, B=1.35x, A=1.50x, S=1.75x
-//
-// Single source of truth: server/storage.ts (recordEarnEvent) imports this
-// constant rather than keeping its own copy. Before this fix, the Thorx Card
-// Sandbox (server/routes.ts simulate/thorx-card) never applied this
-// multiplier at all, so admin-facing simulation results silently understated
-// what higher-rank users actually receive (up to 43% low for S-Rank once the
-// 1.75x step is skipped).
-export const RANK_REWARD_MULTIPLIERS: Record<string, number> = {
-  "E-Rank": 1.00,
-  "D-Rank": 1.10,
-  "C-Rank": 1.20,
-  "B-Rank": 1.35,
-  "A-Rank": 1.50,
-  "S-Rank": 1.75,
-};
-
 export interface CardDrawParams {
-  userPkrShare: number | string;   // exact PKR already split from gross for this user (string keeps Decimal precision)
-  conversionRate: number; // system_config CONVERSION_RATE (TX-Points per Rs.10)
-  userRankTier: string;   // affects variance bounds (A-Rank / S-Rank bonus)
-  varianceMin: number;    // system_config CARD_VARIANCE_MIN (default 0.80)
-  varianceMax: number;    // system_config CARD_VARIANCE_MAX (default 1.20)
-  aRankBonusPct?: number; // system_config A_RANK_CARD_BONUS_PCT (default 5)
-  sRankBonusPct?: number; // system_config S_RANK_CARD_BONUS_PCT (default 10)
+  userPkrShare: number | string;   // exact PKR the user earned (string keeps Decimal precision)
+  conversionRate: number; // system_config TX_POINTS_PER_PKR (TX-Points per Rs.1)
+  userRankTier: string;   // accepted for interface compatibility — NO effect (v4 removed rank multipliers)
+  varianceMin: number;    // accepted for interface compatibility — ignored (fixed 1.0)
+  varianceMax: number;    // accepted for interface compatibility — ignored (fixed 1.0)
+  aRankBonusPct?: number; // removed in v4 — ignored
+  sRankBonusPct?: number; // removed in v4 — ignored
 }
 
 export interface CardResult {
-  pointsCredited: number; // random, shown to the user on the Thorx Card
+  pointsCredited: number; // deterministic: realPkr × conversionRate, floored
   realPkrValue: string;   // exact string representation — never converted to float
-  cardVariance: number;   // the random multiplier actually applied (audit trail)
-  targetPoints: number;   // pre-variance baseline (internal reference only)
+  cardVariance: number;   // always 1.0 (kept for ledger schema compatibility)
+  targetPoints: number;   // same as pointsCredited (no variance anymore)
 }
 
 export function drawThorxCard(params: CardDrawParams): CardResult {
-  const {
-    userPkrShare,
-    conversionRate,
-    userRankTier,
-    varianceMin,
-    varianceMax,
-    aRankBonusPct = 5,
-    sRankBonusPct = 10,
-  } = params;
-
-  // Rank bonus adjustments to variance range — higher ranks get a wider
-  // (and better-skewed) band, purely on the display/points side.  The caller
-  // may already have resolved the configured bounds, so this module is the
-  // single owner of applying the configured rank bonus.
-  let min = varianceMin;
-  let max = varianceMax;
-  if (userRankTier === "A-Rank") {
-    min -= aRankBonusPct / 100;
-    max += aRankBonusPct / 100;
-  }
-  if (userRankTier === "S-Rank") {
-    min -= sRankBonusPct / 100;
-    max += sRankBonusPct / 100;
-  }
-  // Never let bounds invert or go non-positive.
-  min = Math.max(0.01, min);
-  if (max < min) max = min;
+  const { userPkrShare, conversionRate } = params;
 
   const pkrDecimal = new Decimal(userPkrShare);
   // Keep Decimal through the full chain — only convert to number at the
   // final integer step to avoid float-multiply precision drift.
-  const targetPointsD = pkrDecimal.div(10).times(conversionRate);
-  // Round the draw to 6dp: Math.random() variance is intentionally float
-  // (display-only), but without rounding, float arithmetic leaks artifacts
-  // like 1.1500000000000001 into the audit trail and makes exact assertions
-  // on the variance band impossible.
-  const cardVariance = Math.round((min + Math.random() * (max - min)) * 1e6) / 1e6;
-  const pointsCredited = Math.max(
-    0,
-    targetPointsD.times(cardVariance).toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber(),
-  );
-  const targetPoints = targetPointsD.toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber();
+  const exactPointsD = pkrDecimal.times(conversionRate).toDecimalPlaces(0, Decimal.ROUND_FLOOR);
+  const pointsCredited = Math.max(0, exactPointsD.toNumber());
 
-  return { pointsCredited, realPkrValue: pkrDecimal.toFixed(4), cardVariance, targetPoints };
+  return {
+    pointsCredited,
+    realPkrValue: pkrDecimal.toFixed(4),
+    cardVariance: 1.0,
+    targetPoints: pointsCredited,
+  };
 }
 
 export interface CardConfig {
   conversionRate: number;
-  varianceMin: number;
-  varianceMax: number;
+  varianceMin: number; // ignored in v4 — kept for sandbox request compatibility
+  varianceMax: number; // ignored in v4 — kept for sandbox request compatibility
   aRankBonusPct?: number;
   sRankBonusPct?: number;
 }
 
 export interface SimulationResult {
   iteration: number;
-  pointsCredited: number;     // FINAL points a real user would see — includes the Q6 rank multiplier, matching recordEarnEvent
-  basePointsCredited: number; // pre-rank-multiplier value (post-variance), for transparency
-  rankMultiplier: number;     // the Q6 multiplier actually applied for userRankTier
-  realPkrValue: string;       // PKR value TX-Points were actually computed from (guild pool share for Engine C)
-  immediateUserPkrValue: string; // what lands in the user's withdrawable balance right now (0.0000 for Engine C — pool-based, Sunday payout)
-  cardVariance: number;
+  pointsCredited: number;     // deterministic conversion result
+  basePointsCredited: number; // identical in v4 (no variance)
+  rankMultiplier: number;     // always 1.0 in v4 (rank multipliers removed)
+  realPkrValue: string;       // PKR value TX-Points were computed from (guild pool share for Engine C)
+  immediateUserPkrValue: string; // what lands in the user's PENDING balance (0.0000 for Engine C — pool-based)
+  cardVariance: number;       // always 1.0
 }
 
 // Admin simulation tool (Thorx Card Sandbox) — runs N draws for a given
 // gross PKR / engine / rank combination without touching real user data.
-//
-// Audit fix (rank multiplier): this previously stopped after drawThorxCard()
-// and returned its raw pointsCredited, skipping the Q6 rank reward
-// multiplier that recordEarnEvent() (server/storage.ts) always applies
-// afterwards. Every simulated draw above E-Rank understated the real outcome
-// (D +10% low, ..., S up to 43% low) — now applies the exact same
-// RANK_REWARD_MULTIPLIERS step.
-//
-// Audit fix (engine-specific splits): this previously ignored `engineType`
-// entirely and always computed userPkrShare = grossPkr * userCutPct/100,
-// i.e. it silently simulated Engine C exactly like Engine A/B. Real Engine C
-// economics (recordEarnEvent) route 0% to the user's immediate balance —
-// 100% of the user's share goes into the guild's weekly pool (15% Thorx /
-// 80% pool / 5% bonus-on-target), and TX-Points are based on the pool
-// contribution, not a per-user instant payout. Admins previewing "Engine C"
-// were seeing Engine A/B math with a different color, completely hiding the
-// real (very different) guild mechanics.
+// v4: fully deterministic — the sandbox now previews the exact numbers a
+// real earn event produces (fixed conversion, v4 splits).
 export function simulateThorxCards(params: {
   grossPkr: number;
   engineType: "A" | "B" | "C";
   userRankTier: string;
   iterations: number;
   config: CardConfig;
-  engineSplits: { thorxCutPct: number; userCutPct: number; guildPoolPct?: number; bonusPct?: number };
+  engineSplits: { thorxCutPct: number; userCutPct: number; guildPoolPct?: number; bonusPct?: number; referrerPct?: number };
 }): SimulationResult[] {
-  const { grossPkr, engineType, userRankTier, iterations, config, engineSplits } = params;
+  const { grossPkr, engineType, iterations, config, engineSplits } = params;
 
   // Use Decimal for the split so floating-point errors don't accumulate.
   // Mirrors recordEarnEvent's per-engine branch (server/storage.ts) exactly.
@@ -152,26 +91,20 @@ export function simulateThorxCards(params: {
   }
   const txPointsBasePkr = txPointsBasePkrD.toFixed(8);
   const immediateUserPkrValue = immediateUserPkrShareD.toFixed(4);
-  const rankMultiplier = RANK_REWARD_MULTIPLIERS[userRankTier] ?? 1.00;
+  const rankMultiplier = 1.0; // v4: rank multipliers removed — fixed conversion for everyone
 
   const results: SimulationResult[] = [];
   for (let i = 0; i < iterations; i++) {
     const draw = drawThorxCard({
       userPkrShare: txPointsBasePkr,
       conversionRate: config.conversionRate,
-      userRankTier,
-      varianceMin: config.varianceMin,
-      varianceMax: config.varianceMax,
-      aRankBonusPct: config.aRankBonusPct,
-      sRankBonusPct: config.sRankBonusPct,
+      userRankTier: "E-Rank",
+      varianceMin: 1,
+      varianceMax: 1,
     });
-    // Mirrors server/storage.ts recordEarnEvent's rounding exactly (Math.floor after multiply).
-    const rankedPointsCredited = draw.pointsCredited > 0
-      ? Math.floor(draw.pointsCredited * rankMultiplier)
-      : 0;
     results.push({
       iteration: i + 1,
-      pointsCredited: rankedPointsCredited,
+      pointsCredited: draw.pointsCredited,
       basePointsCredited: draw.pointsCredited,
       rankMultiplier,
       realPkrValue: draw.realPkrValue,
