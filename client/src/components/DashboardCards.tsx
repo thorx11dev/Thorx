@@ -23,6 +23,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
+import { PSProgressCard } from "@/components/PSProgressCard";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import { Skeleton } from "@/components/ui/skeleton";
 import TechnicalLabel from "@/components/ui/technical-label";
@@ -115,9 +116,7 @@ export function DashboardCards() {
         </div>
       </CardShell>
 
-      <div data-testid="card-performance-rank" className="hidden">
-        <PSProgressCard performanceScore={performanceScore} userRankTier={userRankTier} streakDays={streakDays} />
-      </div>
+      <div data-testid="card-performance-rank" className="hidden" />
     </div>
   );
 }
