@@ -617,13 +617,13 @@ export function PayoutControl() {
                        const net   = new Decimal(selectedWithdrawal.netAmount  || "0");
                        const fee   = new Decimal(selectedWithdrawal.fee         || "0");
                        const gross = net.plus(fee);
-                       return (
-                         <>
-                           <div className="flex justify-between"><span className="text-zinc-400">Real PKR (ledger):</span><span className="text-white font-black">Rs. {gross.toFixed(2)}</span></div>
-                           <div className="flex justify-between"><span className="text-zinc-400">Platform Fee ({gross.isZero() ? "0" : fee.div(gross).times(100).toDecimalPlaces(1).toString()}%):</span><span className="text-red-400">− Rs. {fee.toFixed(2)}</span></div>
-                           <div className="border-t border-zinc-700 pt-1.5 flex justify-between"><span className="text-zinc-300 font-black">USER RECEIVES:</span><span className="text-emerald-400 font-black">Rs. {net.toFixed(2)}</span></div>
-                         </>
-                       );
+                        return (
+                          <>
+                            <div className="flex justify-between"><span className="text-zinc-400">Gross request:</span><span className="text-white font-black">Rs. {gross.toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span className="text-zinc-400">Platform Fee ({gross.isZero() ? "0" : fee.div(gross).times(100).toDecimalPlaces(1).toString()}%):</span><span className="text-red-400">− Rs. {fee.toFixed(2)}</span></div>
+                            <div className="border-t border-zinc-700 pt-1.5 flex justify-between"><span className="text-zinc-300 font-black">SEND THIS AMOUNT:</span><span className="text-emerald-400 font-black">Rs. {net.toFixed(2)}</span></div>
+                          </>
+                        );
                      })()}
                    </div>
                  </div>
