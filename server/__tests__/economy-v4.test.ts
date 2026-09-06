@@ -212,6 +212,19 @@ beforeAll(async () => {
 
   // referred joins THROUGH the referrer's code → v4 referred split applies.
   await registerRealUser("referred", usersState.referrer.referralCode);
+
+  // Founder for admin actions (payout approvals/rejections). Registration
+  // never issues founder roles — seed directly like rank-earnings does.
+  const [f] = await db.insert(users).values({
+    firstName: "Eco", lastName: "Founder", identity: `eco_founder_${TS}`,
+    phone: `037${Math.floor(10000000 + Math.random() * 89999999)}`,
+    email: founder.email, passwordHash: await bcrypt.hash(PASSWORD, 10),
+    referralCode: `ECOF-${TS}`, role: "founder",
+  } as any).returning();
+  founder.id = f.id;
+  createdIds.users.push(f.id);
+  const founderLogin = await harnesses.admin.post("/api/login", { email: founder.email, password: PASSWORD });
+  expect(founderLogin.status).toBe(200);
 }, 120_000);
 
 afterAll(async () => {
