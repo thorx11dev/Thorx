@@ -1343,10 +1343,12 @@ export class DatabaseStorage implements IStorage {
     // ── Step 2: Deterministic TX-Points (Spec §2 — illusion REMOVED) ────────
     // points = realPkr × TX_POINTS_PER_PKR, floored to an integer. The ledger
     // row preserves the conversion rate used, so later rate changes never
-    // rewrite history.
+    // rewrite history. A 1-point minimum applies to any positive PKR share —
+    // sub-point rewards (e.g. Rs.0.02 ad at 10 pts/Rs.1) would otherwise
+    // floor to 0 and break credit-flagging downstream (webhooks, cards).
     const conversionRate = txPointsPerPkr;
     const pointsCredited = userPkrShareD.gt(0)
-      ? userPkrShareD.times(txPointsPerPkr).toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber()
+      ? Math.max(1, userPkrShareD.times(txPointsPerPkr).toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber())
       : 0;
 
     // Steps 3-6 are wrapped in a single transaction — Critical finding #2 of
