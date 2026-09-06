@@ -292,7 +292,6 @@ export function PayoutControl() {
           >
             <option value="all">All</option>
             <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
             <option value="processing">Processing</option>
             <option value="completed">Completed</option>
             <option value="rejected">Rejected</option>
