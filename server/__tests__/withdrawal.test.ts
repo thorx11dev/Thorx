@@ -219,6 +219,9 @@ describe("Withdrawal rejection refunds the hold", () => {
   let rejectedWdId: string;
 
   it("creates and rejects a withdrawal, restoring the held amount", async () => {
+    // Seed enough verified ledger rows to back an Rs.500 request.
+    const fresh = await seedLedger(testUserId, 50, "10.0000");
+    void fresh;
     await setAvailable(testUserId, "600.00");
     const wd = await storage.createWithdrawal(wdPayload(testUserId, "500"));
     rejectedWdId = wd.id;
