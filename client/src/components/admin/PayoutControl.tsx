@@ -574,7 +574,7 @@ export function PayoutControl() {
                     <TechnicalLabel text="Payout Amount" className="mb-2" />
                     <div className="p-4 bg-zinc-900 border border-zinc-900 rounded-xl">
                       <div className="text-2xl font-bold text-primary">₨ {new Decimal(selectedWithdrawal?.amount || "0").toFixed(2)}</div>
-                      <div className="text-[9px] font-semibold text-white/40 uppercase tracking-widest mt-1">Beneficiary Node Payout</div>
+                      <div className="text-[9px] font-semibold text-white/40 uppercase tracking-widest mt-1">Gross Request (held from Available Balance)</div>
                     </div>
                   </div>
                </div>
