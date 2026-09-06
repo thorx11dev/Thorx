@@ -545,7 +545,10 @@ describe("Rejected payout reverses referrer fee-share commission", () => {
     // §16: referrer's fee-share (15% × 50% = Rs.75) sits in PENDING now.
     const referrer = await readUser(usersState.referrer.id);
     expect(referrer.pendingBalance).toBe("75.00");
-    expect(referrer.availableBalance).toBe("5.00"); // untouched earlier sweep money
+    // The referrer's available balance was fully consumed by their own
+    // Rs.1000 hold in the previous suite (completed payout) — nothing extra
+    // was credited available-side for THIS withdrawal (§16: pending only).
+    expect(referrer.availableBalance).toBe("0.00");
 
     const [comm] = await db.select().from(referralCommissions)
       .where(eq(referralCommissions.withdrawalId, withdrawalId)).limit(1);
