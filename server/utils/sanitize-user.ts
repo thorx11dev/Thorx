@@ -32,8 +32,12 @@ export function buildAuthUserPayload(user: User) {
     identity: user.identity,
     phone: user.phone,
     referralCode: user.referralCode,
+    referredBy: user.referredBy ?? null,
     totalEarnings: user.totalEarnings,
+    // REAL PKR ECONOMY v4 — both balance states are always exposed so every
+    // surface shows the same server-owned numbers (Spec §1, §20, §24).
     availableBalance: user.availableBalance,
+    pendingBalance: user.pendingBalance,
     isActive: user.isActive,
     createdAt: user.createdAt,
     role: user.role || "user",
