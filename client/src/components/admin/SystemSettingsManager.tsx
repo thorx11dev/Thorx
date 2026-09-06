@@ -543,59 +543,31 @@ export function SystemSettingsManager() {
           </p>
         </div>
 
-        {/* ─── Per-Engine TX-Points Ratio Config (Spec §11.1 / §1.1) ─── */}
+        {/* ─── v4: Fixed TX-Points Conversion (Spec §2/§3) ─── */}
         <div className="lg:col-span-2 bg-background border-[1.5px] border-[#141413] rounded-[2rem] p-8 shadow-sm">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-10 h-10 bg-white border-[1.5px] border-[#141413]/20 flex items-center justify-center rounded-full shadow-sm">
               <Layers className="w-5 h-5 text-zinc-500" />
             </div>
             <div>
-              <h3 className="font-black text-xl uppercase text-[#141413] tracking-tight">TX-Points Illusion Engine</h3>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">Per-engine TX-Points displayed per 1.00 PKR of user share — never exposes real PKR to users</p>
+              <h3 className="font-black text-xl uppercase text-[#141413] tracking-tight">TX-Points Conversion</h3>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">One fixed, transparent rate for the whole platform (v4 — illusion removed)</p>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {([
-              { engine: "A", label: "Engine A — Video Ads", ratioKey: "ENGINE_A_PKR_TO_POINTS_RATIO", varKey: "ENGINE_A_ILLUSION_VARIANCE_PCT", color: "#D97757" },
-              { engine: "B", label: "Engine B — Surveys", ratioKey: "ENGINE_B_PKR_TO_POINTS_RATIO", varKey: "ENGINE_B_ILLUSION_VARIANCE_PCT", color: "#7c3aed" },
-              { engine: "C", label: "Engine C — Guild",    ratioKey: "ENGINE_C_PKR_TO_POINTS_RATIO", varKey: "ENGINE_C_ILLUSION_VARIANCE_PCT", color: "#16a34a" },
-            ] as const).map(({ engine, label, ratioKey, varKey, color }) => {
-              const ratio = Number(localConfigs[ratioKey] ?? 1000);
-              const variance = Number(localConfigs[varKey] ?? 10);
-              return (
-                <div key={engine} className="p-4 bg-white border-[1.5px] border-[#141413]/10 rounded-2xl space-y-4">
-                  <div className="text-[10px] font-black uppercase tracking-widest" style={{ color }}>{label}</div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-[10px] font-bold text-zinc-500">
-                      <span>Points per PKR</span>
-                      <span className="font-black text-[#141413]">{ratio.toLocaleString()}</span>
-                    </div>
-                    <input type="range" min={100} max={10000} step={100} value={ratio}
-                      onChange={e => updateValue(ratioKey, parseInt(e.target.value, 10))}
-                      className="w-full h-2 rounded-full cursor-pointer" style={{ accentColor: color }}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-[10px] font-bold text-zinc-500">
-                      <span>Variance ±%</span>
-                      <span className="font-black text-[#141413]">±{variance}%</span>
-                    </div>
-                    <input type="range" min={0} max={50} step={1} value={variance}
-                      onChange={e => updateValue(varKey, parseInt(e.target.value, 10))}
-                      className="w-full h-2 rounded-full cursor-pointer" style={{ accentColor: color }}
-                    />
-                  </div>
-                  <Button size="sm" className="w-full h-7 text-[10px] font-black" onClick={() => {
-                    saveMutation.mutate({ key: ratioKey, value: ratio });
-                    saveMutation.mutate({ key: varKey, value: variance });
-                  }}>Save</Button>
-                </div>
-              );
-            })}
+          <div className="p-4 bg-white border-[1.5px] border-[#141413]/10 rounded-2xl space-y-3 max-w-md">
+            <div className="flex justify-between text-[10px] font-bold text-zinc-500">
+              <span>TX-Points per Rs.1</span>
+              <span className="font-black text-[#141413]">{Number(localConfigs["TX_POINTS_PER_PKR"] ?? 10)}</span>
+            </div>
+            <input type="range" min={1} max={100} step={1} value={Number(localConfigs["TX_POINTS_PER_PKR"] ?? 10)}
+              onChange={e => updateValue("TX_POINTS_PER_PKR", parseInt(e.target.value, 10))}
+              className="w-full h-2 rounded-full accent-black cursor-pointer"
+            />
+            <p className="text-[9px] font-bold text-zinc-400">
+              Default 10 → 10 TX-Points = Rs.1. The same value drives every display and every calculation. Historical ledger rows preserve the rate used at earn time, so changing this never rewrites past transactions.
+            </p>
+            <Button size="sm" className="w-full h-7 text-[10px] font-black" onClick={() => saveMutation.mutate({ key: "TX_POINTS_PER_PKR", value: Number(localConfigs["TX_POINTS_PER_PKR"] ?? 10) })}>Save</Button>
           </div>
-          <p className="text-[9px] font-bold text-zinc-400 mt-4 uppercase tracking-widest">
-            These ratios are NEVER shown to users — only the TX-Points figure is displayed. Changing them affects all future earns immediately.
-          </p>
         </div>
 
         {/* ─── Per-Ad-Player Config UI (Phase 16.4) ─── */}
