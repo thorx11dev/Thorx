@@ -432,44 +432,61 @@ describe("Concurrency & race conditions", () => {
   }, 60_000);
 
   it("parallel withdrawal submissions create EXACTLY one pending withdrawal", async () => {
-    await seedWithdrawableBalance(usersState.wallet.id, 20, 1_000, "10.0000"); // 200 PKR (MIN_PAYOUT forced below in-test)
+    await seedWithdrawableBalance(usersState.wallet.id, 20, 1_000, "10.0000"); // Rs.200 PKR ledger-backed
+    // v4: MIN_PAYOUT is Rs.500 by default — lower it for this Rs.200 scenario.
+    const { systemConfig } = await import("@shared/schema");
+    const [cfg] = await db.select().from(systemConfig).where(eq(systemConfig.key, "MIN_PAYOUT")).limit(1);
+    const originalMin = cfg?.value ?? 500;
+    await db.update(systemConfig).set({ value: 100 }).where(eq(systemConfig.key, "MIN_PAYOUT"));
 
-    const payload = {
-      amount: "10000", method: "bank",
-      accountName: "HR Wallet", accountNumber: "1234567890",
-      accountDetails: { bankName: "HBL" },
-    };
-    const [r1, r2] = await Promise.all([
-      harnesses.wallet.post("/api/withdrawals", payload),
-      harnesses.wallet.post("/api/withdrawals", payload),
-    ]);
+    try {
+      const payload = {
+        amount: "100", method: "bank",
+        accountName: "HR Wallet", accountNumber: "1234567890",
+        accountDetails: { bankName: "HBL" },
+      };
+      const [r1, r2] = await Promise.all([
+        harnesses.wallet.post("/api/withdrawals", payload),
+        harnesses.wallet.post("/api/withdrawals", payload),
+      ]);
 
-    const statuses = [r1.status, r2.status].sort();
-    expect(statuses).toEqual([201, 400]);
-    const loser = r1.status === 400 ? r1 : r2;
-    expect(loser.body.message).toContain("pending payout");
+      const statuses = [r1.status, r2.status].sort();
+      expect(statuses).toEqual([201, 400]);
+      const loser = r1.status === 400 ? r1 : r2;
+      expect(loser.body.message).toContain("pending payout");
 
-    const rows = await db.select({ id: withdrawals.id }).from(withdrawals).where(eq(withdrawals.userId, usersState.wallet.id));
-    expect(rows.length).toBe(1);
+      const rows = await db.select({ id: withdrawals.id }).from(withdrawals).where(eq(withdrawals.userId, usersState.wallet.id));
+      expect(rows.length).toBe(1);
+    } finally {
+      await db.update(systemConfig).set({ value: originalMin }).where(eq(systemConfig.key, "MIN_PAYOUT"));
+    }
   }, 60_000);
 
   it("X-Idempotency-Key deduplicates retried withdrawal submissions (H-01)", async () => {
     await seedWithdrawableBalance(usersState.captainB.id, 20, 1_000, "10.0000");
-    const key = `hr-key-${TS}`;
-    const payload = {
-      amount: "10000", method: "bank",
-      accountName: "HR CapB", accountNumber: "0987654321",
-      accountDetails: { bankName: "Meezan" },
-    };
-    const r1 = await harnesses.captainB.post("/api/withdrawals", payload, { "x-idempotency-key": key });
-    const r2 = await harnesses.captainB.post("/api/withdrawals", payload, { "x-idempotency-key": key });
+    const { systemConfig } = await import("@shared/schema");
+    const [cfg] = await db.select().from(systemConfig).where(eq(systemConfig.key, "MIN_PAYOUT")).limit(1);
+    const originalMin = cfg?.value ?? 500;
+    await db.update(systemConfig).set({ value: 100 }).where(eq(systemConfig.key, "MIN_PAYOUT"));
+    try {
+      const key = `hr-key-${TS}`;
+      const payload = {
+        amount: "100", method: "bank",
+        accountName: "HR CapB", accountNumber: "0987654321",
+        accountDetails: { bankName: "Meezan" },
+      };
+      const r1 = await harnesses.captainB.post("/api/withdrawals", payload, { "x-idempotency-key": key });
+      const r2 = await harnesses.captainB.post("/api/withdrawals", payload, { "x-idempotency-key": key });
 
-    expect(r1.status).toBe(201);
-    expect(r2.status).toBe(201);
-    expect(r2.body.withdrawal.id).toBe(r1.body.withdrawal.id);
+      expect(r1.status).toBe(201);
+      expect(r2.status).toBe(201);
+      expect(r2.body.withdrawal.id).toBe(r1.body.withdrawal.id);
 
-    const rows = await db.select({ id: withdrawals.id }).from(withdrawals).where(eq(withdrawals.userId, usersState.captainB.id));
-    expect(rows.length).toBe(1);
+      const rows = await db.select({ id: withdrawals.id }).from(withdrawals).where(eq(withdrawals.userId, usersState.captainB.id));
+      expect(rows.length).toBe(1);
+    } finally {
+      await db.update(systemConfig).set({ value: originalMin }).where(eq(systemConfig.key, "MIN_PAYOUT"));
+    }
   }, 60_000);
 
   it("parallel war resolves pay the prize EXACTLY once (double-prize race regression)", async () => {
