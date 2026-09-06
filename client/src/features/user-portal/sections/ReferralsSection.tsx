@@ -325,7 +325,9 @@ export function ReferralsSection(props: ReferralsSectionProps) {
           </div>
         </div>
 
-        {/* Commission History Section */}
+        {/* Commission History Section — v4: REAL PKR ONLY (Spec §9/§25).
+            Referral commissions never create TX-Points; amounts render in
+            rupees with their pending/finalized settlement state. */}
         {
           commissionsData?.commissions && commissionsData.commissions.length > 0 ? (
             <motion.div
@@ -355,14 +357,14 @@ export function ReferralsSection(props: ReferralsSectionProps) {
                       </div>
                       <div className="text-right">
                         <div className="font-black text-lg text-primary">
-                          +{Math.round(parseFloat(commission.amount) * CONVERSION_RATE).toLocaleString()} TX-Points
+                          +Rs.{parseFloat(commission.amount).toFixed(2)} PKR
                         </div>
-                        <div className="text-[10px] text-muted-foreground">≈ Rs.{parseFloat(commission.amount).toFixed(4)} PKR</div>
-                        <div className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border inline-block mt-1 ${commission.status === 'paid' ? 'bg-green-100 border-green-500 text-green-700' :
+                        <div className="text-[10px] text-muted-foreground">≈ {Math.round(parseFloat(commission.amount) * TX_POINTS_PER_PKR).toLocaleString()} TX-Points value</div>
+                        <div className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border inline-block mt-1 ${commission.status === 'paid' || commission.status === 'finalized' ? 'bg-green-100 border-green-500 text-green-700' :
                           commission.status === 'pending' ? 'bg-yellow-100 border-yellow-500 text-yellow-700' :
                             'bg-red-100 border-red-500 text-red-700'
                           }`}>
-                          {commission.status}
+                          {commission.status === 'finalized' ? 'available' : commission.status}
                         </div>
                       </div>
                     </div>
