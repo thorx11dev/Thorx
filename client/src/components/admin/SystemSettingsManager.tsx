@@ -130,29 +130,90 @@ export function SystemSettingsManager() {
         </div>
       </div>
 
-      {/* ─── ENGINE PROFIT SLIDERS ─── */}
+      {/* ─── v4: TASK REVENUE SPLITS (Spec §7–§8) ─── */}
       <div className="bg-background border-[1.5px] border-[#141413] rounded-[2rem] p-8 shadow-sm">
         <div className="flex items-center gap-4 mb-6">
           <div className="w-10 h-10 bg-white border-[1.5px] border-[#141413]/20 flex items-center justify-center rounded-full shadow-sm">
             <Zap className="w-5 h-5 text-zinc-500" />
           </div>
           <div>
-            <h3 className="font-black text-xl uppercase text-[#141413] tracking-tight">Engine Profit Configuration</h3>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">Platform cut per earning engine — live on every transaction</p>
+            <h3 className="font-black text-xl uppercase text-[#141413] tracking-tight">Task Revenue Splits</h3>
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">Direct vs referred-user task revenue — applied to every new earn event</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Direct user split: Thorx / User */}
+          <div className="p-4 bg-white border-[1.5px] border-[#141413]/10 rounded-2xl space-y-3">
+            <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#D97757" }}>Direct User Task Split</div>
+            <div className="space-y-1">
+              <div className="flex justify-between text-[10px] font-bold text-zinc-500">
+                <span>Thorx Share</span><span className="font-black text-[#141413]">{directCut}%</span>
+              </div>
+              <input type="range" min={0} max={80} value={directCut}
+                onChange={e => updateValue("TASK_SPLIT_THORX_PCT", parseInt(e.target.value, 10))}
+                className="w-full h-2 rounded-full cursor-pointer" style={{ accentColor: "#D97757" }}
+              />
+            </div>
+            <div className="text-[10px] font-bold text-zinc-400">
+              User Gets: <span className="font-black text-emerald-600">{100 - directCut}%</span> (lands in Pending Balance)
+            </div>
+            <Button size="sm" className="flex-1 h-7 text-[10px] font-black"
+              onClick={() => saveMutation.mutate({ key: "TASK_SPLIT_THORX_PCT", value: directCut })}>Save</Button>
+          </div>
+
+          {/* Referred user split: Thorx / Referrer / User */}
+          <div className="p-4 bg-white border-[1.5px] border-[#141413]/10 rounded-2xl space-y-3">
+            <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#7c3aed" }}>Referred User Task Split</div>
+            <div className="space-y-1">
+              <div className="flex justify-between text-[10px] font-bold text-zinc-500">
+                <span>Thorx Share</span><span className="font-black text-[#141413]">{referredCut}%</span>
+              </div>
+              <input type="range" min={0} max={80} value={referredCut}
+                onChange={e => updateValue("TASK_SPLIT_THORX_REFERRED_PCT", parseInt(e.target.value, 10))}
+                className="w-full h-2 rounded-full cursor-pointer" style={{ accentColor: "#7c3aed" }}
+              />
+            </div>
+            <div className="space-y-1">
+              <div className="flex justify-between text-[10px] font-bold text-zinc-500">
+                <span>Referrer Commission (PKR only)</span><span className="font-black text-[#141413]">{referrerCut}%</span>
+              </div>
+              <input type="range" min={0} max={20} value={referrerCut}
+                onChange={e => updateValue("TASK_SPLIT_REFERRER_PCT", parseInt(e.target.value, 10))}
+                className="w-full h-2 rounded-full cursor-pointer" style={{ accentColor: "#7c3aed" }}
+              />
+            </div>
+            <div className="text-[10px] font-bold text-zinc-400">
+              User Gets: <span className="font-black text-emerald-600">{100 - referredCut - referrerCut}%</span>
+              {referredCut + referrerCut > 100 && (
+                <span className="text-amber-600 font-black"> ⚠ total exceeds 100%</span>
+              )}
+            </div>
+            <Button size="sm" className="flex-1 h-7 text-[10px] font-black" disabled={referredCut + referrerCut > 100}
+              title={referredCut + referrerCut > 100 ? "Thorx + Referrer must not exceed 100%" : undefined}
+              onClick={() => {
+                saveMutation.mutate({ key: "TASK_SPLIT_THORX_REFERRED_PCT", value: referredCut });
+                saveMutation.mutate({ key: "TASK_SPLIT_REFERRER_PCT", value: referrerCut });
+              }}>Save</Button>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── ENGINE PROFIT SLIDERS (Engine C guild economy only in v4) ─── */}
+      <div className="bg-background border-[1.5px] border-[#141413] rounded-[2rem] p-8 shadow-sm">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-10 h-10 bg-white border-[1.5px] border-[#141413]/20 flex items-center justify-center rounded-full shadow-sm">
+            <Zap className="w-5 h-5 text-zinc-500" />
+          </div>
+          <div>
+            <h3 className="font-black text-xl uppercase text-[#141413] tracking-tight">Guild Engine Configuration</h3>
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-tight">Engine C pool economics — distributed every Sunday</p>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { label: "Engine A — Video Ads", cutKey: "ENGINE_A_THORX_CUT_PCT", min: 20, max: 70, color: "#D97757", isEngineC: false },
-            { label: "Engine B — Surveys", cutKey: "ENGINE_B_THORX_CUT_PCT", min: 20, max: 70, color: "#7c3aed", isEngineC: false },
             { label: "Engine C — Guild Tasks", cutKey: "ENGINE_C_THORX_CUT_PCT", min: 10, max: 40, color: "#16a34a", isEngineC: true },
           ].map(({ label, cutKey, min, max, color, isEngineC }) => {
             const cut = Number(localConfigs[cutKey] ?? (isEngineC ? 15 : 40));
-            // Engine C never pays the user an immediate PKR share — 100% of gross
-            // is split between Thorx cut / guild pool / bonus pool (paid Sunday).
-            // ENGINE_C_GUILD_POOL_PCT and ENGINE_C_BONUS_PCT are the real keys
-            // read by server/storage.ts recordEarnEvent() (the old "ENGINE_C_POOL_PCT"
-            // key here never matched anything the engine reads).
             const pool = isEngineC ? Number(localConfigs["ENGINE_C_GUILD_POOL_PCT"] ?? 80) : 0;
             const bonus = isEngineC ? Number(localConfigs["ENGINE_C_BONUS_PCT"] ?? 5) : 0;
             const userGets = isEngineC ? 0 : 100 - cut;
