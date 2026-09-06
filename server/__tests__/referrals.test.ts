@@ -244,7 +244,7 @@ describe("Referral earn commission (v4: TASK_SPLIT_REFERRER_PCT, PKR only)", () 
       ));
     expect(rows.length).toBeGreaterThan(0);
     expect(new Decimal(rows[0].commissionPkr).toNumber()).toBeCloseTo(5.0, 3);
-    expect(rows[0].commissionRatePct).toBe("5");
+    expect(parseFloat(rows[0].commissionRatePct)).toBe(5);
     expect(rows[0].status).toBe("pending");
   });
 
