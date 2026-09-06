@@ -134,7 +134,7 @@ import { awardMemberGPS, awardMVPGPS, checkAndUpdateGuildRankTier, computeGuildR
 import { contributeWarPoints, contributeToWarChest } from "./modules/guild-wars";
 import { emitFeedEvent } from "./modules/live-feed";
 import { db } from "./db";
-import { eq, desc, asc, and, or, sql, inArray, ilike, gte, lte, lt, ne, isNotNull, isNull } from "drizzle-orm";
+import { eq, desc, asc, and, or, sql, inArray, ilike, gte, lte, lt, gt, ne, isNotNull, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import bcrypt from "bcrypt";
 import { encryptCredential, decryptCredential, isEncrypted } from "./utils/credential-crypto";
