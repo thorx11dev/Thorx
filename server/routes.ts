@@ -6793,25 +6793,45 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
-  // ─── Admin: Economy Engine ──────────────────────────────────────────────────
-  app.get("/api/admin/economy/snapshot", requireTeamRole, async (req, res) => {
+  // ─── Admin: REAL PKR ECONOMY v4 — Pending earnings verification queue ─────
+  // Spec §5/§30: the team can see exactly what is pending, why, and force
+  // verify/reject individual earnings. The 48h sweep is the default path;
+  // these endpoints are the manual override.
+  app.get("/api/admin/earnings/pending", requirePermission("MANAGE_PAYOUTS"), async (req, res) => {
     try {
-      const { getTodaySnapshot } = await import("./modules/economy-engine");
-      const snapshot = await getTodaySnapshot();
-      res.json(snapshot);
+      const limit = Math.min(parseInt(String(req.query.limit)) || 50, 200);
+      const offset = Math.max(parseInt(String(req.query.offset)) || 0, 0);
+      const queue = await storage.getPendingEarningsQueue(limit, offset);
+      res.json(queue);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get economy snapshot" });
+      logger.error({ err: error }, "Pending earnings queue error");
+      res.status(500).json({ message: "Failed to fetch pending earnings" });
     }
   });
 
-  app.post("/api/admin/economy/refresh", requirePermission("MANAGE_SYSTEM"), async (req, res) => {
+  app.post("/api/admin/earnings/:id/verify", requirePermission("MANAGE_PAYOUTS"), adminActionRateLimiter, async (req, res) => {
     try {
-      const { invalidateEconomyCache, getTodaySnapshot } = await import("./modules/economy-engine");
-      invalidateEconomyCache();
-      const snapshot = await getTodaySnapshot();
-      res.json({ success: true, snapshot });
+      const row = await storage.adminVerifyEarning(req.params.id, req.userProfile.id);
+      broadcastUserUpdated(row.userId, "earning_verified");
+      res.json({ success: true, earning: row });
     } catch (error) {
-      res.status(500).json({ message: "Failed to refresh economy snapshot" });
+      logger.error({ err: error }, "Admin verify earning error");
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to verify earning" });
+    }
+  });
+
+  app.post("/api/admin/earnings/:id/reject", requirePermission("MANAGE_PAYOUTS"), adminActionRateLimiter, async (req, res) => {
+    try {
+      const parsed = z.object({ reason: z.string().min(3).max(500) }).safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.errors[0]?.message || "Reason required" });
+      }
+      const row = await storage.adminRejectEarning(req.params.id, req.userProfile.id, parsed.data.reason);
+      broadcastUserUpdated(row.userId, "earning_rejected");
+      res.json({ success: true, earning: row });
+    } catch (error) {
+      logger.error({ err: error }, "Admin reject earning error");
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to reject earning" });
     }
   });
 
