@@ -259,7 +259,7 @@ export function ThorxCardSandbox() {
             { label: "Avg Points", value: Math.round(avg).toLocaleString() },
             { label: "Min Points", value: minPts.toLocaleString() },
             { label: "Max Points", value: maxPts.toLocaleString() },
-            { label: `${userRankTier} Bonus`, value: `×${(results[0]?.rankMultiplier ?? 1).toFixed(2)}` },
+            { label: "Conversion", value: "1.00× fixed" },
           ].map(s => (
             <div key={s.label} className="rounded-xl border border-zinc-200 bg-white p-3 text-center">
               <div className="text-xl font-black" style={{ color }}>{s.value}</div>
@@ -280,7 +280,7 @@ export function ThorxCardSandbox() {
                   <Zap size={12} style={{ color }} />
                   <span className="text-sm font-bold" style={{ color }}>{r.pointsCredited.toLocaleString()} pts</span>
                   <span className="text-[10px] text-zinc-400">
-                    ({(r.cardVariance * 100).toFixed(1)}% variance{(r.rankMultiplier ?? 1) !== 1 ? ` · ×${(r.rankMultiplier ?? 1).toFixed(2)} rank` : ""})
+                    (deterministic — {r.immediateUserPkrValue !== "0.0000" ? "lands in Pending Balance" : "guild pool share"})
                   </span>
                 </div>
                 <div className="text-xs text-zinc-500">
