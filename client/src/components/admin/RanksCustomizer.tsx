@@ -256,18 +256,8 @@ export function RanksCustomizer() {
 
         {activeSection === "splits" && (
           <div>
-            <div className="text-xs text-zinc-500 mb-3">Engine profit-cut percentages (0–100), applied to gross PKR. Engine A/B: Thorx keeps this %, user keeps the rest. Engine C: split three ways, no immediate user payout — Thorx cut + guild pool + bonus pool should sum to 100.</div>
+            <div className="text-xs text-zinc-500 mb-3">Engine C guild-pool percentages, applied to gross PKR: Thorx cut + guild pool + bonus pool should sum to 100. Engine A/B use the unified Task Revenue Splits panel in System Settings (v4).</div>
             {Object.entries(ENGINE_SPLIT_DEFAULTS).map(([key, def]) => (
-              <ConfigRow key={key} label={LABELS[key]} configKey={key}
-                defaultVal={def} suffix="%" description={DESCRIPTIONS[key]} {...commonProps} />
-            ))}
-          </div>
-        )}
-
-        {activeSection === "variance" && (
-          <div>
-            <div className="text-xs text-zinc-500 mb-3">TX-Point card variance per engine, plus rank bonuses that widen the band further. Range: [1−v, 1+v] × target points, where v = variance% ÷ 100 (± rank bonus for A/S-Rank).</div>
-            {Object.entries(VARIANCE_DEFAULTS).map(([key, def]) => (
               <ConfigRow key={key} label={LABELS[key]} configKey={key}
                 defaultVal={def} suffix="%" description={DESCRIPTIONS[key]} {...commonProps} />
             ))}
