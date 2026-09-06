@@ -116,9 +116,6 @@ export const users = pgTable("users", {
   // Prevent self-referral
   sql`CONSTRAINT check_no_self_referral CHECK (id != referred_by)`,
   sql`CONSTRAINT check_positive_balance_cash_pkr CHECK (balance_cash_pkr >= 0)`,
-  // v4: pending balance can go negative ONLY via clawbacks (survey reversal of
-  // already-withdrawn funds) — those are platform-owed and settled manually.
-  sql`CONSTRAINT check_positive_pending CHECK (pending_balance >= 0)`,
 ]);
 
 // Team invitations table for secure onboarding
