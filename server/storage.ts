@@ -1558,9 +1558,9 @@ export class DatabaseStorage implements IStorage {
       userId: params.userId,
       guildId: params.guildId,
       displayMessage: params.engineType === "Engine_C"
-        ? `User '${user.identity}' – Engine C | Pool: Rs.${guildPoolPkrD.toFixed(2)} | Bonus: Rs.${bonusPoolPkrD.toFixed(2)} | Points: ${rankedPointsCredited} | Thorx: Rs.${thorxProfitRecorded.toFixed(2)}`
-        : `User '${user.identity}' – ${params.engineType} | Real: Rs.${userPkrShareD.toFixed(2)} | Points: ${rankedPointsCredited} | Thorx: Rs.${thorxProfitRecorded.toFixed(2)} | EconMult: ${economyMult.toFixed(2)} | RankMult: ${rankMult.toFixed(2)}`,
-      data: { engineType: params.engineType, grossPkr: grossPkrD.toFixed(4), baseGrossPkr: baseGrossPkrD.toFixed(4), economyMult: economyMult.toFixed(4), rankMult, rankedPointsCredited, cardResult, thorxProfitPkr: thorxProfitRecorded.toFixed(4), guildPoolPkr: guildPoolPkrD.toFixed(4), bonusPoolPkr: bonusPoolPkrD.toFixed(4) },
+        ? `User '${user.identity}' – Engine C | Pool: Rs.${guildPoolPkrD.toFixed(2)} | Bonus: Rs.${bonusPoolPkrD.toFixed(2)} | Points: ${pointsCredited} | Thorx: Rs.${thorxProfitRecorded.toFixed(2)}`
+        : `User '${user.identity}' – ${params.engineType} | Real: Rs.${userPkrShareD.toFixed(2)} (pending) | Points: ${pointsCredited} | Thorx: Rs.${thorxProfitRecorded.toFixed(2)}`,
+      data: { engineType: params.engineType, grossPkr: grossPkrD.toFixed(4), pointsCredited, thorxProfitPkr: thorxProfitRecorded.toFixed(4), guildPoolPkr: guildPoolPkrD.toFixed(4), bonusPoolPkr: bonusPoolPkrD.toFixed(4), referrerCommissionPkr: referrerCommissionD.toFixed(4), verificationStatus: userPkrShareD.gt(0) ? "pending" : "verified" },
     };
     if (params.tx) {
       // Defer past the caller's commit so the insert never blocks on locks this
@@ -1572,7 +1572,7 @@ export class DatabaseStorage implements IStorage {
       await emitFeedEvent(feedEvent);
     }
 
-    return { success: true, pointsCredited: rankedPointsCredited, realPkrValue: userPkrShareD.toFixed(4), earning };
+    return { success: true, pointsCredited, realPkrValue: userPkrShareD.toFixed(4), earning };
   }
 
   // Ad views methods
