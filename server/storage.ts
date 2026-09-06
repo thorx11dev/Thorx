@@ -1346,9 +1346,13 @@ export class DatabaseStorage implements IStorage {
     // rewrite history. A 1-point minimum applies to any positive PKR share —
     // sub-point rewards (e.g. Rs.0.02 ad at 10 pts/Rs.1) would otherwise
     // floor to 0 and break credit-flagging downstream (webhooks, cards).
+    // Engine C: points are based on the 80% POOL contribution (the user's
+    // immediate share is 0) — this is what feeds weekly targets, GPS and
+    // guild wars, so the guild economy keeps working under v4.
     const conversionRate = txPointsPerPkr;
-    const pointsCredited = userPkrShareD.gt(0)
-      ? Math.max(1, userPkrShareD.times(txPointsPerPkr).toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber())
+    const pointsBaseD = params.engineType === "Engine_C" ? guildPoolPkrD : userPkrShareD;
+    const pointsCredited = pointsBaseD.gt(0)
+      ? Math.max(1, pointsBaseD.times(txPointsPerPkr).toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber())
       : 0;
 
     // Steps 3-6 are wrapped in a single transaction — Critical finding #2 of
