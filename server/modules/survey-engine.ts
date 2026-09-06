@@ -458,17 +458,53 @@ export async function reverseSurveyCredit(opts: {
     });
 
     // 4 — Deduct exactly what the user received (mirrored real PKR share).
-    await tx
-      .update(users)
-      .set({
-        availableBalance: sql`${users.availableBalance} - ${new Decimal(origLedger.realPkrValue).toFixed(4)}`,
-        totalEarnings: sql`${users.totalEarnings} - ${new Decimal(origLedger.realPkrValue).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toFixed(2)}`,
-        txPointsBalance: sql`${users.txPointsBalance} - ${origLedger.pointsCredited}`,
-      })
-      .where(eq(users.id, record.userId));
+    // v4 clawback order: the earning may still be PENDING (not yet swept to
+    // available) or already verified. Deduct from pending first; only the
+    // remainder hits available. Both balances carry CHECK >= 0 constraints,
+    // so amounts are read from the locked user row to stay exact.
+    const clawbackD = new Decimal(origLedger.realPkrValue);
+    const [victim] = await tx
+      .select({ pendingBalance: users.pendingBalance, availableBalance: users.availableBalance, txPointsBalance: users.txPointsBalance })
+      .from(users)
+      .where(eq(users.id, record.userId))
+      .for("update");
+    if (victim) {
+      const pendingD = new Decimal(victim.pendingBalance ?? "0");
+      const fromPending = Decimal.min(pendingD, clawbackD);
+      const fromAvailable = clawbackD.minus(fromPending);
+      const pointClawback = Math.min(origLedger.pointsCredited, victim.txPointsBalance ?? 0);
+      await tx
+        .update(users)
+        .set({
+          pendingBalance: fromPending.gt(0) ? sql`${users.pendingBalance} - ${fromPending.toFixed(4)}` : undefined,
+          availableBalance: fromAvailable.gt(0) ? sql`${users.availableBalance} - ${fromAvailable.toFixed(4)}` : undefined,
+          totalEarnings: sql`${users.totalEarnings} - ${new Decimal(origLedger.realPkrValue).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toFixed(2)}`,
+          txPointsBalance: pointClawback > 0 ? sql`${users.txPointsBalance} - ${pointClawback}` : undefined,
+        })
+        .where(eq(users.id, record.userId));
+    }
 
-    // 5 — Referral commission clawback: mirror + deduct from the referrer's
-    //     cash wallet, exactly as the original earn paid it.
+    // Mark the ORIGINAL ledger row rejected so the ledger mirrors reality
+    // (its negated mirror row above is the audit evidence).
+    await tx
+      .update(userTransactions)
+      .set({ verificationStatus: "rejected", rejectionReason: opts.reason })
+      .where(eq(userTransactions.id, origLedger.id));
+
+    // Also reject the referrer's commission ledger row for the same event
+    // (the audit-table row + pending/available deduction happen below).
+    await tx
+      .update(userTransactions)
+      .set({ verificationStatus: "rejected", rejectionReason: `Referrer commission reversed: ${opts.reason}` })
+      .where(and(
+        eq(userTransactions.engineType, "Referral_Commission"),
+        eq(userTransactions.sourceId, `${record.id}:ref`),
+        ne(userTransactions.verificationStatus, "rejected"),
+      ));
+
+    // 5 — Referral commission clawback: mirror + deduct from the referrer
+    // (v4: pending first, then available — the commission may have already
+    // been swept to available by the verification sweep).
     const [origCommission] = await tx
       .select()
       .from(referralEarnCommissions)
@@ -476,6 +512,7 @@ export async function reverseSurveyCredit(opts: {
         eq(referralEarnCommissions.earnerId, record.userId),
         eq(referralEarnCommissions.earnEventSourceId, record.id),
         eq(referralEarnCommissions.earnEventSourceType, "survey"),
+        ne(referralEarnCommissions.status, "reversed"),
       ))
       .limit(1);
 
@@ -488,11 +525,31 @@ export async function reverseSurveyCredit(opts: {
         grossPkr: new Decimal(origCommission.grossPkr).negated().toFixed(4),
         commissionPkr: new Decimal(origCommission.commissionPkr).negated().toFixed(4),
         commissionRatePct: origCommission.commissionRatePct,
+        status: "reversed",
       });
       await tx
-        .update(users)
-        .set({ balanceCashPkr: sql`${users.balanceCashPkr} - ${new Decimal(origCommission.commissionPkr).toFixed(4)}` })
-        .where(eq(users.id, origCommission.referrerId));
+        .update(referralEarnCommissions)
+        .set({ status: "reversed" })
+        .where(eq(referralEarnCommissions.id, origCommission.id));
+
+      const commD = new Decimal(origCommission.commissionPkr);
+      const [referrer] = await tx
+        .select({ pendingBalance: users.pendingBalance, availableBalance: users.availableBalance })
+        .from(users)
+        .where(eq(users.id, origCommission.referrerId))
+        .for("update");
+      if (referrer) {
+        const pendingD = new Decimal(referrer.pendingBalance ?? "0");
+        const fromPending = Decimal.min(pendingD, commD);
+        const fromAvailable = commD.minus(fromPending);
+        await tx
+          .update(users)
+          .set({
+            pendingBalance: fromPending.gt(0) ? sql`${users.pendingBalance} - ${fromPending.toFixed(4)}` : undefined,
+            availableBalance: fromAvailable.gt(0) ? sql`${users.availableBalance} - ${fromAvailable.toFixed(4)}` : undefined,
+          })
+          .where(eq(users.id, origCommission.referrerId));
+      }
     }
 
     logger.warn({
