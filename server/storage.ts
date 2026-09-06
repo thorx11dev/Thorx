@@ -666,9 +666,16 @@ export interface IStorage {
   getActivityFeedEvents(limit: number, eventType?: string): Promise<any[]>;
 
   // ── THORX v3 (spec E.9): Withdrawal preview & referral cash ──────────────
-  previewWithdrawal(userId: string, points: number): Promise<any>;
+  previewWithdrawal(userId: string, pkrAmount: number): Promise<any>;
   getReferralCashBalance(userId: string): Promise<{ balanceCashPkr: string; totalEarnedAllTime: string; referralCount: number }>;
+  getReferralEarningsSummary(userId: string): Promise<{ pendingPkr: string; availablePkr: string; totalEarnedAllTime: string; referralCount: number }>;
   createReferralCashWithdrawal(userId: string, amount: number, method: string, accountName: string, accountNumber: string, accountDetails: any): Promise<any>;
+
+  // ── REAL PKR ECONOMY v4: verification lifecycle ────────────────────────────
+  verifyPendingEarnings(now?: Date): Promise<{ verified: number; pkrMoved: string; usersTouched: number; commissionsFinalized: number }>;
+  adminVerifyEarning(ledgerId: string, adminId: string): Promise<any>;
+  adminRejectEarning(ledgerId: string, adminId: string, reason: string): Promise<any>;
+  getPendingEarningsQueue(limit?: number, offset?: number): Promise<{ rows: any[]; total: number }>;
 
   // ── THORX v3 (spec E.9): Admin ops ────────────────────────────────────────
   adminValidateLedger(userIdOrEmail: string): Promise<LedgerValidationResult>;
