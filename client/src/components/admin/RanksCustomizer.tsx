@@ -67,16 +67,9 @@ const PS_AWARD_DEFAULTS: Record<string, number> = {
 const LABELS: Record<string, string> = {
   "PS_RANK_D_MIN": "D-Rank", "PS_RANK_C_MIN": "C-Rank", "PS_RANK_B_MIN": "B-Rank",
   "PS_RANK_A_MIN": "A-Rank", "PS_RANK_S_MIN": "S-Rank",
-  "ENGINE_A_THORX_CUT_PCT": "Engine A — Thorx cut",
-  "ENGINE_B_THORX_CUT_PCT": "Engine B — Thorx cut",
   "ENGINE_C_THORX_CUT_PCT": "Engine C — Thorx cut",
   "ENGINE_C_GUILD_POOL_PCT": "Engine C — Guild pool",
   "ENGINE_C_BONUS_PCT": "Engine C — Bonus pool",
-  "ENGINE_A_ILLUSION_VARIANCE_PCT": "Engine A variance",
-  "ENGINE_B_ILLUSION_VARIANCE_PCT": "Engine B variance",
-  "ENGINE_C_ILLUSION_VARIANCE_PCT": "Engine C variance",
-  "A_RANK_CARD_BONUS_PCT": "A-Rank bonus",
-  "S_RANK_CARD_BONUS_PCT": "S-Rank bonus",
   "PS_ENGINE_A_REWARD": "Engine A task",
   "PS_ENGINE_B_REWARD": "Engine B task",
   "PS_ENGINE_C_REWARD": "Engine C / guild task",
@@ -88,21 +81,14 @@ const LABELS: Record<string, string> = {
 };
 
 const DESCRIPTIONS: Record<string, string> = {
-  "ENGINE_A_THORX_CUT_PCT": "% of gross PKR kept by Thorx; user keeps the rest",
-  "ENGINE_B_THORX_CUT_PCT": "% of gross PKR kept by Thorx; user keeps the rest",
   "ENGINE_C_THORX_CUT_PCT": "% of gross PKR kept by Thorx immediately",
   "ENGINE_C_GUILD_POOL_PCT": "% locked into the guild's weekly pool (paid out Sunday)",
   "ENGINE_C_BONUS_PCT": "% added to the pool only if the guild hits its weekly target",
-  "ENGINE_A_ILLUSION_VARIANCE_PCT": "e.g. 10 = card shows ±10% of target points",
-  "ENGINE_B_ILLUSION_VARIANCE_PCT": "e.g. 10 = card shows ±10% of target points",
-  "ENGINE_C_ILLUSION_VARIANCE_PCT": "e.g. 10 = card shows ±10% of target points",
-  "A_RANK_CARD_BONUS_PCT": "Widens A-Rank users' card variance band by ±N%",
-  "S_RANK_CARD_BONUS_PCT": "Widens S-Rank users' card variance band by ±N%",
   "PS_INACTIVITY_PENALTY": "PS deducted per day once a user is inactive",
   "PS_INACTIVITY_HOURS": "Hours of inactivity before the penalty starts applying",
 };
 
-type Section = "thresholds" | "splits" | "variance" | "ps_awards";
+type Section = "thresholds" | "splits" | "ps_awards";
 
 function useAdminConfigs() {
   return useQuery<Record<string, any>>({
