@@ -2566,6 +2566,13 @@ export class DatabaseStorage implements IStorage {
         throw new Error("A pending payout request already exists for this account.");
       }
 
+      // Minimum payout check (Spec §11 — default Rs.500) BEFORE the balance
+      // guard so users get the most actionable error first.
+      const minPayout = await this.getSystemConfigValue<number>("MIN_PAYOUT", 500);
+      if (pkrRequested.lt(minPayout)) {
+        throw new Error(`Minimum payout requirement not met. Threshold: Rs.${minPayout}.`);
+      }
+
       // Balance check against the LIVE available balance (already row-locked).
       const availableD = new Decimal(lockedUser.availableBalance ?? "0");
       if (availableD.lt(pkrRequested)) {
@@ -2577,12 +2584,6 @@ export class DatabaseStorage implements IStorage {
       // Ledger-backed breakdown (audit trail: which earn events fund this).
       // Runs on the same tx so the FIFO read sees a consistent world.
       const breakdown = await this.calculateWithdrawalBreakdown(insertWithdrawal.userId, pkrRequested, tx);
-
-      // Minimum payout check (Spec §11 — default Rs.500).
-      const minPayout = await this.getSystemConfigValue<number>("MIN_PAYOUT", 500);
-      if (pkrRequested.lt(minPayout)) {
-        throw new Error(`Minimum payout requirement not met. Threshold: Rs.${minPayout}.`);
-      }
 
       // HOLD: debit the full gross amount now. Refunded on rejection.
       await tx
