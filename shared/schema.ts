@@ -1399,12 +1399,25 @@ export type InsertWeeklyTaskRecord = typeof weeklyTaskRecords.$inferInsert;
 
 // D.7 — Immutable exact-PKR ledger. Source of truth for withdrawal math.
 // INVARIANT: real_pkr_value is write-once; never UPDATE it after insert.
+// ── REAL PKR ECONOMY v4: verification lifecycle ──────────────────────────────
+// verificationStatus models the pending → available pipeline:
+//   'pending'  — earned PKR held in users.pending_balance, awaiting network/
+//                Thorx verification (auto-verified by the sweep job after
+//                PENDING_VERIFICATION_HOURS).
+//   'verified' — PKR confirmed; amount has moved pending → available.
+//   'held'     — commission awaiting an external settlement event (referrer
+//                fee-share waiting for its withdrawal to complete); the time
+//                sweep must NEVER touch these.
+//   'rejected' — network reversed the earning (survey clawback / admin
+//                rejection); amount removed from balances.
+// Legacy rows (pre-v4) are 'verified' by default — they were credited
+// straight to available_balance under the old model.
 export const userTransactions = pgTable("user_transactions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   // Finding 2-Q: immutable PKR ledger must survive user soft-delete.
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
-  engineType: text("engine_type").notNull(), // Engine_A | Engine_B | Engine_C | Indirect
-  pointsCredited: integer("points_credited").notNull(), // randomized display value (Thorx Card)
+  engineType: text("engine_type").notNull(), // Engine_A | Engine_B | Engine_C | Indirect | Referral_Commission | Referral_Fee_Commission
+  pointsCredited: integer("points_credited").notNull(), // deterministic: realPkrValue × TX_POINTS_PER_PKR (gamification display)
   realPkrValue: decimal("real_pkr_value", { precision: 10, scale: 4 }).notNull(), // IMMUTABLE
   grossPkr: decimal("gross_pkr", { precision: 10, scale: 4 }),
   thorxProfitPkr: decimal("thorx_profit_pkr", { precision: 10, scale: 4 }),
@@ -1412,9 +1425,12 @@ export const userTransactions = pgTable("user_transactions", {
   conversionRate: integer("conversion_rate").notNull(),
   cardVariance: decimal("card_variance", { precision: 5, scale: 4 }).notNull(),
   sourceId: varchar("source_id"),
-  sourceType: text("source_type"), // ad_view | weekly_task | daily_task
+  sourceType: text("source_type"), // ad_view | weekly_task | daily_task | engine_b_task | survey | referral_commission | referral_fee_commission
   withdrawn: boolean("withdrawn").notNull().default(false),
   withdrawalId: varchar("withdrawal_id"),
+  verificationStatus: text("verification_status").notNull().default("verified"), // pending | verified | held | rejected
+  verifiedAt: timestamp("verified_at"),
+  rejectionReason: text("rejection_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("idx_user_transactions_user_created").on(table.userId, table.createdAt),
