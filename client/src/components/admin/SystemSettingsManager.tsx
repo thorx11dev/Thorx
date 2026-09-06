@@ -70,6 +70,12 @@ export function SystemSettingsManager() {
     }
   }, [dbConfigs]);
 
+  // v4 task-revenue split sliders — live values mirror the engine's defaults.
+  const directCut = Number(localConfigs["TASK_SPLIT_THORX_PCT"] ?? 40);
+  const referredCut = Number(localConfigs["TASK_SPLIT_THORX_REFERRED_PCT"] ?? 35);
+  const referrerCut = Number(localConfigs["TASK_SPLIT_REFERRER_PCT"] ?? 5);
+  const verificationHours = Number(localConfigs["PENDING_VERIFICATION_HOURS"] ?? 48);
+
   const saveMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: any }) => {
       const res = await apiRequest("PATCH", `/api/admin/config/${key}`, { value });
