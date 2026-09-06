@@ -114,19 +114,29 @@ describe("Admin system_config — known-key flag", () => {
     }
   });
 
-  it("the real keys RanksCustomizer now uses are all known", async () => {
+  it("the real keys the settings UI uses are all known (v4 set)", async () => {
     const realKeys = [
       "PS_RANK_D_MIN", "PS_RANK_C_MIN", "PS_RANK_B_MIN", "PS_RANK_A_MIN", "PS_RANK_S_MIN",
-      "ENGINE_A_THORX_CUT_PCT", "ENGINE_B_THORX_CUT_PCT", "ENGINE_C_THORX_CUT_PCT",
+      "TASK_SPLIT_THORX_PCT", "TASK_SPLIT_THORX_REFERRED_PCT", "TASK_SPLIT_REFERRER_PCT",
+      "TX_POINTS_PER_PKR", "PENDING_VERIFICATION_HOURS",
+      "ENGINE_C_THORX_CUT_PCT",
       "ENGINE_C_GUILD_POOL_PCT", "ENGINE_C_BONUS_PCT",
-      "ENGINE_A_ILLUSION_VARIANCE_PCT", "ENGINE_B_ILLUSION_VARIANCE_PCT", "ENGINE_C_ILLUSION_VARIANCE_PCT",
-      "A_RANK_CARD_BONUS_PCT", "S_RANK_CARD_BONUS_PCT",
       "PS_ENGINE_A_REWARD", "PS_ENGINE_B_REWARD", "PS_ENGINE_C_REWARD",
       "PS_STREAK_DAY1", "PS_STREAK_DAY2", "PS_STREAK_DAY3_PLUS",
       "PS_INACTIVITY_PENALTY", "PS_INACTIVITY_HOURS",
     ];
     for (const k of realKeys) {
       expect(KNOWN_SYSTEM_CONFIG_KEYS.has(k)).toBe(true);
+    }
+  });
+
+  it("v4 removed the illusion/economy-multiplier keys from the known set", async () => {
+    for (const removedKey of [
+      "ECONOMY_MULTIPLIER_ENABLED", "ECONOMY_MULTIPLIER_OVERRIDE",
+      "ENGINE_A_ILLUSION_VARIANCE_PCT", "ENGINE_A_PKR_TO_POINTS_RATIO",
+      "A_RANK_CARD_BONUS_PCT", "S_RANK_CARD_BONUS_PCT",
+    ]) {
+      expect(KNOWN_SYSTEM_CONFIG_KEYS.has(removedKey)).toBe(false);
     }
   });
 });
