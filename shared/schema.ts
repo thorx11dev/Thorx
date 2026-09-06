@@ -116,6 +116,9 @@ export const users = pgTable("users", {
   // Prevent self-referral
   sql`CONSTRAINT check_no_self_referral CHECK (id != referred_by)`,
   sql`CONSTRAINT check_positive_balance_cash_pkr CHECK (balance_cash_pkr >= 0)`,
+  // v4: pending balance can go negative ONLY via clawbacks (survey reversal of
+  // already-withdrawn funds) — those are platform-owed and settled manually.
+  sql`CONSTRAINT check_positive_pending CHECK (pending_balance >= 0)`,
 ]);
 
 // Team invitations table for secure onboarding
@@ -1559,10 +1562,14 @@ export const referralEarnCommissions = pgTable("referral_earn_commissions", {
   referrerId: varchar("referrer_id").notNull().references(() => users.id, { onDelete: "restrict" }),
   earnerId: varchar("earner_id").notNull().references(() => users.id, { onDelete: "restrict" }),
   earnEventSourceId: varchar("earn_event_source_id").notNull(),
-  earnEventSourceType: text("earn_event_source_type").notNull(), // ad_view | weekly_task | daily_task
+  earnEventSourceType: text("earn_event_source_type").notNull(), // ad_view | weekly_task | daily_task | survey
   grossPkr: decimal("gross_pkr", { precision: 10, scale: 4 }).notNull(),
   commissionPkr: decimal("commission_pkr", { precision: 10, scale: 4 }).notNull(),
   commissionRatePct: decimal("commission_rate_pct", { precision: 5, scale: 2 }).notNull(),
+  // v4 lifecycle: 'pending' (in referrer's pending balance) → 'finalized'
+  // (verification sweep moved it to available) / 'reversed' (earning clawed back).
+  // Legacy rows are 'finalized' (old model credited balanceCashPkr instantly).
+  status: text("status").notNull().default("finalized"), // pending | finalized | reversed
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("idx_ref_earn_comm_referrer").on(table.referrerId, table.createdAt),
