@@ -116,7 +116,9 @@ export function DashboardCards() {
         </div>
       </CardShell>
 
-      <div data-testid="card-performance-rank" className="hidden" />
+      <div data-testid="card-performance-rank">
+        <PSProgressCard performanceScore={performanceScore} userRankTier={userRankTier} streakDays={streakDays} />
+      </div>
     </div>
   );
 }
