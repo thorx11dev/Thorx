@@ -129,7 +129,6 @@ import {
   guildWars,
 } from "@shared/schema";
 import { pickAvatarIdForName } from "@shared/constants";
-import { drawThorxCard, RANK_REWARD_MULTIPLIERS } from "./modules/thorx-card";
 import { awardTaskPS, processStreak } from "./modules/ps-engine";
 import { checkAndUpdateRankTier } from "./modules/ps-engine";
 import { awardMemberGPS, awardMVPGPS, checkAndUpdateGuildRankTier, computeGuildRankTier, fetchGpsConfig, GUILD_RANK_TIERS, type GuildRankTier } from "./modules/gps-engine";
