@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
 import { InteractiveDivider, AnimatedPlaceholder } from "@/features/user-portal/shared";
-import { ArrowLeft, ArrowRight, Delete, History, LifeBuoy } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock3, Delete, History, LifeBuoy } from "lucide-react";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
