@@ -79,11 +79,14 @@ export function DashboardCards() {
     // lg:order-* re-orders the grid without changing the mobile stacking
     // order (single column keeps: Rs, TX-Points, Referrals, PS).
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-12">
-      <CardShell testId="card-real-balance" className="lg:order-1">
-        <p className="text-3xl md:text-4xl font-black text-primary mb-1 tracking-tighter">
+      {/* Balance card has no head label (removed by design) — vertically
+          center its content so the number aligns with the labeled siblings
+          instead of hugging the card's top edge. */}
+      <CardShell testId="card-real-balance" className="lg:order-1 flex flex-col justify-center">
+        <p className="text-3xl md:text-4xl font-black text-primary tracking-tighter">
           Rs. {availablePkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
-        <p className="text-xs font-bold text-muted-foreground" data-testid="pending-balance-line">
+        <p className="mt-1.5 text-xs font-bold text-muted-foreground" data-testid="pending-balance-line">
           Pending: Rs. {pendingPkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
       </CardShell>
