@@ -118,6 +118,8 @@ export function GuildMemberPanel() {
 
   // Manual sync — refetch every live guild surface without a hard reload.
   // Async so the SYNC button's spinner reflects the actual refetch window.
+  // War + tasks + DM keys are explicit: their panels use distinct key shapes,
+  // and SYNC must cover every tab the member can open.
   const refreshGuildData = async () => {
     if (!guildId) return;
     await Promise.all([
@@ -125,6 +127,14 @@ export function GuildMemberPanel() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildMembers(guildId) }),
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildWeeklyHistory(guildId) }),
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildChat(guildId) }),
+      // DM thread (prefix covers whichever member chat is open)
+      queryClient.invalidateQueries({ queryKey: ["guild", guildId, "private-chat"] }),
+      // Wars tab (prefix covers war + war/opponents)
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "war"] }),
+      // Tasks tab
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guildTasks(guildId) }),
+      // Discovery tab (guild browser list)
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds/discovery"] }),
     ]);
   };
   const { refreshing: isRefreshing, refresh: handleRefresh } = useRefreshAction(refreshGuildData);
