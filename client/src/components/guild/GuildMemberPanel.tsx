@@ -427,28 +427,42 @@ export function GuildMemberPanel() {
                 caption="Results appear every Sunday."
               />
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-2.5">
                 {weeklyHistory.slice(0, 8).map((snap: any, i: number) => {
                   const pct = snap.targetPoints > 0 ? Math.min(150, (snap.achievedPoints / snap.targetPoints) * 100) : 0;
                   return (
-                    <div key={snap.id ?? i} className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-2 h-2 rounded-full shrink-0 border-2 border-black/10",
-                        snap.wasSuccessful ? "bg-primary" : "bg-black/20"
-                      )} />
-                      <div className="flex-1">
-                        <div className="flex justify-between text-[10px] md:text-xs font-black uppercase tracking-wider mb-1.5">
-                          <span className="text-black/40">Cycle {weeklyHistory.length - i}</span>
-                          <span className="text-black/50">
-                            {(snap.achievedPoints ?? 0).toLocaleString()} / {(snap.targetPoints ?? 0).toLocaleString()} PTS
-                            <span className={cn("ml-1", snap.wasSuccessful ? "text-primary" : "text-black/30")}>({pct.toFixed(0)}%)</span>
-                          </span>
-                        </div>
-                        <Progress value={Math.min(100, pct)} className="h-1.5 bg-black/10 [&>div]:bg-primary" />
+                    /* Same structured row-card as Captain stats: header
+                       (cycle + verdict icon), points line, progress bar. */
+                    <div
+                      key={snap.id ?? i}
+                      className={cn(
+                        "rounded-xl border px-4 py-3",
+                        snap.wasSuccessful ? "border-black/15 bg-white" : "border-black/10 bg-black/[0.02]"
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-black/45">
+                          Cycle {weeklyHistory.length - i}
+                        </span>
+                        {snap.wasSuccessful
+                          ? <GiRoundShield size={14} className="text-primary shrink-0" />
+                          : <GiSkullCrossedBones size={14} className="text-black/30 shrink-0" />}
                       </div>
-                      {snap.wasSuccessful
-                        ? <GiRoundShield size={14} className="text-primary shrink-0" />
-                        : <GiSkullCrossedBones size={14} className="text-black/30 shrink-0" />}
+                      <div className="flex items-baseline justify-between gap-2 mb-2">
+                        <span className="text-sm font-black tabular-nums text-black leading-none">
+                          {(snap.achievedPoints ?? 0).toLocaleString()}
+                          <span className="text-xs font-bold text-black/35">
+                            {" / "}{(snap.targetPoints ?? 0).toLocaleString()} PTS
+                          </span>
+                        </span>
+                        <span className={cn(
+                          "text-xs font-black tabular-nums leading-none",
+                          snap.wasSuccessful ? "text-primary" : "text-black/35"
+                        )}>
+                          {pct.toFixed(0)}%
+                        </span>
+                      </div>
+                      <Progress value={Math.min(100, pct)} className="h-1.5 bg-black/10 border border-black/10 rounded-full [&>div]:bg-primary" />
                     </div>
                   );
                 })}
