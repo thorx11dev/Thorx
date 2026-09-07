@@ -237,6 +237,8 @@ export function CaptainPortal() {
   // Manual sync — refetch all live guild surfaces without a hard reload.
   // The ["/api/guilds", guildId] key prefix-matches every child query, and the
   // private-chat prefix (no member id) covers whichever DM thread is open.
+  // War + tasks keys are explicit: they don't share the guildId prefix shape
+  // used by their panels, and SYNC must cover every tab.
   const refreshGuildData = async () => {
     if (!guildId) return;
     await Promise.all([
@@ -246,6 +248,12 @@ export function CaptainPortal() {
       queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "weekly-history"] }),
       queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "chat"] }),
       queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "private-chat"] }),
+      // Wars tab (prefix covers war + war/opponents)
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "war"] }),
+      // Tasks tab
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds", guildId, "tasks"] }),
+      // Discovery tab (guild browser list)
+      queryClient.invalidateQueries({ queryKey: ["/api/guilds/discovery"] }),
     ]);
   };
   const { refreshing: isRefreshing, refresh: handleRefresh } = useRefreshAction(refreshGuildData);
