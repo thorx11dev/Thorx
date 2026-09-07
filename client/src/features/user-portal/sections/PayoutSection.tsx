@@ -283,62 +283,105 @@ export function PayoutSection(props: PayoutSectionProps) {
               {/* Step Content Container - Mobile Optimized */}
               <div className="min-h-[300px] md:min-h-[400px] flex flex-col justify-center overflow-hidden">
                 <AnimatePresence mode="wait">
-                  {/* Step 1: Timeframe Selector (Phase 9.1) — replaced keypad */}
+                  {/* Step 1: Amount dial pad — user dials the Rs amount to
+                      withdraw (verified balance only, min Rs.500). */}
                   {currentStep === 1 && (
                     <motion.div
                       key="step1"
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
-                      className="w-full max-w-sm md:max-w-lg mx-auto px-2 md:px-0"
+                      className="w-full max-w-sm md:max-w-md mx-auto px-2 md:px-0"
                     >
-                      <div className="text-center mb-4 md:mb-6">
-                        <div className="text-[10px] md:text-xs font-black uppercase tracking-widest text-muted-foreground mb-1">
-                          Select Earning Period
+                      {/* Amount display */}
+                      <div className="text-center mb-3 md:mb-4">
+                        <TechnicalLabel text="ENTER AMOUNT" className="text-muted-foreground text-[10px] mb-2" />
+                        <div
+                          className={cn(
+                            "font-black tracking-tighter tabular-nums leading-none py-2",
+                            "text-5xl md:text-6xl",
+                            amountNum > 0 ? "text-foreground" : "text-black/25"
+                          )}
+                          data-testid="payout-amount-display"
+                        >
+                          {amountNum > 0 ? `Rs. ${amountNum.toLocaleString()}` : "Rs. 0"}
+                        </div>
+                        <div className="mt-2 text-[11px] font-bold">
+                          {amountNum > 0 && amountNum < MIN_PAYOUT_RS ? (
+                            <span className="text-red-500">Minimum withdrawal is Rs. {MIN_PAYOUT_RS.toLocaleString()}</span>
+                          ) : amountNum > Math.floor(verifiedBalance) ? (
+                            <span className="text-red-500">Amount exceeds your verified balance</span>
+                          ) : (
+                            <span className="text-muted-foreground">
+                              Verified balance: Rs. {verifiedBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          )}
                         </div>
                       </div>
 
-                      <div className="space-y-2 mb-4">
-                        {TIMEFRAME_OPTIONS.map(({ key, label }) => {
-                          const data = timeframeBreakdown?.[key as keyof typeof timeframeBreakdown];
-                          const realPts = data?.points ?? 0;
-                          // DEV_UNLOCK_PAYOUT: treat every timeframe as having 50,000 mock pts
-                          // so each option is selectable regardless of actual balance.
-                          const pts = DEV_UNLOCK_PAYOUT && realPts === 0 ? 50000 : realPts;
-                          const isSelected = selectedTimeframe === key;
-                          const isEmpty = pts === 0;
-                          return (
-                            <motion.button
-                              key={key}
-                              disabled={isEmpty}
-                              onClick={() => {
-                                if (!isEmpty) {
-                                  setSelectedTimeframe(key);
-                                  setWithdrawAmount(String(pts));
-                                }
-                              }}
-                              className={`w-full flex items-center justify-between p-3 md:p-4 border-2 rounded-xl transition-all duration-200 ${
-                                isSelected
-                                  ? "border-foreground bg-foreground text-background shadow-[0_8px_24px_rgba(20, 20, 19,0.12)]"
-                                  : isEmpty
-                                  ? "border-muted-foreground/20 bg-muted/30 text-muted-foreground cursor-not-allowed opacity-50"
-                                  : "border-black/15 bg-white hover:border-primary/40 hover:shadow-[0_4px_16px_rgba(20, 20, 19,0.06)]"
-                              }`}
-                            >
-                              <div className="text-left">
-                                <div className={`text-xs font-black uppercase tracking-widest ${isSelected ? "text-background" : "text-foreground"}`}>{label}</div>
-                              </div>
-                            </motion.button>
-                          );
-                        })}
+                      {/* Dial pad — 4×3 grid, minimal industrial style */}
+                      <div className="grid grid-cols-3 gap-2 md:gap-2.5 mb-2">
+                        {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((n) => (
+                          <motion.button
+                            key={n}
+                            whileTap={{ scale: 0.94 }}
+                            onClick={() => handleNumberInput(n)}
+                            className="h-12 md:h-14 rounded-xl border-2 border-black/10 bg-white text-xl md:text-2xl font-black tabular-nums text-foreground transition-colors hover:border-black hover:bg-black hover:text-white active:bg-black active:text-white"
+                            data-testid={`dial-${n}`}
+                          >
+                            {n}
+                          </motion.button>
+                        ))}
+                        <div />
+                        <motion.button
+                          whileTap={{ scale: 0.94 }}
+                          onClick={() => handleNumberInput("0")}
+                          className="h-12 md:h-14 rounded-xl border-2 border-black/10 bg-white text-xl md:text-2xl font-black tabular-nums text-foreground transition-colors hover:border-black hover:bg-black hover:text-white active:bg-black active:text-white"
+                          data-testid="dial-0"
+                        >
+                          0
+                        </motion.button>
+                        <motion.button
+                          whileTap={{ scale: 0.94 }}
+                          onClick={handleBackspace}
+                          aria-label="Delete last digit"
+                          className="h-12 md:h-14 rounded-xl border-2 border-black/10 bg-white flex items-center justify-center text-foreground transition-colors hover:border-black hover:bg-black hover:text-white active:bg-black active:text-white"
+                          data-testid="dial-backspace"
+                        >
+                          <Delete className="h-5 w-5" />
+                        </motion.button>
                       </div>
 
-                      {selectedTimeframe && withdrawAmount && (
-                        <div className="p-3 bg-muted/30 rounded-xl text-center border border-muted">
-                          <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Selected</div>
-                          <div className="text-2xl font-black text-foreground">Rs. {parseFloat(withdrawAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-base text-muted-foreground">PKR</span></div>
-                        </div>
-                      )}
+                      {/* Quick amounts */}
+                      <div className="flex gap-2 justify-center">
+                        {[1000, 2500, 5000].map((amt) => (
+                          <button
+                            key={amt}
+                            disabled={amt > Math.floor(verifiedBalance)}
+                            onClick={() => setWithdrawAmount(String(amt))}
+                            className={cn(
+                              "px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-colors",
+                              amt > Math.floor(verifiedBalance)
+                                ? "border-black/10 text-black/25 cursor-not-allowed"
+                                : "border-black/15 text-black/60 hover:border-black hover:bg-black hover:text-white"
+                            )}
+                          >
+                            Rs. {amt.toLocaleString()}
+                          </button>
+                        ))}
+                        <button
+                          disabled={Math.floor(verifiedBalance) < MIN_PAYOUT_RS}
+                          onClick={() => setWithdrawAmount(String(Math.floor(verifiedBalance)))}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-colors",
+                            Math.floor(verifiedBalance) < MIN_PAYOUT_RS
+                              ? "border-black/10 text-black/25 cursor-not-allowed"
+                              : "border-primary/40 text-primary hover:bg-primary hover:text-white"
+                          )}
+                        >
+                          MAX
+                        </button>
+                      </div>
                     </motion.div>
                   )}
 
