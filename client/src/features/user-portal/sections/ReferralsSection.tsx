@@ -363,7 +363,6 @@ export function ReferralsSection(props: ReferralsSectionProps) {
                         <div className="font-black text-lg text-primary">
                           +Rs.{parseFloat(commission.amount).toFixed(2)} PKR
                         </div>
-                        <div className="text-[10px] text-muted-foreground">≈ {Math.round(parseFloat(commission.amount) * TX_POINTS_PER_PKR).toLocaleString()} TX-Points value</div>
                         <div className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border inline-block mt-1 ${commission.status === 'paid' || commission.status === 'finalized' ? 'bg-green-100 border-green-500 text-green-700' :
                           commission.status === 'pending' ? 'bg-yellow-100 border-yellow-500 text-yellow-700' :
                             'bg-red-100 border-red-500 text-red-700'
