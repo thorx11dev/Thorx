@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { cn } from "@/lib/utils";
 import { InteractiveDivider, AnimatedPlaceholder } from "@/features/user-portal/shared";
-import { ArrowLeft, ArrowRight, RefreshCw, History, LifeBuoy } from "lucide-react";
+import { ArrowLeft, ArrowRight, Delete, History, LifeBuoy } from "lucide-react";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,9 @@ import { QUERY_KEYS } from "@/lib/queryKeys";
 import { DEV_UNLOCK_PAYOUT } from "@/lib/previewAccess";
 import { z } from "zod";
 import { captureEvent } from "@/lib/posthog";
+import { useAuth } from "@/hooks/useAuth";
+
+const MIN_PAYOUT_RS = 500;
 
 interface PayoutSectionProps {
   isPayoutHeroToggled: boolean;
@@ -26,8 +29,6 @@ interface PayoutSectionProps {
   setWithdrawalKey: (v: any) => void;
   withdrawAmount: string;
   setWithdrawAmount: (v: string | ((prev: string) => string)) => void;
-  selectedTimeframe: string | null;
-  setSelectedTimeframe: (v: string | null) => void;
   selectedMethod: string;
   setSelectedMethod: (v: string) => void;
   paymentDetails: { name: string; number: string; email: string; iban: string };
@@ -37,18 +38,15 @@ interface PayoutSectionProps {
   showHistory: boolean;
   setShowHistory: (v: boolean) => void;
   step3MinDisplayElapsed: boolean;
-  timeframeBreakdown: any;
   withdrawalPreview: any;
   isPreviewLoading: boolean;
   withdrawalPreviewError: any;
   WITHDRAWAL_FEE_PERCENT: number;
   isConfigLoading: boolean;
   navigateToSection: (index: number) => void;
-  TIMEFRAME_OPTIONS: Array<{ key: string; label: string }>;
   DEV_MOCK_PREVIEW: { exactPkr: number; platformFee: number; feePercent: number; referralCommission: number; referrerName: string | null; userNetPkr: number; sRankFastTrack: boolean };
   queryClient: { invalidateQueries: (opts: { queryKey: readonly unknown[] }) => void };
   formatDate: (dateString: string) => string;
-  formatCurrency: (value: any) => string;
 }
 
 export function PayoutSection(props: PayoutSectionProps) {
