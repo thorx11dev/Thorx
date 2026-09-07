@@ -82,6 +82,71 @@ export async function sendPasswordResetEmail(params: {
   logger.info({ to: params.to }, "[Email] Password-reset email sent");
 }
 
+/**
+ * Payout REQUEST received — sent the moment a user submits a withdrawal.
+ * Sets expectations: team review + payout within 48 hours.
+ */
+export async function sendPayoutRequestReceivedEmail(params: {
+  to: string;
+  firstName: string;
+  amount: string | number;
+  method?: string | null;
+}): Promise<void> {
+  const resend = getClient();
+  if (!resend) {
+    logger.warn({ to: params.to }, "[Email] Payout request email suppressed — no RESEND_API_KEY");
+    return;
+  }
+
+  const methodLabel = params.method ? String(params.method).toUpperCase() : "LOCAL WALLET";
+
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to: params.to,
+    subject: `THORX — Withdrawal Request Received (Rs.${params.amount})`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family:sans-serif;background:#f4f4f4;padding:24px;margin:0;">
+        <div style="max-width:520px;margin:0 auto;background:#FAF9F5;overflow:hidden;border:1px solid #e2e8f0;">
+          <div style="background:#141413;padding:20px 24px;">
+            <h1 style="color:#FAF9F5;font-size:22px;margin:0;letter-spacing:-0.5px;">THORX</h1>
+          </div>
+          <div style="padding:28px 24px;">
+            <p style="font-size:11px;font-weight:700;letter-spacing:2px;color:#D97757;margin:0 0 8px;">
+              WITHDRAWAL REQUEST SUBMITTED
+            </p>
+            <h2 style="font-size:18px;margin:0 0 12px;color:#141413;">Hi ${params.firstName},</h2>
+            <p style="color:#444;line-height:1.6;margin:0 0 16px;">
+              Your withdrawal request of <strong>Rs.${params.amount}</strong> has been submitted
+              and is <strong>under process</strong>. You will receive your payout within
+              <strong>48 hours</strong> via <strong>${methodLabel}</strong>.
+            </p>
+            <table style="width:100%;border-collapse:collapse;font-size:13px;color:#333;margin:0 0 20px;">
+              <tr><td style="padding:8px 0;border-bottom:1px solid #eee;">Request Amount</td><td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;font-weight:700;">Rs.${params.amount}</td></tr>
+              <tr><td style="padding:8px 0;">Payout Method</td><td style="padding:8px 0;text-align:right;font-weight:700;">${methodLabel}</td></tr>
+            </table>
+            <p style="color:#777;font-size:12px;margin:0;line-height:1.6;">
+              No action is needed from you — we will notify you the moment your payout is sent.
+            </p>
+          </div>
+          <div style="background:#f8f8f8;padding:14px 24px;border-top:1px solid #eee;">
+            <p style="color:#aaa;font-size:11px;margin:0;">© 2026 THORX. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+  });
+
+  if (error) {
+    logger.error({ err: error, to: params.to }, "[Email] Failed to send payout request email");
+    throw new Error(`Email delivery failed: ${error.message ?? "unknown Resend error"}`);
+  }
+
+  logger.info({ to: params.to, amount: params.amount }, "[Email] Payout request email sent");
+}
+
 export async function sendPayoutStatusEmail(params: {  to: string;
   firstName: string;
   status: "approved" | "completed" | "rejected";
