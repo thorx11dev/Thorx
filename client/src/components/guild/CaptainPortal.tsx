@@ -658,7 +658,9 @@ export function CaptainPortal() {
             )}
           </div>
 
-          {/* Emblem — next character every refresh, tap opens navigation */}
+          {/* Emblem — next character every refresh, tap opens navigation.
+              Mobile: webp emblem replaced by a plain black nav icon (cleaner
+              on small screens + saves the image request). Desktop keeps it. */}
           <div className="flex justify-end -mb-9 -mr-9 mt-1">
             <button
               ref={emblemBtnRef}
@@ -667,12 +669,19 @@ export function CaptainPortal() {
               data-testid="button-guild-nav"
               className="w-24 h-24 p-1 cursor-pointer transition-transform duration-200 hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl"
             >
-              <img
-                src={`/guild/emblem-${EMBLEM_INDEX}.webp`}
-                alt=""
-                draggable={false}
-                className="w-full h-full object-contain drop-shadow-[2px_2px_0px_rgba(20, 20, 19,0.22)]"
-              />
+              <span className="hidden lg:flex w-full h-full items-center justify-center">
+                <img
+                  src={`/guild/emblem-${EMBLEM_INDEX}.webp`}
+                  alt=""
+                  draggable={false}
+                  className="w-full h-full object-contain drop-shadow-[2px_2px_0px_rgba(20, 20, 19,0.22)]"
+                />
+              </span>
+              <span className="lg:hidden w-full h-full flex items-center justify-center">
+                <span className="w-12 h-12 rounded-xl bg-black flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(20, 20, 19,0.2)]">
+                  <Menu size={22} className="text-white" />
+                </span>
+              </span>
             </button>
           </div>
         </div>
