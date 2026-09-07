@@ -192,13 +192,19 @@ export function PayoutSection(props: PayoutSectionProps) {
         // Verified (available) balance only + Rs.500 minimum.
         return amountNum >= MIN_PAYOUT_RS && amountNum <= Math.floor(verifiedBalance);
       }
-      // DEV_UNLOCK_PAYOUT: skip preview requirement so step 2 → 3 works with zero balance
-      const effectivePreview = withdrawalPreview ?? (DEV_UNLOCK_PAYOUT ? DEV_MOCK_PREVIEW : null);
-      if (currentStep === 2) return selectedMethod && !!effectivePreview && (DEV_UNLOCK_PAYOUT || !withdrawalPreviewError);
+      if (currentStep === 2) {
+        // Method choice only — the fee preview keeps loading/failing in the
+        // background (Neon cold starts); blocking CONTINUE on it made the
+        // button look dead right after selecting a wallet.
+        return !!selectedMethod;
+      }
       if (currentStep === 3) {
-        // DEV_UNLOCK_PAYOUT: skip the 2-second step-3 display timer
+        // SEND needs: details filled + fee preview RESOLVED (server-side fee
+        // is the source of truth — never let a submit through on "—") +
+        // the read-the-summary timer. DEV_UNLOCK_PAYOUT bypasses for testing.
+        const effectivePreview = withdrawalPreview ?? (DEV_UNLOCK_PAYOUT ? DEV_MOCK_PREVIEW : null);
         const timerOk = DEV_UNLOCK_PAYOUT || step3MinDisplayElapsed;
-        return paymentDetails.name.trim() && paymentDetails.number.trim() && !!effectivePreview && timerOk;
+        return paymentDetails.name.trim() && paymentDetails.number.trim() && !!effectivePreview && !isPreviewLoading && timerOk;
       }
       return false;
     };
