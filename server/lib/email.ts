@@ -82,8 +82,7 @@ export async function sendPasswordResetEmail(params: {
   logger.info({ to: params.to }, "[Email] Password-reset email sent");
 }
 
-export async function sendPayoutStatusEmail(params: {
-  to: string;
+export async function sendPayoutStatusEmail(params: {  to: string;
   firstName: string;
   status: "approved" | "completed" | "rejected";
   amount: string | number;
