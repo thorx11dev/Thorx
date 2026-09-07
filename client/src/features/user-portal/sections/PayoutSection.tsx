@@ -188,14 +188,17 @@ export function PayoutSection(props: PayoutSectionProps) {
     // Get current step button states
     const canProceed = () => {
       if (isConfigLoading) return false;
-      if (currentStep === 1) return withdrawAmount && parseInt(withdrawAmount, 10) > 0;
+      if (currentStep === 1) {
+        // Verified (available) balance only + Rs.500 minimum.
+        return amountNum >= MIN_PAYOUT_RS && amountNum <= Math.floor(verifiedBalance);
+      }
       // DEV_UNLOCK_PAYOUT: skip preview requirement so step 2 → 3 works with zero balance
       const effectivePreview = withdrawalPreview ?? (DEV_UNLOCK_PAYOUT ? DEV_MOCK_PREVIEW : null);
       if (currentStep === 2) return selectedMethod && !!effectivePreview && (DEV_UNLOCK_PAYOUT || !withdrawalPreviewError);
       if (currentStep === 3) {
         // DEV_UNLOCK_PAYOUT: skip the 2-second step-3 display timer
         const timerOk = DEV_UNLOCK_PAYOUT || step3MinDisplayElapsed;
-        return paymentDetails.name.trim() && paymentDetails.number.trim() && paymentDetails.email.trim() && !!effectivePreview && timerOk;
+        return paymentDetails.name.trim() && paymentDetails.number.trim() && !!effectivePreview && timerOk;
       }
       return false;
     };
