@@ -489,9 +489,11 @@ export function PayoutSection(props: PayoutSectionProps) {
                         </div>
                       </div>
 
-                      {/* Payment Summary — real money only, fee is the single
-                          15% platform cut; the referrer's share is carved out
-                          of that fee (never an extra user deduction). */}
+                      {/* Payment Summary — receipt-style panel. Math runs live
+                          client-side (same 15% rule as the server) the moment
+                          the step opens; the server preview confirms the final
+                          numbers before SEND unlocks (server stays the source
+                          of truth — the client math is display-only). */}
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -499,62 +501,110 @@ export function PayoutSection(props: PayoutSectionProps) {
                         className="mt-6 md:mt-8 pt-6 border-t border-black/10"
                       >
                         <TechnicalLabel text="PAYOUT SUMMARY" className="mb-4 font-black text-xs md:text-sm" />
-                        <div className="bg-muted/5 border border-black/15 rounded-2xl p-4 md:p-6 space-y-3">
-                          <div className="flex justify-between items-center text-sm md:text-base">
-                            <span className="font-bold text-muted-foreground">Withdraw Amount</span>
-                            <span className="font-black text-foreground">Rs. {parseFloat(withdrawAmount || "0").toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                          </div>
+                        {(() => {
+                          const gross = parseFloat(withdrawAmount || "0") || 0;
+                          const feePct = withdrawalPreview?.feePercent ?? WITHDRAWAL_FEE_PERCENT;
+                          // Display-only live math — mirrors the server's
+                          // fee-then-commission split exactly.
+                          const fee = gross * (feePct / 100);
+                          const net = gross - fee;
+                          const fmt = (v: number) =>
+                            v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-                          <div className="flex justify-between items-center text-sm md:text-base">
-                            <span className="font-bold text-muted-foreground flex items-center gap-2">
-                              Platform Fee
-                              <span className="text-[10px] bg-black text-white px-1.5 py-0.5 rounded-sm">{withdrawalPreview?.feePercent ?? WITHDRAWAL_FEE_PERCENT}%</span>
-                            </span>
-                            <span className="font-black text-red-500">
-                              {isPreviewLoading ? <Skeleton className="h-5 w-20 rounded inline-block" /> : withdrawalPreview ? `-Rs. ${withdrawalPreview.platformFee.toFixed(2)}` : "—"}
-                            </span>
-                          </div>
-
-                          {withdrawalPreview?.referrerName && (
-                            <>
-                              <div className="my-2 border-t border-dashed border-black/20" />
-                              <div className="flex justify-between items-center text-xs md:text-sm">
-                                <span className="text-muted-foreground font-bold">Referral Bonus (from fee — paid by THORX)</span>
-                                <span className="text-foreground font-black">Rs. {withdrawalPreview.referralCommission.toFixed(2)}</span>
+                          return (
+                            <div className="overflow-hidden rounded-2xl border-2 border-black bg-white shadow-[0_12px_40px_rgba(20, 20, 19,0.08)]">
+                              {/* Amount hero strip */}
+                              <div className="bg-black px-5 py-4 md:px-6 flex items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="text-[9px] font-black uppercase tracking-[0.3em] text-white/35">
+                                    You Receive
+                                  </div>
+                                  <div className="font-black tracking-tighter tabular-nums leading-none text-primary text-2xl md:text-3xl mt-1" data-testid="summary-net-amount">
+                                    Rs. {fmt(net)}
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <div className="text-[9px] font-black uppercase tracking-[0.2em] text-white/35 mb-0.5">Method</div>
+                                  <div className="text-[11px] font-black text-white/80 tracking-wide">
+                                    {paymentMethods.find(m => m.id === selectedMethod)?.name || "—"}
+                                  </div>
+                                </div>
                               </div>
-                            </>
-                          )}
 
-                          {withdrawalPreview?.sRankFastTrack && (
-                            <div className="flex justify-between items-center text-xs md:text-sm">
-                              <span className="text-amber-500 font-bold uppercase tracking-widest">S-Rank Fast Track</span>
-                              <span className="text-amber-500 font-black">Instant Approval</span>
+                              {/* Line items */}
+                              <div className="px-5 py-4 md:px-6 space-y-3">
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="text-xs md:text-sm font-bold text-black/50">Withdraw Amount</span>
+                                  <span className="text-xs md:text-sm font-black tabular-nums text-foreground whitespace-nowrap">Rs. {fmt(gross)}</span>
+                                </div>
+
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="text-xs md:text-sm font-bold text-black/50 flex items-center gap-1.5 min-w-0">
+                                    Platform Fee
+                                    <span className="shrink-0 text-[9px] bg-black text-white px-1.5 py-0.5 rounded-sm font-black">{feePct}%</span>
+                                  </span>
+                                  <span className="text-xs md:text-sm font-black tabular-nums text-red-500 whitespace-nowrap">− Rs. {fmt(fee)}</span>
+                                </div>
+
+                                {withdrawalPreview?.referrerName && (
+                                  <div className="flex items-center justify-between gap-3 rounded-lg bg-primary/5 border border-primary/15 px-3 py-2">
+                                    <span className="text-[11px] md:text-xs font-bold text-black/60 min-w-0 truncate">
+                                      Referral bonus to {withdrawalPreview.referrerName}
+                                      <span className="text-black/35 font-medium"> · paid by THORX from its fee</span>
+                                    </span>
+                                    <span className="text-[11px] md:text-xs font-black tabular-nums text-primary whitespace-nowrap">Rs. {withdrawalPreview.referralCommission.toFixed(2)}</span>
+                                  </div>
+                                )}
+
+                                {withdrawalPreview?.sRankFastTrack && (
+                                  <div className="flex items-center justify-between gap-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+                                    <span className="text-[11px] md:text-xs font-black uppercase tracking-widest text-amber-600">S-Rank Fast Track</span>
+                                    <span className="text-[11px] md:text-xs font-black text-amber-600">Instant Approval</span>
+                                  </div>
+                                )}
+
+                                {paymentDetails.number && (
+                                  <div className="flex items-center justify-between gap-3">
+                                    <span className="text-xs md:text-sm font-bold text-black/50">Receiving To</span>
+                                    <span className="text-xs md:text-sm font-black text-foreground whitespace-nowrap truncate">
+                                      ●●●● {paymentDetails.number.slice(-4)}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Total rule */}
+                                <div className="border-t-2 border-dashed border-black/15" />
+
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="text-xs md:text-sm font-black uppercase tracking-wide text-foreground">Total Deduction</span>
+                                  <span className="text-xs md:text-sm font-black tabular-nums text-red-500 whitespace-nowrap">− Rs. {fmt(fee)}</span>
+                                </div>
+
+                                {/* Server confirmation status */}
+                                <div className="flex items-center justify-center gap-1.5 pt-1">
+                                  {isPreviewLoading ? (
+                                    <>
+                                      <ThorxSpinner size={10} />
+                                      <span className="text-[10px] font-bold text-black/35">Confirming with server…</span>
+                                    </>
+                                  ) : withdrawalPreview ? (
+                                    <span className="text-[10px] font-bold text-green-600">✓ Confirmed — server fee matches</span>
+                                  ) : (
+                                    <span className="text-[10px] font-bold text-black/35">Server confirmation pending</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Footer note */}
+                              <div className="bg-[#FAF9F5] border-t border-black/10 px-5 py-3 md:px-6 flex items-center justify-center gap-2">
+                                <Clock3 className="w-3.5 h-3.5 text-black/30 shrink-0" />
+                                <span className="text-[10px] md:text-[11px] font-bold text-black/45 text-center">
+                                  Paid within 48 hours after team review — no action needed from you.
+                                </span>
+                              </div>
                             </div>
-                          )}
-
-                          {paymentDetails.number && (
-                            <div className="flex justify-between items-center text-xs md:text-sm">
-                              <span className="font-bold text-muted-foreground">Receiving To</span>
-                              <span className="font-black text-foreground">
-                                {paymentMethods.find(m => m.id === selectedMethod)?.name || selectedMethod}
-                                {" "}●●●● {paymentDetails.number.slice(-4)}
-                              </span>
-                            </div>
-                          )}
-
-                          <div className="my-2 border-t border-black/15" />
-
-                          <div className="flex justify-between items-center text-base md:text-lg lg:text-xl">
-                            <span className="font-black text-foreground uppercase tracking-tight">You Receive</span>
-                            <span className="font-black text-primary bg-black rounded-lg px-3 py-2 text-xl md:text-2xl">
-                              {isPreviewLoading ? <Skeleton className="h-7 w-28 rounded inline-block" /> : withdrawalPreview ? `Rs. ${withdrawalPreview.userNetPkr.toFixed(2)}` : "—"}
-                            </span>
-                          </div>
-
-                          <p className="text-[10px] font-medium text-black/40 text-center pt-1">
-                            Payouts are processed within 48 hours after team review.
-                          </p>
-                        </div>
+                          );
+                        })()}
                       </motion.div>
                     </motion.div>
                   )}
