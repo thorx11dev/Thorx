@@ -1,8 +1,7 @@
 /**
  * PSProgressCard — THORX v3 (spec F.5)
- * Shows PS progress bar, rank, streak, and what the next rank unlocks.
+ * Shows PS progress bar, rank, and what the next rank unlocks.
  */
-import { Flame } from "lucide-react";
 import { RankBadge } from "@/components/RankBadge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -25,7 +24,7 @@ interface PSProgressCardProps {
   className?: string;
 }
 
-export function PSProgressCard({ performanceScore, userRankTier, streakDays = 0, className }: PSProgressCardProps) {
+export function PSProgressCard({ performanceScore, userRankTier, className }: PSProgressCardProps) {
   const tier = PS_THRESHOLDS[userRankTier] ?? PS_THRESHOLDS["E-Rank"];
   const score = Number.isFinite(Number(performanceScore)) ? Number(performanceScore) : 0;
 
@@ -40,10 +39,6 @@ export function PSProgressCard({ performanceScore, userRankTier, streakDays = 0,
     pct = 100;
   }
 
-  const streakLabel = streakDays >= 3 ? `+20 PS/day bonus active` :
-                      streakDays === 2 ? `+10 PS/day bonus active` :
-                      streakDays === 1 ? `+5 PS/day bonus active` : "Start a streak for PS bonus";
-
   return (
     <div className={cn("group bg-white border-2 border-black rounded-2xl p-6 md:p-8 space-y-3 transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(20, 20, 19,1)]", className)}>
       <div className="flex items-center justify-between">
@@ -53,12 +48,6 @@ export function PSProgressCard({ performanceScore, userRankTier, streakDays = 0,
             {score.toLocaleString()} PS
           </span>
         </div>
-        {streakDays > 0 && (
-          <span className="text-xs flex items-center gap-1 text-primary font-bold">
-            <Flame size={12} />
-            {streakDays}-day streak
-          </span>
-        )}
       </div>
 
       <div className="space-y-1">
@@ -73,10 +62,6 @@ export function PSProgressCard({ performanceScore, userRankTier, streakDays = 0,
         <p className="text-xs text-muted-foreground">
           <span className="font-bold text-foreground">{psToNext.toLocaleString()} more PS</span> to reach {tier.next}
         </p>
-      )}
-
-      {streakDays > 0 && (
-        <p className="text-xs text-primary">🔥 {streakLabel}</p>
       )}
 
     </div>

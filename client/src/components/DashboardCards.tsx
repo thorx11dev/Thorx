@@ -65,16 +65,6 @@ export function DashboardCards() {
   const userRankTier = (user as any)?.userRankTier ?? "E-Rank";
   const streakDays = (user as any)?.streakDays ?? 0;
 
-  const { data: publicConfig } = useQuery<{ txPointsPerPkr: number }>({
-    queryKey: QUERY_KEYS.publicConfig,
-    queryFn: async () => {
-      const res = await apiRequest("GET", "/api/config/public");
-      return res.json();
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-  const txPointsPerPkr = publicConfig?.txPointsPerPkr ?? 10;
-
   const { data: referralStats, isLoading: isReferralStatsLoading, isError: isReferralStatsError, refetch: refetchReferralStats } = useQuery<{ count: number; totalEarned: string }>({
     queryKey: ["/api/referrals", "dashboard-card"],
     queryFn: async () => {
@@ -85,9 +75,11 @@ export function DashboardCards() {
   });
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-12">
-      <CardShell testId="card-real-balance">
-        <CardHead label="REAL BALANCE (PKR)" />
+    // Desktop layout (2×2): Rs → Referrals on top row, TX-Points → PS below.
+    // lg:order-* re-orders the grid without changing the mobile stacking
+    // order (single column keeps: Rs, TX-Points, Referrals, PS).
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-12">
+      <CardShell testId="card-real-balance" className="lg:order-1">
         <p className="text-3xl md:text-4xl font-black text-primary mb-1 tracking-tighter">
           Rs. {availablePkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
@@ -96,15 +88,12 @@ export function DashboardCards() {
         </p>
       </CardShell>
 
-      <CardShell testId="card-tx-points">
+      <CardShell testId="card-tx-points" className="lg:order-3">
         <CardHead label="TX-POINTS" />
         <p className="text-3xl md:text-4xl font-black text-foreground mb-1 tracking-tighter">{txPoints.toLocaleString()}</p>
-        <p className="text-xs font-bold text-muted-foreground">
-          {txPointsPerPkr} TX-Points = Rs. 1
-        </p>
       </CardShell>
 
-      <CardShell testId="card-referral-balance">
+      <CardShell testId="card-referral-balance" className="lg:order-2">
         <CardHead label="REFERRALS" />
         <div className="text-3xl md:text-4xl font-black text-foreground mb-1 tracking-tighter">
           {isReferralStatsLoading
@@ -115,8 +104,8 @@ export function DashboardCards() {
         </div>
       </CardShell>
 
-      <div data-testid="card-performance-rank">
-        <PSProgressCard performanceScore={performanceScore} userRankTier={userRankTier} streakDays={streakDays} />
+      <div data-testid="card-performance-rank" className="lg:order-4">
+        <PSProgressCard performanceScore={performanceScore} userRankTier={userRankTier} />
       </div>
     </div>
   );
