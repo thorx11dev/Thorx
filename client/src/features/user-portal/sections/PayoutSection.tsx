@@ -297,42 +297,46 @@ export function PayoutSection(props: PayoutSectionProps) {
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
-                      className="w-full max-w-sm md:max-w-md mx-auto px-2 md:px-0"
+                      className="w-full max-w-xs md:max-w-sm mx-auto px-2 md:px-0"
                     >
-                      {/* Amount display */}
-                      <div className="text-center mb-3 md:mb-4">
-                        <TechnicalLabel text="ENTER AMOUNT" className="text-muted-foreground text-[10px] mb-2" />
+                      {/* Black display panel — the calculator hero */}
+                      <div className="rounded-2xl bg-black px-5 py-5 md:py-6 text-center mb-2.5 shadow-[0_10px_30px_rgba(20, 20, 19,0.18)]">
+                        <div className="text-[9px] font-black uppercase tracking-[0.3em] text-white/35 mb-2">
+                          Withdraw Amount
+                        </div>
                         <div
                           className={cn(
-                            "font-black tracking-tighter tabular-nums leading-none py-2",
-                            "text-5xl md:text-6xl",
-                            amountNum > 0 ? "text-foreground" : "text-black/25"
+                            "font-black tracking-tighter tabular-nums leading-none text-4xl md:text-5xl transition-colors",
+                            amountNum > 0 ? "text-primary" : "text-white/20"
                           )}
                           data-testid="payout-amount-display"
                         >
-                          {amountNum > 0 ? `Rs. ${amountNum.toLocaleString()}` : "Rs. 0"}
+                          {amountNum > 0 ? `Rs ${amountNum.toLocaleString()}` : "Rs —"}
                         </div>
-                        <div className="mt-2 text-[11px] font-bold">
-                          {amountNum > 0 && amountNum < MIN_PAYOUT_RS ? (
-                            <span className="text-red-500">Minimum withdrawal is Rs. {MIN_PAYOUT_RS.toLocaleString()}</span>
-                          ) : amountNum > Math.floor(verifiedBalance) ? (
-                            <span className="text-red-500">Amount exceeds your verified balance</span>
-                          ) : (
-                            <span className="text-muted-foreground">
-                              Verified balance: Rs. {verifiedBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          )}
+                        <div className="mt-2.5 text-[10px] font-bold text-white/40 tabular-nums">
+                          Available&nbsp;
+                          <span className="text-white/70">Rs {verifiedBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       </div>
 
-                      {/* Dial pad — 4×3 grid, minimal industrial style */}
-                      <div className="grid grid-cols-3 gap-2 md:gap-2.5 mb-2">
+                      {/* Inline validation hint — only when the dial violates a rule */}
+                      <div className="h-5 mb-1 text-center">
+                        {amountNum > 0 && amountNum < MIN_PAYOUT_RS && (
+                          <span className="text-[11px] font-bold text-red-500">Minimum Rs. {MIN_PAYOUT_RS.toLocaleString()}</span>
+                        )}
+                        {amountNum > Math.floor(verifiedBalance) && (
+                          <span className="text-[11px] font-bold text-red-500">Exceeds verified balance</span>
+                        )}
+                      </div>
+
+                      {/* Borderless dial pad — keys light up on touch */}
+                      <div className="grid grid-cols-3 gap-1">
                         {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((n) => (
                           <motion.button
                             key={n}
-                            whileTap={{ scale: 0.94 }}
+                            whileTap={{ scale: 0.9 }}
                             onClick={() => handleNumberInput(n)}
-                            className="h-12 md:h-14 rounded-xl border-2 border-black/10 bg-white text-xl md:text-2xl font-black tabular-nums text-foreground transition-colors hover:border-black hover:bg-black hover:text-white active:bg-black active:text-white"
+                            className="h-12 md:h-14 rounded-xl text-2xl md:text-[28px] font-black tabular-nums text-foreground transition-colors hover:bg-black/[0.05] active:bg-black active:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                             data-testid={`dial-${n}`}
                           >
                             {n}
@@ -340,54 +344,27 @@ export function PayoutSection(props: PayoutSectionProps) {
                         ))}
                         <div />
                         <motion.button
-                          whileTap={{ scale: 0.94 }}
+                          whileTap={{ scale: 0.9 }}
                           onClick={() => handleNumberInput("0")}
-                          className="h-12 md:h-14 rounded-xl border-2 border-black/10 bg-white text-xl md:text-2xl font-black tabular-nums text-foreground transition-colors hover:border-black hover:bg-black hover:text-white active:bg-black active:text-white"
+                          className="h-12 md:h-14 rounded-xl text-2xl md:text-[28px] font-black tabular-nums text-foreground transition-colors hover:bg-black/[0.05] active:bg-black active:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                           data-testid="dial-0"
                         >
                           0
                         </motion.button>
                         <motion.button
-                          whileTap={{ scale: 0.94 }}
+                          whileTap={{ scale: 0.9 }}
                           onClick={handleBackspace}
                           aria-label="Delete last digit"
-                          className="h-12 md:h-14 rounded-xl border-2 border-black/10 bg-white flex items-center justify-center text-foreground transition-colors hover:border-black hover:bg-black hover:text-white active:bg-black active:text-white"
+                          className="h-12 md:h-14 rounded-xl flex items-center justify-center text-black/40 transition-colors hover:bg-red-50 hover:text-red-500 active:bg-black active:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                           data-testid="dial-backspace"
                         >
                           <Delete className="h-5 w-5" />
                         </motion.button>
                       </div>
 
-                      {/* Quick amounts */}
-                      <div className="flex gap-2 justify-center">
-                        {[1000, 2500, 5000].map((amt) => (
-                          <button
-                            key={amt}
-                            disabled={amt > Math.floor(verifiedBalance)}
-                            onClick={() => setWithdrawAmount(String(amt))}
-                            className={cn(
-                              "px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-colors",
-                              amt > Math.floor(verifiedBalance)
-                                ? "border-black/10 text-black/25 cursor-not-allowed"
-                                : "border-black/15 text-black/60 hover:border-black hover:bg-black hover:text-white"
-                            )}
-                          >
-                            Rs. {amt.toLocaleString()}
-                          </button>
-                        ))}
-                        <button
-                          disabled={Math.floor(verifiedBalance) < MIN_PAYOUT_RS}
-                          onClick={() => setWithdrawAmount(String(Math.floor(verifiedBalance)))}
-                          className={cn(
-                            "px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-colors",
-                            Math.floor(verifiedBalance) < MIN_PAYOUT_RS
-                              ? "border-black/10 text-black/25 cursor-not-allowed"
-                              : "border-primary/40 text-primary hover:bg-primary hover:text-white"
-                          )}
-                        >
-                          MAX
-                        </button>
-                      </div>
+                      <p className="mt-2.5 text-center text-[10px] font-bold text-black/35">
+                        Verified balance only · Min Rs. {MIN_PAYOUT_RS.toLocaleString()}
+                      </p>
                     </motion.div>
                   )}
 
