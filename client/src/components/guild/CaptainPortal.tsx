@@ -1305,35 +1305,52 @@ export function CaptainPortal() {
           )}
 
           {!isHistoryLoading && !isHistoryError && weeklyHistory.length > 0 && (
-            <PremiumCard interactive={false} className="space-y-4">
+            <PremiumCard interactive={false} className="space-y-2.5">
               {weeklyHistory.map((snap: any, i: number) => {
                 const pct = snap.targetPoints > 0
                   ? Math.min(150, (snap.achievedPoints / snap.targetPoints) * 100)
                   : 0;
                 return (
-                  <div key={snap.id} className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-5 h-5 rounded-full shrink-0 border-2 border-black/10",
-                      snap.wasSuccessful ? "bg-primary" : "bg-black/20"
-                    )} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between text-[10px] md:text-xs font-black uppercase tracking-wider mb-1.5">
-                        <span className="text-black/45">Week {weeklyHistory.length - i}</span>
-                        <span className="text-black/50">
-                          {snap.achievedPoints?.toLocaleString()}
-                          {" / "}
-                          {snap.targetPoints?.toLocaleString()} PTS
-                          <span className="ml-1">({pct.toFixed(0)}%)</span>
-                        </span>
-                      </div>
-                      <Progress value={Math.min(100, pct)} className="h-2 bg-black/10 border-2 border-black/10 rounded-full [&>div]:bg-primary" />
+                  /* One structured row-card per week: header (week + verdict),
+                     points line, progress bar — reads cleanly at any width. */
+                  <div
+                    key={snap.id}
+                    className={cn(
+                      "rounded-xl border px-4 py-3",
+                      snap.wasSuccessful ? "border-black/15 bg-white" : "border-black/10 bg-black/[0.02]"
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-[11px] font-black uppercase tracking-[0.2em] text-black/45">
+                        Week {weeklyHistory.length - i}
+                      </span>
+                      <span className={cn(
+                        "inline-flex items-center px-2 py-0.5 rounded-md font-black uppercase tracking-[0.15em] text-[9px] border",
+                        snap.wasSuccessful
+                          ? "bg-black text-white border-black"
+                          : "bg-white text-black/40 border-black/15"
+                      )}>
+                        {snap.wasSuccessful ? "MET" : "MISSED"}
+                      </span>
                     </div>
-                    <span className={cn(
-                      "shrink-0 inline-flex items-center px-2.5 py-1 rounded-md font-black uppercase tracking-[0.2em] text-[10px] border-2",
-                      snap.wasSuccessful ? "bg-black text-white border-black" : "bg-white text-black/50 border-black/15"
-                    )}>
-                      {snap.wasSuccessful ? "MET" : "MISSED"}
-                    </span>
+                    <div className="flex items-baseline justify-between gap-2 mb-2">
+                      <span className="text-sm font-black tabular-nums text-black leading-none">
+                        {(snap.achievedPoints ?? 0).toLocaleString()}
+                        <span className="text-xs font-bold text-black/35">
+                          {" / "}{(snap.targetPoints ?? 0).toLocaleString()} PTS
+                        </span>
+                      </span>
+                      <span className={cn(
+                        "text-xs font-black tabular-nums leading-none",
+                        snap.wasSuccessful ? "text-primary" : "text-black/35"
+                      )}>
+                        {pct.toFixed(0)}%
+                      </span>
+                    </div>
+                    <Progress
+                      value={Math.min(100, pct)}
+                      className="h-1.5 bg-black/10 border border-black/10 rounded-full [&>div]:bg-primary"
+                    />
                   </div>
                 );
               })}
