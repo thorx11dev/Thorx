@@ -89,19 +89,20 @@ export function PayoutSection(props: PayoutSectionProps) {
 
     // Audit finding 1-J: Zod schema for payment details — inline validation
     // before the network call gives the user immediate field-level feedback.
+    // Wallet verification needs EXACTLY the name/number registered on the
+    // JazzCash/EasyPaisa account — nothing else.
     const paymentDetailsSchema = z.object({
-      name: z.string().min(2, "Account name must be at least 2 characters").max(100, "Name too long"),
+      name: z.string().min(3, "Account name must be at least 3 characters").max(100, "Name too long"),
       number: z.string()
-        .min(10, "Account/mobile number must be at least 10 digits")
-        .max(20, "Number too long")
-        .regex(/^[0-9+\-\s]+$/, "Only digits, spaces, + and - are allowed"),
-      email: z.string().email("Enter a valid email address"),
-      iban: z.string().optional(),
+        .regex(/^03\d{9}$/, "Enter the exact JazzCash/EasyPaisa number (e.g. 03001234567)"),
     });
 
     const handleSubmit = async () => {
       // Validate payment details before hitting the network
-      const validation = paymentDetailsSchema.safeParse(paymentDetails);
+      const validation = paymentDetailsSchema.safeParse({
+        name: paymentDetails.name,
+        number: paymentDetails.number.replace(/\s/g, ""),
+      });
       if (!validation.success) {
         const firstError = validation.error.errors[0];
         toast({
@@ -117,12 +118,9 @@ export function PayoutSection(props: PayoutSectionProps) {
         const payload = {
           amount: withdrawAmount,
           method: selectedMethod,
-          accountName: paymentDetails.name,
-          accountNumber: paymentDetails.number,
-          accountDetails: {
-            email: paymentDetails.email,
-            iban: paymentDetails.iban
-          }
+          accountName: paymentDetails.name.trim(),
+          accountNumber: paymentDetails.number.replace(/\s/g, ""),
+          accountDetails: {}
         };
 
         const response = await apiRequest("POST", "/api/withdrawals", payload, { "x-idempotency-key": withdrawalKey });
@@ -132,11 +130,10 @@ export function PayoutSection(props: PayoutSectionProps) {
             amountPkr: withdrawAmount,
             estNetPkr: withdrawalPreview?.userNetPkr ?? null,
             method: selectedMethod,
-            timeframe: selectedTimeframe,
           });
           toast({
-            title: "Payout Request Submitted!",
-            description: `Your payout request of Rs. ${withdrawAmount} (${withdrawalPreview ? `Est. Rs. ${Number(withdrawalPreview.userNetPkr).toFixed(2)} net` : "pending team review"}) has been submitted for Team review.`,
+            title: "Request Submitted ✓",
+            description: "Your withdrawal is under process and will be paid within 48 hours. A confirmation has been sent to your email.",
           });
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earnings });
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.sessionAuth });
