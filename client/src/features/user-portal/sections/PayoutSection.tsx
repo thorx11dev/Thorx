@@ -761,17 +761,21 @@ export function PayoutSection(props: PayoutSectionProps) {
                           className="p-3 rounded-xl border border-black/10 bg-muted/5 hover:border-primary/40 hover:bg-white transition-all"
                         >
                           <div className="flex justify-between items-start mb-1">
-                            <TechnicalLabel text={item.method} className="text-foreground font-black text-xs" />
+                            <TechnicalLabel text={String(item.method || "wallet").toUpperCase()} className="text-foreground font-black text-xs" />
                             <div className={cn(
                               "text-[8px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-tighter whitespace-nowrap",
                               item.status === 'pending' ? "bg-amber-500/10 text-amber-600 border border-amber-500/20" :
                                 item.status === 'completed' ? "bg-green-500/10 text-green-600 border border-green-500/20" :
                                   "bg-red-500/10 text-red-600 border border-red-500/20"
                             )}>
-                              {item.status === 'pending' ? 'PENDING' : item.status === 'completed' ? 'TRANSFERRED' : 'REJECTED'}
+                              {item.status === 'pending' ? 'IN PROCESS' : item.status === 'completed' ? 'PAID' : 'REJECTED'}
                             </div>
                           </div>
-                          <div className="text-sm font-black text-primary mb-0.5">{formatCurrency(item.amount)} PTS</div>
+                          {/* Real money — always Rs., never points. */}
+                          <div className="text-sm font-black text-primary mb-0.5">Rs. {parseFloat(item.amount || "0").toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                          {item.netAmount && parseFloat(item.netAmount) !== parseFloat(item.amount) && (
+                            <div className="text-[10px] text-muted-foreground mb-0.5">Net: Rs. {parseFloat(item.netAmount).toFixed(2)}</div>
+                          )}
                           <div className="text-[10px] text-muted-foreground">{formatDate(item.createdAt)}</div>
                         </motion.div>
                       ))
