@@ -1352,6 +1352,32 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
       const withdrawal = await storage.createWithdrawal(withdrawalData);
 
+      // Ask-user confirmation bundle: in-app notification + email. Both are
+      // best-effort — a notification/email failure must never fail the
+      // financial request (the withdrawal row is already committed).
+      try {
+        await storage.createNotification({
+          userId,
+          title: "Withdrawal Request Submitted",
+          message: `Your withdrawal of Rs.${withdrawalData.amount} is under process and will be paid within 48 hours.`,
+          type: "system",
+        });
+      } catch (notifErr) {
+        logger.error({ err: notifErr }, "[Withdrawals] Notification create failed");
+      }
+      try {
+        if (req.userProfile?.email) {
+          await sendPayoutRequestReceivedEmail({
+            to: req.userProfile.email,
+            firstName: req.userProfile.firstName ?? "there",
+            amount: withdrawalData.amount,
+            method: withdrawalData.method,
+          });
+        }
+      } catch (emailErr) {
+        logger.error({ err: emailErr }, "[Withdrawals] Request email failed");
+      }
+
       try {
         await storage.createAuditLog({
           adminId: userId,
