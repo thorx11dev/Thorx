@@ -440,7 +440,7 @@ export function PayoutSection(props: PayoutSectionProps) {
                     </motion.div>
                   )}
 
-                  {/* Step 3: Payment Details Input - Mobile Optimized */}
+                  {/* Step 3: Wallet details + live summary */}
                   {currentStep === 3 && (
                     <motion.div
                       key="step3"
@@ -460,7 +460,7 @@ export function PayoutSection(props: PayoutSectionProps) {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.1 }}
                           >
-                            <TechnicalLabel text="Full Name" className="text-foreground mb-2 md:mb-3 text-xs md:text-sm font-black" />
+                            <TechnicalLabel text="EXACT ACCOUNT NAME" className="text-foreground mb-2 md:mb-3 text-xs md:text-sm font-black" />
                             <div className="relative">
                               <Input
                                 type="text"
@@ -474,6 +474,9 @@ export function PayoutSection(props: PayoutSectionProps) {
                                 </div>
                               )}
                             </div>
+                            <p className="text-[10px] font-medium text-black/40 mt-1.5">
+                              Exactly as registered on your wallet — transfers to a mismatched name fail verification.
+                            </p>
                           </motion.div>
 
                           <motion.div
@@ -481,12 +484,13 @@ export function PayoutSection(props: PayoutSectionProps) {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
                           >
-                            <TechnicalLabel text="Account No." className="text-foreground mb-2 md:mb-3 text-xs md:text-sm font-black" />
+                            <TechnicalLabel text="EXACT WALLET NUMBER" className="text-foreground mb-2 md:mb-3 text-xs md:text-sm font-black" />
                             <div className="relative">
                               <Input
-                                type="text"
+                                type="tel"
+                                inputMode="numeric"
                                 value={paymentDetails.number}
-                                onChange={(e) => setPaymentDetails(prev => ({ ...prev, number: e.target.value }))}
+                                onChange={(e) => setPaymentDetails(prev => ({ ...prev, number: e.target.value.replace(/[^\d]/g, "").slice(0, 11) }))}
                                 className="h-12 md:h-14 text-sm md:text-base rounded-xl border border-black/15 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
                               />
                               {!paymentDetails.number && (
@@ -495,32 +499,16 @@ export function PayoutSection(props: PayoutSectionProps) {
                                 </div>
                               )}
                             </div>
-                          </motion.div>
-
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3 }}
-                          >
-                            <TechnicalLabel text="Email" className="text-foreground mb-2 md:mb-3 text-xs md:text-sm font-black" />
-                            <div className="relative">
-                              <Input
-                                type="email"
-                                value={paymentDetails.email}
-                                onChange={(e) => setPaymentDetails(prev => ({ ...prev, email: e.target.value }))}
-                                className="h-12 md:h-14 text-sm md:text-base rounded-xl border border-black/15 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
-                              />
-                              {!paymentDetails.email && (
-                                <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
-                                  <AnimatedPlaceholder examples={['user@example.com', 'support@thorx.site', 'payout@thorx.site']} />
-                                </div>
-                              )}
-                            </div>
+                            <p className="text-[10px] font-medium text-black/40 mt-1.5">
+                              The exact {selectedMethod === 'jazzcash' ? 'JazzCash' : 'EasyPaisa'} number that belongs to you.
+                            </p>
                           </motion.div>
                         </div>
                       </div>
 
-                      {/* Payment Summary Area */}
+                      {/* Payment Summary — real money only, fee is the single
+                          15% platform cut; the referrer's share is carved out
+                          of that fee (never an extra user deduction). */}
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -530,20 +518,13 @@ export function PayoutSection(props: PayoutSectionProps) {
                         <TechnicalLabel text="PAYOUT SUMMARY" className="mb-4 font-black text-xs md:text-sm" />
                         <div className="bg-muted/5 border border-black/15 rounded-2xl p-4 md:p-6 space-y-3">
                           <div className="flex justify-between items-center text-sm md:text-base">
-                            <span className="font-bold text-muted-foreground">Requested</span>
-                            <span className="font-black text-foreground">{formatCurrency(withdrawAmount || "0")}</span>
-                          </div>
-
-                          <div className="flex justify-between items-center text-sm md:text-base">
-                            <span className="font-bold text-muted-foreground">PKR Value</span>
-                            <span className="font-black text-foreground">
-                              {isPreviewLoading ? <Skeleton className="h-5 w-24 rounded inline-block" /> : withdrawalPreview ? `Rs. ${withdrawalPreview.exactPkr.toFixed(2)}` : "—"}
-                            </span>
+                            <span className="font-bold text-muted-foreground">Withdraw Amount</span>
+                            <span className="font-black text-foreground">Rs. {parseFloat(withdrawAmount || "0").toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </div>
 
                           <div className="flex justify-between items-center text-sm md:text-base">
                             <span className="font-bold text-muted-foreground flex items-center gap-2">
-                              Fee
+                              Platform Fee
                               <span className="text-[10px] bg-black text-white px-1.5 py-0.5 rounded-sm">{withdrawalPreview?.feePercent ?? WITHDRAWAL_FEE_PERCENT}%</span>
                             </span>
                             <span className="font-black text-red-500">
@@ -555,7 +536,7 @@ export function PayoutSection(props: PayoutSectionProps) {
                             <>
                               <div className="my-2 border-t border-dashed border-black/20" />
                               <div className="flex justify-between items-center text-xs md:text-sm">
-                                <span className="text-muted-foreground font-bold">Referrer Share (of fee above)</span>
+                                <span className="text-muted-foreground font-bold">Referral Bonus (from fee — paid by THORX)</span>
                                 <span className="text-foreground font-black">Rs. {withdrawalPreview.referralCommission.toFixed(2)}</span>
                               </div>
                             </>
@@ -568,9 +549,9 @@ export function PayoutSection(props: PayoutSectionProps) {
                             </div>
                           )}
 
-                          {selectedMethod && paymentDetails.number && (
+                          {paymentDetails.number && (
                             <div className="flex justify-between items-center text-xs md:text-sm">
-                              <span className="font-bold text-muted-foreground">Payment Method</span>
+                              <span className="font-bold text-muted-foreground">Receiving To</span>
                               <span className="font-black text-foreground">
                                 {paymentMethods.find(m => m.id === selectedMethod)?.name || selectedMethod}
                                 {" "}●●●● {paymentDetails.number.slice(-4)}
@@ -581,11 +562,15 @@ export function PayoutSection(props: PayoutSectionProps) {
                           <div className="my-2 border-t border-black/15" />
 
                           <div className="flex justify-between items-center text-base md:text-lg lg:text-xl">
-                            <span className="font-black text-foreground uppercase tracking-tight">Total</span>
+                            <span className="font-black text-foreground uppercase tracking-tight">You Receive</span>
                             <span className="font-black text-primary bg-black rounded-lg px-3 py-2 text-xl md:text-2xl">
-                              {withdrawalPreview ? `Rs. ${withdrawalPreview.userNetPkr.toFixed(2)}` : "—"}
+                              {isPreviewLoading ? <Skeleton className="h-7 w-28 rounded inline-block" /> : withdrawalPreview ? `Rs. ${withdrawalPreview.userNetPkr.toFixed(2)}` : "—"}
                             </span>
                           </div>
+
+                          <p className="text-[10px] font-medium text-black/40 text-center pt-1">
+                            Payouts are processed within 48 hours after team review.
+                          </p>
                         </div>
                       </motion.div>
                     </motion.div>
