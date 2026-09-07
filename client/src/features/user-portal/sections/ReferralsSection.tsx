@@ -144,7 +144,11 @@ export function ReferralsSection(props: ReferralsSectionProps) {
             <div className="flex items-start justify-between mb-3">
               <TechnicalLabel text="TEAM EARNING" className="text-muted-foreground text-xs" />
             </div>
-            <p className="text-2xl md:text-3xl font-black text-primary mb-2 group-hover:text-primary/90 transition-colors" data-testid="text-referral-earnings">{formatCurrency(referralsData?.stats.totalEarned || '0.00')}</p>
+            {/* Referral commissions are REAL money (PKR) — never render them
+                as TX-Points (formatPoints is for the points economy only). */}
+            <p className="text-2xl md:text-3xl font-black text-primary mb-2 group-hover:text-primary/90 transition-colors" data-testid="text-referral-earnings">
+              Rs. {parseFloat(referralsData?.stats.totalEarned || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
           </motion.div>
         </div>
 
