@@ -50,15 +50,23 @@ interface PayoutSectionProps {
 }
 
 export function PayoutSection(props: PayoutSectionProps) {
-  const { isPayoutHeroToggled, setIsPayoutHeroToggled, handleHeroToggle, toast, withdrawalsHistory, currentStep, setCurrentStep, withdrawalKey, setWithdrawalKey, withdrawAmount, setWithdrawAmount, selectedTimeframe, setSelectedTimeframe, selectedMethod, setSelectedMethod, paymentDetails, setPaymentDetails, isProcessing, setIsProcessing, showHistory, setShowHistory, step3MinDisplayElapsed, timeframeBreakdown, withdrawalPreview, isPreviewLoading, withdrawalPreviewError, WITHDRAWAL_FEE_PERCENT, isConfigLoading, navigateToSection, TIMEFRAME_OPTIONS, DEV_MOCK_PREVIEW, queryClient, formatDate, formatCurrency } = props;
+  const { isPayoutHeroToggled, setIsPayoutHeroToggled, handleHeroToggle, toast, withdrawalsHistory, currentStep, setCurrentStep, withdrawalKey, setWithdrawalKey, withdrawAmount, setWithdrawAmount, selectedMethod, setSelectedMethod, paymentDetails, setPaymentDetails, isProcessing, setIsProcessing, showHistory, setShowHistory, step3MinDisplayElapsed, withdrawalPreview, isPreviewLoading, withdrawalPreviewError, WITHDRAWAL_FEE_PERCENT, isConfigLoading, navigateToSection, DEV_MOCK_PREVIEW, queryClient, formatDate } = props;
+  const { user } = useAuth();
     // Static transaction history data
     const historyItems = withdrawalsHistory || [];
 
-    // Numeric keypad input handling
+    // Verified balance only (pending balance can NEVER be withdrawn — the
+    // server enforces the same rule against availableBalance).
+    const verifiedBalance = parseFloat((user as any)?.availableBalance ?? "0") || 0;
+    const amountNum = parseInt(withdrawAmount || "0", 10) || 0;
+
+    // Dial-pad input: append digit, respect 8-digit cap, block zero prefix.
     const handleNumberInput = (num: string) => {
-      if (withdrawAmount.length < 8) {
-        setWithdrawAmount(prev => prev + num);
-      }
+      setWithdrawAmount(prev => {
+        if (prev === "0") prev = "";
+        if (prev.length >= 8) return prev;
+        return prev + num;
+      });
     };
 
     const handleBackspace = () => {
