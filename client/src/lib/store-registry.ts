@@ -62,7 +62,9 @@ export interface ComponentVariantDef {
   title: string;
   tagline: string;
   description: string;
-  /** Overlays for the dashboard-card grid (DashboardCards.tsx consumes this). */
+  /** Card shell overlay (DashboardCards CardShell). Must keep padding/grid —
+   *  only surface/border/shadow/typography change. ! important only where the
+   *  base utility would win the cascade. */
   cardClass: string;
   headClass: string;
   valueClass: string;
@@ -75,34 +77,39 @@ export const COMPONENT_VARIANT_DEFS: Record<string, ComponentVariantDef> = {
     refKey: "dashboard_cards_editorial",
     componentType: "dashboard_cards",
     title: "Editorial Ledger",
-    tagline: "Oversized numerals · hairline grid",
+    tagline: "Oversized serif numerals · hairline grid",
     description:
-      "Magazine-style stat cards: huge tabular numerals, mono micro-labels and hairline rules. Quiet confidence, print-grade rhythm.",
-    cardClass: "!rounded-none !border-0 border-t-2 border-t-black/70 bg-transparent !shadow-none px-0 md:px-2",
-    headClass: "!mb-3 tracking-[0.35em]",
-    valueClass: "!text-4xl md:!text-6xl !tracking-tighter font-serif",
+      "A print-grade stat column: card chrome removed, a strong hairline rule on top, mono micro-labels and oversized serif numerals. Numbers read like a financial magazine spread.",
+    // Border removed → thin top rule; transparent surface lets the page
+    // background breathe (true editorial column, not a box).
+    cardClass:
+      "!rounded-none !border-0 !bg-transparent !shadow-none hover:!shadow-none !border-t-2 !border-t-[rgb(var(--tone-ink,20,20,19))] px-0 md:px-2 pt-5",
+    headClass: "!mb-4 !text-[10px] !tracking-[0.35em] font-mono",
+    valueClass: "!text-5xl md:!text-6xl !tracking-tighter font-serif !font-black",
     preview: { bg: "#F4F4F1", surface: "#FFFFFF", ink: "#141413", accent: "#141413", border: "#141413", radius: "0px" },
   },
   dashboard_cards_brutal: {
     refKey: "dashboard_cards_brutal",
     componentType: "dashboard_cards",
     title: "Neo Brutal",
-    tagline: "Hard shadows · thick ink",
+    tagline: "Hard shadows · thick ink frame",
     description:
-      "Experimental brutalist cards: heavy 3px ink borders, hard offset shadows and zero softness. Loud, confident, unmissable.",
-    cardClass: "!rounded-lg !border-[3px] !border-black !shadow-[6px_6px_0px_0px_rgba(20,20,19,1)]",
+      "Experimental brutalism: a heavy 3px ink frame, an uncompromising offset shadow and a paper-white face. Loud, confident, impossible to miss.",
+    cardClass:
+      "!rounded-lg !border-[3px] !border-[rgb(var(--tone-ink,20,20,19))] !shadow-[6px_6px_0px_0px_rgb(var(--tone-ink,20,20,19))] hover:!shadow-[9px_9px_0px_0px_rgb(var(--tone-ink,20,20,19))]",
     headClass: "!tracking-[0.3em]",
-    valueClass: "!text-4xl !tracking-tighter",
+    valueClass: "!text-4xl md:!text-5xl !tracking-tighter",
     preview: { bg: "#FAF9F5", surface: "#FFFFFF", ink: "#141413", accent: "#D97757", border: "#141413", radius: "8px" },
   },
   dashboard_cards_minimal: {
     refKey: "dashboard_cards_minimal",
     componentType: "dashboard_cards",
     title: "Quiet Glass",
-    tagline: "Borderless calm · soft depth",
+    tagline: "Borderless calm · layered depth",
     description:
-      "Minimal SaaS cards: no borders, whisper-soft elevation and generous breathing room. The calmest way to read your numbers.",
-    cardClass: "!border-0 !shadow-[0_2px_16px_rgba(20,20,19,0.07)] hover:!shadow-[0_8px_28px_rgba(20,20,19,0.10)]",
+      "Minimal SaaS stat cards: chrome disappears entirely, replaced by two layers of whisper-soft elevation and extra breathing room. The calmest way to read your numbers.",
+    cardClass:
+      "!border-0 !shadow-[0_1px_2px_rgba(16,16,15,0.05),0_10px_28px_rgba(16,16,15,0.07)] hover:!shadow-[0_2px_4px_rgba(16,16,15,0.05),0_16px_40px_rgba(16,16,15,0.10)]",
     headClass: "!mb-4 !text-black/40",
     valueClass: "!text-3xl md:!text-4xl !tracking-tight",
     preview: { bg: "#F7F6F1", surface: "#FFFFFF", ink: "#141413", accent: "#8A8A85", border: "#E5E2D6", radius: "16px" },
