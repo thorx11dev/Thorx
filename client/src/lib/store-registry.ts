@@ -30,8 +30,6 @@ export interface ComponentVariantDef {
   cardClass: string;
   headClass: string;
   valueClass: string;
-  /** Same shape as ThemeDef.preview — one shared PreviewStrip renderer. */
-  preview: { bg: string; surface: string; ink: string; accent: string; border: string; radius?: string };
 }
 
 export const COMPONENT_VARIANT_DEFS: Record<string, ComponentVariantDef> = {
