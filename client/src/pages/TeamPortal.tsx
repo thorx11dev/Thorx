@@ -125,6 +125,8 @@ export default function TeamPortal() {
         return <GuildWarsAdmin />;
       case "settings":
         return <SystemSettingsManager />;
+      case "store":
+        return <StoreManager />;
       case "finance":
         return <ReconciliationPanel />;
       case "live-feed":
