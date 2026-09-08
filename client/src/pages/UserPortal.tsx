@@ -57,6 +57,8 @@ const ScratchCardModal = retryLazy(() =>
   import("@/components/guild/ScratchCardModal").then((m) => ({ default: m.ScratchCardModal }))
 );
 import { DEV_UNLOCK_PAYOUT } from "@/lib/previewAccess";
+import { useStore, type StoreResponse } from "@/lib/store-api";
+import { THEME_DEFS } from "@/lib/store-registry";
 
 // ─── Module prefetch (dev-proxy resilience) ──────────────────────────────────
 // The dev proxy occasionally drops a dynamically imported module request
