@@ -2754,8 +2754,9 @@ export class DatabaseStorage implements IStorage {
       }
 
       const price = item.pricePoints;
-      if (new Decimal(lockedUser.balance).lessThan(price)) {
-        throw new Error(`INSUFFICIENT_TX_POINTS: needs ${price}, available ${lockedUser.balance}`);
+      const balance = lockedUser.balance ?? 0;
+      if (new Decimal(balance).lessThan(price)) {
+        throw new Error(`INSUFFICIENT_TX_POINTS: needs ${price}, available ${balance}`);
       }
 
       // Debit (authoritative) + ownership + spend ledger — one commit.
