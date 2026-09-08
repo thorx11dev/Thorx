@@ -6,58 +6,12 @@
 // ever render. Adding a new theme/variant = add here + a [data-theme] token
 // block in index.css (+ server registry list). No page code changes.
 
-// ── Themes ───────────────────────────────────────────────────────────────────
-export interface ThemeDef {
-  refKey: string;
-  title: string;
-  tagline: string;
-  description: string;
-  /** Mini-preview swatch colors (store UI only — not applied to the app). */
-  preview: { bg: string; surface: string; ink: string; accent: string; border: string; radius?: string };
-}
-
-export const THEME_DEFS: Record<string, ThemeDef> = {
-  theme_blueprint: {
-    refKey: "theme_blueprint",
-    title: "Blueprint",
-    tagline: "Technical paper · drafting grid",
-    description:
-      "An architect's canvas: warm technical paper with a faint drafting grid, hairline rules, blueprint-blue signals and near-sharp precision corners. Thorx as a studio instrument.",
-    preview: { bg: "#F6F4EE", surface: "#FCFBF8", ink: "#1C1F24", accent: "#2F5AA8", border: "#DCD8CC", radius: "4px" },
-  },
-  theme_pitch: {
-    refKey: "theme_pitch",
-    title: "Pitch Black",
-    tagline: "Brutalist dark · acid signal",
-    description:
-      "Pure brutalist energy: pitch-black surfaces, razor-sharp edges, oversized type presence and a single acid-lime signal carrying every highlight. For users who like it loud.",
-    preview: { bg: "#0A0A0A", surface: "#121212", ink: "#F2F2ED", accent: "#C6F135", border: "#262626", radius: "0px" },
-  },
-  theme_stage: {
-    refKey: "theme_stage",
-    title: "Stage Light",
-    tagline: "Gallery white · serif display",
-    description:
-      "A monochrome editorial stage: gallery white, ink-black type in serif display, hairline frames and zero-radius gallery framing. Headline-grade typography everywhere.",
-    preview: { bg: "#FAFAF7", surface: "#FFFFFF", ink: "#141414", accent: "#141414", border: "#E5E4DE", radius: "0px" },
-  },
-  theme_scrapbook: {
-    refKey: "theme_scrapbook",
-    title: "Sticker Album",
-    tagline: "Bubblegum joy · sticker outlines",
-    description:
-      "A playful scrapbook world: warm cream pages, deep-plum sticker outlines, bubblegum-pink signals and chunky soft cards. Your Thorx, with the personality turned all the way up.",
-    preview: { bg: "#FDF3E7", surface: "#FFFFFF", ink: "#2D2440", accent: "#FF5C8A", border: "#2D2440", radius: "20px" },
-  },
-  theme_terminal: {
-    refKey: "theme_terminal",
-    title: "Quiet Terminal",
-    tagline: "Lab dark · mono type · restrained cyan",
-    description:
-      "A focused lab environment: neutral near-black surfaces, monospace display type, data-dense calm and a restrained cyan signal. Built for long, deep work sessions.",
-    preview: { bg: "#0F1113", surface: "#16191D", ink: "#DCE1E6", accent: "#62C1CE", border: "#262B31", radius: "4px" },
-  },
-};
+// ── Component variants ───────────────────────────────────────────────────────
+// The Store sells UI COMPONENT VARIANTS only (themes were retired — the
+// default THORX design language is the single visual system). Every variant
+// is Inter typography + THORX brand colors (#D97757 / #141413 / #FAF9F5).
+// Variants change surface/border/shadow/accent treatment ONLY — padding,
+// grid, responsive behavior and content are untouched.
 
 // ── Component variants ───────────────────────────────────────────────────────
 // Each variant is a distinct design language applied to a REAL portal
