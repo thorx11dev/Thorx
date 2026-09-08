@@ -1,72 +1,21 @@
-// ── THORX Store — personalized environment marketplace ───────────────────────
-// Premium store experience: browse → preview → install (TX-Points) → activate.
-// Ownership ≠ activation (Spec §11): owned items can be switched freely;
-// activation writes persist server-side. Previews render REAL tokens in an
-// isolated panel — no misleading static mockups.
+// ── THORX Store — UI component marketplace ───────────────────────────────────
+// Sells polished UI COMPONENT VARIANTS for TX-Points (themes retired — the
+// default THORX design language is the single visual system). Every variant
+// renders its REAL className treatment in the preview card, so what you see
+// is exactly what installs. Ownership ≠ activation (server-enforced).
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Palette, Sparkles, X, ShoppingBag, Crown, Layers } from "lucide-react";
+import { Check, Layers, X, ShoppingBag, Crown, Sparkles } from "lucide-react";
 import TechnicalLabel from "@/components/ui/technical-label";
 import ThorxSpinner from "@/components/ui/thorx-spinner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useStore, usePurchaseStoreItem, useActivateStoreItem, type StoreItemDto } from "@/lib/store-api";
-import { THEME_DEFS, COMPONENT_VARIANT_DEFS, COMPONENT_SLOT_LABELS } from "@/lib/store-registry";
+import { COMPONENT_VARIANT_DEFS, COMPONENT_SLOT_LABELS } from "@/lib/store-registry";
 import { captureEvent } from "@/lib/posthog";
 
-type StoreTab = "themes" | "components" | "collection";
-
-function PreviewStrip({ p }: { p: { bg: string; surface: string; ink: string; accent: string; border: string; radius?: string } }) {
-  // Mini Thorx dashboard mock — top nav + stat cards + a list row, all built
-  // from the item's own tokens so the preview IS the design system.
-  const r = p.radius ?? "8px";
-  return (
-    <div
-      className="h-28 rounded-xl overflow-hidden border-2 p-3 flex flex-col gap-2.5"
-      style={{ background: p.bg, borderColor: p.border }}
-    >
-      {/* top nav */}
-      <div
-        className="flex items-center justify-between px-2.5 py-1.5"
-        style={{ background: p.surface, border: `1px solid ${p.border}`, borderRadius: r }}
-      >
-        <span className="text-[8px] font-black tracking-tighter" style={{ color: p.ink }}>THORX.</span>
-        <div className="flex gap-1.5">
-          <span className="h-1.5 w-6 rounded-full" style={{ background: p.accent }} />
-          <span className="h-1.5 w-6 rounded-full opacity-25" style={{ background: p.ink }} />
-          <span className="h-1.5 w-6 rounded-full opacity-25" style={{ background: p.ink }} />
-        </div>
-      </div>
-      {/* stat cards */}
-      <div className="flex gap-2 flex-1 min-h-0">
-        {[
-          { label: "BALANCE", value: "12,480", bar: true },
-          { label: "RANK", value: "C-RANK", bar: false },
-          { label: "TEAM", value: "27", bar: false },
-        ].map((c, i) => (
-          <div
-            key={c.label}
-            className="flex-1 rounded-lg p-2 flex flex-col justify-between min-w-0"
-            style={{ background: p.surface, border: `1px solid ${p.border}`, borderRadius: r }}
-          >
-            <span className="text-[5px] font-black uppercase tracking-[0.2em] opacity-50 truncate" style={{ color: p.ink }}>{c.label}</span>
-            <span
-              className="text-[11px] font-black tabular-nums leading-none truncate"
-              style={{ color: i === 0 ? p.accent : p.ink, fontSize: i === 1 ? "9px" : undefined }}
-            >
-              {c.value}
-            </span>
-            <span
-              className="h-1 w-full rounded-full"
-              style={{ background: i === 0 ? p.accent : p.ink, opacity: i === 0 ? 0.9 : 0.18 }}
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+type StoreTab = "components" | "collection";
 
 function PriceTag({ price, owned }: { price: number; owned: boolean }) {
   if (owned) return <span className="text-[10px] font-black uppercase tracking-wider text-green-600">Owned</span>;
@@ -77,42 +26,54 @@ function PriceTag({ price, owned }: { price: number; owned: boolean }) {
   );
 }
 
+/** Live variant preview — renders the ACTUAL component markup with the
+ *  variant's REAL className treatment. Not a mockup: exactly what installs. */
+function VariantPreview({ variant }: { variant: { cardClass: string; headClass: string; valueClass: string } }) {
+  const sample = [
+    { label: "TX-POINTS", value: "12,480" },
+    { label: "REFERRALS", value: "27" },
+    { label: "PS SCORE", value: "3,140" },
+  ];
+  return (
+    <div className="grid grid-cols-3 gap-3 md:gap-4" data-testid="variant-live-preview">
+      {sample.map((s, i) => (
+        <div
+          key={s.label}
+          className={cn(
+            "group bg-white border-2 border-black rounded-2xl p-4 md:p-5 text-left transition-all duration-300",
+            variant.cardClass,
+          )}
+        >
+          <div className="flex items-start justify-between mb-3">
+            <span className={cn("text-[9px] font-black text-muted-foreground pt-0.5", variant.headClass)}>{s.label}</span>
+          </div>
+          <p className={cn("text-2xl font-black text-foreground mb-0.5 tracking-tighter tabular-nums", i === 0 && "text-primary", variant.valueClass)}>
+            {s.value}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function StoreSection() {
   const { data, isLoading } = useStore();
   const purchase = usePurchaseStoreItem();
   const activate = useActivateStoreItem();
-  const [tab, setTab] = useState<StoreTab>("themes");
+  const [tab, setTab] = useState<StoreTab>("components");
   const [previewItem, setPreviewItem] = useState<StoreItemDto | null>(null);
 
-  const themes = useMemo(() => (data?.items ?? []).filter((i) => i.itemType === "theme"), [data]);
   const components = useMemo(() => (data?.items ?? []).filter((i) => i.itemType === "component"), [data]);
   const ownedItems = useMemo(
     () => (data?.items ?? []).filter((i) => data?.ownedItemIds.includes(i.id)),
     [data],
   );
-
-  const handlePurchase = (item: StoreItemDto) => {
-    purchase.mutate(item.id, {
-      onSuccess: () => setPreviewItem(null),
-    });
-  };
-
-  const handleActivate = (item: StoreItemDto) => {
-    const currentlyActive =
-      item.itemType === "theme" ? data?.active.themeItemId === item.id : Object.values(data?.active.components ?? {}).includes(item.id);
-    activate.mutate(
-      { itemId: item.id, deactivate: Boolean(currentlyActive) },
-      { onSuccess: () => setPreviewItem(null) },
-    );
-  };
+  const activeVariant = components.find((c) => data?.active.components[c.category] === c.id);
 
   const renderItemCard = (item: StoreItemDto) => {
-    const isTheme = item.itemType === "theme";
-    const def = isTheme ? THEME_DEFS[item.refKey] : COMPONENT_VARIANT_DEFS[item.refKey];
-    const preview = def?.preview ?? { bg: "#fff", surface: "#fff", ink: "#000", accent: "#888", border: "#ddd" };
-    const isActive =
-      isTheme ? data?.active.themeItemId === item.id : Object.values(data?.active.components ?? {}).includes(item.id);
-    const canOpen = Boolean(def);
+    const def = COMPONENT_VARIANT_DEFS[item.refKey];
+    if (!def) return null;
+    const isActive = data?.active.components[item.category] === item.id;
 
     return (
       <motion.button
@@ -120,18 +81,22 @@ export default function StoreSection() {
         variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }}
         whileHover={{ y: -4 }}
         whileTap={{ scale: 0.98 }}
-        onClick={() => { if (canOpen) { captureEvent("store_preview", { item: item.refKey }); setPreviewItem(item); } }}
+        onClick={() => { captureEvent("store_preview", { item: item.refKey }); setPreviewItem(item); }}
         className={cn(
-          "group text-left rounded-2xl border-2 p-4 bg-white transition-all",
+          "group text-left rounded-2xl border-2 bg-white p-4 transition-all",
           isActive ? "border-primary shadow-[6px_6px_0px_0px_rgba(217,119,87,0.25)]" : "border-black/10 hover:border-black",
         )}
         data-testid={`store-item-${item.refKey}`}
       >
-        <PreviewStrip p={preview} />
+        {/* Live variant preview — real treatment, scaled-down data */}
+        <div className="scale-[0.92] origin-top-left pointer-events-none">
+          <VariantPreview variant={{ cardClass: def.cardClass, headClass: def.headClass, valueClass: def.valueClass }} />
+        </div>
+
         <div className="mt-3 flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="font-black text-sm text-black tracking-tight truncate">{def?.title ?? item.title}</p>
-            <p className="text-[10px] font-bold text-black/40 truncate">{def?.tagline ?? item.category}</p>
+            <p className="font-black text-sm text-foreground tracking-tight truncate">{def.title}</p>
+            <p className="text-[10px] font-bold text-muted-foreground truncate">{def.tagline}</p>
           </div>
           {isActive ? (
             <span className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary text-white text-[8px] font-black uppercase tracking-wider">
@@ -146,7 +111,7 @@ export default function StoreSection() {
         <div className="mt-2 flex items-center justify-between">
           <PriceTag price={item.pricePoints} owned={item.owned} />
           <span className="text-[9px] font-black uppercase tracking-widest text-primary group-hover:underline">
-            {canOpen ? "Preview" : "Details"}
+            Preview
           </span>
         </div>
       </motion.button>
@@ -163,7 +128,7 @@ export default function StoreSection() {
       {/* Hero */}
       <motion.div
         initial={false}
-        className="rounded-2xl p-6 md:p-12 mb-0 relative overflow-hidden border-2 bg-[var(--tone-black)] h-[160px] md:h-[220px] flex items-center justify-center md:justify-start"
+        className="rounded-2xl p-6 md:p-12 mb-0 relative overflow-hidden border-2 bg-[#141413] h-[160px] md:h-[220px] flex items-center justify-center md:justify-start"
       >
         <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
         <div className="absolute -left-16 -bottom-24 w-56 h-56 bg-primary/5 rounded-full blur-3xl" />
@@ -181,7 +146,6 @@ export default function StoreSection() {
       <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
         <div className="flex gap-2">
           {([
-            { id: "themes", label: "Themes", icon: Palette },
             { id: "components", label: "Components", icon: Layers },
             { id: "collection", label: "My Thorx", icon: Crown },
           ] as const).map((t) => (
@@ -206,45 +170,32 @@ export default function StoreSection() {
           <ThorxSpinner size={16} />
           <span className="text-[10px] font-black uppercase tracking-[0.2em]">Loading store…</span>
         </div>
-      ) : tab === "themes" ? (
-        <motion.div variants={{ hidden: { opacity: 0 }, show: { opacity: 1 } }} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
-          {themes.map(renderItemCard)}
-          {themes.length === 0 && (
-            <div className="col-span-full rounded-2xl border-2 border-dashed border-black/15 py-14 text-center">
-              <Sparkles className="w-6 h-6 text-black/25 mx-auto mb-3" />
-              <p className="text-sm font-bold text-black/50">New themes are being forged. Check back soon.</p>
-            </div>
-          )}
-        </motion.div>
       ) : tab === "components" ? (
-        <motion.div variants={{ hidden: { opacity: 0 }, show: { opacity: 1 } }} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+        <motion.div variants={{ hidden: { opacity: 0 }, show: { opacity: 1 } }} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 max-w-4xl">
           {components.map(renderItemCard)}
           {components.length === 0 && (
             <div className="col-span-full rounded-2xl border-2 border-dashed border-black/15 py-14 text-center">
-              <Layers className="w-6 h-6 text-black/25 mx-auto mb-3" />
-              <p className="text-sm font-bold text-black/50">Component variants are coming online.</p>
+              <Sparkles className="w-6 h-6 text-black/25 mx-auto mb-3" />
+              <p className="text-sm font-bold text-black/50">New component variants are being crafted. Check back soon.</p>
             </div>
           )}
         </motion.div>
       ) : (
-        /* My Thorx — collection + active state */
+        /* My Thorx — collection + active slots */
         <div className="space-y-6 max-w-3xl">
           <div className="rounded-2xl border-2 border-black bg-white p-5 md:p-6">
-            <TechnicalLabel text="ACTIVE THEME" className="text-black/40 mb-3" />
-            {(() => {
-              const active = themes.find((t) => t.id === data?.active.themeItemId);
-              return (
-                <div className="flex items-center gap-3">
-                  <span className="w-10 h-10 rounded-xl bg-black flex items-center justify-center">
-                    <Palette className="size-4 text-primary" />
-                  </span>
-                  <div>
-                    <p className="font-black text-sm">{active ? THEME_DEFS[active.refKey]?.title ?? active.title : "Thorx Classic"}</p>
-                    <p className="text-[10px] font-bold text-black/40">{active ? "Custom environment live" : "The original THORX look"}</p>
-                  </div>
-                </div>
-              );
-            })()}
+            <TechnicalLabel text="ACTIVE CUSTOMIZATION" className="text-black/40 mb-4" />
+            <div className="flex items-center gap-3">
+              <span className="w-10 h-10 rounded-xl bg-black flex items-center justify-center">
+                <Layers className="size-4 text-primary" />
+              </span>
+              <div>
+                <p className="font-black text-sm">{activeVariant ? COMPONENT_VARIANT_DEFS[activeVariant.refKey]?.title ?? activeVariant.title : "Thorx Classic"}</p>
+                <p className="text-[10px] font-bold text-black/40">
+                  Dashboard Cards {activeVariant ? "· variant live" : "· original look"}
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="rounded-2xl border-2 border-black bg-white p-5 md:p-6">
@@ -254,10 +205,8 @@ export default function StoreSection() {
             ) : (
               <div className="space-y-2.5">
                 {ownedItems.map((item) => {
-                  const def = item.itemType === "theme" ? THEME_DEFS[item.refKey] : COMPONENT_VARIANT_DEFS[item.refKey];
-                  const isActive = item.itemType === "theme"
-                    ? data?.active.themeItemId === item.id
-                    : Object.values(data?.active.components ?? {}).includes(item.id);
+                  const def = COMPONENT_VARIANT_DEFS[item.refKey];
+                  const isActive = data?.active.components[item.category] === item.id;
                   return (
                     <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-black/10 px-4 py-3">
                       <div className="flex items-center gap-3 min-w-0">
@@ -265,7 +214,7 @@ export default function StoreSection() {
                         <div className="min-w-0">
                           <p className="font-black text-xs truncate">{def?.title ?? item.title}</p>
                           <p className="text-[9px] font-bold uppercase tracking-wider text-black/35">
-                            {item.itemType === "theme" ? "Theme" : COMPONENT_SLOT_LABELS[(def as any)?.componentType] ?? "Component"}
+                            {COMPONENT_SLOT_LABELS[item.category] ?? "Component"}
                           </p>
                         </div>
                       </div>
@@ -276,7 +225,7 @@ export default function StoreSection() {
                           "h-8 px-3 text-[9px] font-black uppercase tracking-wider rounded-lg",
                           isActive ? "border-black/15 text-black/50" : "bg-black text-white hover:bg-primary",
                         )}
-                        onClick={() => handleActivate(item)}
+                        onClick={() => activate.mutate({ itemId: item.id, deactivate: Boolean(isActive) })}
                         disabled={activate.isPending}
                       >
                         {isActive ? "Deactivate" : "Activate"}
@@ -290,14 +239,12 @@ export default function StoreSection() {
         </div>
       )}
 
-      {/* Preview / detail dialog */}
+      {/* Preview / install dialog — live variant preview at full size */}
       <AnimatePresence>
         {previewItem && (() => {
-          const def = previewItem.itemType === "theme" ? THEME_DEFS[previewItem.refKey] : COMPONENT_VARIANT_DEFS[previewItem.refKey];
-          const preview = def?.preview ?? { bg: "#fff", surface: "#fff", ink: "#000", accent: "#888", border: "#ddd" };
-          const isActive = previewItem.itemType === "theme"
-            ? data?.active.themeItemId === previewItem.id
-            : Object.values(data?.active.components ?? {}).includes(previewItem.id);
+          const def = COMPONENT_VARIANT_DEFS[previewItem.refKey];
+          if (!def) return null;
+          const isActive = data?.active.components[previewItem.category] === previewItem.id;
           const error = (purchase.error as any)?.code || (activate.error as any)?.code;
 
           return (
@@ -309,25 +256,28 @@ export default function StoreSection() {
               onClick={(e) => { if (e.target === e.currentTarget) setPreviewItem(null); }}
               role="dialog"
               aria-modal="true"
-              aria-label={`${def?.title ?? previewItem.title} preview`}
+              aria-label={`${def.title} preview`}
             >
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 10 }}
                 transition={{ type: "spring", stiffness: 320, damping: 28 }}
-                className="bg-white rounded-2xl border-2 border-black w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto"
+                className="bg-white rounded-2xl border-2 border-black w-full max-w-xl overflow-hidden max-h-[90vh] overflow-y-auto"
               >
-                {/* Live theme strip */}
-                <div className="p-5" style={{ background: preview.bg }}>
-                  <PreviewStrip p={preview} />
+                {/* Live full-size preview */}
+                <div className="bg-[#FAF9F5] border-b-2 border-black p-5 md:p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <TechnicalLabel text="LIVE PREVIEW — EXACTLY WHAT INSTALLS" className="text-black/40" />
+                  </div>
+                  <VariantPreview variant={{ cardClass: def.cardClass, headClass: def.headClass, valueClass: def.valueClass }} />
                 </div>
 
                 <div className="p-5 md:p-6">
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div>
-                      <h3 className="font-black text-lg tracking-tight">{def?.title ?? previewItem.title}</h3>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-black/40">{def?.tagline ?? previewItem.category}</p>
+                      <h3 className="font-black text-lg tracking-tight">{def.title}</h3>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-black/40">{def.tagline}</p>
                     </div>
                     <button
                       onClick={() => setPreviewItem(null)}
@@ -337,15 +287,14 @@ export default function StoreSection() {
                       <X className="size-4" />
                     </button>
                   </div>
-                  <p className="text-sm font-medium text-black/60 leading-relaxed mb-5">{def?.description ?? previewItem.description}</p>
+                  <p className="text-sm font-medium text-black/60 leading-relaxed mb-5">{def.description}</p>
 
                   {/* What changes */}
                   <div className="rounded-xl border border-black/10 bg-muted/40 p-3.5 mb-5">
                     <TechnicalLabel text="WHAT THIS CHANGES" className="text-black/40 mb-1.5" />
                     <p className="text-[11px] font-medium text-black/55 leading-relaxed">
-                      {previewItem.itemType === "theme"
-                        ? "Colors, surfaces, borders, radius, shadows and typography treatment across your entire portal. Tasks, points, payouts and data are untouched."
-                        : "Redraws the dashboard stat cards in a new visual language. Layout, data and responsiveness stay exactly the same."}
+                      Redraws the Dashboard stat cards in this treatment — surface, frame, shadow and accent.
+                      Layout, data, responsiveness and everything else stay exactly the same.
                     </p>
                   </div>
 
@@ -359,7 +308,10 @@ export default function StoreSection() {
                       {previewItem.owned ? (
                         <Button
                           className="h-11 px-5 rounded-xl bg-black text-white hover:bg-primary font-black text-[10px] uppercase tracking-widest"
-                          onClick={() => handleActivate(previewItem)}
+                          onClick={() => activate.mutate(
+                            { itemId: previewItem.id, deactivate: Boolean(isActive) },
+                            { onSuccess: () => setPreviewItem(null) },
+                          )}
                           disabled={activate.isPending}
                           data-testid="store-activate-btn"
                         >
@@ -385,4 +337,8 @@ export default function StoreSection() {
       </AnimatePresence>
     </motion.div>
   );
+
+  function handlePurchase(item: StoreItemDto) {
+    purchase.mutate(item.id, { onSuccess: () => setPreviewItem(null) });
+  }
 }
