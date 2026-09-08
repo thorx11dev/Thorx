@@ -1368,6 +1368,19 @@ export default function UserPortal() {
           )}
           {currentSection === 4 && (
             <motion.section
+              key="section-store"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="cinematic-section active"
+              data-testid="section-store"
+            >
+              <Suspense fallback={null}><StoreSection /></Suspense>
+            </motion.section>
+          )}
+          {currentSection === 5 && (
+            <motion.section
               key="section-payout"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1377,19 +1390,6 @@ export default function UserPortal() {
               data-testid="section-payout"
             >
               <Suspense fallback={null}><PayoutSection isPayoutHeroToggled={isPayoutHeroToggled} setIsPayoutHeroToggled={setIsPayoutHeroToggled} handleHeroToggle={handleHeroToggle} toast={toast} withdrawalsHistory={withdrawalsHistory} currentStep={currentStep} setCurrentStep={setCurrentStep} withdrawalKey={withdrawalKey} setWithdrawalKey={setWithdrawalKey} withdrawAmount={withdrawAmount} setWithdrawAmount={setWithdrawAmount} selectedMethod={selectedMethod} setSelectedMethod={setSelectedMethod} paymentDetails={paymentDetails} setPaymentDetails={setPaymentDetails} isProcessing={isProcessing} setIsProcessing={setIsProcessing} showHistory={showHistory} setShowHistory={setShowHistory} step3MinDisplayElapsed={step3MinDisplayElapsed} withdrawalPreview={withdrawalPreview} isPreviewLoading={isPreviewLoading} withdrawalPreviewError={withdrawalPreviewError} WITHDRAWAL_FEE_PERCENT={WITHDRAWAL_FEE_PERCENT} isConfigLoading={isConfigLoading} navigateToSection={navigateToSection} DEV_MOCK_PREVIEW={DEV_MOCK_PREVIEW} queryClient={queryClient} formatDate={formatDate} /></Suspense>
-            </motion.section>
-          )}
-          {currentSection === 5 && (
-            <motion.section
-              key="section-help"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="cinematic-section active"
-              data-testid="section-help"
-            >
-              <Suspense fallback={null}><HelpSection isHelpHeroToggled={isHelpHeroToggled} setIsHelpHeroToggled={setIsHelpHeroToggled} handleHeroToggle={handleHeroToggle} activeHelpTab={activeHelpTab} setActiveHelpTab={setActiveHelpTab} contactForm={contactForm} setContactForm={setContactForm} handleContactSubmit={handleContactSubmit} isContactSubmitting={isContactSubmitting} isMobile={isMobile} /></Suspense>
             </motion.section>
           )}
           {currentSection === 6 && (
