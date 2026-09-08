@@ -38,6 +38,10 @@
   --font-display: 'Inter', sans-serif;
   --shadow-panel: 0 12px 40px rgba(20, 20, 19, 0.06);
   --radius: 0.5rem;
+  /* Store theming surface — the ONLY vars themes override. Tailwind's
+     black/white (and every /alpha utility) resolve through these. */
+  --tone-black: #141413;
+  --tone-white: #FAF9F5;
 }
 
 /* ══ THORX STORE — Theme tokens ═══════════════════════════════════════════
