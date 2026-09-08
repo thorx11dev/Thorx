@@ -1368,7 +1368,7 @@ export default function UserPortal() {
               className="cinematic-section active"
               data-testid="section-help"
             >
-              <Suspense fallback={null}><HelpSection isHelpHeroToggled={isHelpHeroToggled} setIsHelpHeroToggled={setIsHelpHeroToggled} handleHeroToggle={handleHeroToggle} activeHelpTab={activeHelpTab} setActiveHelpTab={setActiveHelpTab} chatMessages={chatMessages} isChatHistoryLoading={isChatHistoryLoading} newMessage={newMessage} setNewMessage={setNewMessage} handleSendMessage={handleSendMessage} chatMutation={chatMutation} contactForm={contactForm} setContactForm={setContactForm} handleContactSubmit={handleContactSubmit} isContactSubmitting={isContactSubmitting} isMobile={isMobile} /></Suspense>
+              <Suspense fallback={null}><HelpSection isHelpHeroToggled={isHelpHeroToggled} setIsHelpHeroToggled={setIsHelpHeroToggled} handleHeroToggle={handleHeroToggle} activeHelpTab={activeHelpTab} setActiveHelpTab={setActiveHelpTab} contactForm={contactForm} setContactForm={setContactForm} handleContactSubmit={handleContactSubmit} isContactSubmitting={isContactSubmitting} isMobile={isMobile} /></Suspense>
             </motion.section>
           )}
           {currentSection === 6 && (
