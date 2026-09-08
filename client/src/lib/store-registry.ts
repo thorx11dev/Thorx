@@ -1,10 +1,9 @@
 // ── THORX Store — visual registry (the design-system source of truth) ────────
 // Catalog metadata (price/status/ownership) lives server-side; THIS file owns
 // what each ref_key actually looks like. Every key here mirrors
-// server/modules/store-routes.ts THEME_REGISTRY_KEYS / COMPONENT_VARIANT_REGISTRY —
-// the server rejects catalog entries with unknown keys, so nothing unlisted can
-// ever render. Adding a new theme/variant = add here + a [data-theme] token
-// block in index.css (+ server registry list). No page code changes.
+// server/modules/store-routes.ts COMPONENT_VARIANT_REGISTRY — the server
+// rejects catalog entries with unknown keys, so nothing unlisted can ever
+// render. Adding a new variant = add here + the server list. No page changes.
 
 // ── Component variants ───────────────────────────────────────────────────────
 // The Store sells UI COMPONENT VARIANTS only (themes were retired — the
@@ -12,11 +11,6 @@
 // is Inter typography + THORX brand colors (#D97757 / #141413 / #FAF9F5).
 // Variants change surface/border/shadow/accent treatment ONLY — padding,
 // grid, responsive behavior and content are untouched.
-
-// ── Component variants ───────────────────────────────────────────────────────
-// Each variant is a distinct design language applied to a REAL portal
-// component (not a recolor). Variants are className overlays so layout,
-// responsive behavior and accessibility stay intact.
 
 export interface ComponentVariantDef {
   refKey: string;
