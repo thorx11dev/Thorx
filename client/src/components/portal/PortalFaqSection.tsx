@@ -162,29 +162,18 @@ export function PortalFaqSection({ onChatClick, onContactClick }: PortalFaqSecti
         })}
       </div>
 
-      {/* Footer CTA */}
-      <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 text-center">
+      {/* Footer CTA — chatbot removed; only the contact form remains */}
+      <div className="mt-10 flex flex-col items-center justify-center gap-4 text-center">
         <p className="text-sm text-muted-foreground">Still need help?</p>
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={onChatClick}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs md:text-sm font-semibold bg-black text-white hover:bg-black/85 transition-colors duration-200"
-            data-testid="faq-cta-chat"
-          >
-            <MessageCircle className="w-3.5 h-3.5" />
-            Live chat
-          </button>
-          <button
-            type="button"
-            onClick={onContactClick}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs md:text-sm font-semibold border border-black/15 text-foreground hover:border-black/30 hover:bg-black/[0.02] transition-colors duration-200"
-            data-testid="faq-cta-contact"
-          >
-            <Phone className="w-3.5 h-3.5" />
-            Contact us
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onContactClick}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs md:text-sm font-semibold bg-black text-white hover:bg-black/85 transition-colors duration-200"
+          data-testid="faq-cta-contact"
+        >
+          <Phone className="w-3.5 h-3.5" />
+          Contact us
+        </button>
       </div>
     </div>
   );
