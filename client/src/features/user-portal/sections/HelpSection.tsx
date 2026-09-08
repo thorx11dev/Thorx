@@ -126,7 +126,7 @@ export function HelpSection(props: HelpSectionProps) {
           <div className="rounded-2xl border border-black/15 bg-white p-6 md:p-12 shadow-[0_12px_40px_rgba(20, 20, 19,0.06)]">
             {/* Tab Navigation — identical control on desktop and mobile */}
             <Tabs value={activeHelpTab} onValueChange={setActiveHelpTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-8 md:mb-10 bg-muted/60 border border-black/15 rounded-xl h-12 md:h-14 p-1 gap-1">
+              <TabsList className="grid w-full grid-cols-2 mb-8 md:mb-10 bg-muted/60 border border-black/15 rounded-xl h-12 md:h-14 p-1 gap-1">
                 {helpSectionOptions.map((option) => {
                   return (
                     <TabsTrigger
@@ -155,93 +155,8 @@ export function HelpSection(props: HelpSectionProps) {
                     className="mt-0"
                   >
                     <PortalFaqSection
-                      onChatClick={() => setActiveHelpTab("help")}
                       onContactClick={() => setActiveHelpTab("contact")}
                     />
-                  </motion.div>
-                )}
-
-                {/* Area Help - Chat */}
-                {activeHelpTab === "help" && (
-                  <motion.div
-                    key="help"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="mt-0"
-                  >
-                    <div className="rounded-2xl border border-black/15 bg-white overflow-hidden shadow-[0_20px_60px_rgba(20, 20, 19,0.08)]">
-                      {/* Chat Header */}
-                      <div className="bg-black text-white px-4 md:px-6 py-4 flex items-center justify-end">
-                        <Barcode className="h-4 w-12 md:w-16 opacity-40 grayscale invert" />
-                      </div>
-
-                      {/* Chat Messages Area */}
-                      <div className="chat-container bg-muted/30 h-[420px] md:h-[560px] p-4 md:p-6 space-y-4 md:space-y-5 overflow-y-auto custom-scrollbar relative">
-
-                        {isChatHistoryLoading ? (
-                          <div className="space-y-4">
-                            {[...Array(3)].map((_, i) => (
-                              <div key={i} className={`flex items-start gap-3 ${i % 2 === 0 ? "justify-start" : "justify-end"}`}>
-                                <Skeleton className={`h-16 rounded-2xl border border-black/10 ${i % 2 === 0 ? "w-64" : "w-48"}`} />
-                              </div>
-                            ))}
-                          </div>
-                        ) : chatMessages.map((message, idx) => (
-                          <motion.div
-                            key={message.id}
-                            initial={{ opacity: 0, y: 12, scale: 0.98 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            transition={{ delay: idx * 0.05 }}
-                            className={`flex items-start gap-2 md:gap-3 ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                          >
-                            <div
-                              className={`max-w-[85%] md:max-w-[70%] px-4 md:px-5 py-3 md:py-3.5 relative ${message.sender === 'user'
-                                ? 'bg-primary text-black rounded-2xl rounded-tr-md'
-                                : 'bg-white text-black rounded-2xl rounded-tl-md border border-black/10 shadow-sm'
-                                }`}
-                            >
-                              <p className="text-sm md:text-base font-bold leading-relaxed break-words">{message.text}</p>
-                              <div className={`flex items-center justify-end gap-1 mt-1.5 text-[10px] md:text-xs font-black ${message.sender === 'user' ? 'text-black/50' : 'text-muted-foreground'}`}>
-                                {formatTime(message.timestamp)}
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))
-                        }
-                      </div>
-
-                      {/* Chat Input Area */}
-                      <div className="bg-white border-t border-black/15 p-4 md:p-6">
-                        <div className="flex flex-row items-stretch gap-2 md:gap-3">
-                          <div className="relative flex-1 group">
-                            <input
-                              type="text"
-                              value={newMessage}
-                              onChange={(e) => setNewMessage(e.target.value)}
-                              placeholder="Type your message here..."
-                              className="w-full bg-muted/30 border border-black/15 text-black px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold text-sm md:text-base focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/60 transition-colors"
-                              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                            />
-                          </div>
-                          <div className="flex">
-                            <motion.button
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={handleSendMessage}
-                              disabled={!newMessage.trim() || chatMutation.isPending}
-                              className="flex items-center justify-center bg-primary text-black px-4 md:px-8 py-3 md:py-4 rounded-xl border border-black/10 font-black text-sm md:text-base hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all aspect-square md:aspect-auto"
-                            >
-                              {chatMutation.isPending ? (
-                                <ThorxSpinner size={20} />
-                              ) : (
-                                <Send className="w-5 h-5 md:w-6 md:h-6" />
-                              )}
-                            </motion.button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   </motion.div>
                 )}
 
