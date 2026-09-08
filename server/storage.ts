@@ -2660,6 +2660,189 @@ export class DatabaseStorage implements IStorage {
       .offset(offset);
   }
 
+  // ══ THORX Store — catalog, atomic TX-Points purchase, activation ══════════
+  // Spec contract: the Store CONSUMES TX-Points only (earning stays tied to
+  // task completion via recordEarnEvent). Every purchase is one transaction:
+  // lock user row → validate item/ownership/balance → debit → ownership row →
+  // spend-ledger row → commit. Idempotency (user+key unique index) makes
+  // double-clicks / network retries / concurrent requests single-charge.
+
+  async listStoreItems(opts: { itemType?: "theme" | "component"; includeUnlisted?: boolean } = {}): Promise<StoreItem[]> {
+    const conditions = [];
+    if (opts.itemType) conditions.push(eq(storeItems.itemType, opts.itemType));
+    if (!opts.includeUnlisted) conditions.push(eq(storeItems.status, "published"));
+    return await db
+      .select()
+      .from(storeItems)
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(asc(storeItems.sortOrder), desc(storeItems.featured), asc(storeItems.title));
+  }
+
+  async getStoreItem(id: string): Promise<StoreItem | undefined> {
+    const [item] = await db.select().from(storeItems).where(eq(storeItems.id, id)).limit(1);
+    return item;
+  }
+
+  async createStoreItem(data: InsertStoreItem): Promise<StoreItem> {
+    const [item] = await db.insert(storeItems).values(data).returning();
+    return item;
+  }
+
+  async updateStoreItem(id: string, updates: Partial<InsertStoreItem>): Promise<StoreItem | undefined> {
+    const [item] = await db
+      .update(storeItems)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(storeItems.id, id))
+      .returning();
+    return item;
+  }
+
+  async purchaseStoreItem(params: {
+    userId: string;
+    itemId: string;
+    idempotencyKey?: string;
+  }): Promise<{ outcome: "purchased" | "already_owned" | "duplicate_request"; item: StoreItem; txPointsBalance: number }> {
+    return await db.transaction(async (tx) => {
+      // Idempotent replay: same user + same key already charged → return the
+      // original outcome without a second deduction (client retries, double
+      // clicks, refresh-during-purchase all land here).
+      if (params.idempotencyKey) {
+        const [replay] = await tx
+          .select({ tx: storeTransactions })
+          .from(storeTransactions)
+          .where(and(
+            eq(storeTransactions.userId, params.userId),
+            eq(storeTransactions.idempotencyKey, params.idempotencyKey),
+          ))
+          .limit(1);
+        if (replay) {
+          const [item] = await tx.select().from(storeItems).where(eq(storeItems.id, replay.itemId)).limit(1);
+          const [u] = await tx.select({ b: users.txPointsBalance }).from(users).where(eq(users.id, params.userId)).limit(1);
+          return { outcome: "duplicate_request" as const, item, txPointsBalance: u?.b ?? 0 };
+        }
+      }
+
+      // Serialize on the buyer's row — concurrent purchases for the same user
+      // queue here so the balance check can never race.
+      const [lockedUser] = await tx
+        .select({ balance: users.txPointsBalance })
+        .from(users)
+        .where(eq(users.id, params.userId))
+        .for("update");
+      if (!lockedUser) throw new Error("User not found");
+
+      // Item must exist and be purchasable — drafts/archived are never sold.
+      const [item] = await tx.select().from(storeItems).where(eq(storeItems.id, params.itemId)).limit(1);
+      if (!item) throw new Error("STORE_ITEM_NOT_FOUND");
+      if (item.status !== "published") throw new Error("STORE_ITEM_NOT_AVAILABLE");
+
+      // Ownership guard (the UNIQUE index is the hard stop; this read gives a
+      // clean error message instead of a raw 23505).
+      const [owned] = await tx
+        .select({ id: userStoreItems.id })
+        .from(userStoreItems)
+        .where(and(eq(userStoreItems.userId, params.userId), eq(userStoreItems.itemId, params.itemId)))
+        .limit(1);
+      if (owned) {
+        return { outcome: "already_owned" as const, item, txPointsBalance: lockedUser.balance };
+      }
+
+      const price = item.pricePoints;
+      if (new Decimal(lockedUser.balance).lessThan(price)) {
+        throw new Error(`INSUFFICIENT_TX_POINTS: needs ${price}, available ${lockedUser.balance}`);
+      }
+
+      // Debit (authoritative) + ownership + spend ledger — one commit.
+      const [updatedUser] = await tx
+        .update(users)
+        .set({ txPointsBalance: sql`${users.txPointsBalance} - ${price}` })
+        .where(eq(users.id, params.userId))
+        .returning({ balance: users.txPointsBalance });
+
+      await tx.insert(userStoreItems).values({ userId: params.userId, itemId: params.itemId });
+
+      await tx.insert(storeTransactions).values({
+        userId: params.userId,
+        itemId: params.itemId,
+        pricePoints: price,
+        idempotencyKey: params.idempotencyKey ?? null,
+      });
+
+      return { outcome: "purchased" as const, item, txPointsBalance: updatedUser.balance };
+    });
+  }
+
+  async getUserStoreOwnership(userId: string): Promise<{ ownedItemIds: string[]; activeThemeItemId: string | null; activeComponents: Record<string, string> }> {
+    const [owned, [custom]] = await Promise.all([
+      db.select({ itemId: userStoreItems.itemId }).from(userStoreItems).where(eq(userStoreItems.userId, userId)),
+      db.select().from(userCustomization).where(eq(userCustomization.userId, userId)).limit(1),
+    ]);
+    return {
+      ownedItemIds: owned.map((o) => o.itemId),
+      activeThemeItemId: custom?.activeThemeItemId ?? null,
+      activeComponents: (custom?.activeComponentsJson as Record<string, string>) ?? {},
+    };
+  }
+
+  private async upsertCustomization(userId: string, patch: {
+    activeThemeItemId?: string | null;
+    activeComponents?: Record<string, string>;
+  }): Promise<{ activeThemeItemId: string | null; activeComponents: Record<string, string> }> {
+    const [row] = await db
+      .insert(userCustomization)
+      .values({
+        userId,
+        activeThemeItemId: patch.activeThemeItemId ?? null,
+        activeComponentsJson: patch.activeComponents ?? {},
+      })
+      .onConflictDoUpdate({
+        target: userCustomization.userId,
+        set: {
+          ...(patch.activeThemeItemId !== undefined ? { activeThemeItemId: patch.activeThemeItemId } : {}),
+          ...(patch.activeComponents !== undefined ? { activeComponentsJson: patch.activeComponents } : {}),
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return {
+      activeThemeItemId: row.activeThemeItemId,
+      activeComponents: (row.activeComponentsJson as Record<string, string>) ?? {},
+    };
+  }
+
+  // Activate: itemId must be OWNED (null = revert to default). Component
+  // activation also verifies the item's type matches the component slot.
+  async activateStoreItem(params: { userId: string; itemId: string }): Promise<{ activeThemeItemId: string | null; activeComponents: Record<string, string> }> {
+    const item = await this.getStoreItem(params.itemId);
+    if (!item) throw new Error("STORE_ITEM_NOT_FOUND");
+    const [owned] = await db
+      .select({ id: userStoreItems.id })
+      .from(userStoreItems)
+      .where(and(eq(userStoreItems.userId, params.userId), eq(userStoreItems.itemId, params.itemId)))
+      .limit(1);
+    if (!owned) throw new Error("NOT_OWNED");
+
+    if (item.itemType === "theme") {
+      return await this.upsertCustomization(params.userId, { activeThemeItemId: params.itemId });
+    }
+    const current = await this.getUserStoreOwnership(params.userId);
+    const activeComponents = { ...current.activeComponents, [item.refKey]: params.itemId };
+    return await this.upsertCustomization(params.userId, { activeComponents });
+  }
+
+  async deactivateStoreItem(params: { userId: string; itemId: string }): Promise<{ activeThemeItemId: string | null; activeComponents: Record<string, string> }> {
+    const item = await this.getStoreItem(params.itemId);
+    if (!item) throw new Error("STORE_ITEM_NOT_FOUND");
+    if (item.itemType === "theme") {
+      return await this.upsertCustomization(params.userId, { activeThemeItemId: null });
+    }
+    const current = await this.getUserStoreOwnership(params.userId);
+    const activeComponents = { ...current.activeComponents };
+    delete activeComponents[item.refKey];
+    return await this.upsertCustomization(params.userId, { activeComponents });
+  }
+
+
   async getCheckPendingWithdrawal(userId: string): Promise<Withdrawal | undefined> {
     const [withdrawal] = await db
       .select()
