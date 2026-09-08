@@ -41,150 +41,143 @@
 }
 
 /* ══ THORX STORE — Theme tokens ═══════════════════════════════════════════
-   Each [data-theme] is a complete design-system override (color system,
-   radius language, shadow depth, typography treatment). The portal's
-   semantic tokens (bg-background/card/primary, text-foreground) re-skin
-   automatically. Legacy hardcoded utilities (.bg-black/.bg-white/borders)
-   are remapped under each theme so the whole portal visibly transforms
-   without touching page code. Component behavior/data is untouched. */
+   Each [data-theme] is a complete design-system override. Tailwind's
+   black/white colors resolve through --tone-* (see tailwind.config.ts), so
+   EVERY utility in the app (bg-black/10, text-black/40, border-black/15,
+   bg-white, hover:bg-black …) re-skins automatically — full-portal theming
+   with zero per-page patchwork. Component behavior/data is untouched. */
 
-/* ── theme_midnight — Midnight Foundry: premium deep-space dark, steel-glow accent ── */
+/* ── theme_midnight — Midnight Foundry ──────────────────────────────────────
+   Premium deep-space dark: blue-steel surfaces, luminous cobalt, soft depth. */
 [data-theme="theme_midnight"] {
   --background: #0B0E17;
-  --foreground: #E7EAF3;
-  --card: #121626;
-  --card-foreground: #E7EAF3;
-  --popover: #121626;
-  --popover-foreground: #E7EAF3;
-  --primary: #6E8BFF;
-  --primary-foreground: #0B0E17;
-  --secondary: #232A44;
-  --secondary-foreground: #E7EAF3;
-  --muted: #161B2E;
-  --muted-foreground: #8A93B2;
-  --accent: #6E8BFF;
-  --accent-foreground: #0B0E17;
-  --destructive: #F26D6D;
-  --destructive-foreground: #0B0E17;
-  --border: #2A3152;
-  --input: #1A2036;
-  --ring: #6E8BFF;
-  --shadow-panel: 0 16px 48px rgba(0, 0, 0, 0.45);
-  --radius: 0.75rem;
-}
-[data-theme="theme_midnight"] .bg-white { background-color: #121626; }
-[data-theme="theme_midnight"] .bg-black { background-color: #1E2540; }
-[data-theme="theme_midnight"] .text-white { color: #E7EAF3; }
-[data-theme="theme_midnight"] .text-black { color: #E7EAF3; }
-[data-theme="theme_midnight"] .text-foreground { color: #E7EAF3; }
-[data-theme="theme_midnight"] .border-black { border-color: #2A3152; }
-[data-theme="theme_midnight"] .border-black\/10 { border-color: rgb(42 49 82 / 0.6); }
-[data-theme="theme_midnight"] .border-black\/15 { border-color: rgb(42 49 82 / 0.7); }
-[data-theme="theme_midnight"] .border-black\/20 { border-color: rgb(42 49 82 / 0.9); }
-[data-theme="theme_midnight"] .bg-black\/5 { background-color: rgb(110 139 255 / 0.08); }
-[data-theme="theme_midnight"] .bg-black\/\[0\.02\] { background-color: #121626; }
-[data-theme="theme_midnight"] .bg-\[\#FAF9F5\] { background-color: #121626; }
-[data-theme="theme_midnight"] .bg-\[\#E8E5D8\] { background-color: #1A2036; }
-[data-theme="theme_midnight"] .text-black\/40 { color: #8A93B2; }
-[data-theme="theme_midnight"] .text-black\/45 { color: #8A93B2; }
-[data-theme="theme_midnight"] .text-black\/50 { color: #8A93B2; }
-[data-theme="theme_midnight"] .text-black\/60 { color: #9AA3C0; }
-[data-theme="theme_midnight"] .text-muted-foreground { color: #8A93B2; }
-
-/* ── theme_nordic — Nordic Frost: calm light minimal, ink & sage, airy radius ── */
-[data-theme="theme_nordic"] {
-  --background: #F4F4F1;
-  --foreground: #1C2420;
-  --card: #FFFFFF;
-  --card-foreground: #1C2420;
-  --popover: #FFFFFF;
-  --popover-foreground: #1C2420;
-  --primary: #2F6F62;
-  --primary-foreground: #FFFFFF;
-  --secondary: #1C2420;
-  --secondary-foreground: #FFFFFF;
-  --muted: #ECECE7;
-  --muted-foreground: #6B7370;
-  --accent: #2F6F62;
-  --accent-foreground: #FFFFFF;
-  --destructive: #C24428;
-  --destructive-foreground: #FFFFFF;
-  --border: #D8DAD3;
-  --input: #EDEEE9;
-  --ring: #2F6F62;
-  --shadow-panel: 0 8px 30px rgba(28, 36, 32, 0.07);
+  --foreground: #E9ECF7;
+  --card: #12172A;
+  --card-foreground: #E9ECF7;
+  --popover: #141A30;
+  --popover-foreground: #E9ECF7;
+  --primary: #7C97FF;
+  --primary-foreground: #0A0D16;
+  --secondary: #232B4A;
+  --secondary-foreground: #E9ECF7;
+  --muted: #151B31;
+  --muted-foreground: #99A2C2;
+  --accent: #7C97FF;
+  --accent-foreground: #0A0D16;
+  --destructive: #FF7A7A;
+  --destructive-foreground: #0A0D16;
+  --border: #273052;
+  --input: #1A2140;
+  --ring: #7C97FF;
+  --shadow-panel: 0 18px 50px rgba(2, 4, 12, 0.55);
   --radius: 0.875rem;
+  --tone-black: #10152A;
+  --tone-white: #E9ECF7;
+  color-scheme: dark;
 }
-[data-theme="theme_nordic"] .bg-white { background-color: #FFFFFF; }
-[data-theme="theme_nordic"] .text-primary { color: #2F6F62; }
-[data-theme="theme_nordic"] .border-black { border-color: #D8DAD3; }
-[data-theme="theme_nordic"] .border-black\/15 { border-color: #DDE0D8; }
-[data-theme="theme_nordic"] .hover\:bg-black:hover { background-color: #2F6F62; }
+/* Dark themes invert the hover-invert pattern (hover:bg-black hover:text-white
+   reads as "fill with elevated surface") so hovers stay legible on dark cards. */
+[data-theme="theme_midnight"] .hover\:bg-black:hover { background-color: #232B4A; }
+[data-theme="theme_midnight"] .hover\:bg-black:hover.hover\:text-white:hover { color: #E9ECF7; }
+[data-theme="theme_midnight"] .hover\:bg-white:hover { background-color: #1B2240; }
+[data-theme="theme_midnight"] .bg-black\/5 { background-color: rgba(233, 236, 247, 0.06); }
+[data-theme="theme_midnight"] .hover\:bg-black\/\[0\.05\]:hover { background-color: rgba(233, 236, 247, 0.09); }
 
-/* ── theme_ember — Ember Editorial: paper & ink, sharp corners, serif display ── */
+/* ── theme_nordic — Nordic Frost ────────────────────────────────────────────
+   Calm light: warm paper, deep pine ink, sage accent, generous radius. */
+[data-theme="theme_nordic"] {
+  --background: #F2F2EC;
+  --foreground: #1F2925;
+  --card: #FFFFFF;
+  --card-foreground: #1F2925;
+  --popover: #FFFFFF;
+  --popover-foreground: #1F2925;
+  --primary: #33685C;
+  --primary-foreground: #FFFFFF;
+  --secondary: #1F2925;
+  --secondary-foreground: #FFFFFF;
+  --muted: #E9EAE2;
+  --muted-foreground: #667068;
+  --accent: #33685C;
+  --accent-foreground: #FFFFFF;
+  --destructive: #C0442A;
+  --destructive-foreground: #FFFFFF;
+  --border: #D7DAD0;
+  --input: #ECEDE5;
+  --ring: #33685C;
+  --shadow-panel: 0 10px 34px rgba(31, 41, 37, 0.08);
+  --radius: 1rem;
+  --tone-black: #1F2925;
+  --tone-white: #FFFFFF;
+}
+
+/* ── theme_ember — Ember Editorial ──────────────────────────────────────────
+   Editorial print language: cream stock, near-black ink, ember red, sharp
+   corners, serif display headings. */
 [data-theme="theme_ember"] {
-  --background: #F3EDDF;
-  --foreground: #1B1610;
-  --card: #FBF7EC;
-  --card-foreground: #1B1610;
-  --popover: #FBF7EC;
-  --popover-foreground: #1B1610;
-  --primary: #C2451E;
-  --primary-foreground: #FBF7EC;
-  --secondary: #1B1610;
-  --secondary-foreground: #FBF7EC;
-  --muted: #EAE2CF;
-  --muted-foreground: #6E6455;
-  --accent: #C2451E;
-  --accent-foreground: #FBF7EC;
-  --destructive: #B01E1E;
-  --destructive-foreground: #FBF7EC;
-  --border: #C9BEA4;
-  --input: #EFE8D6;
-  --ring: #C2451E;
+  --background: #F2EBDC;
+  --foreground: #221B12;
+  --card: #FBF6E9;
+  --card-foreground: #221B12;
+  --popover: #FBF6E9;
+  --popover-foreground: #221B12;
+  --primary: #BE431C;
+  --primary-foreground: #FBF6E9;
+  --secondary: #221B12;
+  --secondary-foreground: #FBF6E9;
+  --muted: #EAE1CC;
+  --muted-foreground: #75695A;
+  --accent: #BE431C;
+  --accent-foreground: #FBF6E9;
+  --destructive: #A81E1E;
+  --destructive-foreground: #FBF6E9;
+  --border: #CDC2A6;
+  --input: #EFE7D2;
+  --ring: #BE431C;
   --font-display: Georgia, 'Times New Roman', serif;
-  --shadow-panel: 0 2px 10px rgba(27, 22, 16, 0.08);
+  --shadow-panel: 0 2px 12px rgba(34, 27, 18, 0.10);
   --radius: 0rem;
+  --tone-black: #221B12;
+  --tone-white: #FBF6E9;
 }
-[data-theme="theme_ember"] .bg-white { background-color: #FBF7EC; }
-[data-theme="theme_ember"] .bg-black { background-color: #1B1610; }
-[data-theme="theme_ember"] .text-primary { color: #C2451E; }
-[data-theme="theme_ember"] .rounded-2xl { border-radius: 0; }
-[data-theme="theme_ember"] .rounded-xl { border-radius: 0; }
-[data-theme="theme_ember"] .rounded-lg { border-radius: 0; }
+/* Editorial typography treatment: display font on headings + oversized brand. */
+[data-theme="theme_ember"] h1,
+[data-theme="theme_ember"] h2,
+[data-theme="theme_ember"] h3 { font-family: var(--font-display); }
 
-/* ── theme_velvet — Velvet Luxe: plum-graphite depth, warm gold accent ── */
+/* ── theme_velvet — Velvet Luxe ─────────────────────────────────────────────
+   Luxury evening: plum-graphite depth, candlelight gold, soft glow. */
 [data-theme="theme_velvet"] {
-  --background: #14101B;
-  --foreground: #F1EAD8;
-  --card: #1D1727;
-  --card-foreground: #F1EAD8;
-  --popover: #1D1727;
-  --popover-foreground: #F1EAD8;
-  --primary: #C9A227;
+  --background: #120E19;
+  --foreground: #F2EBD9;
+  --card: #1B1526;
+  --card-foreground: #F2EBD9;
+  --popover: #1F182C;
+  --popover-foreground: #F2EBD9;
+  --primary: #D4AC3A;
   --primary-foreground: #14101B;
-  --secondary: #2A2136;
-  --secondary-foreground: #F1EAD8;
-  --muted: #1A1423;
-  --muted-foreground: #A79FB5;
-  --accent: #C9A227;
+  --secondary: #2B2138;
+  --secondary-foreground: #F2EBD9;
+  --muted: #191324;
+  --muted-foreground: #AB9FB9;
+  --accent: #D4AC3A;
   --accent-foreground: #14101B;
-  --destructive: #E06B7A;
+  --destructive: #E4707E;
   --destructive-foreground: #14101B;
-  --border: #332A44;
-  --input: #241C31;
-  --ring: #C9A227;
-  --shadow-panel: 0 18px 50px rgba(0, 0, 0, 0.5);
-  --radius: 0.375rem;
+  --border: #352A47;
+  --input: #251C33;
+  --ring: #D4AC3A;
+  --shadow-panel: 0 20px 55px rgba(0, 0, 0, 0.55);
+  --radius: 0.5rem;
+  --tone-black: #1B1526;
+  --tone-white: #F2EBD9;
+  color-scheme: dark;
 }
-[data-theme="theme_velvet"] .bg-white { background-color: #1D1727; }
-[data-theme="theme_velvet"] .bg-black { background-color: #241C31; }
-[data-theme="theme_velvet"] .text-white { color: #F1EAD8; }
-[data-theme="theme_velvet"] .text-black { color: #F1EAD8; }
-[data-theme="theme_velvet"] .border-black { border-color: #332A44; }
-[data-theme="theme_velvet"] .border-black\/15 { border-color: #332A44; }
-[data-theme="theme_velvet"] .border-black\/10 { border-color: #2C2440; }
-[data-theme="theme_velvet"] .text-muted-foreground { color: #A79FB5; }
+[data-theme="theme_velvet"] .hover\:bg-black:hover { background-color: #2B2138; }
+[data-theme="theme_velvet"] .hover\:bg-black:hover.hover\:text-white:hover { color: #F2EBD9; }
+[data-theme="theme_velvet"] .hover\:bg-white:hover { background-color: #241C33; }
+[data-theme="theme_velvet"] .bg-black\/5 { background-color: rgba(242, 235, 217, 0.06); }
+[data-theme="theme_velvet"] .hover\:bg-black\/\[0\.05\]:hover { background-color: rgba(242, 235, 217, 0.09); }
 
 .dark {
   --background: #141413;
