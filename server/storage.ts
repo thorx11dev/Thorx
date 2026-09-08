@@ -610,6 +610,20 @@ export interface IStorage {
   getUserNotifications(userId: string): Promise<Notification[]>;
   clearAllNotifications(userId: string): Promise<void>;
 
+  // ── THORX Store ───────────────────────────────────────────────────────────
+  listStoreItems(opts: { itemType?: "theme" | "component"; includeUnlisted?: boolean }): Promise<StoreItem[]>;
+  getStoreItem(id: string): Promise<StoreItem | undefined>;
+  createStoreItem(data: InsertStoreItem): Promise<StoreItem>;
+  updateStoreItem(id: string, updates: Partial<InsertStoreItem>): Promise<StoreItem | undefined>;
+  purchaseStoreItem(params: { userId: string; itemId: string; idempotencyKey?: string }): Promise<{
+    outcome: "purchased" | "already_owned" | "duplicate_request";
+    item: StoreItem;
+    txPointsBalance: number;
+  }>;
+  getUserStoreOwnership(userId: string): Promise<{ ownedItemIds: string[]; activeThemeItemId: string | null; activeComponents: Record<string, string> }>;
+  activateStoreItem(params: { userId: string; itemId: string }): Promise<{ activeThemeItemId: string | null; activeComponents: Record<string, string> }>;
+  deactivateStoreItem(params: { userId: string; itemId: string }): Promise<{ activeThemeItemId: string | null; activeComponents: Record<string, string> }>;
+
   // Device Fingerprinting & Email Verification
   createDeviceFingerprint(data: InsertDeviceFingerprint): Promise<DeviceFingerprint>;
   getAccountCountByFingerprint(fingerprintHash: string): Promise<number>;
