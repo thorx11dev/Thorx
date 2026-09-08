@@ -12,15 +12,12 @@ export default {
       },
       colors: {
         // Brand color lockdown: one orange, one black, one white sitewide.
-        // THEMING (Store): black/white route through CSS custom properties so
-        // every Tailwind alpha utility (bg-black/10, text-black/40, border-white/15…)
-        // automatically re-skins under an active store theme. `ink`/`paper` are
-        // the opaque aliases used by default-token CSS; `--tone-*` vars are the
-        // single theming surface (redefined per [data-theme] in index.css).
-        black: "var(--tone-black, #141413)",
-        white: "var(--tone-white, #FAF9F5)",
-        ink: "var(--tone-black, #141413)",
-        paper: "var(--tone-white, #FAF9F5)",
+        // THEMING (Store): black/white route through RGB-channel CSS variables
+        // so every alpha utility (bg-black/10, text-black/40, border-black/15…)
+        // automatically re-skins under an active store theme. <alpha-value>
+        // requires the channel-triplet format — do NOT change to plain hex.
+        black: "rgb(var(--tone-black, 20 20 19) / <alpha-value>)",
+        white: "rgb(var(--tone-white, 250 249 245) / <alpha-value>)",
         orange: {
           "50": "#D97757",
           "100": "#D97757",
