@@ -155,14 +155,19 @@ describe("THORX Store", () => {
     await agent.post("/api/store/activate").send({ itemId: minimal.id });
 
     const state = await agent.get("/api/store");
+    expect(state.status).toBe(200);
     expect(state.body.active.themeItemId).toBe(midnight.id);
     expect(state.body.active.components.dashboard_cards).toBe(minimal.id);
 
     // Deactivate theme → default theme back, ownership preserved, component slot untouched
     const off = await agent.post("/api/store/deactivate").send({ itemId: midnight.id });
-    expect(off.body.active.themeItemId).toBeNull();
+    expect(off.status).toBe(200);
+    expect(off.body.active?.themeItemId ?? null).toBeNull();
     expect(off.body.active.components.dashboard_cards).toBe(minimal.id);
-    expect(state.body.ownedItemIds.length).toBe(2);
+
+    const final = await agent.get("/api/store");
+    expect(final.body.active.themeItemId).toBeNull();
+    expect(final.body.ownedItemIds.length).toBe(2);
   });
 
   it("admin store routes reject normal users", async () => {
