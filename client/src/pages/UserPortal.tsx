@@ -83,6 +83,7 @@ const PORTAL_LAZY_MODULES = [
   () => import("@/components/ui/ad-web-panel"),
   () => import("@/components/ui/notification-modal"),
   () => import("@/components/guild/ScratchCardModal"),
+  () => import("@/components/store/StoreSection"),
 ];
 
 function prefetchPortalModules() {
