@@ -164,6 +164,7 @@ export default function TeamPortal() {
       case "referrals":    return "Referral Analytics";
       case "beta-control": return "Beta Control";
       case "settings":     return "Financial Control Center";
+      case "store":        return "Store Manager";
       case "finance":      return "Financial Reconciliation";
       default: return "Command Center";
     }
