@@ -2714,7 +2714,7 @@ export class DatabaseStorage implements IStorage {
       // clicks, refresh-during-purchase all land here).
       if (params.idempotencyKey) {
         const [replay] = await tx
-          .select({ tx: storeTransactions })
+          .select()
           .from(storeTransactions)
           .where(and(
             eq(storeTransactions.userId, params.userId),
