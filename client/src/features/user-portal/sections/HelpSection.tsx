@@ -5,9 +5,7 @@ import { cn } from "@/lib/utils";
 import { InteractiveDivider, AnimatedPlaceholder } from "@/features/user-portal/shared";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PortalFaqSection } from "@/components/portal/PortalFaqSection";
-import Barcode from "@/components/ui/barcode";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw, Send } from "lucide-react";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,12 +17,6 @@ interface HelpSectionProps {
   handleHeroToggle: (setter: any) => void;
   activeHelpTab: string;
   setActiveHelpTab: (v: string) => void;
-  chatMessages: Array<{ id: number; text: string; sender: string; timestamp: string; avatar: string }>;
-  isChatHistoryLoading: boolean;
-  newMessage: string;
-  setNewMessage: (v: string) => void;
-  handleSendMessage: () => void;
-  chatMutation: { isPending: boolean };
   contactForm: { name: string; email: string; description: string };
   setContactForm: (updater: (prev: { name: string; email: string; description: string }) => { name: string; email: string; description: string }) => void;
   handleContactSubmit: (e: FormEvent) => void;
@@ -33,13 +25,7 @@ interface HelpSectionProps {
 }
 
 export function HelpSection(props: HelpSectionProps) {
-  const { isHelpHeroToggled, setIsHelpHeroToggled, handleHeroToggle, activeHelpTab, setActiveHelpTab, chatMessages, isChatHistoryLoading, newMessage, setNewMessage, handleSendMessage, chatMutation, contactForm, setContactForm, handleContactSubmit, isContactSubmitting, isMobile } = props;
-    const formatTime = (timestamp: string) => {
-      return new Date(timestamp).toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    };
+  const { isHelpHeroToggled, setIsHelpHeroToggled, handleHeroToggle, activeHelpTab, setActiveHelpTab, contactForm, setContactForm, handleContactSubmit, isContactSubmitting, isMobile } = props;
 
     // Help section tabs — same control renders on every breakpoint,
     // desktop shows the full label, mobile shows the short one.
