@@ -75,7 +75,7 @@ interface PortalFaqSectionProps {
   onContactClick?: () => void;
 }
 
-export function PortalFaqSection({ onChatClick, onContactClick }: PortalFaqSectionProps) {
+export function PortalFaqSection({ onContactClick }: PortalFaqSectionProps) {
   const [activeCategory, setActiveCategory] = useState("All");
   const [openId, setOpenId] = useState<string | null>(faqItems[0]?.id ?? null);
 
