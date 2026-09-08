@@ -584,7 +584,7 @@ export default function UserPortal() {
       }
       return await response.json();
     },
-    enabled: currentSection === 4 && !!user && user.id !== 'guest',
+    enabled: currentSection === 5 && !!user && user.id !== 'guest',
     retry: false,
   });
 
