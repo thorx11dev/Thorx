@@ -2,12 +2,10 @@ import { storage } from "./server/storage";
 import { pool } from "./server/db";
 
 async function main() {
-  // Fresh test user
-  const reg = await fetch("http://localhost:1").catch(() => null); // noop
   const { rows: urows } = await pool.query(
-    `INSERT INTO users (first_name, last_name, identity, phone, email, password, role)
+    `INSERT INTO users (first_name, last_name, identity, phone, email, password_hash, role)
      VALUES ('dbg', 'store', $1, '03000000000', $2, 'x', 'user')
-     ON CONFLICT (identity) DO UPDATE SET first_name='dbg' RETURNING id`,
+     RETURNING id`,
     ["dbg_store_" + Date.now(), "dbg_" + Date.now() + "@test.local"]
   );
   const userId = urows[0].id;
@@ -29,7 +27,7 @@ async function main() {
   own = await storage.getUserStoreOwnership(userId);
   console.log("after comp activate: theme=" + own.activeThemeItemId + " comps=" + JSON.stringify(own.activeComponents));
 
-  // cleanup
+  await pool.query("DELETE FROM user_customization WHERE user_id = $1", [userId]);
   await pool.query("DELETE FROM user_store_items WHERE user_id = $1", [userId]);
   await pool.query("DELETE FROM users WHERE id = $1", [userId]);
   await pool.end();
