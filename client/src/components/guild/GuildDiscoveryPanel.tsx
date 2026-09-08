@@ -713,7 +713,7 @@ export function GuildDiscoveryPanel() {
                       onClick={(e) => { e.stopPropagation(); if (canJoin && !applied) handleApply(guild); }}
                       disabled={applyDisabled}
                       aria-label="Apply to join"
-                      title={applied ? "Applied" : applyDisabled ? applyBlockedLabel(guild).title : "Apply to join"}
+                      title={applied ? "Applied" : applyDisabled ? applyBlockedLabel(guild, inGuild, rankBlocked).title : "Apply to join"}
                       data-testid={`button-apply-guild-${guild.id}`}
                       className={cn(
                         "flex-1 h-10 rounded-lg border-2 text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all duration-300",
@@ -724,7 +724,7 @@ export function GuildDiscoveryPanel() {
                             : "bg-primary text-white border-black hover:bg-black"
                       )}
                     >
-                      {applied ? <><ShieldCheck className="size-3" /> Applied</> : applyDisabled ? <>{applyBlockedLabel(guild).icon} {applyBlockedLabel(guild).text}</> : <>Apply <ArrowRight className="size-3" /></>}
+                      {applied ? <><ShieldCheck className="size-3" /> Applied</> : applyDisabled ? <>{applyBlockedLabel(guild, inGuild, rankBlocked).icon} {applyBlockedLabel(guild, inGuild, rankBlocked).text}</> : <>Apply <ArrowRight className="size-3" /></>}
                     </button>
                   </div>
                 )}
@@ -823,7 +823,7 @@ export function GuildDiscoveryPanel() {
                     <button
                       onClick={(e) => { e.stopPropagation(); if (canJoin && !applied) handleApply(guild); }}
                       disabled={applyDisabled}
-                      title={applied ? "Applied" : applyDisabled ? applyBlockedLabel(guild).title : "Apply to join"}
+                      title={applied ? "Applied" : applyDisabled ? applyBlockedLabel(guild, inGuild, rankBlocked).title : "Apply to join"}
                       data-testid={`button-apply-guild-${guild.id}`}
                       className={cn(
                         "flex-1 h-11 rounded-lg border-2 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all duration-300",
@@ -834,7 +834,7 @@ export function GuildDiscoveryPanel() {
                             : "bg-primary text-white border-black hover:bg-black"
                       )}
                     >
-                      {applied ? <><ShieldCheck className="size-3.5" /> Applied</> : applyDisabled ? <>{applyBlockedLabel(guild).icon} {applyBlockedLabel(guild).text}</> : <>Apply <ArrowRight className="size-3.5" /></>}
+                      {applied ? <><ShieldCheck className="size-3.5" /> Applied</> : applyDisabled ? <>{applyBlockedLabel(guild, inGuild, rankBlocked).icon} {applyBlockedLabel(guild, inGuild, rankBlocked).text}</> : <>Apply <ArrowRight className="size-3.5" /></>}
                     </button>
                   </div>
                 )}
