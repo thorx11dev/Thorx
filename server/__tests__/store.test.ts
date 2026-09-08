@@ -1,11 +1,11 @@
-/**
- * THORX Store — purchase/ownership/activation contract tests.
+﻿/**
+ * THORX Store â€” purchase/ownership/activation contract tests.
  *
  * Locks in the economy + safety guarantees:
  *   1. Purchase with sufficient balance debits EXACTLY once (ledger + ownership)
  *   2. Idempotent replay (same idempotency key) never charges twice
  *   3. Already-owned purchase is acknowledged without charge
- *   4. Concurrent double-click → exactly ONE charge (row lock + unique index)
+ *   4. Concurrent double-click â†’ exactly ONE charge (row lock + unique index)
  *   5. Insufficient balance rejected, nothing partial persists
  *   6. Draft/unpublished items are never purchasable
  *   7. Activation requires ownership; theme + component slots are separate;
@@ -51,7 +51,7 @@ async function registerUser(key: string, txPoints = 100000) {
   });
   expect(res.status).toBe(201);
   const userId = res.body.user.id;
-  // Grant test points directly (simulates prior task earnings — the ONLY
+  // Grant test points directly (simulates prior task earnings â€” the ONLY
   // legitimate source; this test never mints points through the Store).
   await db.update(users).set({ txPointsBalance: txPoints }).where(eq(users.id, userId));
   return { agent, userId };
@@ -137,43 +137,41 @@ describe("THORX Store", () => {
     expect(res.body.error).toBe("INSUFFICIENT_TX_POINTS");
   });
 
-  it("activation requires ownership and separates theme/component slots", async () => {
+  it("activation requires ownership; same-slot variants replace each other", async () => {
     const { agent } = await registerUser("act", 500000);
     const list = await agent.get("/api/store");
-    const midnight = list.body.items.find((i: any) => i.refKey === "dashboard_cards_ember");
-    const minimal = list.body.items.find((i: any) => i.refKey === "dashboard_cards_slab");
+    const ember = list.body.items.find((i: any) => i.refKey === "dashboard_cards_ember");
+    const slab = list.body.items.find((i: any) => i.refKey === "dashboard_cards_slab");
 
     // Activate before owning → forbidden
-    const stolen = await agent.post("/api/store/activate").send({ itemId: midnight.id });
+    const stolen = await agent.post("/api/store/activate").send({ itemId: ember.id });
     expect(stolen.status).toBe(403);
 
-    // Own + activate theme, then component — slots are independent
-    await agent.post("/api/store/purchase").send({ itemId: midnight.id, idempotencyKey: crypto.randomUUID() });
-    await agent.post("/api/store/purchase").send({ itemId: minimal.id, idempotencyKey: crypto.randomUUID() });
+    // Own both variants of the SAME slot (dashboard_cards)
+    await agent.post("/api/store/purchase").send({ itemId: ember.id, idempotencyKey: crypto.randomUUID() });
+    await agent.post("/api/store/purchase").send({ itemId: slab.id, idempotencyKey: crypto.randomUUID() });
 
-    await agent.post("/api/store/activate").send({ itemId: midnight.id });
-    await agent.post("/api/store/activate").send({ itemId: minimal.id });
-
-    const state = await agent.get("/api/store");
+    // Activate ember → slot points at ember
+    await agent.post("/api/store/activate").send({ itemId: ember.id });
+    let state = await agent.get("/api/store");
     expect(state.status).toBe(200);
-    expect(state.body.active.themeItemId).toBe(midnight.id);
-    expect(state.body.active.components.dashboard_cards).toBe(minimal.id);
+    expect(state.body.active.components.dashboard_cards).toBe(ember.id);
 
-    // Deactivate theme → default theme back, ownership preserved, component slot untouched
-    // (NOTE: activate/deactivate responses expose the raw storage shape:
-    //  {activeThemeItemId, activeComponents}; GET /api/store remaps to
-    //  {themeItemId, components}.)
-    const off = await agent.post("/api/store/deactivate").send({ itemId: midnight.id });
+    // Activate slab → same-slot REPLACEMENT (one active variant per slot)
+    await agent.post("/api/store/activate").send({ itemId: slab.id });
+    state = await agent.get("/api/store");
+    expect(state.body.active.components.dashboard_cards).toBe(slab.id);
+    expect(state.body.ownedItemIds.length).toBe(2); // ember still owned
+
+    // Deactivate → slot reverts to Thorx classic, ownership preserved
+    const off = await agent.post("/api/store/deactivate").send({ itemId: slab.id });
     expect(off.status).toBe(200);
-    expect(off.body.active.activeThemeItemId ?? null).toBeNull();
-    expect(off.body.active.activeComponents.dashboard_cards).toBe(minimal.id);
+    expect(off.body.active.activeComponents.dashboard_cards ?? null).toBeNull();
 
     const final = await agent.get("/api/store");
-    expect(final.body.active.themeItemId).toBeNull();
-    expect(final.body.active.components.dashboard_cards).toBe(minimal.id);
+    expect(final.body.active.components.dashboard_cards ?? null).toBeNull();
     expect(final.body.ownedItemIds.length).toBe(2);
   });
-
   it("admin store routes reject normal users", async () => {
     const { agent } = await registerUser("nonadmin");
     const res = await agent.get("/api/admin/store/items");
