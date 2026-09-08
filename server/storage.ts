@@ -2750,7 +2750,7 @@ export class DatabaseStorage implements IStorage {
         .where(and(eq(userStoreItems.userId, params.userId), eq(userStoreItems.itemId, params.itemId)))
         .limit(1);
       if (owned) {
-        return { outcome: "already_owned" as const, item, txPointsBalance: lockedUser.balance };
+        return { outcome: "already_owned" as const, item, txPointsBalance: lockedUser.balance ?? 0 };
       }
 
       const price = item.pricePoints;
