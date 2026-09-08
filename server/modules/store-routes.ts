@@ -30,21 +30,15 @@ import { logger } from "../lib/logger";
 
 // ─── Validated registry keys (mirror of client/src/lib/store-registry.ts) ────
 // A catalog entry whose ref_key is not listed here is rejected — this is what
-// makes admin input safe: unknown keys cannot render.
-export const THEME_REGISTRY_KEYS = [
-  "theme_blueprint",
-  "theme_pitch",
-  "theme_stage",
-  "theme_scrapbook",
-  "theme_terminal",
-] as const;
-
+// makes admin input safe: unknown keys cannot render. The Store sells UI
+// COMPONENT VARIANTS only — full themes were retired (default THORX look is
+// the single visual language), so theme keys are no longer purchasable.
 export const COMPONENT_VARIANT_REGISTRY: Record<string, string[]> = {
   dashboard_cards: ["dashboard_cards_serif", "dashboard_cards_mono", "dashboard_cards_sticker"],
 };
 
 function isKnownRefKey(itemType: string, refKey: string, componentType?: string): boolean {
-  if (itemType === "theme") return (THEME_REGISTRY_KEYS as readonly string[]).includes(refKey);
+  if (itemType === "theme") return false; // themes retired — never creatable again
   if (itemType === "component") {
     if (!componentType) return false;
     return (COMPONENT_VARIANT_REGISTRY[componentType] ?? []).includes(refKey);
