@@ -1394,6 +1394,19 @@ export default function UserPortal() {
           )}
           {currentSection === 6 && (
             <motion.section
+              key="section-help"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="cinematic-section active"
+              data-testid="section-help"
+            >
+              <Suspense fallback={null}><HelpSection isHelpHeroToggled={isHelpHeroToggled} setIsHelpHeroToggled={setIsHelpHeroToggled} handleHeroToggle={handleHeroToggle} activeHelpTab={activeHelpTab} setActiveHelpTab={setActiveHelpTab} contactForm={contactForm} setContactForm={setContactForm} handleContactSubmit={handleContactSubmit} isContactSubmitting={isContactSubmitting} isMobile={isMobile} /></Suspense>
+            </motion.section>
+          )}
+          {currentSection === 7 && (
+            <motion.section
               key="section-ranks"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
