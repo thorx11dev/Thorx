@@ -2,11 +2,12 @@ import { storage } from "./server/storage";
 import { pool } from "./server/db";
 
 async function main() {
+  const suffix = Date.now();
   const { rows: urows } = await pool.query(
-    `INSERT INTO users (first_name, last_name, identity, phone, email, password_hash, role)
-     VALUES ('dbg', 'store', $1, '03000000000', $2, 'x', 'user')
+    `INSERT INTO users (first_name, last_name, identity, phone, email, password_hash, role, referral_code)
+     VALUES ('dbg', 'store', $1, '03000000000', $2, 'x', 'user', $3)
      RETURNING id`,
-    ["dbg_store_" + Date.now(), "dbg_" + Date.now() + "@test.local"]
+    ["dbg_store_" + suffix, "dbg_" + suffix + "@test.local", "DBG-" + suffix]
   );
   const userId = urows[0].id;
   await pool.query("UPDATE users SET tx_points_balance = 500000 WHERE id = $1", [userId]);
