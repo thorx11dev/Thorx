@@ -19,6 +19,7 @@ import { createAdSessionToken, verifyAdSessionToken } from "./modules/ad-session
 import { verifyWebhook, markWebhookRewarded, type WebhookPayload } from "./modules/webhook-verifier";
 import { registerAdEngineRoutes } from "./modules/ad-engine-routes";
 import { registerSurveyRoutes } from "./modules/survey-routes";
+import { registerStoreRoutes } from "./modules/store-routes";
 import { registerLeaderboardRoutes } from "./modules/leaderboard-routes";
 import { registerSecurityRoutes } from "./modules/security-routes";
 import { decryptCredential } from "./utils/credential-crypto";
