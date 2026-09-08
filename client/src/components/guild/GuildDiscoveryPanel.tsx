@@ -713,18 +713,18 @@ export function GuildDiscoveryPanel() {
                       onClick={(e) => { e.stopPropagation(); if (canJoin && !applied) handleApply(guild); }}
                       disabled={applyDisabled}
                       aria-label="Apply to join"
-                      title={applied ? "Applied" : "Apply to join"}
+                      title={applied ? "Applied" : applyDisabled ? applyBlockedLabel(guild).title : "Apply to join"}
                       data-testid={`button-apply-guild-${guild.id}`}
                       className={cn(
                         "flex-1 h-10 rounded-lg border-2 text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all duration-300",
                         applied
                           ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                          : inGuild || rankBlocked || !guild.recruitmentOpen
+                          : applyDisabled
                             ? "bg-[#E8E5D8] text-black/40 border-black/10"
                             : "bg-primary text-white border-black hover:bg-black"
                       )}
                     >
-                      {applied ? <><ShieldCheck className="size-3" /> Applied</> : inGuild || rankBlocked || !guild.recruitmentOpen ? <><Lock className="size-3" /> N/A</> : <>Apply <ArrowRight className="size-3" /></>}
+                      {applied ? <><ShieldCheck className="size-3" /> Applied</> : applyDisabled ? <>{applyBlockedLabel(guild).icon} {applyBlockedLabel(guild).text}</> : <>Apply <ArrowRight className="size-3" /></>}
                     </button>
                   </div>
                 )}
