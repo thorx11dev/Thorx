@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, MessageCircle, Phone } from "lucide-react";
+import { ChevronDown, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface FaqItem {
@@ -72,7 +72,6 @@ const faqItems: FaqItem[] = [
 const CATEGORIES = ["All", "Getting Started", "How It Works", "Payouts & Fees", "Referrals", "Ranks"];
 
 interface PortalFaqSectionProps {
-  onChatClick?: () => void;
   onContactClick?: () => void;
 }
 
