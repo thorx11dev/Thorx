@@ -430,6 +430,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   // preserved inside it for the simulated inventory.
   registerAdEngineRoutes(app);
   registerSurveyRoutes(app);
+  registerStoreRoutes(app);
   registerLeaderboardRoutes(app);
   registerSecurityRoutes(app);
 
