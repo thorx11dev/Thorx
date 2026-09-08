@@ -1,0 +1,139 @@
+/* ══ THORX STORE — Theme tokens ═══════════════════════════════════════════
+   Each [data-theme] is a complete design-system override. Tailwind's
+   black/white colors resolve through --tone-* (see tailwind.config.ts), so
+   EVERY utility in the app (bg-black/10, text-black/40, border-black/15,
+   bg-white, hover:bg-black …) re-skins automatically — full-portal theming
+   with zero per-page patchwork. Component behavior/data is untouched. */
+
+/* ── theme_midnight — Midnight Foundry ──────────────────────────────────────
+   Premium deep-space dark: blue-steel surfaces, luminous cobalt, soft depth. */
+[data-theme="theme_midnight"] {
+  --background: #0B0E17;
+  --foreground: #E9ECF7;
+  --card: #12172A;
+  --card-foreground: #E9ECF7;
+  --popover: #141A30;
+  --popover-foreground: #E9ECF7;
+  --primary: #7C97FF;
+  --primary-foreground: #0A0D16;
+  --secondary: #232B4A;
+  --secondary-foreground: #E9ECF7;
+  --muted: #151B31;
+  --muted-foreground: #99A2C2;
+  --accent: #7C97FF;
+  --accent-foreground: #0A0D16;
+  --destructive: #FF7A7A;
+  --destructive-foreground: #0A0D16;
+  --border: #273052;
+  --input: #1A2140;
+  --ring: #7C97FF;
+  --shadow-panel: 0 18px 50px rgba(2, 4, 12, 0.55);
+  --radius: 0.875rem;
+  --tone-black: #10152A;
+  --tone-white: #E9ECF7;
+  color-scheme: dark;
+}
+/* Dark themes invert the hover-invert pattern (hover:bg-black hover:text-white
+   reads as "fill with elevated surface") so hovers stay legible on dark cards. */
+[data-theme="theme_midnight"] .hover\:bg-black:hover { background-color: #232B4A; }
+[data-theme="theme_midnight"] .hover\:bg-black:hover.hover\:text-white:hover { color: #E9ECF7; }
+[data-theme="theme_midnight"] .hover\:bg-white:hover { background-color: #1B2240; }
+[data-theme="theme_midnight"] .bg-black\/5 { background-color: rgba(233, 236, 247, 0.06); }
+[data-theme="theme_midnight"] .hover\:bg-black\/\[0\.05\]:hover { background-color: rgba(233, 236, 247, 0.09); }
+
+/* ── theme_nordic — Nordic Frost ────────────────────────────────────────────
+   Calm light: warm paper, deep pine ink, sage accent, generous radius. */
+[data-theme="theme_nordic"] {
+  --background: #F2F2EC;
+  --foreground: #1F2925;
+  --card: #FFFFFF;
+  --card-foreground: #1F2925;
+  --popover: #FFFFFF;
+  --popover-foreground: #1F2925;
+  --primary: #33685C;
+  --primary-foreground: #FFFFFF;
+  --secondary: #1F2925;
+  --secondary-foreground: #FFFFFF;
+  --muted: #E9EAE2;
+  --muted-foreground: #667068;
+  --accent: #33685C;
+  --accent-foreground: #FFFFFF;
+  --destructive: #C0442A;
+  --destructive-foreground: #FFFFFF;
+  --border: #D7DAD0;
+  --input: #ECEDE5;
+  --ring: #33685C;
+  --shadow-panel: 0 10px 34px rgba(31, 41, 37, 0.08);
+  --radius: 1rem;
+  --tone-black: #1F2925;
+  --tone-white: #FFFFFF;
+}
+
+/* ── theme_ember — Ember Editorial ──────────────────────────────────────────
+   Editorial print language: cream stock, near-black ink, ember red, sharp
+   corners, serif display headings. */
+[data-theme="theme_ember"] {
+  --background: #F2EBDC;
+  --foreground: #221B12;
+  --card: #FBF6E9;
+  --card-foreground: #221B12;
+  --popover: #FBF6E9;
+  --popover-foreground: #221B12;
+  --primary: #BE431C;
+  --primary-foreground: #FBF6E9;
+  --secondary: #221B12;
+  --secondary-foreground: #FBF6E9;
+  --muted: #EAE1CC;
+  --muted-foreground: #75695A;
+  --accent: #BE431C;
+  --accent-foreground: #FBF6E9;
+  --destructive: #A81E1E;
+  --destructive-foreground: #FBF6E9;
+  --border: #CDC2A6;
+  --input: #EFE7D2;
+  --ring: #BE431C;
+  --font-display: Georgia, 'Times New Roman', serif;
+  --shadow-panel: 0 2px 12px rgba(34, 27, 18, 0.10);
+  --radius: 0rem;
+  --tone-black: #221B12;
+  --tone-white: #FBF6E9;
+}
+/* Editorial typography treatment: display font on headings + oversized brand. */
+[data-theme="theme_ember"] h1,
+[data-theme="theme_ember"] h2,
+[data-theme="theme_ember"] h3 { font-family: var(--font-display); }
+
+/* ── theme_velvet — Velvet Luxe ─────────────────────────────────────────────
+   Luxury evening: plum-graphite depth, candlelight gold, soft glow. */
+[data-theme="theme_velvet"] {
+  --background: #120E19;
+  --foreground: #F2EBD9;
+  --card: #1B1526;
+  --card-foreground: #F2EBD9;
+  --popover: #1F182C;
+  --popover-foreground: #F2EBD9;
+  --primary: #D4AC3A;
+  --primary-foreground: #14101B;
+  --secondary: #2B2138;
+  --secondary-foreground: #F2EBD9;
+  --muted: #191324;
+  --muted-foreground: #AB9FB9;
+  --accent: #D4AC3A;
+  --accent-foreground: #14101B;
+  --destructive: #E4707E;
+  --destructive-foreground: #14101B;
+  --border: #352A47;
+  --input: #251C33;
+  --ring: #D4AC3A;
+  --shadow-panel: 0 20px 55px rgba(0, 0, 0, 0.55);
+  --radius: 0.5rem;
+  --tone-black: #1B1526;
+  --tone-white: #F2EBD9;
+  color-scheme: dark;
+}
+[data-theme="theme_velvet"] .hover\:bg-black:hover { background-color: #2B2138; }
+[data-theme="theme_velvet"] .hover\:bg-black:hover.hover\:text-white:hover { color: #F2EBD9; }
+[data-theme="theme_velvet"] .hover\:bg-white:hover { background-color: #241C33; }
+[data-theme="theme_velvet"] .bg-black\/5 { background-color: rgba(242, 235, 217, 0.06); }
+[data-theme="theme_velvet"] .hover\:bg-black\/\[0\.05\]:hover { background-color: rgba(242, 235, 217, 0.09); }
+
