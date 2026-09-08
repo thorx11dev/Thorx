@@ -43,9 +43,9 @@ export function HelpSection(props: HelpSectionProps) {
 
     // Help section tabs — same control renders on every breakpoint,
     // desktop shows the full label, mobile shows the short one.
+    // Chatbot tab removed — support is FAQ + contact form only.
     const helpSectionOptions = [
       { id: "guide", label: "AREA GUIDE", shortLabel: "GUIDE" },
-      { id: "help", label: "AREA HELP", shortLabel: "CHAT" },
       { id: "contact", label: "AREA CONTACT", shortLabel: "CONTACT" }
     ];
 
