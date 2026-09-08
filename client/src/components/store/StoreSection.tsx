@@ -136,9 +136,10 @@ export default function StoreSection() {
       {/* Hero */}
       <motion.div
         initial={false}
-        className="rounded-2xl p-6 md:p-12 mb-0 relative overflow-hidden border-2 bg-[#141413] h-[160px] md:h-[220px] flex items-center justify-center md:justify-start"
+        className="rounded-2xl p-6 md:p-12 mb-0 relative overflow-hidden border-2 bg-[var(--tone-black)] h-[160px] md:h-[220px] flex items-center justify-center md:justify-start"
       >
         <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute -left-16 -bottom-24 w-56 h-56 bg-primary/5 rounded-full blur-3xl" />
         <div className="relative z-10 text-center md:text-left">
           <div className="text-[10px] font-black uppercase tracking-[0.35em] text-white/40 mb-2">Personalize your environment</div>
           <h1 className="font-black tracking-tighter uppercase leading-none text-[clamp(2rem,10vw,4.5rem)] text-white">
