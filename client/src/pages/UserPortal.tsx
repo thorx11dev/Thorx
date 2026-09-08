@@ -120,7 +120,7 @@ const DEV_MOCK_PREVIEW = {
 };
 import { formatPoints } from "@/lib/formatPoints";
 import { useLocation } from "wouter";
-import { LogOut, ArrowRight, ArrowLeft, PieChart, Copy, Download, Home, Briefcase, User, Castle, Settings, Network, Landmark, Headphones, Bell, Trophy, Menu } from "lucide-react";
+import { LogOut, ArrowRight, ArrowLeft, PieChart, Copy, Download, Home, Briefcase, User, Castle, Settings, Network, Landmark, Headphones, Bell, Trophy, Menu, ShoppingBag } from "lucide-react";
 
 
 const GUEST_USER: AuthUser = {
