@@ -19,7 +19,7 @@ import { LedgerValidator } from "@/components/admin/LedgerValidator";
 import { RanksCustomizer } from "@/components/admin/RanksCustomizer";
 import { ReferralAnalytics } from "@/components/admin/ReferralAnalytics";
 import { BetaControlPanel } from "@/components/admin/BetaControlPanel";
-import { StoreManager } from "@/components/admin/StoreManager";
+import StoreManager from "@/components/admin/StoreManager";
 import { Shield, Lock } from "lucide-react";
 
 export default function TeamPortal() {
