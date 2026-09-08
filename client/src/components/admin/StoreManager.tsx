@@ -38,13 +38,14 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 const REGISTRY_KEYS = [
-  { value: "theme_midnight", label: "Theme: Midnight Foundry", type: "theme" },
-  { value: "theme_nordic", label: "Theme: Nordic Frost", type: "theme" },
-  { value: "theme_ember", label: "Theme: Ember Editorial", type: "theme" },
-  { value: "theme_velvet", label: "Theme: Velvet Luxe", type: "theme" },
-  { value: "dashboard_cards_editorial", label: "Cards: Editorial Ledger", type: "component" },
-  { value: "dashboard_cards_brutal", label: "Cards: Neo Brutal", type: "component" },
-  { value: "dashboard_cards_minimal", label: "Cards: Quiet Glass", type: "component" },
+  { value: "theme_blueprint", label: "Theme: Blueprint", type: "theme" },
+  { value: "theme_pitch", label: "Theme: Pitch Black", type: "theme" },
+  { value: "theme_stage", label: "Theme: Stage Light", type: "theme" },
+  { value: "theme_scrapbook", label: "Theme: Sticker Album", type: "theme" },
+  { value: "theme_terminal", label: "Theme: Quiet Terminal", type: "theme" },
+  { value: "dashboard_cards_serif", label: "Cards: Serif Ledger", type: "component" },
+  { value: "dashboard_cards_mono", label: "Cards: Terminal Row", type: "component" },
+  { value: "dashboard_cards_sticker", label: "Cards: Sticker Pop", type: "component" },
 ];
 
 const emptyForm = {
