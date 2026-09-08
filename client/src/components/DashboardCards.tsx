@@ -92,6 +92,12 @@ export function DashboardCards() {
     },
   });
 
+  // Active store variant (may be null = Thorx classic).
+  const variant = useDashboardCardVariant();
+  const cardCls = variant?.card;
+  const headCls = variant?.head;
+  const valueCls = variant?.value;
+
   return (
     // Desktop layout (2×2): Rs → Referrals on top row, TX-Points → PS below.
     // lg:order-* re-orders the grid without changing the mobile stacking
@@ -100,8 +106,8 @@ export function DashboardCards() {
       {/* Balance card has no head label (removed by design) — vertically
           center its content so the number aligns with the labeled siblings
           instead of hugging the card's top edge. */}
-      <CardShell testId="card-real-balance" className="lg:order-1 flex flex-col justify-center">
-        <p className="text-3xl md:text-4xl font-black text-primary tracking-tighter">
+      <CardShell testId="card-real-balance" className={cn("lg:order-1 flex flex-col justify-center", cardCls)}>
+        <p className={cn("text-3xl md:text-4xl font-black text-primary tracking-tighter", valueCls)}>
           Rs. {availablePkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
         <p className="mt-1.5 text-xs font-bold text-muted-foreground" data-testid="pending-balance-line">
@@ -109,14 +115,14 @@ export function DashboardCards() {
         </p>
       </CardShell>
 
-      <CardShell testId="card-tx-points" className="lg:order-3">
-        <CardHead label="TX-POINTS" />
-        <p className="text-3xl md:text-4xl font-black text-foreground mb-1 tracking-tighter">{txPoints.toLocaleString()}</p>
+      <CardShell testId="card-tx-points" className={cn("lg:order-3", cardCls)}>
+        <CardHead label="TX-POINTS" className={headCls} />
+        <p className={cn("text-3xl md:text-4xl font-black text-foreground mb-1 tracking-tighter", valueCls)}>{txPoints.toLocaleString()}</p>
       </CardShell>
 
-      <CardShell testId="card-referral-balance" className="lg:order-2">
-        <CardHead label="REFERRALS" />
-        <div className="text-3xl md:text-4xl font-black text-foreground mb-1 tracking-tighter">
+      <CardShell testId="card-referral-balance" className={cn("lg:order-2", cardCls)}>
+        <CardHead label="REFERRALS" className={headCls} />
+        <div className={cn("text-3xl md:text-4xl font-black text-foreground mb-1 tracking-tighter", valueCls)}>
           {isReferralStatsLoading
             ? <Skeleton className="h-8 w-20 rounded" />
             : isReferralStatsError
