@@ -37,6 +37,7 @@ export function AdminLayout({ children, activeSection, onSectionChange, title }:
     { id: "audit", icon: FileText, label: "Audit" },
     { id: "beta-control", icon: Ticket, label: "Beta Control" },
     ...(user?.role === "founder" || user?.role === "admin" ? [{ id: "finance", icon: BarChart2, label: "Finance" }] : []),
+    { id: "store", icon: Ticket, label: "Store" },
     { id: "settings", icon: Settings, label: "Settings" },
   ];
 
