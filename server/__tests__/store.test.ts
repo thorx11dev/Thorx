@@ -117,7 +117,7 @@ describe("THORX Store", () => {
   it("concurrent double-click charges exactly once", async () => {
     const { agent } = await registerUser("race", 500000);
     const list = await agent.get("/api/store");
-    const editorial = list.body.items.find((i: any) => i.refKey === "dashboard_cards_serif");
+    const editorial = list.body.items.find((i: any) => i.refKey === "dashboard_cards_depth");
 
     const [a, b] = await Promise.all([
       agent.post("/api/store/purchase").send({ itemId: editorial.id, idempotencyKey: crypto.randomUUID() }),
@@ -141,7 +141,7 @@ describe("THORX Store", () => {
     const { agent } = await registerUser("act", 500000);
     const list = await agent.get("/api/store");
     const midnight = list.body.items.find((i: any) => i.refKey === "dashboard_cards_ember");
-    const minimal = list.body.items.find((i: any) => i.refKey === "dashboard_cards_mono");
+    const minimal = list.body.items.find((i: any) => i.refKey === "dashboard_cards_slab");
 
     // Activate before owning → forbidden
     const stolen = await agent.post("/api/store/activate").send({ itemId: midnight.id });
