@@ -28,6 +28,8 @@ import { QUERY_KEYS } from "@/lib/queryKeys";
 import { Skeleton } from "@/components/ui/skeleton";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { cn } from "@/lib/utils";
+import { useStore } from "@/lib/store-api";
+import { COMPONENT_VARIANT_DEFS } from "@/lib/store-registry";
 
 function CardShell({ children, className, testId }: { children: React.ReactNode; className?: string; testId?: string }) {
   return (
@@ -43,12 +45,28 @@ function CardShell({ children, className, testId }: { children: React.ReactNode;
   );
 }
 
-function CardHead({ label }: { label: string }) {
+function CardHead({ label, className }: { label: string; className?: string }) {
   return (
     <div className="flex items-start justify-between mb-5">
-      <TechnicalLabel text={label} className="text-muted-foreground text-xs pt-1" />
+      <TechnicalLabel text={label} className={cn("text-muted-foreground text-xs pt-1", className)} />
     </div>
   );
+}
+
+/**
+ * Store integration: resolves the user's ACTIVE dashboard_cards variant from
+ * /api/store and maps it to className overlays. Layout/limits use !important
+ * overrides only — responsive behavior and content stay intact. Absent or
+ * unowned variants fall back to Thorx classic.
+ */
+function useDashboardCardVariant(): { card: string; head: string; value: string } | null {
+  const { data } = useStore();
+  const activeId = data?.active.components?.dashboard_cards;
+  if (!activeId) return null;
+  const item = data?.items.find((i) => i.id === activeId && i.owned);
+  const def = item ? COMPONENT_VARIANT_DEFS[item.refKey] : null;
+  if (!def || def.componentType !== "dashboard_cards") return null;
+  return { card: def.cardClass, head: def.headClass, value: def.valueClass };
 }
 
 export function DashboardCards() {
