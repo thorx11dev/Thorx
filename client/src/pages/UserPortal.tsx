@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { retryLazy } from "@/lib/retryLazy";
+const StoreSection = retryLazy(() =>
+  import("@/components/store/StoreSection").then((m) => ({ default: m.default }))
+);
 const PayoutSection = retryLazy(() =>
   import("@/features/user-portal/sections/PayoutSection").then((m) => ({ default: m.PayoutSection }))
 );
