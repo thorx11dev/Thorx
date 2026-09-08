@@ -2771,10 +2771,10 @@ export class DatabaseStorage implements IStorage {
         userId: params.userId,
         itemId: params.itemId,
         pricePoints: price,
-        idempotencyKey: params.idempotencyKey ?? null,
+        idempotencyKey: params.idempotencyKey ?? undefined,
       });
 
-      return { outcome: "purchased" as const, item, txPointsBalance: updatedUser.balance };
+      return { outcome: "purchased" as const, item, txPointsBalance: updatedUser.balance ?? 0 };
     });
   }
 
