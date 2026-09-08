@@ -160,13 +160,17 @@ describe("THORX Store", () => {
     expect(state.body.active.components.dashboard_cards).toBe(minimal.id);
 
     // Deactivate theme → default theme back, ownership preserved, component slot untouched
+    // (NOTE: activate/deactivate responses expose the raw storage shape:
+    //  {activeThemeItemId, activeComponents}; GET /api/store remaps to
+    //  {themeItemId, components}.)
     const off = await agent.post("/api/store/deactivate").send({ itemId: midnight.id });
     expect(off.status).toBe(200);
-    expect(off.body.active?.themeItemId ?? null).toBeNull();
-    expect(off.body.active.components.dashboard_cards).toBe(minimal.id);
+    expect(off.body.active.activeThemeItemId ?? null).toBeNull();
+    expect(off.body.active.activeComponents.dashboard_cards).toBe(minimal.id);
 
     const final = await agent.get("/api/store");
     expect(final.body.active.themeItemId).toBeNull();
+    expect(final.body.active.components.dashboard_cards).toBe(minimal.id);
     expect(final.body.ownedItemIds.length).toBe(2);
   });
 
