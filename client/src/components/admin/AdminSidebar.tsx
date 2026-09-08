@@ -30,8 +30,9 @@ const adminSections = [
   { id: "inbox",        name: "INBOX",         icon: Mail          },
   { id: "audit",        name: "AUDIT LOGS",    icon: ScrollText    },
   { id: "team",         name: "TEAM KEYS",     icon: ShieldCheck   },
-  { id: "finance",      name: "FINANCE",       icon: Wallet        },
-  { id: "settings",     name: "SETTINGS",      icon: Settings      },
+  { id: "finance",      name: "FINANCE",      icon: Wallet        },
+  { id: "store",        name: "STORE",        icon: Settings      },
+  { id: "settings",     name: "SETTINGS",     icon: Settings      },
 ];
 
 export function AdminNavigation({ activeSection, onSectionChange, onLogout, className }: AdminSidebarProps) {
