@@ -13,41 +13,49 @@ export interface ThemeDef {
   tagline: string;
   description: string;
   /** Mini-preview swatch colors (store UI only — not applied to the app). */
-  preview: { bg: string; surface: string; ink: string; accent: string; border: string; radius: string };
+  preview: { bg: string; surface: string; ink: string; accent: string; border: string; radius?: string };
 }
 
 export const THEME_DEFS: Record<string, ThemeDef> = {
-  theme_midnight: {
-    refKey: "theme_midnight",
-    title: "Midnight Foundry",
-    tagline: "Deep-space dark · steel glow",
+  theme_blueprint: {
+    refKey: "theme_blueprint",
+    title: "Blueprint",
+    tagline: "Technical paper · drafting grid",
     description:
-      "A premium dark environment: near-black blue steel surfaces, glowing cobalt accents and floating depth. Built for night owls and long sessions.",
-    preview: { bg: "#0B0E17", surface: "#121626", ink: "#E7EAF3", accent: "#6E8BFF", border: "#2A3152", radius: "12px" },
+      "An architect's canvas: warm technical paper with a faint drafting grid, hairline rules, blueprint-blue signals and near-sharp precision corners. Thorx as a studio instrument.",
+    preview: { bg: "#F6F4EE", surface: "#FCFBF8", ink: "#1C1F24", accent: "#2F5AA8", border: "#DCD8CC", radius: "4px" },
   },
-  theme_nordic: {
-    refKey: "theme_nordic",
-    title: "Nordic Frost",
-    tagline: "Calm light · ink & sage",
+  theme_pitch: {
+    refKey: "theme_pitch",
+    title: "Pitch Black",
+    tagline: "Brutalist dark · acid signal",
     description:
-      "A quiet, airy light system: warm paper surfaces, ink typography, hairline borders and a grounded sage accent. Max focus, zero noise.",
-    preview: { bg: "#F4F4F1", surface: "#FFFFFF", ink: "#1C2420", accent: "#2F6F62", border: "#D8DAD3", radius: "14px" },
+      "Pure brutalist energy: pitch-black surfaces, razor-sharp edges, oversized type presence and a single acid-lime signal carrying every highlight. For users who like it loud.",
+    preview: { bg: "#0A0A0A", surface: "#121212", ink: "#F2F2ED", accent: "#C6F135", border: "#262626", radius: "0px" },
   },
-  theme_ember: {
-    refKey: "theme_ember",
-    title: "Ember Editorial",
-    tagline: "Paper & ink · sharp serif",
+  theme_stage: {
+    refKey: "theme_stage",
+    title: "Stage Light",
+    tagline: "Gallery white · serif display",
     description:
-      "An editorial design language: cream paper, high-contrast ink, razor-sharp corners and a burning ember accent. Typography leads, everything else follows.",
-    preview: { bg: "#F3EDDF", surface: "#FBF7EC", ink: "#1B1610", accent: "#C2451E", border: "#C9BEA4", radius: "0px" },
+      "A monochrome editorial stage: gallery white, ink-black type in serif display, hairline frames and zero-radius gallery framing. Headline-grade typography everywhere.",
+    preview: { bg: "#FAFAF7", surface: "#FFFFFF", ink: "#141414", accent: "#141414", border: "#E5E4DE", radius: "0px" },
   },
-  theme_velvet: {
-    refKey: "theme_velvet",
-    title: "Velvet Luxe",
-    tagline: "Plum depth · warm gold",
+  theme_scrapbook: {
+    refKey: "theme_scrapbook",
+    title: "Sticker Album",
+    tagline: "Bubblegum joy · sticker outlines",
     description:
-      "A rich, luxurious environment: plum-graphite surfaces, warm gold accents and jewel-toned depth. Your Thorx, dressed for the evening.",
-    preview: { bg: "#14101B", surface: "#1D1727", ink: "#F1EAD8", accent: "#C9A227", border: "#332A44", radius: "6px" },
+      "A playful scrapbook world: warm cream pages, deep-plum sticker outlines, bubblegum-pink signals and chunky soft cards. Your Thorx, with the personality turned all the way up.",
+    preview: { bg: "#FDF3E7", surface: "#FFFFFF", ink: "#2D2440", accent: "#FF5C8A", border: "#2D2440", radius: "20px" },
+  },
+  theme_terminal: {
+    refKey: "theme_terminal",
+    title: "Quiet Terminal",
+    tagline: "Lab dark · mono type · restrained cyan",
+    description:
+      "A focused lab environment: neutral near-black surfaces, monospace display type, data-dense calm and a restrained cyan signal. Built for long, deep work sessions.",
+    preview: { bg: "#0F1113", surface: "#16191D", ink: "#DCE1E6", accent: "#62C1CE", border: "#262B31", radius: "4px" },
   },
 };
 
