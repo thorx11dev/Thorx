@@ -2818,7 +2818,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Activate: itemId must be OWNED (null = revert to default). Component
-  // activation also verifies the item's type matches the component slot.
+  // activation keys the slot by componentType (stored in `category` for
+  // component items) so variants replace each other within the same slot.
   async activateStoreItem(params: { userId: string; itemId: string }): Promise<{ activeThemeItemId: string | null; activeComponents: Record<string, string> }> {
     const item = await this.getStoreItem(params.itemId);
     if (!item) throw new Error("STORE_ITEM_NOT_FOUND");
@@ -2832,8 +2833,9 @@ export class DatabaseStorage implements IStorage {
     if (item.itemType === "theme") {
       return await this.upsertCustomization(params.userId, { activeThemeItemId: params.itemId });
     }
+    const slot = item.category; // componentType for component items
     const current = await this.getUserStoreOwnership(params.userId);
-    const activeComponents = { ...current.activeComponents, [item.refKey]: params.itemId };
+    const activeComponents = { ...current.activeComponents, [slot]: params.itemId };
     return await this.upsertCustomization(params.userId, { activeComponents });
   }
 
@@ -2843,9 +2845,10 @@ export class DatabaseStorage implements IStorage {
     if (item.itemType === "theme") {
       return await this.upsertCustomization(params.userId, { activeThemeItemId: null });
     }
+    const slot = item.category;
     const current = await this.getUserStoreOwnership(params.userId);
     const activeComponents = { ...current.activeComponents };
-    delete activeComponents[item.refKey];
+    delete activeComponents[slot];
     return await this.upsertCustomization(params.userId, { activeComponents });
   }
 
