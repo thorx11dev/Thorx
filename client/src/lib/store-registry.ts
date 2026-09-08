@@ -83,7 +83,7 @@ export const COMPONENT_VARIANT_DEFS: Record<string, ComponentVariantDef> = {
     // Border removed → thin top rule; transparent surface lets the page
     // background breathe (true editorial column, not a box).
     cardClass:
-      "!rounded-none !border-0 !bg-transparent !shadow-none hover:!shadow-none !border-t-2 !border-t-[var(--tone-black)] px-0 md:px-2 pt-5",
+      "!rounded-none !border-0 !bg-transparent !shadow-none hover:!shadow-none !border-t-2 !border-t-[rgb(var(--tone-black))] px-0 md:px-2 pt-5",
     headClass: "!mb-4 !text-[10px] !tracking-[0.35em] font-mono",
     valueClass: "!text-5xl md:!text-6xl !tracking-tighter font-serif !font-black",
     preview: { bg: "#F4F4F1", surface: "#FFFFFF", ink: "#141413", accent: "#141413", border: "#141413", radius: "0px" },
@@ -96,7 +96,7 @@ export const COMPONENT_VARIANT_DEFS: Record<string, ComponentVariantDef> = {
     description:
       "Experimental brutalism: a heavy 3px ink frame, an uncompromising offset shadow and a paper-white face. Loud, confident, impossible to miss.",
     cardClass:
-      "!rounded-lg !border-[3px] !border-[var(--tone-black)] !shadow-[6px_6px_0px_0px_var(--tone-black)] hover:!shadow-[9px_9px_0px_0px_var(--tone-black)]",
+      "!rounded-lg !border-[3px] !border-[rgb(var(--tone-black))] !shadow-[6px_6px_0px_0px_rgb(var(--tone-black))] hover:!shadow-[9px_9px_0px_0px_rgb(var(--tone-black))]",
     headClass: "!tracking-[0.3em]",
     valueClass: "!text-4xl md:!text-5xl !tracking-tighter",
     preview: { bg: "#FAF9F5", surface: "#FFFFFF", ink: "#141413", accent: "#D97757", border: "#141413", radius: "8px" },
