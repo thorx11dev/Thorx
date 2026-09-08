@@ -1227,6 +1227,7 @@ export default function UserPortal() {
                 { title: sections[4].name, icon: sections[4].icon },
                 { title: sections[5].name, icon: sections[5].icon },
                 { title: sections[6].name, icon: sections[6].icon },
+                { title: sections[7].name, icon: sections[7].icon },
               ]}
             />
           </div>
