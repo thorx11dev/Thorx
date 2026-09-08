@@ -274,24 +274,6 @@ export default function UserPortal() {
     }
   }, [user?.id]);
 
-  // Store: apply the user's ACTIVE theme to <html data-theme>. Default =
-  // attribute removed (Thorx classic tokens). Invalid/unowned ids never
-  // apply (server is the source of truth; the registry owns the visuals).
-  const { data: storeData } = useQuery<StoreResponse>({
-    queryKey: QUERY_KEYS.store,
-    staleTime: 30_000,
-    retry: false,
-  });
-  useEffect(() => {
-    const themeId = storeData?.active?.themeItemId;
-    const themeItem = storeData?.items.find((i) => i.id === themeId && i.itemType === "theme");
-    if (themeItem && THEME_DEFS[themeItem.refKey]) {
-      document.documentElement.setAttribute("data-theme", themeItem.refKey);
-    } else {
-      document.documentElement.removeAttribute("data-theme");
-    }
-  }, [storeData?.active?.themeItemId, storeData?.items]);
-
   // Manual data sync — invalidates every user-portal query so each section
   // refetches on demand (per-section SYNC buttons) without a hard reload.
   // Returns a promise so SYNC buttons keep the "SYNCING" state until the
