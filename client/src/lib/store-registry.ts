@@ -81,7 +81,7 @@ export const COMPONENT_VARIANT_DEFS: Record<string, ComponentVariantDef> = {
     cardClass: "!rounded-none !border-0 border-t-2 border-t-black/70 bg-transparent !shadow-none px-0 md:px-2",
     headClass: "!mb-3 tracking-[0.35em]",
     valueClass: "!text-4xl md:!text-6xl !tracking-tighter font-serif",
-    preview: { surface: "#FFFFFF", ink: "#141413", accent: "#141413", border: "#141413" },
+    preview: { bg: "#F4F4F1", surface: "#FFFFFF", ink: "#141413", accent: "#141413", border: "#141413", radius: "0px" },
   },
   dashboard_cards_brutal: {
     refKey: "dashboard_cards_brutal",
@@ -93,7 +93,7 @@ export const COMPONENT_VARIANT_DEFS: Record<string, ComponentVariantDef> = {
     cardClass: "!rounded-lg !border-[3px] !border-black !shadow-[6px_6px_0px_0px_rgba(20,20,19,1)]",
     headClass: "!tracking-[0.3em]",
     valueClass: "!text-4xl !tracking-tighter",
-    preview: { surface: "#FFFFFF", ink: "#141413", accent: "#D97757", border: "#141413" },
+    preview: { bg: "#FAF9F5", surface: "#FFFFFF", ink: "#141413", accent: "#D97757", border: "#141413", radius: "8px" },
   },
   dashboard_cards_minimal: {
     refKey: "dashboard_cards_minimal",
@@ -105,7 +105,7 @@ export const COMPONENT_VARIANT_DEFS: Record<string, ComponentVariantDef> = {
     cardClass: "!border-0 !shadow-[0_2px_16px_rgba(20,20,19,0.07)] hover:!shadow-[0_8px_28px_rgba(20,20,19,0.10)]",
     headClass: "!mb-4 !text-black/40",
     valueClass: "!text-3xl md:!text-4xl !tracking-tight",
-    preview: { surface: "#FFFFFF", ink: "#141413", accent: "#8A8A85", border: "#E5E2D6" },
+    preview: { bg: "#F7F6F1", surface: "#FFFFFF", ink: "#141413", accent: "#8A8A85", border: "#E5E2D6", radius: "16px" },
   },
 };
 
