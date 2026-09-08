@@ -431,6 +431,77 @@ export type InsertSurveyRecord = typeof surveyRecords.$inferInsert;
 export type LeaderboardCache = typeof leaderboardCache.$inferSelect;
 export type InsertLeaderboardCache = typeof leaderboardCache.$inferInsert;
 
+// ── THORX Store — design-system marketplace (themes + component variants) ────
+// Catalog is metadata-only: visual definitions live in the validated client
+// registry (client/src/lib/store-registry.ts) keyed by ref_key. Admin edits
+// NEVER inject code into the browser — store config is a controlled
+// design-system marketplace, not an arbitrary-code marketplace (Spec §17).
+//   status: 'draft' | 'published' | 'unpublished' | 'archived'
+//           (draft/archived never exposed to normal users)
+export const storeItems = pgTable("store_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  itemType: text("item_type").notNull(), // 'theme' | 'component'
+  refKey: text("ref_key").notNull(),     // validated registry key (e.g. theme_midnight)
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  category: text("category").notNull().default("general"),
+  pricePoints: integer("price_points").notNull().default(0), // TX-Points; 0 = free
+  status: text("status").notNull().default("draft"),
+  featured: boolean("featured").notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(100),
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("store_items_type_status_idx").on(table.itemType, table.status),
+  unique("uniq_store_items_ref_key").on(table.refKey),
+]);
+export type StoreItem = typeof storeItems.$inferSelect;
+export type InsertStoreItem = typeof storeItems.$inferInsert;
+
+// Ownership — UNIQUE(userId, itemId) makes double-purchase impossible at the
+// index level even under concurrent/retried purchase requests.
+export const userStoreItems = pgTable("user_store_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  itemId: varchar("item_id").notNull().references(() => storeItems.id, { onDelete: "cascade" }),
+  purchasedAt: timestamp("purchased_at").notNull().defaultNow(),
+}, (table) => [
+  unique("uniq_user_store_items").on(table.userId, table.itemId),
+  index("user_store_items_user_idx").on(table.userId),
+]);
+export type UserStoreItem = typeof userStoreItems.$inferSelect;
+
+// Activation — OWNED ≠ ACTIVE. One row per user; activeComponentsJson maps
+// componentType → owned store-item id (or absence = default variant).
+export const userCustomization = pgTable("user_customization", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  activeThemeItemId: varchar("active_theme_item_id").references(() => storeItems.id, { onDelete: "set null" }),
+  activeComponentsJson: jsonb("active_components_json").notNull().default({}),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("user_customization_user_idx").on(table.userId),
+]);
+export type UserCustomization = typeof userCustomization.$inferSelect;
+
+// Store spend ledger — one row per TX-Points deduction. The authoritative
+// balance is users.tx_points_balance; this row is the audit trail (the earn
+// ledger user_transactions stays untouched so withdrawal FIFO math is never
+// affected by store spending).
+export const storeTransactions = pgTable("store_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  itemId: varchar("item_id").notNull().references(() => storeItems.id, { onDelete: "restrict" }),
+  pricePoints: integer("price_points").notNull(),
+  idempotencyKey: varchar("idempotency_key", { length: 64 }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("store_transactions_user_idx").on(table.userId, table.createdAt),
+  unique("uniq_store_transactions_idem").on(table.userId, table.idempotencyKey),
+]);
+export type StoreTransaction = typeof storeTransactions.$inferSelect;
+
 // Chat messages for support chatbot
 export const chatMessages = pgTable("chat_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
