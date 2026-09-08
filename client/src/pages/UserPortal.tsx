@@ -234,6 +234,7 @@ const sections = [
   { id: "work", name: "Work", icon: Briefcase },
   { id: "referrals", name: "Team", icon: Network },
   { id: "guild", name: "Guild", icon: Castle },
+  { id: "store", name: "Store", icon: ShoppingBag },
   { id: "payout", name: "Payout", icon: Landmark },
   { id: "help", name: "Help", icon: Headphones },
   { id: "ranks", name: "Chart", icon: Trophy },
