@@ -32,14 +32,15 @@ import { logger } from "../lib/logger";
 // A catalog entry whose ref_key is not listed here is rejected — this is what
 // makes admin input safe: unknown keys cannot render.
 export const THEME_REGISTRY_KEYS = [
-  "theme_midnight",
-  "theme_nordic",
-  "theme_ember",
-  "theme_velvet",
+  "theme_blueprint",
+  "theme_pitch",
+  "theme_stage",
+  "theme_scrapbook",
+  "theme_terminal",
 ] as const;
 
 export const COMPONENT_VARIANT_REGISTRY: Record<string, string[]> = {
-  dashboard_cards: ["dashboard_cards_editorial", "dashboard_cards_brutal", "dashboard_cards_minimal"],
+  dashboard_cards: ["dashboard_cards_serif", "dashboard_cards_mono", "dashboard_cards_sticker"],
 };
 
 function isKnownRefKey(itemType: string, refKey: string, componentType?: string): boolean {
