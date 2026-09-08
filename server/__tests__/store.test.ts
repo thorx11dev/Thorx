@@ -74,7 +74,7 @@ describe("THORX Store", () => {
     const { agent, userId } = await registerUser("buy");
     const list = await agent.get("/api/store");
     expect(list.status).toBe(200);
-    const midnight = list.body.items.find((i: any) => i.refKey === "theme_midnight");
+    const midnight = list.body.items.find((i: any) => i.refKey === "theme_pitch");
     expect(midnight).toBeTruthy();
     expect(midnight.owned).toBe(false);
 
@@ -84,7 +84,7 @@ describe("THORX Store", () => {
     expect(buy.body.txPointsBalance).toBe(100000 - midnight.pricePoints);
 
     const after = await agent.get("/api/store");
-    const midnightAfter = after.body.items.find((i: any) => i.refKey === "theme_midnight");
+    const midnightAfter = after.body.items.find((i: any) => i.refKey === "theme_pitch");
     expect(midnightAfter.owned).toBe(true);
     expect(after.body.ownedItemIds).toContain(midnight.id);
   });
@@ -92,7 +92,7 @@ describe("THORX Store", () => {
   it("idempotent replay (same key) returns duplicate_request without second charge", async () => {
     const { agent } = await registerUser("idem", 500000);
     const list = await agent.get("/api/store");
-    const nordic = list.body.items.find((i: any) => i.refKey === "theme_nordic");
+    const nordic = list.body.items.find((i: any) => i.refKey === "theme_blueprint");
     const key = crypto.randomUUID();
 
     const first = await agent.post("/api/store/purchase").send({ itemId: nordic.id, idempotencyKey: key });
@@ -106,7 +106,7 @@ describe("THORX Store", () => {
   it("already-owned purchase is acknowledged without a second charge", async () => {
     const { agent } = await registerUser("own", 500000);
     const list = await agent.get("/api/store");
-    const brutal = list.body.items.find((i: any) => i.refKey === "dashboard_cards_brutal");
+    const brutal = list.body.items.find((i: any) => i.refKey === "dashboard_cards_sticker");
 
     await agent.post("/api/store/purchase").send({ itemId: brutal.id, idempotencyKey: crypto.randomUUID() });
     const second = await agent.post("/api/store/purchase").send({ itemId: brutal.id, idempotencyKey: crypto.randomUUID() });
@@ -117,7 +117,7 @@ describe("THORX Store", () => {
   it("concurrent double-click charges exactly once", async () => {
     const { agent } = await registerUser("race", 500000);
     const list = await agent.get("/api/store");
-    const editorial = list.body.items.find((i: any) => i.refKey === "dashboard_cards_editorial");
+    const editorial = list.body.items.find((i: any) => i.refKey === "dashboard_cards_serif");
 
     const [a, b] = await Promise.all([
       agent.post("/api/store/purchase").send({ itemId: editorial.id, idempotencyKey: crypto.randomUUID() }),
@@ -131,7 +131,7 @@ describe("THORX Store", () => {
   it("insufficient balance is rejected cleanly", async () => {
     const { agent } = await registerUser("poor", 10);
     const list = await agent.get("/api/store");
-    const velvet = list.body.items.find((i: any) => i.refKey === "theme_velvet");
+    const velvet = list.body.items.find((i: any) => i.refKey === "theme_terminal");
     const res = await agent.post("/api/store/purchase").send({ itemId: velvet.id, idempotencyKey: crypto.randomUUID() });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe("INSUFFICIENT_TX_POINTS");
@@ -140,8 +140,8 @@ describe("THORX Store", () => {
   it("activation requires ownership and separates theme/component slots", async () => {
     const { agent } = await registerUser("act", 500000);
     const list = await agent.get("/api/store");
-    const midnight = list.body.items.find((i: any) => i.refKey === "theme_midnight");
-    const minimal = list.body.items.find((i: any) => i.refKey === "dashboard_cards_minimal");
+    const midnight = list.body.items.find((i: any) => i.refKey === "theme_pitch");
+    const minimal = list.body.items.find((i: any) => i.refKey === "dashboard_cards_mono");
 
     // Activate before owning → forbidden
     const stolen = await agent.post("/api/store/activate").send({ itemId: midnight.id });
@@ -179,7 +179,7 @@ describe("THORX Store", () => {
     const res = await agent.get("/api/admin/store/items");
     expect(res.status).toBe(403);
     const create = await agent.post("/api/admin/store/items").send({
-      itemType: "theme", refKey: "theme_midnight", title: "Sneaky", pricePoints: 0,
+      itemType: "theme", refKey: "theme_pitch", title: "Sneaky", pricePoints: 0,
     });
     expect(create.status).toBe(403);
   });
