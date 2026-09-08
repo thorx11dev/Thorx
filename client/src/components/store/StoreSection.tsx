@@ -18,24 +18,51 @@ import { captureEvent } from "@/lib/posthog";
 type StoreTab = "themes" | "components" | "collection";
 
 function PreviewStrip({ p }: { p: { bg: string; surface: string; ink: string; accent: string; border: string; radius?: string } }) {
-  // Mini Thorx dashboard mock — built from the item's own tokens.
+  // Mini Thorx dashboard mock — top nav + stat cards + a list row, all built
+  // from the item's own tokens so the preview IS the design system.
+  const r = p.radius ?? "8px";
   return (
-    <div className="h-24 rounded-xl overflow-hidden border-2 p-2.5 flex flex-col gap-2" style={{ background: p.bg, borderColor: p.border }}>
-      <div className="flex gap-1.5">
-        <span className="h-2 w-8 rounded-full" style={{ background: p.accent }} />
-        <span className="h-2 w-5 rounded-full opacity-40" style={{ background: p.ink }} />
+    <div
+      className="h-28 rounded-xl overflow-hidden border-2 p-3 flex flex-col gap-2.5"
+      style={{ background: p.bg, borderColor: p.border }}
+    >
+      {/* top nav */}
+      <div
+        className="flex items-center justify-between px-2.5 py-1.5"
+        style={{ background: p.surface, border: `1px solid ${p.border}`, borderRadius: r }}
+      >
+        <span className="text-[8px] font-black tracking-tighter" style={{ color: p.ink }}>THORX.</span>
+        <div className="flex gap-1.5">
+          <span className="h-1.5 w-6 rounded-full" style={{ background: p.accent }} />
+          <span className="h-1.5 w-6 rounded-full opacity-25" style={{ background: p.ink }} />
+          <span className="h-1.5 w-6 rounded-full opacity-25" style={{ background: p.ink }} />
+        </div>
       </div>
-      <div className="flex gap-2 flex-1">
-        <div className="flex-1 rounded-lg p-2 flex flex-col justify-between" style={{ background: p.surface, border: `1px solid ${p.border}`, borderRadius: p.radius ?? "8px" }}>
-          <span className="text-[6px] font-black uppercase tracking-widest opacity-50" style={{ color: p.ink }}>Balance</span>
-          <span className="text-xs font-black tabular-nums" style={{ color: p.ink }}>12,480</span>
-          <span className="h-1.5 w-full rounded-full opacity-80" style={{ background: p.accent }} />
-        </div>
-        <div className="flex-1 rounded-lg p-2 flex flex-col justify-between" style={{ background: p.surface, border: `1px solid ${p.border}`, borderRadius: p.radius ?? "8px" }}>
-          <span className="text-[6px] font-black uppercase tracking-widest opacity-50" style={{ color: p.ink }}>Rank</span>
-          <span className="text-xs font-black" style={{ color: p.accent }}>C-RANK</span>
-          <span className="h-1.5 w-2/3 rounded-full opacity-30" style={{ background: p.ink }} />
-        </div>
+      {/* stat cards */}
+      <div className="flex gap-2 flex-1 min-h-0">
+        {[
+          { label: "BALANCE", value: "12,480", bar: true },
+          { label: "RANK", value: "C-RANK", bar: false },
+          { label: "TEAM", value: "27", bar: false },
+        ].map((c, i) => (
+          <div
+            key={c.label}
+            className="flex-1 rounded-lg p-2 flex flex-col justify-between min-w-0"
+            style={{ background: p.surface, border: `1px solid ${p.border}`, borderRadius: r }}
+          >
+            <span className="text-[5px] font-black uppercase tracking-[0.2em] opacity-50 truncate" style={{ color: p.ink }}>{c.label}</span>
+            <span
+              className="text-[11px] font-black tabular-nums leading-none truncate"
+              style={{ color: i === 0 ? p.accent : p.ink, fontSize: i === 1 ? "9px" : undefined }}
+            >
+              {c.value}
+            </span>
+            <span
+              className="h-1 w-full rounded-full"
+              style={{ background: i === 0 ? p.accent : p.ink, opacity: i === 0 ? 0.9 : 0.18 }}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
