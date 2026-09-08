@@ -1,0 +1,178 @@
+/* ══ THORX STORE — Theme tokens (v2: reference-grade design languages) ═════
+   Each [data-theme] is a complete design system. Tailwind's black/white
+   resolve through --tone-* (channel triplets), so EVERY alpha utility in the
+   app re-skins automatically. Only tokens + a few safe global treatments
+   (heading font, body grid) — never layout. */
+
+/* ── theme_blueprint — "Blueprint" ──────────────────────────────────────────
+   Inspired by architectural-studio sites (illoca): warm technical paper,
+   hairline rules, blueprint-blue signal, near-sharp precision corners. */
+[data-theme="theme_blueprint"] {
+  --background: #F6F4EE;
+  --foreground: #1C1F24;
+  --card: #FCFBF8;
+  --card-foreground: #1C1F24;
+  --popover: #FCFBF8;
+  --popover-foreground: #1C1F24;
+  --primary: #2F5AA8;
+  --primary-foreground: #FCFBF8;
+  --secondary: #1C1F24;
+  --secondary-foreground: #FCFBF8;
+  --muted: #EFEDE4;
+  --muted-foreground: #6E7178;
+  --accent: #2F5AA8;
+  --accent-foreground: #FCFBF8;
+  --destructive: #B3402A;
+  --destructive-foreground: #FCFBF8;
+  --border: #DCD8CC;
+  --input: #F0EEE6;
+  --ring: #2F5AA8;
+  --shadow-panel: 0 1px 3px rgba(28, 31, 36, 0.05), 0 10px 30px rgba(28, 31, 36, 0.05);
+  --radius: 0.25rem;
+  --tone-black: 28 31 36;
+  --tone-white: 252 251 248;
+}
+/* Technical drafting grid — background-only, zero layout impact. */
+[data-theme="theme_blueprint"] body {
+  background-image:
+    linear-gradient(rgba(28, 31, 36, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(28, 31, 36, 0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ── theme_pitch — "Pitch Black" ────────────────────────────────────────────
+   Inspired by bold dark personal brands (zero.university): brutalist
+   pitch-black, razor corners, one acid signal color carrying all energy. */
+[data-theme="theme_pitch"] {
+  --background: #0A0A0A;
+  --foreground: #F2F2ED;
+  --card: #121212;
+  --card-foreground: #F2F2ED;
+  --popover: #161616;
+  --popover-foreground: #F2F2ED;
+  --primary: #C6F135;
+  --primary-foreground: #0A0A0A;
+  --secondary: #1D1D1D;
+  --secondary-foreground: #F2F2ED;
+  --muted: #151515;
+  --muted-foreground: #A3A39E;
+  --accent: #C6F135;
+  --accent-foreground: #0A0A0A;
+  --destructive: #FF5C5C;
+  --destructive-foreground: #0A0A0A;
+  --border: #262626;
+  --input: #1A1A1A;
+  --ring: #C6F135;
+  --shadow-panel: 0 24px 60px rgba(0, 0, 0, 0.6);
+  --radius: 0rem;
+  --tone-black: 22 22 22;
+  --tone-white: 242 242 237;
+  color-scheme: dark;
+}
+[data-theme="theme_pitch"] .hover\:bg-black:hover { background-color: #1D1D1D; }
+[data-theme="theme_pitch"] .hover\:bg-black:hover.hover\:text-white:hover { color: #F2F2ED; }
+[data-theme="theme_pitch"] .hover\:bg-white:hover { background-color: #1A1A1A; }
+[data-theme="theme_pitch"] .bg-black\/5 { background-color: rgba(242, 242, 237, 0.06); }
+[data-theme="theme_pitch"] .hover\:bg-black\/\[0\.05\]:hover { background-color: rgba(242, 242, 237, 0.09); }
+
+/* ── theme_stage — "Stage Light" ────────────────────────────────────────────
+   Inspired by premium editorial celebrity sites (trevornoah.com): gallery
+   white, ink monochrome, serif display type, razor-sharp frames. */
+[data-theme="theme_stage"] {
+  --background: #FAFAF7;
+  --foreground: #141414;
+  --card: #FFFFFF;
+  --card-foreground: #141414;
+  --popover: #FFFFFF;
+  --popover-foreground: #141414;
+  --primary: #141414;
+  --primary-foreground: #FFFFFF;
+  --secondary: #141414;
+  --secondary-foreground: #FFFFFF;
+  --muted: #F0F0EB;
+  --muted-foreground: #6E6E68;
+  --accent: #141414;
+  --accent-foreground: #FFFFFF;
+  --destructive: #B3261E;
+  --destructive-foreground: #FFFFFF;
+  --border: #E5E4DE;
+  --input: #F2F2ED;
+  --ring: #141414;
+  --shadow-panel: 0 1px 2px rgba(20, 20, 20, 0.04), 0 12px 36px rgba(20, 20, 20, 0.06);
+  --radius: 0rem;
+  --tone-black: 20 20 20;
+  --tone-white: 255 255 255;
+  --font-display: Georgia, 'Times New Roman', serif;
+}
+[data-theme="theme_stage"] h1,
+[data-theme="theme_stage"] h2,
+[data-theme="theme_stage"] h3 { font-family: var(--font-display); letter-spacing: -0.01em; }
+
+/* ── theme_scrapbook — "Sticker Album" ──────────────────────────────────────
+   Inspired by playful Y2K author sites (rozaliabomawrites): warm cream, deep
+   plum ink outlines (sticker language), bubblegum signal, big soft radius. */
+[data-theme="theme_scrapbook"] {
+  --background: #FDF3E7;
+  --foreground: #2D2440;
+  --card: #FFFFFF;
+  --card-foreground: #2D2440;
+  --popover: #FFFFFF;
+  --popover-foreground: #2D2440;
+  --primary: #FF5C8A;
+  --primary-foreground: #FFFFFF;
+  --secondary: #2D2440;
+  --secondary-foreground: #FFFFFF;
+  --muted: #F6ECF6;
+  --muted-foreground: #6E6486;
+  --accent: #FF5C8A;
+  --accent-foreground: #FFFFFF;
+  --destructive: #E23D3D;
+  --destructive-foreground: #FFFFFF;
+  --border: #2D2440;
+  --input: #FBF1E4;
+  --ring: #FF5C8A;
+  --shadow-panel: 0 4px 0 rgba(45, 36, 64, 0.9), 0 18px 40px rgba(45, 36, 64, 0.12);
+  --radius: 1.25rem;
+  --tone-black: 45 36 64;
+  --tone-white: 255 255 255;
+}
+
+/* ── theme_terminal — "Quiet Terminal" ──────────────────────────────────────
+   Inspired by infinite-canvas lab tools (plnty.app): neutral dark, mono
+   type, restrained cyan signal, dense calm surfaces. */
+[data-theme="theme_terminal"] {
+  --background: #0F1113;
+  --foreground: #DCE1E6;
+  --card: #16191D;
+  --card-foreground: #DCE1E6;
+  --popover: #191D22;
+  --popover-foreground: #DCE1E6;
+  --primary: #62C1CE;
+  --primary-foreground: #0F1113;
+  --secondary: #21262C;
+  --secondary-foreground: #DCE1E6;
+  --muted: #14171B;
+  --muted-foreground: #8B939C;
+  --accent: #62C1CE;
+  --accent-foreground: #0F1113;
+  --destructive: #E4707E;
+  --destructive-foreground: #0F1113;
+  --border: #262B31;
+  --input: #1B2026;
+  --ring: #62C1CE;
+  --shadow-panel: 0 20px 50px rgba(0, 0, 0, 0.5);
+  --radius: 0.25rem;
+  --tone-black: 22 25 29;
+  --tone-white: 220 225 230;
+  --font-display: 'Courier New', ui-monospace, monospace;
+  color-scheme: dark;
+}
+[data-theme="theme_terminal"] h1,
+[data-theme="theme_terminal"] h2,
+[data-theme="theme_terminal"] h3 { font-family: var(--font-display); letter-spacing: -0.02em; }
+[data-theme="theme_terminal"] .hover\:bg-black:hover { background-color: #21262C; }
+[data-theme="theme_terminal"] .hover\:bg-black:hover.hover\:text-white:hover { color: #DCE1E6; }
+[data-theme="theme_terminal"] .hover\:bg-white:hover { background-color: #1B2026; }
+[data-theme="theme_terminal"] .bg-black\/5 { background-color: rgba(220, 225, 230, 0.06); }
+[data-theme="theme_terminal"] .hover\:bg-black\/\[0\.05\]:hover { background-color: rgba(220, 225, 230, 0.09); }
+
