@@ -100,4 +100,7 @@ export const QUERY_KEYS = {
 
   // ── Public config (unauthenticated — conversionRate, fees, goal) ─────────
   publicConfig:          ["/api/config/public"]                as const,
+
+  // ── Store (themes + component variants) ──────────────────────────────────
+  store:                 ["/api/store"]                        as const,
 } as const;
