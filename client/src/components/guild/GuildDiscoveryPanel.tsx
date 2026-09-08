@@ -280,6 +280,15 @@ export function GuildDiscoveryPanel() {
     setCoverLetter("");
   };
 
+  /* Disabled-state label: "N/A" was cryptic — say WHY the user can't apply.
+     Priority: already applied > already in a guild > rank gate > closed. */
+  const applyBlockedLabel = (guild: GuildDiscovery): { icon: React.ReactNode; text: string; title: string } => {
+    if (inGuild) return { icon: <ShieldCheck className="size-3" />, text: "In Guild", title: "You are already in a guild — leave it before applying elsewhere" };
+    if (rankBlocked) return { icon: <Lock className="size-3" />, text: "Rank Locked", title: `Requires ${guild.minRankRequired || "a higher rank"}` };
+    if (!guild.recruitmentOpen) return { icon: <Lock className="size-3" />, text: "Closed", title: "This guild is not recruiting right now" };
+    return { icon: <Lock className="size-3" />, text: "N/A", title: "Not available" };
+  };
+
   const submitApplication = () => {
     if (!applyingTo) return;
     if (coverLetter.trim().length < 50) {
