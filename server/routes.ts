@@ -46,6 +46,7 @@ import { describeAuditLog } from "./audit-descriptions";
 // window.  Belt-and-suspenders alongside the DB partial unique index on pending
 // withdrawals.  Single-process only — sufficient for Replit deployments.
 const _withdrawalIdempCache = new Map<string, { status: number; body: unknown; expiresAt: number }>();
+const _convertIdempCache = new Map<string, { body: unknown; expiresAt: number }>();
 setInterval(() => {
   const now = Date.now();
   _withdrawalIdempCache.forEach((v, k) => {
