@@ -456,15 +456,102 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   // business secrets.
   app.get("/api/config/public", async (_req, res) => {
     try {
-      const [txPointsPerPkr, withdrawalFeePct, minPayout, dailyEarningsGoalPkr] = await Promise.all([
+      const [txPointsPerPkr, withdrawalFeePct, minPayout, dailyEarningsGoalPkr, convertMinRs] = await Promise.all([
         storage.getSystemConfigValue<number>("TX_POINTS_PER_PKR", 10),
         storage.getSystemConfigValue<number>("WITHDRAWAL_FEE_PCT", 15),
         storage.getSystemConfigValue<number>("MIN_PAYOUT", 500),
         storage.getSystemConfigValue<number>("DAILY_EARNINGS_GOAL_PKR", 50),
+        storage.getSystemConfigValue<number>("CONVERT_MIN_RS", 100),
       ]);
-      res.json({ txPointsPerPkr, conversionRate: txPointsPerPkr, minPayout, platformName: "THORX", withdrawalFeePct, dailyEarningsGoalPkr });
+      res.json({ txPointsPerPkr, conversionRate: txPointsPerPkr, minPayout, platformName: "THORX", withdrawalFeePct, dailyEarningsGoalPkr, convertMinRs });
     } catch (error) {
-      res.json({ txPointsPerPkr: 10, conversionRate: 10, minPayout: 500, platformName: "THORX", withdrawalFeePct: 15, dailyEarningsGoalPkr: 50 });
+      res.json({ txPointsPerPkr: 10, conversionRate: 10, minPayout: 500, platformName: "THORX", withdrawalFeePct: 15, dailyEarningsGoalPkr: 50, convertMinRs: 100 });
+    }
+  });
+
+  // ── Convert — PKR → TX-Points (server-authoritative, ledger-safe) ─────────
+  app.get("/api/convert/preview", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req);
+      if (!userId) return res.status(401).json({ error: "NO_SESSION" });
+      const amount = parseInt(String(req.query.amount ?? ""), 10);
+      if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: "INVALID_INPUT" });
+
+      const rate = await storage.getSystemConfigValue<number>("TX_POINTS_PER_PKR", 10);
+      const preview = await storage.previewConvertPkrToPoints({ userId, amountRs: amount, rate });
+      res.json({ ...preview, rate, minRs: await storage.getSystemConfigValue<number>("CONVERT_MIN_RS", 100) });
+    } catch (error) {
+      logger.error({ err: error }, "[Convert] Preview failed");
+      res.status(500).json({ error: "INTERNAL_ERROR" });
+    }
+  });
+
+  app.post("/api/convert", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = getThorxPrincipalId(req);
+      if (!userId) return res.status(401).json({ error: "NO_SESSION" });
+
+      const parsed = z.object({
+        amount: z.number().int().min(1).max(10_000_000),
+        idempotencyKey: z.string().min(8).max(64).optional(),
+      }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "INVALID_INPUT" });
+
+      const { amount, idempotencyKey } = parsed.data;
+      // Idempotent replay — same user+key returns the cached 200 (H-01 pattern).
+      if (idempotencyKey) {
+        const cached = _convertIdempCache.get(`${userId}:${idempotencyKey}`);
+        if (cached && cached.expiresAt > Date.now()) {
+          return res.status(200).json(cached.body);
+        }
+      }
+
+      const rate = await storage.getSystemConfigValue<number>("TX_POINTS_PER_PKR", 10);
+      const minRs = await storage.getSystemConfigValue<number>("CONVERT_MIN_RS", 100);
+      if (amount < minRs) {
+        return res.status(400).json({ error: "BELOW_MINIMUM", message: `Minimum conversion is Rs.${minRs}.` });
+      }
+
+      const result = await storage.convertPkrToPoints({ userId, amountRs: amount, rate });
+
+      try {
+        await storage.createAuditLog({
+          adminId: userId,
+          actorRole: req.userProfile?.role,
+          action: "BALANCE_CONVERTED",
+          targetType: "user",
+          targetId: userId,
+          details: { amountRs: amount, pointsCredited: result.pointsCredit, pointsReleased: result.pointsReleased, rate },
+        }, getRequestContext(req));
+      } catch (auditErr) {
+        logger.error({ err: auditErr }, "[Convert] Audit log error");
+      }
+
+      const responseBody = {
+        success: true,
+        pkrConverted: result.pkrConverted,
+        pointsCredit: result.pointsCredit,
+        pointsReleased: result.pointsReleased,
+        netPoints: result.netPoints,
+        availableBalance: result.availableBalance,
+        txPointsBalance: result.txPointsBalance,
+        message: `Converted Rs.${result.pkrConverted} into ${result.pointsCredit.toLocaleString()} TX-Points.`,
+      };
+      if (idempotencyKey) {
+        _convertIdempCache.set(`${userId}:${idempotencyKey}`, {
+          body: responseBody,
+          expiresAt: Date.now() + 60_000,
+        });
+      }
+      logger.info({ userId, amount, points: result.pointsCredit }, "[Convert] Converted");
+      res.status(200).json(responseBody);
+    } catch (error: any) {
+      const msg = String(error?.message ?? "");
+      if (msg.startsWith("INSUFFICIENT_BALANCE")) return res.status(400).json({ error: "INSUFFICIENT_BALANCE", message: msg.split(": ")[1] });
+      if (msg.startsWith("INSUFFICIENT VERIFIED")) return res.status(400).json({ error: "INSUFFICIENT_VERIFIED", message: "Your verified balance cannot back this conversion yet." });
+      if (msg.startsWith("INVALID_AMOUNT")) return res.status(400).json({ error: "INVALID_INPUT" });
+      logger.error({ err: error }, "[Convert] Conversion failed");
+      res.status(500).json({ error: "INTERNAL_ERROR" });
     }
   });
 
