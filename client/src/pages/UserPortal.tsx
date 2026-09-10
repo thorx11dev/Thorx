@@ -1,8 +1,5 @@
-import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+﻿import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { retryLazy } from "@/lib/retryLazy";
-const StoreSection = retryLazy(() =>
-  import("@/components/store/StoreSection").then((m) => ({ default: m.default }))
-);
 const PayoutSection = retryLazy(() =>
   import("@/features/user-portal/sections/PayoutSection").then((m) => ({ default: m.PayoutSection }))
 );
@@ -61,11 +58,11 @@ const ScratchCardModal = retryLazy(() =>
 );
 import { DEV_UNLOCK_PAYOUT } from "@/lib/previewAccess";
 
-// ─── Module prefetch (dev-proxy resilience) ──────────────────────────────────
+// â”€â”€â”€ Module prefetch (dev-proxy resilience) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // The dev proxy occasionally drops a dynamically imported module request
-// ("Failed to fetch dynamically imported module: …"). A browser's module map
+// ("Failed to fetch dynamically imported module: â€¦"). A browser's module map
 // caches every module once loaded, so pre-warming all lazy chunks right after
-// the portal boots means React.lazy later resolves from memory — zero network
+// the portal boots means React.lazy later resolves from memory â€” zero network
 // fetches when a section or modal is opened. Proxy hiccups then can't break
 // navigation. Best-effort: prefetch failures are ignored; retryLazy still
 // guards the actual lazy() call if it ever genuinely needs the network.
@@ -81,7 +78,6 @@ const PORTAL_LAZY_MODULES = [
   () => import("@/components/ui/ad-web-panel"),
   () => import("@/components/ui/notification-modal"),
   () => import("@/components/guild/ScratchCardModal"),
-  () => import("@/components/store/StoreSection"),
 ];
 
 function prefetchPortalModules() {
@@ -89,7 +85,7 @@ function prefetchPortalModules() {
   PORTAL_LAZY_MODULES.forEach((load, i) => {
     window.setTimeout(() => {
       load().catch(() => {
-        /* best-effort — retryLazy covers real usage */
+        /* best-effort â€” retryLazy covers real usage */
       });
     }, i * 120);
   });
@@ -118,7 +114,7 @@ const DEV_MOCK_PREVIEW = {
 };
 import { formatPoints } from "@/lib/formatPoints";
 import { useLocation } from "wouter";
-import { LogOut, ArrowRight, ArrowLeft, PieChart, Copy, Download, Home, Briefcase, User, Castle, Settings, Network, Landmark, Headphones, Bell, Trophy, Menu, ShoppingBag } from "lucide-react";
+import { LogOut, ArrowRight, ArrowLeft, PieChart, Copy, Download, Home, Briefcase, User, Castle, Settings, Network, Landmark, Headphones, Bell, Trophy, Menu } from "lucide-react";
 
 
 const GUEST_USER: AuthUser = {
@@ -236,13 +232,12 @@ const sections = [
   { id: "work", name: "Work", icon: Briefcase },
   { id: "referrals", name: "Team", icon: Network },
   { id: "guild", name: "Guild", icon: Castle },
-  { id: "store", name: "Store", icon: ShoppingBag },
   { id: "payout", name: "Payout", icon: Landmark },
   { id: "help", name: "Help", icon: Headphones },
   { id: "ranks", name: "Chart", icon: Trophy },
 ];
 
-// CPX notification host — shares the ["/api/surveys"] query cache with the
+// CPX notification host â€” shares the ["/api/surveys"] query cache with the
 // Work tab's SurveyWallPanel (one request serves both). Renders the Design 4
 // popup only when the server returns live CPX config (configured + eligible
 // + under daily cap).
@@ -274,7 +269,7 @@ export default function UserPortal() {
     }
   }, [user?.id]);
 
-  // Manual data sync — invalidates every user-portal query so each section
+  // Manual data sync â€” invalidates every user-portal query so each section
   // refetches on demand (per-section SYNC buttons) without a hard reload.
   // Returns a promise so SYNC buttons keep the "SYNCING" state until the
   // refetch actually completes.
@@ -287,8 +282,8 @@ export default function UserPortal() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earningsHistory }),
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.earningsBreakdown }),
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.referrals }),
-      // DashboardCards uses this separate key for the referral-count card —
-      // ["referrals"] does NOT prefix-match ["/api/referrals", …].
+      // DashboardCards uses this separate key for the referral-count card â€”
+      // ["referrals"] does NOT prefix-match ["/api/referrals", â€¦].
       queryClient.invalidateQueries({ queryKey: ["/api/referrals", "dashboard-card"] }),
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.referralsLeaderboard }),
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.commissions }),
@@ -426,7 +421,7 @@ export default function UserPortal() {
   });
 
   // Real (non-synthetic) engine breakdown for the Earnings Breakdown pie
-  // chart — sourced from the immutable user_transactions ledger server-side.
+  // chart â€” sourced from the immutable user_transactions ledger server-side.
   const { data: earningsBreakdownData } = useQuery({
     queryKey: QUERY_KEYS.earningsBreakdown,
     queryFn: async () => {
@@ -460,8 +455,8 @@ export default function UserPortal() {
   const MIN_PAYOUT = parseFloat(sysConfig?.["MIN_PAYOUT"] ?? "500");
   const WITHDRAWAL_FEE_PERCENT = parseFloat(sysConfig?.["WITHDRAWAL_FEE_PCT"] ?? "15");
   const REFERRAL_FEE_SHARE_PERCENT = parseFloat(sysConfig?.["REFERRAL_FEE_SHARE_PCT"] ?? "50");
-  // v4: fixed conversion — TX-Points per Rs.1 (default 10). One rate everywhere,
-  // edited from Team Portal → Settings. NO per-page math, NO variance.
+  // v4: fixed conversion â€” TX-Points per Rs.1 (default 10). One rate everywhere,
+  // edited from Team Portal â†’ Settings. NO per-page math, NO variance.
   const TX_POINTS_PER_PKR = parseFloat(sysConfig?.["TX_POINTS_PER_PKR"] ?? "10");
 
   const commissions = commissionsData?.commissions || [];
@@ -491,14 +486,14 @@ export default function UserPortal() {
   // REAL-TIME ANALYTICS DATA QUERIES
   // ============================================
 
-  // Public platform config — conversionRate, fee pct, daily earnings goal (configurable via admin)
+  // Public platform config â€” conversionRate, fee pct, daily earnings goal (configurable via admin)
   const { data: publicConfig } = useQuery({
     queryKey: QUERY_KEYS.publicConfig,
     queryFn: async () => {
       const res = await apiRequest("GET", "/api/config/public");
       return res.json() as Promise<{ conversionRate: number; platformName: string; withdrawalFeePct: number; dailyEarningsGoalPkr: number }>;
     },
-    staleTime: 5 * 60 * 1000, // Re-fetch every 5 min — changes are rare
+    staleTime: 5 * 60 * 1000, // Re-fetch every 5 min â€” changes are rare
   });
 
   // Dashboard statistics - comprehensive real-time data
@@ -555,7 +550,7 @@ export default function UserPortal() {
 
   const userRank = (user?.userRankTier || "E-Rank").toLowerCase();
 
-  // Payout is always open — no task gate (Blueprint v2026)
+  // Payout is always open â€” no task gate (Blueprint v2026)
   const adsWatchedTodayCount = todayAdViews?.count || 0;
 
   const { data: withdrawalsHistory, error: withdrawalsError } = useQuery<any>({
@@ -568,7 +563,7 @@ export default function UserPortal() {
       }
       return await response.json();
     },
-    enabled: currentSection === 5 && !!user && user.id !== 'guest',
+    enabled: currentSection === 4 && !!user && user.id !== 'guest',
     retry: false,
   });
 
@@ -582,7 +577,7 @@ export default function UserPortal() {
     enabled: !!user,
   });
 
-  // Scratch card reveal state — shown after an ad-view earn event resolves
+  // Scratch card reveal state â€” shown after an ad-view earn event resolves
   const [scratchCardBreakdown, setScratchCardBreakdown] = useState<ScratchCardBreakdown | null>(null);
   const [showScratchCard, setShowScratchCard] = useState(false);
 
@@ -698,7 +693,7 @@ export default function UserPortal() {
     email: "",
     iban: ""
   });
-  // Audit finding 1-J: field-level validation errors — shown on blur so the
+  // Audit finding 1-J: field-level validation errors â€” shown on blur so the
   // user gets immediate inline hints instead of a server-side round-trip error.
   const [paymentErrors, setPaymentErrors] = useState<{ name?: string; number?: string; email?: string }>({});
 
@@ -744,7 +739,7 @@ export default function UserPortal() {
     return () => clearTimeout(t);
   }, [currentStep]);
 
-  // Phase 9.1: Timeframe breakdown — shows how many TX-Points the user has
+  // Phase 9.1: Timeframe breakdown â€” shows how many TX-Points the user has
   // in each window without revealing PKR until step 3.
   const { data: timeframeBreakdown } = useQuery<{
     today: { points: number; exactPkr: number; platformFee: number; netPkr: number };
@@ -771,9 +766,9 @@ export default function UserPortal() {
     { key: "allTime", label: "All Time" },
   ];
 
-  // v4: live withdrawal preview — the amount the user types is REAL PKR;
+  // v4: live withdrawal preview â€” the amount the user types is REAL PKR;
   // the exact fee/net breakdown is computed server-side (never client-side),
-  // so we fetch it before letting the user confirm (Spec §13).
+  // so we fetch it before letting the user confirm (Spec Â§13).
   const withdrawPkrRequested = parseFloat(withdrawAmount || "0");
   const { data: withdrawalPreview, isLoading: isPreviewLoading, error: withdrawalPreviewError } = useQuery<{
     exactPkr: number; platformFee: number; feePercent: number; referralCommission: number;
@@ -1011,7 +1006,7 @@ export default function UserPortal() {
 
   const displayUser: AuthUser = user ?? GUEST_USER;
 
-  // Single source of truth for the referral code/link — every copy/share/display
+  // Single source of truth for the referral code/link â€” every copy/share/display
   // path below reads from these two so none of them can independently regress
   // into showing a literal "undefined" (e.g. THORX-2311/audit finding).
   const referralCode = displayUser?.referralCode || "";
@@ -1023,7 +1018,7 @@ export default function UserPortal() {
   // needs to trust/copy) is marked shrink-0 and always stays fully visible.
   const referralLinkHost = window.location.origin.replace(/^https?:\/\//, "");
 
-  // THORX v3 (spec F.10): Engine B locked-state inputs — mirrors PSProgressCard's
+  // THORX v3 (spec F.10): Engine B locked-state inputs â€” mirrors PSProgressCard's
   // PS_THRESHOLDS (C-Rank requires 3000 PS).
   const engineBUserRankTier = (displayUser as any)?.userRankTier || "E-Rank";
   const engineBPerformanceScore = Number((displayUser as any)?.performanceScore || 0);
@@ -1065,10 +1060,10 @@ export default function UserPortal() {
 
   const getAdTypeIcon = (type: string) => {
     switch (type) {
-      case 'video': return '🎥';
-      case 'banner': return '📰';
-      case 'interactive': return '🎮';
-      default: return '📺';
+      case 'video': return 'ðŸŽ¥';
+      case 'banner': return 'ðŸ“°';
+      case 'interactive': return 'ðŸŽ®';
+      default: return 'ðŸ“º';
     }
   };
 
@@ -1115,7 +1110,7 @@ export default function UserPortal() {
       { date: 'Sun', earnings: 0, ads: 0, tasks: 0 }
     ];
 
-  // Real earnings breakdown — every slice is a real, ledger-backed PKR amount,
+  // Real earnings breakdown â€” every slice is a real, ledger-backed PKR amount,
   // never an estimated or synthetically-split figure (Engine A / Engine B /
   // Guild Pool come straight from the immutable user_transactions ledger via
   // /api/earnings/breakdown; Referrals is the same real source used by the
@@ -1147,7 +1142,7 @@ export default function UserPortal() {
       { name: 'Guild', amount: guildPoolEarnings, color: chartColors.tertiary },
     ];
 
-    // No real earnings yet — show an honest empty state instead of a
+    // No real earnings yet â€” show an honest empty state instead of a
     // fabricated distribution.
     if (total <= 0) {
       return categories.map(c => ({ name: c.name, value: 0, color: c.color }));
@@ -1163,13 +1158,13 @@ export default function UserPortal() {
   const earningTypesData = calculateEarningsBreakdown();
   const hasEarningsBreakdownData = earningTypesData.some(entry => entry.value > 0);
 
-  // PKR earnings target — fetched from system_config (DAILY_EARNINGS_GOAL_PKR),
+  // PKR earnings target â€” fetched from system_config (DAILY_EARNINGS_GOAL_PKR),
   // admin-configurable. Falls back to 50 while the config loads.
   const dailyEarningsGoalPkr = publicConfig?.dailyEarningsGoalPkr ?? 50;
   const currentProgress = parseFloat(displayUser?.totalEarnings || '0.00');
   const progressPercentage = Math.min((currentProgress / dailyEarningsGoalPkr) * 100, 100);
 
-  // Ad daily limit — reads from dashboardStats which pulls MAX_ADS_PER_DAY
+  // Ad daily limit â€” reads from dashboardStats which pulls MAX_ADS_PER_DAY
   // from system_config, so admin changes propagate to the UI within 30 s.
   const adsDailyLimit = dashboardStats?.dailyGoal || 20;
   const remainingAds = Math.max(0, adsDailyLimit - adsWatchedTodayCount);
@@ -1207,7 +1202,6 @@ export default function UserPortal() {
                 { title: sections[4].name, icon: sections[4].icon },
                 { title: sections[5].name, icon: sections[5].icon },
                 { title: sections[6].name, icon: sections[6].icon },
-                { title: sections[7].name, icon: sections[7].icon },
               ]}
             />
           </div>
@@ -1271,7 +1265,7 @@ export default function UserPortal() {
               disabled={currentSection === 0}
               data-testid="button-prev-section"
             >
-              ←
+              â†
             </button>
             <button
               onClick={nextSection}
@@ -1279,7 +1273,7 @@ export default function UserPortal() {
               disabled={currentSection === sections.length - 1}
               data-testid="button-next-section"
             >
-              →
+              â†’
             </button>
           </div>
         </div >
@@ -1353,19 +1347,6 @@ export default function UserPortal() {
           )}
           {currentSection === 4 && (
             <motion.section
-              key="section-store"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="cinematic-section active"
-              data-testid="section-store"
-            >
-              <Suspense fallback={null}><StoreSection /></Suspense>
-            </motion.section>
-          )}
-          {currentSection === 5 && (
-            <motion.section
               key="section-payout"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1377,7 +1358,7 @@ export default function UserPortal() {
               <Suspense fallback={null}><PayoutSection isPayoutHeroToggled={isPayoutHeroToggled} setIsPayoutHeroToggled={setIsPayoutHeroToggled} handleHeroToggle={handleHeroToggle} toast={toast} withdrawalsHistory={withdrawalsHistory} currentStep={currentStep} setCurrentStep={setCurrentStep} withdrawalKey={withdrawalKey} setWithdrawalKey={setWithdrawalKey} withdrawAmount={withdrawAmount} setWithdrawAmount={setWithdrawAmount} selectedMethod={selectedMethod} setSelectedMethod={setSelectedMethod} paymentDetails={paymentDetails} setPaymentDetails={setPaymentDetails} isProcessing={isProcessing} setIsProcessing={setIsProcessing} showHistory={showHistory} setShowHistory={setShowHistory} step3MinDisplayElapsed={step3MinDisplayElapsed} withdrawalPreview={withdrawalPreview} isPreviewLoading={isPreviewLoading} withdrawalPreviewError={withdrawalPreviewError} WITHDRAWAL_FEE_PERCENT={WITHDRAWAL_FEE_PERCENT} isConfigLoading={isConfigLoading} navigateToSection={navigateToSection} DEV_MOCK_PREVIEW={DEV_MOCK_PREVIEW} queryClient={queryClient} formatDate={formatDate} /></Suspense>
             </motion.section>
           )}
-          {currentSection === 6 && (
+          {currentSection === 5 && (
             <motion.section
               key="section-help"
               initial={{ opacity: 0, y: 10 }}
@@ -1390,7 +1371,7 @@ export default function UserPortal() {
               <Suspense fallback={null}><HelpSection isHelpHeroToggled={isHelpHeroToggled} setIsHelpHeroToggled={setIsHelpHeroToggled} handleHeroToggle={handleHeroToggle} activeHelpTab={activeHelpTab} setActiveHelpTab={setActiveHelpTab} contactForm={contactForm} setContactForm={setContactForm} handleContactSubmit={handleContactSubmit} isContactSubmitting={isContactSubmitting} isMobile={isMobile} /></Suspense>
             </motion.section>
           )}
-          {currentSection === 7 && (
+          {currentSection === 6 && (
             <motion.section
               key="section-ranks"
               initial={{ opacity: 0, y: 10 }}
@@ -1449,7 +1430,7 @@ export default function UserPortal() {
       {/* Beta trust layer: mandatory honesty-rules acknowledgment + floating feedback */}
       <BetaTrustLayer user={displayUser as any} />
 
-      {/* CPX notification popup (Design 4, bottom-right) — portal-wide survey
+      {/* CPX notification popup (Design 4, bottom-right) â€” portal-wide survey
           nudge; renders nothing unless /api/surveys returns live CPX config. */}
       <Suspense fallback={null}>
         <CpxNotificationHost />

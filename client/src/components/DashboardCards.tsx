@@ -1,15 +1,15 @@
-/**
- * DashboardCards — THORX v3 (spec F.2, Phase 3 redesign — locked to 3 cards)
+﻿/**
+ * DashboardCards â€” THORX v3 (spec F.2, Phase 3 redesign â€” locked to 3 cards)
  *
  * Every role (simple user, guild member, captain) sees EXACTLY the same 3
- * primary metric cards, in the same order, with identical markup — never
+ * primary metric cards, in the same order, with identical markup â€” never
  * more, never fewer, regardless of rank/tier/guild role:
  *   1. TX-Points
  *   2. Referrals (total referral count)
  *   3. Performance Rank (PS Score)
  *
  * Role-specific detail (guild progress, team roster, pending requests,
- * captain earnings, weekly contribution, etc.) is NOT duplicated here — it
+ * captain earnings, weekly contribution, etc.) is NOT duplicated here â€” it
  * lives in the dedicated Engine C / Guild views (GuildDiscoveryPanel,
  * GuildMemberPanel, CaptainPortal), which every role can already reach from
  * the portal's Guild tab. Nothing is lost by keeping this grid to 3 cards.
@@ -17,7 +17,7 @@
  * Invariant 3: "Vault" / "Locked Points" must NEVER appear in this component's
  * rendered text. Approved user-facing terms: "Guild Weekly Bonus Pool" / "Sunday Bonus".
  * Invariant 1-A/1-B: raw Rs. (PKR) amounts must only appear inside the
- * Conversion Room / payout flow — headline figures here use TX-Points instead.
+ * Conversion Room / payout flow â€” headline figures here use TX-Points instead.
  */
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -28,8 +28,6 @@ import { QUERY_KEYS } from "@/lib/queryKeys";
 import { Skeleton } from "@/components/ui/skeleton";
 import TechnicalLabel from "@/components/ui/technical-label";
 import { cn } from "@/lib/utils";
-import { useStore } from "@/lib/store-api";
-import { COMPONENT_VARIANT_DEFS } from "@/lib/store-registry";
 
 function CardShell({ children, className, testId }: { children: React.ReactNode; className?: string; testId?: string }) {
   return (
@@ -45,37 +43,22 @@ function CardShell({ children, className, testId }: { children: React.ReactNode;
   );
 }
 
-function CardHead({ label, className }: { label: string; className?: string }) {
+function CardHead({ label }: { label: string }) {
   return (
     <div className="flex items-start justify-between mb-5">
-      <TechnicalLabel text={label} className={cn("text-muted-foreground text-xs pt-1", className)} />
+      <TechnicalLabel text={label} className="text-muted-foreground text-xs pt-1" />
     </div>
   );
 }
 
-/**
- * Store integration: resolves the user's ACTIVE dashboard_cards variant from
- * /api/store and maps it to className overlays. Layout/limits use !important
- * overrides only — responsive behavior and content stay intact. Absent or
- * unowned variants fall back to Thorx classic.
- */
-function useDashboardCardVariant(): { card: string; head: string; value: string } | null {
-  const { data } = useStore();
-  const activeId = data?.active.components?.dashboard_cards;
-  if (!activeId) return null;
-  const item = data?.items.find((i) => i.id === activeId && i.owned);
-  const def = item ? COMPONENT_VARIANT_DEFS[item.refKey] : null;
-  if (!def || def.componentType !== "dashboard_cards") return null;
-  return { card: def.cardClass, head: def.headClass, value: def.valueClass };
-}
 
 export function DashboardCards() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  // REAL PKR ECONOMY v4 (Spec §24): real money is the PRIMARY representation.
+  // REAL PKR ECONOMY v4 (Spec Â§24): real money is the PRIMARY representation.
   // Card 1 = Available + Pending PKR; Card 2 = TX-Points with the fixed
   // conversion caption; Card 3 = referrals; Card 4 = PS rank. All values come
-  // from the server user object — the client never computes money.
+  // from the server user object â€” the client never computes money.
   const availablePkr = parseFloat((user as any)?.availableBalance ?? "0") || 0;
   const pendingPkr = parseFloat((user as any)?.pendingBalance ?? "0") || 0;
   const txPoints = (user as any)?.txPointsBalance ?? 0;
@@ -92,22 +75,17 @@ export function DashboardCards() {
     },
   });
 
-  // Active store variant (may be null = Thorx classic).
-  const variant = useDashboardCardVariant();
-  const cardCls = variant?.card;
-  const headCls = variant?.head;
-  const valueCls = variant?.value;
 
   return (
-    // Desktop layout (2×2): Rs → Referrals on top row, TX-Points → PS below.
+    // Desktop layout (2Ã—2): Rs â†’ Referrals on top row, TX-Points â†’ PS below.
     // lg:order-* re-orders the grid without changing the mobile stacking
     // order (single column keeps: Rs, TX-Points, Referrals, PS).
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-12">
-      {/* Balance card has no head label (removed by design) — vertically
+      {/* Balance card has no head label (removed by design) â€” vertically
           center its content so the number aligns with the labeled siblings
           instead of hugging the card's top edge. */}
-      <CardShell testId="card-real-balance" className={cn("lg:order-1 flex flex-col justify-center", cardCls)}>
-        <p className={cn("text-3xl md:text-4xl font-black text-primary tracking-tighter", valueCls)}>
+      <CardShell testId="card-real-balance" className="lg:order-1 flex flex-col justify-center">
+        <p className="text-3xl md:text-4xl font-black text-primary tracking-tighter">
           Rs. {availablePkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
         <p className="mt-1.5 text-xs font-bold text-muted-foreground" data-testid="pending-balance-line">
@@ -115,14 +93,14 @@ export function DashboardCards() {
         </p>
       </CardShell>
 
-      <CardShell testId="card-tx-points" className={cn("lg:order-3", cardCls)}>
-        <CardHead label="TX-POINTS" className={headCls} />
-        <p className={cn("text-3xl md:text-4xl font-black text-foreground mb-1 tracking-tighter", valueCls)}>{txPoints.toLocaleString()}</p>
+      <CardShell testId="card-tx-points" className="lg:order-3">
+        <CardHead label="TX-POINTS" />
+        <p className="text-3xl md:text-4xl font-black text-foreground mb-1 tracking-tighter">{txPoints.toLocaleString()}</p>
       </CardShell>
 
-      <CardShell testId="card-referral-balance" className={cn("lg:order-2", cardCls)}>
-        <CardHead label="REFERRALS" className={headCls} />
-        <div className={cn("text-3xl md:text-4xl font-black text-foreground mb-1 tracking-tighter", valueCls)}>
+      <CardShell testId="card-referral-balance" className="lg:order-2">
+        <CardHead label="REFERRALS" />
+        <div className="text-3xl md:text-4xl font-black text-foreground mb-1 tracking-tighter">
           {isReferralStatsLoading
             ? <Skeleton className="h-8 w-20 rounded" />
             : isReferralStatsError
