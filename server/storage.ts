@@ -2907,10 +2907,17 @@ export class DatabaseStorage implements IStorage {
       const breakdown = await this.calculateWithdrawalBreakdown(params.userId, amountD, tx);
 
       if (params.dryRun) {
+        const [current] = await tx
+          .select({ balance: users.availableBalance, points: users.txPointsBalance })
+          .from(users)
+          .where(eq(users.id, params.userId))
+          .limit(1);
         return {
-          pointsCredit: amountD.times(params.rate).toDecimalPlaces(0, Decimal.ROUND_DOWN).toNumber(),
+          pointsCredit: pointsCredit,
           pointsReleased: breakdown.pointsReleased,
-          netPoints: 0,
+          netPoints: pointsCredit - breakdown.pointsReleased,
+          availableBalance: current?.balance ?? "0",
+          txPointsBalance: current?.points ?? 0,
         };
       }
 
