@@ -549,7 +549,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     } catch (error: any) {
       const msg = String(error?.message ?? "");
       if (msg.startsWith("INSUFFICIENT_BALANCE")) return res.status(400).json({ error: "INSUFFICIENT_BALANCE", message: msg.split(": ")[1] });
-      if (msg.startsWith("INSUFFICIENT VERIFIED")) return res.status(400).json({ error: "INSUFFICIENT_VERIFIED", message: "Your verified balance cannot back this conversion yet." });
+      if (/^insufficient verified/i.test(msg)) return res.status(400).json({ error: "INSUFFICIENT_VERIFIED", message: "Your verified balance cannot back this conversion yet." });
       if (msg.startsWith("INVALID_AMOUNT")) return res.status(400).json({ error: "INVALID_INPUT" });
       logger.error({ err: error }, "[Convert] Conversion failed");
       res.status(500).json({ error: "INTERNAL_ERROR" });
