@@ -1,5 +1,8 @@
 ﻿import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { retryLazy } from "@/lib/retryLazy";
+const ConvertSection = retryLazy(() =>
+  import("@/components/convert/ConvertSection").then((m) => ({ default: m.default }))
+);
 const PayoutSection = retryLazy(() =>
   import("@/features/user-portal/sections/PayoutSection").then((m) => ({ default: m.PayoutSection }))
 );
@@ -68,6 +71,7 @@ import { DEV_UNLOCK_PAYOUT } from "@/lib/previewAccess";
 // guards the actual lazy() call if it ever genuinely needs the network.
 const PORTAL_LAZY_MODULES = [
   () => import("@/features/user-portal/sections/PayoutSection"),
+  () => import("@/components/convert/ConvertSection"),
   () => import("@/features/user-portal/sections/ReferralsSection"),
   () => import("@/features/user-portal/sections/WorkSection"),
   () => import("@/features/user-portal/sections/DashboardSection"),
@@ -114,7 +118,7 @@ const DEV_MOCK_PREVIEW = {
 };
 import { formatPoints } from "@/lib/formatPoints";
 import { useLocation } from "wouter";
-import { LogOut, ArrowRight, ArrowLeft, PieChart, Copy, Download, Home, Briefcase, User, Castle, Settings, Network, Landmark, Headphones, Bell, Trophy, Menu } from "lucide-react";
+import { LogOut, ArrowRight, ArrowLeft, PieChart, Copy, Download, Home, Briefcase, User, Castle, Settings, Network, Landmark, Headphones, Bell, Trophy, Menu, ArrowLeftRight } from "lucide-react";
 
 
 const GUEST_USER: AuthUser = {
@@ -233,6 +237,7 @@ const sections = [
   { id: "referrals", name: "Team", icon: Network },
   { id: "guild", name: "Guild", icon: Castle },
   { id: "payout", name: "Payout", icon: Landmark },
+  { id: "convert", name: "Convert", icon: ArrowLeftRight },
   { id: "help", name: "Help", icon: Headphones },
   { id: "ranks", name: "Chart", icon: Trophy },
 ];
@@ -1202,6 +1207,7 @@ export default function UserPortal() {
                 { title: sections[4].name, icon: sections[4].icon },
                 { title: sections[5].name, icon: sections[5].icon },
                 { title: sections[6].name, icon: sections[6].icon },
+                { title: sections[7].name, icon: sections[7].icon },
               ]}
             />
           </div>
