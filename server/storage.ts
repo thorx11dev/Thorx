@@ -2563,6 +2563,7 @@ export class DatabaseStorage implements IStorage {
       userNetPkr:             userNetPkr.toFixed(4),
       consumedTransactionIds,
       partialLastRow,
+      pointsReleased:         pointsAccumulatedD.toDecimalPlaces(0, Decimal.ROUND_FLOOR).toNumber(),
     };
   }
 
