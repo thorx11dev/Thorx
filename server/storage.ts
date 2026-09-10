@@ -630,6 +630,16 @@ export interface IStorage {
   activateStoreItem(params: { userId: string; itemId: string }): Promise<{ activeThemeItemId: string | null; activeComponents: Record<string, string> }>;
   deactivateStoreItem(params: { userId: string; itemId: string }): Promise<{ activeThemeItemId: string | null; activeComponents: Record<string, string> }>;
 
+  // ── Convert (PKR → TX-Points) ─────────────────────────────────────────────
+  previewConvertPkrToPoints(params: { userId: string; amountRs: number; rate: number }): Promise<{
+    ok: boolean; reason?: string;
+    pointsCredit: number; pointsReleased: number; netPoints: number;
+  }>;
+  convertPkrToPoints(params: { userId: string; amountRs: number; rate: number }): Promise<{
+    pkrConverted: string; pointsCredit: number; pointsReleased: number; netPoints: number;
+    availableBalance: string; txPointsBalance: number;
+  }>;
+
   // Device Fingerprinting & Email Verification
   createDeviceFingerprint(data: InsertDeviceFingerprint): Promise<DeviceFingerprint>;
   getAccountCountByFingerprint(fingerprintHash: string): Promise<number>;
