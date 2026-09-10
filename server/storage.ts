@@ -143,6 +143,7 @@ import { db } from "./db";
 import { eq, desc, asc, and, or, sql, inArray, ilike, gte, lte, lt, gt, ne, isNotNull, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import { encryptCredential, decryptCredential, isEncrypted } from "./utils/credential-crypto";
 import { inferAuditCategory, type RequestContext } from "./request-context";
 import { describeAuditLog } from "./audit-descriptions";
