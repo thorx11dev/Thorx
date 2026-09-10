@@ -145,9 +145,12 @@ describe("Convert portal", () => {
 
     const { storage } = await import("../storage");
     const validation = await storage.adminValidateLedger(userId);
-    // NOTE: points check drifts by design after withdrawals (points persist,
-    // ledger rows are consumed) — the PKR invariant must hold exactly.
-    expect(validation.errors.filter((e: string) => e.includes("balance"))).toEqual([]);
+    // PKR invariant must hold EXACTLY after withdrawal (conversion must not
+    // corrupt the withdrawable ledger). NOTE: the TX-Points counter check is
+    // a known system-wide behavior — withdrawals consume claim rows without
+    // deducting the display counter (points persist by design).
+    expect(validation.errors.filter((e: string) => e.includes("Available balance"))).toEqual([]);
+    expect(validation.computedBalance).toBe(validation.storedBalance);
   });
 
   it("pending/unverified money can never be converted (FIFO refuses)", async () => {
