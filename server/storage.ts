@@ -895,6 +895,7 @@ export const SYSTEM_CONFIG_DEFAULTS = [
       { key: "SURVEY_USD_TO_PKR_RATE", value: 278, description: "PKR credited per USD 1.00 of publisher payout reported by a survey network" },
       { key: "SURVEY_MAX_PER_DAY", value: 20, description: "Maximum completed surveys a user can be credited for per PKT day" },
       { key: "SURVEY_MIN_RANK", value: "E-Rank", description: "Minimum PS rank tier required to open the survey wall (E-Rank during beta so every user can earn; tighten post-beta)" },
+      { key: "CONVERT_MIN_RS", value: 100, description: "Minimum available RS a user can convert to TX-Points in one Convert transaction (Convert portal)" },
       // ── Beta trust (invite gate + feedback inbox) ────────────────────────
       // Flip BETA_INVITE_REQUIRED to true to close registration behind invite
       // codes minted from Team Portal → Beta Control. The register route and
