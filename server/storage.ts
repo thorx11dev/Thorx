@@ -2862,6 +2862,154 @@ export class DatabaseStorage implements IStorage {
     return await this.upsertCustomization(params.userId, { activeComponents });
   }
 
+  // ══ Convert — turn verified withdrawable PKR into TX-Points (1 RS = rate) ═
+  // Zero-drift by construction, mirroring the withdrawal ledger machinery:
+  //   1. FIFO-consume verified ledger rows backing the amount (same walk the
+  //      payout uses — pending/unverified money can NEVER be converted).
+  //   2. Release those rows' claim-points (they were display claims on money
+  //      that is now surrendered).
+  //   3. Grant flat rate × amount points as a NEW ledger row with
+  //      verificationStatus 'converted' — the FIFO (verified/held only) can
+  //      never consume it, and the points validator (withdrawn=false, no
+  //      status filter) counts it, so BOTH ledger invariants hold exactly:
+  //      availableBalance == Σ unwithdrawn realPkrValue
+  //      txPointsBalance  == Σ unwithdrawn pointsCredited
+  // Net user delta = rate×amount − released-claims (transparent in preview).
+
+  private async convertCore(params: {
+    userId: string; amountRs: number; rate: number; dryRun: boolean;
+  }): Promise<{ pointsCredit: number; pointsReleased: number; netPoints: number }> {
+    const amountD = new Decimal(params.amountRs);
+    if (amountD.isNaN() || !amountD.isFinite() || amountD.lte(0) || !amountD.isInteger()) {
+      throw new Error("INVALID_AMOUNT: conversion amount must be a positive whole number of RS");
+    }
+
+    const execute = async (tx: any) => {
+      // Lock the buyer row — concurrent converts/withdrawals serialize here.
+      const [lockedUser] = await tx
+        .select({ balance: users.availableBalance })
+        .from(users)
+        .where(eq(users.id, params.userId))
+        .for("update");
+      if (!lockedUser) throw new Error("User not found");
+
+      if (new Decimal(lockedUser.balance ?? "0").lt(amountD)) {
+        throw new Error("INSUFFICIENT_BALANCE: not enough available RS");
+      }
+
+      // Ledger coverage (verified money only) — the same audit guarantee the
+      // payout uses. Throws INSUFFICIENT VERIFIED BALANCE when the verified
+      // ledger cannot back the requested amount.
+      const breakdown = await this.calculateWithdrawalBreakdown(params.userId, amountD, tx);
+
+      if (params.dryRun) {
+        return {
+          pointsCredit: amountD.times(params.rate).toDecimalPlaces(0, Decimal.ROUND_DOWN).toNumber(),
+          pointsReleased: breakdown.pointsReleased,
+          netPoints: 0,
+        };
+      }
+
+      // Debit PKR + credit flat-rate points (authoritative balances).
+      const pointsCredit = amountD.times(params.rate).toDecimalPlaces(0, Decimal.ROUND_DOWN).toNumber();
+      const [updatedUser] = await tx
+        .update(users)
+        .set({
+          availableBalance: sql`${users.availableBalance} - ${amountD.toFixed(2)}`,
+          txPointsBalance: sql`${users.txPointsBalance} + ${pointsCredit}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, params.userId))
+        .returning({ balance: users.availableBalance, points: users.txPointsBalance });
+
+      // Consume the backing FIFO rows exactly like processWithdrawal does —
+      // including the split-remainder materialization for partial last rows.
+      if (breakdown.partialLastRow && breakdown.partialLastRow.pkrRemainder !== "0.0000") {
+        const plr = breakdown.partialLastRow;
+        await tx.insert(userTransactions).values({
+          userId: params.userId,
+          engineType: plr.engineType,
+          pointsCredited: plr.pointsRemainder,
+          realPkrValue: plr.pkrRemainder,
+          grossPkr: plr.grossPkr,
+          thorxProfitPkr: plr.thorxProfitPkr ?? null,
+          guildPoolPkr: plr.guildPoolPkr ?? null,
+          conversionRate: plr.conversionRate,
+          cardVariance: plr.cardVariance,
+          sourceId: `convert-split:${plr.originalId}`,
+          sourceType: "split_remainder",
+          withdrawn: false,
+          verificationStatus: "verified",
+          verifiedAt: new Date(),
+        });
+      }
+      if (breakdown.consumedTransactionIds.length > 0) {
+        await tx
+          .update(userTransactions)
+          .set({ withdrawn: true })
+          .where(inArray(userTransactions.id, breakdown.consumedTransactionIds));
+      }
+
+      // Points-only ledger row for the freshly minted points. Status
+      // 'converted' keeps it OUT of every future payout FIFO while the
+      // validator (no status filter) still counts it toward the invariant.
+      const convId = crypto.randomUUID();
+      await tx.insert(userTransactions).values({
+        userId: params.userId,
+        engineType: "Indirect",
+        pointsCredited: pointsCredit,
+        realPkrValue: "0.0000",
+        grossPkr: "0.0000",
+        thorxProfitPkr: "0.0000",
+        guildPoolPkr: null,
+        conversionRate: params.rate,
+        cardVariance: "1.0000",
+        sourceId: convId,
+        sourceType: "conversion",
+        withdrawn: false,
+        verificationStatus: "converted",
+      });
+
+      const pointsReleased = breakdown.pointsReleased;
+      return {
+        pointsCredit,
+        pointsReleased,
+        netPoints: pointsCredit - pointsReleased,
+        availableBalance: updatedUser.balance,
+        txPointsBalance: updatedUser.points,
+      };
+    };
+
+    if (params.dryRun) {
+      return await execute(db);
+    }
+    return await db.transaction(execute);
+  }
+
+  async previewConvertPkrToPoints(params: { userId: string; amountRs: number; rate: number }) {
+    try {
+      const r = await this.convertCore({ ...params, dryRun: true });
+      return { ok: true as const, pointsCredit: r.pointsCredit, pointsReleased: r.pointsReleased, netPoints: r.pointsCredit - r.pointsReleased };
+    } catch (error: any) {
+      const msg = String(error?.message ?? "");
+      const reason = msg.startsWith("INSUFFICIENT") ? msg.split(":")[0] : msg.includes("Ledger") ? "INSUFFICIENT_VERIFIED" : "INVALID";
+      return { ok: false as const, reason, pointsCredit: 0, pointsReleased: 0, netPoints: 0 };
+    }
+  }
+
+  async convertPkrToPoints(params: { userId: string; amountRs: number; rate: number }) {
+    const r = await this.convertCore({ ...params, dryRun: false });
+    logger.info({ userId: params.userId, amount: params.amountRs, points: r.pointsCredit }, "[Convert] PKR → TX-Points");
+    return {
+      pkrConverted: new Decimal(params.amountRs).toFixed(2),
+      pointsCredit: r.pointsCredit,
+      pointsReleased: r.pointsReleased,
+      netPoints: r.netPoints,
+      availableBalance: r.availableBalance,
+      txPointsBalance: r.txPointsBalance,
+    };
+  }
+
 
   async getCheckPendingWithdrawal(userId: string): Promise<Withdrawal | undefined> {
     const [withdrawal] = await db
