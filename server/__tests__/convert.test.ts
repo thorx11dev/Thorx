@@ -136,7 +136,7 @@ describe("Convert portal", () => {
 
     // Withdraw from the remaining verified balance (below MIN_PAYOUT? no — 4000 ≥ 500).
     const wd = await agent.post("/api/withdrawals").send({
-      amount: 1000,
+      amount: "1000",
       method: "jazzcash",
       accountName: "Test Convert",
       accountNumber: "03001234567",
