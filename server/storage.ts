@@ -2404,6 +2404,8 @@ export class DatabaseStorage implements IStorage {
     referrerName: string | null;
     userNetPkr: string;
     consumedTransactionIds: string[];
+    /** Total claim-points belonging to the consumed rows (released on conversion). */
+    pointsReleased: number;
     partialLastRow: {
       originalId: string;
       pointsUsed: number;
