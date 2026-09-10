@@ -2905,6 +2905,7 @@ export class DatabaseStorage implements IStorage {
       // payout uses. Throws INSUFFICIENT VERIFIED BALANCE when the verified
       // ledger cannot back the requested amount.
       const breakdown = await this.calculateWithdrawalBreakdown(params.userId, amountD, tx);
+      const pointsCredit = amountD.times(params.rate).toDecimalPlaces(0, Decimal.ROUND_DOWN).toNumber();
 
       if (params.dryRun) {
         const [current] = await tx
@@ -2922,7 +2923,6 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Debit PKR + credit flat-rate points (authoritative balances).
-      const pointsCredit = amountD.times(params.rate).toDecimalPlaces(0, Decimal.ROUND_DOWN).toNumber();
       const [updatedUser] = await tx
         .update(users)
         .set({
