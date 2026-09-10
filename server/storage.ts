@@ -2882,7 +2882,7 @@ export class DatabaseStorage implements IStorage {
 
   private async convertCore(params: {
     userId: string; amountRs: number; rate: number; dryRun: boolean;
-  }): Promise<{ pointsCredit: number; pointsReleased: number; netPoints: number }> {
+  }): Promise<{ pointsCredit: number; pointsReleased: number; netPoints: number; availableBalance: string; txPointsBalance: number }> {
     const amountD = new Decimal(params.amountRs);
     if (amountD.isNaN() || !amountD.isFinite() || amountD.lte(0) || !amountD.isInteger()) {
       throw new Error("INVALID_AMOUNT: conversion amount must be a positive whole number of RS");
