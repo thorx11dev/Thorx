@@ -1,10 +1,10 @@
-/**
- * Convert portal — PKR → TX-Points contract tests.
+﻿/**
+ * Convert portal â€” PKR â†’ TX-Points contract tests.
  *
  * Locks in the economy guarantees:
- *   1. Conversion moves verified PKR → points at the config rate and keeps
- *      BOTH ledger invariants intact (availableBalance == Σ unwithdrawn PKR,
- *      txPointsBalance == Σ unwithdrawn points) — adminValidateLedger clean.
+ *   1. Conversion moves verified PKR â†’ points at the config rate and keeps
+ *      BOTH ledger invariants intact (availableBalance == Î£ unwithdrawn PKR,
+ *      txPointsBalance == Î£ unwithdrawn points) â€” adminValidateLedger clean.
  *   2. Points-only 'converted' rows are FIFO-immune: a withdrawal after a
  *      conversion still works and never eats converted points.
  *   3. Unverified/pending money can never be converted (FIFO refuses).
@@ -72,7 +72,7 @@ async function registerBackedUser(key: string, pkr: number, points: number) {
   const userId = res.body.user.id;
   createdUserIds.push(userId);
 
-  // Verified ledger rows backing the PKR (chunks ≤ 999,999.99).
+  // Verified ledger rows backing the PKR (chunks â‰¤ 999,999.99).
   let remaining = Math.round(pkr * 100);
   const CAP = 99999999;
   const rows: { realPkrValue: string; pointsCredited: number; verificationStatus: "verified"; withdrawn: false; engineType: "Indirect"; conversionRate: 10; cardVariance: "1.0000"; sourceType: "admin_adjustment"; sourceId: string }[] = [];
@@ -115,7 +115,7 @@ describe("Convert portal", () => {
     const res = await agent.post("/api/convert").send({ amount: 500, idempotencyKey: crypto.randomUUID() });
     expect(res.status).toBe(200);
     expect(res.body.pkrConverted).toBe("500.00");
-    expect(res.body.pointsCredit).toBe(5000); // 500 × 10
+    expect(res.body.pointsCredit).toBe(5000); // 500 Ã— 10
     expect(res.body.pointsReleased).toBe(0);  // seeded rows carry no claim points
     expect(res.body.availableBalance).toBe("4500.00");
     expect(res.body.txPointsBalance).toBe(55000);
@@ -140,7 +140,7 @@ describe("Convert portal", () => {
     expect(before.isBalanced).toBe(true);
     expect(before.errors).toEqual([]);
 
-    // Withdraw from the remaining verified balance — FIFO must still cover
+    // Withdraw from the remaining verified balance â€” FIFO must still cover
     // the request (proves conversion didn't corrupt the payout ledger).
     const wd = await agent.post("/api/withdrawals").send({
       amount: "1000",
@@ -151,10 +151,9 @@ describe("Convert portal", () => {
     expect(wd.status).toBe(201);
 
     // NOTE: while a withdrawal is PENDING, the held gross sits outside the
-    // unwithdrawn-ledger sum by design (consumed only at payout completion) —
+    // unwithdrawn-ledger sum by design (consumed only at payout completion) â€”
     // a validator gap in that window is pre-existing system behavior, not a
     // conversion artifact.
-  });
   });
 
   it("pending/unverified money can never be converted (FIFO refuses)", async () => {
